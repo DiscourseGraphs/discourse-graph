@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   T,
   TLBaseShape,
+  TLShape,
   TldrawUiButton,
   TldrawUiButtonLabel,
   TldrawUiDialogBody,
@@ -13,9 +14,24 @@ import {
   track,
   useEditor,
 } from "tldraw";
-import { isAllowedTextLinkUrl } from "~/components/canvas/utils/textShapeLink";
+import {
+  getTextShapeLinkUrl,
+  isAllowedTextLinkUrl,
+} from "~/components/canvas/utils/textShapeLink";
 
 type ShapeWithUrl = TLBaseShape<string, { url: string }>;
+
+// Text shapes keep their link in `meta` so the stock props schema is untouched;
+// every other shape type uses tldraw's own `props.url`.
+const isTextShape = (shape: TLShape): boolean => shape.type === "text";
+
+const linkPatch = (shape: TLShape, url: string) =>
+  isTextShape(shape) ? { meta: { url } } : { props: { url } };
+
+const readLinkUrl = (shape: TLShape): string =>
+  isTextShape(shape)
+    ? getTextShapeLinkUrl(shape)
+    : (((shape.props as { url?: unknown }).url as string | undefined) ?? "");
 
 // Declared as a function property rather than reusing TLUiDialogProps, whose
 // method-shorthand onClose trips @typescript-eslint/unbound-method.
@@ -42,15 +58,13 @@ export const TextLinkDialog = track(({ onClose }: TextLinkDialogProps) => {
   const editor = useEditor();
   const selectedShape = editor.getOnlySelectedShape();
 
-  if (
-    !(
-      selectedShape &&
-      "url" in selectedShape.props &&
-      typeof selectedShape.props.url === "string"
-    )
-  ) {
-    return null;
-  }
+  const canEditLink =
+    selectedShape &&
+    (isTextShape(selectedShape) ||
+      ("url" in selectedShape.props &&
+        typeof selectedShape.props.url === "string"));
+
+  if (!canEditLink) return null;
 
   return (
     <TextLinkDialogInner
@@ -73,14 +87,15 @@ const TextLinkDialogInner = track(
       editor.timers.requestAnimationFrame(() => rInput.current?.focus());
     }, [editor]);
 
-    const rInitialValue = useRef(selectedShape.props.url);
+    const rInitialValue = useRef(readLinkUrl(selectedShape));
 
     const [urlInputState, setUrlInputState] = useState(() => {
-      const result = validateUrlForShape(selectedShape.props.url, shapeType);
+      const initialUrl = readLinkUrl(selectedShape);
+      const result = validateUrlForShape(initialUrl, shapeType);
       const initialValue = result.isValid
         ? result.hasProtocol
-          ? selectedShape.props.url
-          : `https://${selectedShape.props.url}`
+          ? initialUrl
+          : `https://${initialUrl}`
         : "https://";
       return { actual: initialValue, safe: initialValue, valid: true };
     });
@@ -115,7 +130,7 @@ const TextLinkDialogInner = track(
         {
           id: onlySelectedShape.id,
           type: onlySelectedShape.type,
-          props: { url: "" },
+          ...linkPatch(onlySelectedShape, ""),
         },
       ]);
       onClose();
@@ -131,15 +146,12 @@ const TextLinkDialogInner = track(
       // against the type we opened on.
       if (onlySelectedShape.type !== shapeType) return onClose();
 
-      if (
-        "url" in onlySelectedShape.props &&
-        onlySelectedShape.props.url !== urlInputState.safe
-      ) {
+      if (readLinkUrl(onlySelectedShape) !== urlInputState.safe) {
         editor.updateShapes([
           {
             id: onlySelectedShape.id,
             type: onlySelectedShape.type,
-            props: { url: urlInputState.safe },
+            ...linkPatch(onlySelectedShape, urlInputState.safe),
           },
         ]);
       }

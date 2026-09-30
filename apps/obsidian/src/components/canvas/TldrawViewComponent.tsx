@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  defaultShapeUtils,
   DefaultToolbar,
   DefaultToolbarContent,
   ErrorBoundary,
@@ -51,8 +52,8 @@ import { DragHandleOverlay } from "./overlays/DragHandleOverlay";
 import { NodeCardContextMenu } from "./NodeCardContextMenu";
 import { WHITE_LOGO_SVG } from "~/icons";
 import { CustomContextMenu } from "./CustomContextMenu";
-import { baseShapeUtils } from "~/components/canvas/shapes/baseShapeUtils";
 import { TextLinkDialog } from "~/components/canvas/TextLinkDialog";
+import { TextLinkOverlay } from "~/components/canvas/overlays/TextLinkOverlay";
 import {
   openFileInSidebar,
   openFileInNewTab,
@@ -107,7 +108,7 @@ export const TldrawPreviewComponent = ({
   });
 
   const customShapeUtils = [
-    ...baseShapeUtils,
+    ...defaultShapeUtils,
     createDiscourseNodeUtil({
       app: plugin.app,
       canvasFile: file,
@@ -567,6 +568,7 @@ export const TldrawPreviewComponent = ({
                 <>
                   <RelationsOverlay plugin={plugin} file={file} />
                   <DragHandleOverlay plugin={plugin} file={file} />
+                  <TextLinkOverlay plugin={plugin} />
                 </>
               ),
             }}
