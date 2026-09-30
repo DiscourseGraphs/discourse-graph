@@ -51,6 +51,37 @@
         "label": "/babysit",
         "default_collapsed": true
       }
+    },
+    {
+      "id": "claude-skill-toolu_01DCZMQ1xRuioefwzqvbHtYP",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-obsidian-cdp-verify"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "347bbd81db2e",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 1663,
+        "end": 1664,
+        "entry_ids": [
+          "97d6f3f5-5ac4-476d-a381-021f08a7de5b"
+        ],
+        "tool_use_id": "toolu_01DCZMQ1xRuioefwzqvbHtYP"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01DCZMQ1xRuioefwzqvbHtYP"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-obsidian-cdp-verify",
+        "default_collapsed": true
+      }
     }
   ],
   "initial_attribution": {
