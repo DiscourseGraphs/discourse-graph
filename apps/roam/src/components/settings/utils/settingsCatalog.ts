@@ -92,7 +92,8 @@ export type AuthoredSetting = {
   group?: string;
   description?: string;
   docsLink?: string;
-  /** Synonyms and pre-ENG-2189 section names, so muscle memory still resolves. */
+  /** Synonyms plus the retired Personal/Global tab names, so users searching by the old
+   *  split still find a setting after the move to topic sections. */
   keywords?: readonly string[];
   /** Omitted when the setting lives outside Settings (Export options are in the Export
    *  dialog): still authored for its description, but not offered by search. */
