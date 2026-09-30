@@ -18,3 +18,24 @@
   padding: 0 10px;
   width: 100%;
 }
+.dg-settings-node-page {
+  display: flex;
+  flex-direction: column;
+  gap: 44px;
+  padding: 2px;
+}
+
+/** No row dividers: the only rule on a page is the one under a section heading. */
+
+/* Translucent neutral so the badge reads on Roam's light and dark themes;
+   the label and icon inherit the host foreground rather than a fixed palette. */
+.dg-setting-row__scope {
+  background-color: rgba(138, 155, 168, 0.15);
+  border: 1px solid rgba(138, 155, 168, 0.25);
+}
+
+/* Trailing keycap control: a narrow box whose value reads as a single key. */
+.dg-setting-keycap .bp3-input {
+  text-align: center;
+  font-family: monospace;
+}
