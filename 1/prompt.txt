@@ -225,3 +225,7 @@ can we patch the tldraw to just export that button for us to reuse? or TextLinkD
 
 re: EditLinkDialog has two independent blockers, both structural:
 can we patch the validator functions for url too? this way geo shape would also have the benefit of getting the obsidian url right?
+
+---
+
+prototype C so we can see the real diff
