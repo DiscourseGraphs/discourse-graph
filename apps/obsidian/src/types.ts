@@ -1,5 +1,6 @@
 import { TFile } from "obsidian";
 import { TldrawColorName } from "./utils/tldrawColors";
+import type { Enums } from "@repo/database/dbTypes";
 
 export type DiscourseNode = {
   id: string;
@@ -68,6 +69,7 @@ export type Settings = {
   canvasAttachmentsFolderPath: string;
   nodeTagHotkey: string;
   showHelpMenuStatusBarIcon: boolean;
+  showDiscourseContextOverlay: boolean;
   spacePassword?: string;
   accountLocalId?: string;
   syncModeEnabled?: boolean;
@@ -111,6 +113,8 @@ export type GroupWithNodes = {
   groupName?: string;
   nodes: ImportableNode[];
   authorIds: Set<number>;
+  /** Absent when the space lookup failed. */
+  spacePlatform?: Enums<"Platform">;
 };
 
 export type ImportFolderMetadata = {

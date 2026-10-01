@@ -24,8 +24,10 @@ const RefreshImportedNodeTitleButton = ({
         id: failed
           ? "refresh-imported-node-failed"
           : "refresh-imported-node-success",
-        intent: failed ? "danger" : "success",
-        content: result.message,
+        intent: failed ? "danger" : result.warning ? "warning" : "success",
+        content: result.warning
+          ? `${result.message} ${result.warning}`
+          : result.message,
       });
     } finally {
       setRefreshing(false);

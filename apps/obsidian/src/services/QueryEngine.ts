@@ -10,6 +10,7 @@ import { BulkImportPattern, BulkImportCandidate, DiscourseNode } from "~/types";
 import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormatExpression";
 import { extractContentFromTitle } from "~/utils/extractContentFromTitle";
 import { AppWithUnofficialApis } from "~/utils/obsidianUnofficialTypes";
+import { titleFromTaggedLine } from "~/utils/taggedLine";
 
 // This is a workaround to get the datacore API.
 // TODO: Remove once we can use datacore npm package
@@ -28,6 +29,13 @@ type DatacorePage = {
   $path?: string;
 };
 
+type DatacoreApi = {
+  core?: {
+    initialized?: boolean;
+  };
+  query: (query: string) => DatacorePage[];
+};
+
 export type DiscourseNodeCandidate = {
   file: TFile;
   /**
@@ -38,6 +46,8 @@ export type DiscourseNodeCandidate = {
    */
   title: string;
   nodeTypeId: string;
+  /** Set for candidate nodes: an inline line tagged with a node type's tag. */
+  tagLine?: { line: number; tag: string };
 };
 
 export type RankedDiscourseNode = DiscourseNodeCandidate & {
@@ -46,21 +56,13 @@ export type RankedDiscourseNode = DiscourseNodeCandidate & {
 
 export class QueryEngine {
   private app: App;
-  private dc:
-    | {
-        query: (query: string) => DatacorePage[];
-      }
-    | undefined;
+  private dc: DatacoreApi | undefined;
   private readonly MIN_QUERY_LENGTH = 2;
 
   constructor(app: App) {
     const appWithPlugins = app as AppWithUnofficialApis;
     const datacorePlugin = appWithPlugins.plugins?.plugins?.["datacore"] as
-      | (Plugin & {
-          api: {
-            query: (query: string) => DatacorePage[];
-          };
-        })
+      | (Plugin & { api: DatacoreApi })
       | undefined;
     this.dc = datacorePlugin?.api;
     this.app = app;
@@ -88,6 +90,58 @@ export class QueryEngine {
     return candidates;
   };
 
+  /** One pass over the metadata cache's tag index; only files with a hit are read. */
+  getCandidateNodes = async (
+    nodeTypes: DiscourseNode[],
+  ): Promise<DiscourseNodeCandidate[]> => {
+    const nodeTypeByTag = new Map<
+      string,
+      { nodeType: DiscourseNode; tag: string }
+    >();
+    for (const nodeType of nodeTypes) {
+      if (nodeType.tag) {
+        nodeTypeByTag.set(nodeType.tag.toLowerCase(), {
+          nodeType,
+          tag: nodeType.tag,
+        });
+      }
+    }
+    if (!nodeTypeByTag.size) return [];
+
+    type TagHit = { line: number; nodeType: DiscourseNode; tag: string };
+    const hitsByFile: { file: TFile; hits: TagHit[] }[] = [];
+    for (const file of this.app.vault.getMarkdownFiles()) {
+      const hits: TagHit[] = [];
+      const seen = new Set<string>();
+      for (const tagCache of this.app.metadataCache.getFileCache(file)?.tags ??
+        []) {
+        const match = nodeTypeByTag.get(tagCache.tag.slice(1).toLowerCase());
+        if (!match) continue;
+        const line = tagCache.position.start.line;
+        const key = `${line}:${match.nodeType.id}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        hits.push({ line, ...match });
+      }
+      if (hits.length) hitsByFile.push({ file, hits });
+    }
+
+    const perFile = await Promise.all(
+      hitsByFile.map(async ({ file, hits }) => {
+        // A file deleted or locked mid-scan shouldn't sink the other candidates.
+        const content = await this.app.vault.cachedRead(file).catch(() => "");
+        const lines = content.split("\n");
+        return hits.flatMap(({ line, nodeType, tag }) => {
+          const title = titleFromTaggedLine(lines[line] ?? "");
+          return title
+            ? [{ file, title, nodeTypeId: nodeType.id, tagLine: { line, tag } }]
+            : [];
+        });
+      }),
+    );
+    return perFile.flat();
+  };
+
   /**
    * Search across all discourse nodes (files that have frontmatter nodeTypeId)
    */
@@ -98,15 +152,16 @@ export class QueryEngine {
     if (!query || query.length < this.MIN_QUERY_LENGTH) {
       return [];
     }
-    if (!this.dc) {
-      return [];
+    const datacore = this.getReadyDatacore();
+    if (!datacore) {
+      return this.fallbackSearchDiscourseNodesByTitle(query, nodeTypeId);
     }
 
     try {
       const dcQuery = nodeTypeId
         ? `@page and exists(nodeTypeId) and nodeTypeId = "${nodeTypeId}"`
         : "@page and exists(nodeTypeId)";
-      const potentialNodes = this.dc.query(dcQuery);
+      const potentialNodes = datacore.query(dcQuery);
 
       const searchResults = potentialNodes.filter((p: DatacorePage) =>
         this.fuzzySearch(p.$name, query),
@@ -125,7 +180,7 @@ export class QueryEngine {
       return files.reverse();
     } catch (error) {
       console.error("Error in searchDiscourseNodesByTitle:", error);
-      return [];
+      return this.fallbackSearchDiscourseNodesByTitle(query, nodeTypeId);
     }
   };
 
@@ -133,23 +188,25 @@ export class QueryEngine {
    * Search across all discourse nodes that have nodeInstanceId
    */
   getDiscourseNodeById = (nodeInstanceId: string): TFile | null => {
-    if (!this.dc) {
-      return null;
-    }
-
     if (!nodeInstanceId.match(/^[-.+\w]+$/)) {
       console.error("Malformed id:", nodeInstanceId);
       return null;
     }
+
+    const datacore = this.getReadyDatacore();
+    if (!datacore) {
+      return this.fallbackGetDiscourseNodeById(nodeInstanceId);
+    }
+
     try {
       const dcQuery = `@page and exists(nodeInstanceId) and nodeInstanceId = "${nodeInstanceId}"`;
-      const potentialNodes = this.dc.query(dcQuery);
+      const potentialNodes = datacore.query(dcQuery);
       const path = potentialNodes.at(0)?.$path;
       if (!path) return null;
       return this.app.vault.getFileByPath(path);
     } catch (error) {
       console.error("Error in searchDiscourseNodeById:", error);
-      return null;
+      return this.fallbackGetDiscourseNodeById(nodeInstanceId);
     }
   };
 
@@ -167,8 +224,14 @@ export class QueryEngine {
     if (!query || query.length < this.MIN_QUERY_LENGTH) {
       return [];
     }
-    if (!this.dc) {
-      return [];
+    const datacore = this.getReadyDatacore();
+    if (!datacore) {
+      return this.fallbackSearchCompatibleNodeByTitle({
+        query,
+        compatibleNodeTypeIds,
+        activeFile,
+        selectedRelationType,
+      });
     }
 
     try {
@@ -176,7 +239,7 @@ export class QueryEngine {
         .map((id) => `nodeTypeId = "${id}"`)
         .join(" or ")}`;
 
-      const potentialNodes = this.dc.query(dcQuery);
+      const potentialNodes = datacore.query(dcQuery);
       const searchResults = potentialNodes.filter((p: DatacorePage) => {
         return this.fuzzySearch(p.$name, query);
       });
@@ -224,7 +287,12 @@ export class QueryEngine {
       return finalResults;
     } catch (error) {
       console.error("Error in searchNodeByTitle:", error);
-      return [];
+      return this.fallbackSearchCompatibleNodeByTitle({
+        query,
+        compatibleNodeTypeIds,
+        activeFile,
+        selectedRelationType,
+      });
     }
   };
 
@@ -284,7 +352,8 @@ export class QueryEngine {
   ): BulkImportCandidate[] {
     const candidates: BulkImportCandidate[] = [];
 
-    if (!this.dc) {
+    const datacore = this.getReadyDatacore();
+    if (!datacore) {
       return this.fallbackScanVault(patterns, validNodeTypes);
     }
 
@@ -301,7 +370,7 @@ export class QueryEngine {
         dcQuery = `@page and (!exists(nodeTypeId) or (${validIdConditions}))`;
       }
 
-      const potentialPages = this.dc.query(dcQuery);
+      const potentialPages = datacore.query(dcQuery);
 
       for (const page of potentialPages) {
         const fileName = page.$name;
@@ -358,10 +427,11 @@ export class QueryEngine {
    * Uses DataCore when available; falls back to vault iteration otherwise.
    */
   getImportedNodePages = (): TFile[] => {
-    if (this.dc) {
+    const datacore = this.getReadyDatacore();
+    if (datacore) {
       try {
         const dcQuery = `@page and path("import") and exists(importedFromRid) and exists(nodeInstanceId)`;
-        const pages = this.dc.query(dcQuery);
+        const pages = datacore.query(dcQuery);
         const files: TFile[] = [];
         for (const page of pages) {
           if (page.$path) {
@@ -382,10 +452,11 @@ export class QueryEngine {
    * Uses DataCore when available; falls back to vault iteration otherwise.
    */
   getFilesWithNodeInstanceId = (): TFile[] => {
-    if (this.dc) {
+    const datacore = this.getReadyDatacore();
+    if (datacore) {
       try {
         const dcQuery = `@page and exists(nodeInstanceId)`;
-        const pages = this.dc.query(dcQuery);
+        const pages = datacore.query(dcQuery);
         const files: TFile[] = [];
         for (const page of pages) {
           if (page.$path) {
@@ -410,10 +481,11 @@ export class QueryEngine {
    * Uses DataCore when available; falls back to vault iteration otherwise.
    */
   getFilesWithNodeTypeId = (opts?: { excludeImported?: boolean }): TFile[] => {
-    if (this.dc) {
+    const datacore = this.getReadyDatacore();
+    if (datacore) {
       try {
         const dcQuery = `@page and exists(nodeTypeId)`;
-        const pages = this.dc.query(dcQuery);
+        const pages = datacore.query(dcQuery);
         const files: TFile[] = [];
         for (const page of pages) {
           if (!page.$path) continue;
@@ -438,13 +510,14 @@ export class QueryEngine {
    * Uses DataCore when available; falls back to vault iteration otherwise.
    */
   getFileByImportedFromRid = (importedFromRid: string): TFile | null => {
-    if (this.dc) {
+    const datacore = this.getReadyDatacore();
+    if (datacore) {
       try {
         const safeUri = importedFromRid
           .replace(/\\/g, "\\\\")
           .replace(/"/g, '\\"');
         const dcQuery = `@page and importedFromRid = "${safeUri}"`;
-        const results = this.dc.query(dcQuery);
+        const results = datacore.query(dcQuery);
         const path = results.at(0)?.$path;
         if (path) {
           const file = this.app.vault.getAbstractFileByPath(path);
@@ -473,7 +546,7 @@ export class QueryEngine {
    * falls back to iterating files with nodeInstanceId and matching either field.
    */
   getFileByEndpoint = (endpointId: string): TFile | null => {
-    if (this.dc) {
+    if (this.getReadyDatacore()) {
       const byId = this.getDiscourseNodeById(endpointId);
       if (byId) return byId;
       const byRid = this.getFileByImportedFromRid(endpointId);
@@ -498,7 +571,8 @@ export class QueryEngine {
     nodeInstanceId: string,
     importedFromRid: string,
   ): TFile | null => {
-    if (this.dc) {
+    const datacore = this.getReadyDatacore();
+    if (datacore) {
       try {
         const safeId = nodeInstanceId
           .replace(/\\/g, "\\\\")
@@ -507,7 +581,7 @@ export class QueryEngine {
           .replace(/\\/g, "\\\\")
           .replace(/"/g, '\\"');
         const dcQuery = `@page and nodeInstanceId = "${safeId}" and importedFromRid = "${safeUri}"`;
-        const results = this.dc.query(dcQuery);
+        const results = datacore.query(dcQuery);
 
         for (const page of results) {
           if (page.$path) {
@@ -535,6 +609,83 @@ export class QueryEngine {
     }
     return null;
   };
+
+  private getReadyDatacore(): DatacoreApi | null {
+    return this.dc?.core?.initialized ? this.dc : null;
+  }
+
+  private fallbackSearchDiscourseNodesByTitle(
+    query: string,
+    nodeTypeId?: string,
+  ): TFile[] {
+    return this.app.vault
+      .getMarkdownFiles()
+      .filter((file) => {
+        const fm: Record<string, unknown> | undefined =
+          this.app.metadataCache.getFileCache(file)?.frontmatter;
+        if (!fm?.nodeTypeId) return false;
+        if (nodeTypeId && fm.nodeTypeId !== nodeTypeId) return false;
+        return this.fuzzySearch(file.basename, query);
+      })
+      .reverse();
+  }
+
+  private fallbackGetDiscourseNodeById(nodeInstanceId: string): TFile | null {
+    for (const file of this.app.vault.getMarkdownFiles()) {
+      const fm: Record<string, unknown> | undefined =
+        this.app.metadataCache.getFileCache(file)?.frontmatter;
+      if (fm?.nodeInstanceId === nodeInstanceId) return file;
+    }
+    return null;
+  }
+
+  private fallbackSearchCompatibleNodeByTitle({
+    query,
+    compatibleNodeTypeIds,
+    activeFile,
+    selectedRelationType,
+  }: {
+    query: string;
+    compatibleNodeTypeIds: string[];
+    activeFile: TFile;
+    selectedRelationType: string;
+  }): TFile[] {
+    const frontmatter: Record<string, unknown> | undefined =
+      this.app.metadataCache.getFileCache(activeFile)?.frontmatter;
+    const rawExistingRelations = frontmatter?.[selectedRelationType];
+    const relationValues: unknown[] = Array.isArray(rawExistingRelations)
+      ? rawExistingRelations
+      : [rawExistingRelations];
+    const existingRelations = relationValues.filter(
+      (relation): relation is string => typeof relation === "string",
+    );
+    const existingRelatedFiles = existingRelations.map((relation) => {
+      const match = relation.match(/\[\[(.*?)(?:\|.*?)?\]\]/);
+      return match?.[1] ?? relation.replace(/^\[\[|\]\]$/g, "");
+    });
+
+    return this.app.vault
+      .getMarkdownFiles()
+      .filter((file) => {
+        if (file.path === activeFile.path) return false;
+        const fm: Record<string, unknown> | undefined =
+          this.app.metadataCache.getFileCache(file)?.frontmatter;
+        const nodeTypeId = fm?.nodeTypeId;
+        if (
+          typeof nodeTypeId !== "string" ||
+          !compatibleNodeTypeIds.includes(nodeTypeId)
+        ) {
+          return false;
+        }
+        if (!this.fuzzySearch(file.basename, query)) return false;
+        return !existingRelatedFiles.some(
+          (existingFile) =>
+            file.basename === existingFile.replace(/\.md$/, "") ||
+            file.name === existingFile,
+        );
+      })
+      .reverse();
+  }
 
   private fallbackGetImportedNodePages(): TFile[] {
     const files: TFile[] = [];
@@ -648,6 +799,11 @@ const filterCandidatesByNodeTypeIds = (
   return candidates.filter((candidate) => selected.has(candidate.nodeTypeId));
 };
 
+const nodesFirst = (
+  a: DiscourseNodeCandidate,
+  b: DiscourseNodeCandidate,
+): number => Number(!!a.tagLine) - Number(!!b.tagLine);
+
 /**
  * Best match first, uncapped — capping is the caller's, so a later re-sort orders the
  * whole set rather than a top slice. Filters before scoring: same results, less work.
@@ -667,7 +823,7 @@ export const rankDiscourseNodesByTitle = ({
   // Filter-only searches still need a list, so an empty query is not an empty result.
   if (!trimmedQuery) {
     return [...filtered]
-      .sort((a, b) => a.title.localeCompare(b.title))
+      .sort((a, b) => a.title.localeCompare(b.title) || nodesFirst(a, b))
       .map((candidate) => ({
         ...candidate,
         match: { score: 0, matches: [] },
@@ -682,8 +838,9 @@ export const rankDiscourseNodesByTitle = ({
     if (match) ranked.push({ ...candidate, match });
   }
 
-  // Sort is stable, so equal scores keep candidate order.
-  return ranked.sort((a, b) => b.match.score - a.match.score);
+  return ranked.sort(
+    (a, b) => b.match.score - a.match.score || nodesFirst(a, b),
+  );
 };
 
 /**

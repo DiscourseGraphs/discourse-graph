@@ -66,11 +66,12 @@ import {
   getValidRelationTypesBetween,
   persistRelationArrow,
 } from "./overlays/relationCreation";
-import { getAllRelations } from "./canvasUtils";
+import { getCreatableRelations } from "./canvasUtils";
 import { createOrUpdateArrowBinding } from "./DiscourseRelationShape/helpers";
 import DiscourseGraphPanel from "./DiscourseToolPanel";
 import type { CanvasNodeShortcuts } from "~/components/settings/utils/zodSchema";
 import { CustomDefaultToolbar } from "./CustomDefaultToolbar";
+import { CustomStylePanel } from "./CustomStylePanel";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import { CanvasSyncMode } from "./canvasSyncMode";
 import { getPersonalSetting } from "~/components/settings/utils/accessors";
@@ -299,7 +300,9 @@ const convertArrowToRelation = async ({
   const boundNodes = getArrowBoundNodeInfo(editor, arrow);
   if (!boundNodes) return null;
 
-  const selectedRelation = getAllRelations().find((r) => r.id === relationId);
+  const selectedRelation = getCreatableRelations().find(
+    (r) => r.id === relationId,
+  );
   if (!selectedRelation) return null;
 
   const sourceNode = editor.getShape(boundNodes.startId);
@@ -545,6 +548,7 @@ export const createUiComponents = ({
   canvasSyncMode: CanvasSyncMode;
 }): TLUiComponents => {
   return {
+    StylePanel: CustomStylePanel,
     Toolbar: (props) => {
       const tools = useTools();
       return (

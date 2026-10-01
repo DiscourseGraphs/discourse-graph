@@ -190,11 +190,7 @@ export const buildSharedNodes = ({
 
       let rid: string;
       try {
-        rid = spaceUriAndLocalIdToRid(
-          space.url,
-          node.source_local_id,
-          space.platform === "Obsidian" ? "note" : undefined,
-        );
+        rid = spaceUriAndLocalIdToRid(space.url, node.source_local_id, "note");
       } catch {
         return [];
       }
@@ -208,7 +204,8 @@ export const buildSharedNodes = ({
             if (!space || !c.source_local_id || !c.id) return [c.id, undefined];
             return [
               c.id,
-              spaceUriAndLocalIdToRid(space.url, c.source_local_id),
+              // To be reviewed if we have relations of relations
+              spaceUriAndLocalIdToRid(space.url, c.source_local_id, "note"),
             ];
           }) as [number, string | undefined][],
       );

@@ -1,15 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
+import type { ImportedSourceIdentity } from "~/utils/importedSourceIdentity";
 
-const { mockedGetPageUidByPageTitle, mockedGetDiscourseNodes } = vi.hoisted(
-  () => ({
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    mockedGetPageUidByPageTitle: vi.fn((_title: string) => ""),
-    mockedGetDiscourseNodes: vi.fn((): DiscourseNode[] => []),
-  }),
-);
+const {
+  mockedGetPageUidByPageTitle,
+  mockedGetDiscourseNodes,
+  mockedReadImportedSourceIdentity,
+} = vi.hoisted(() => ({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  mockedGetPageUidByPageTitle: vi.fn((_title: string) => ""),
+  mockedGetDiscourseNodes: vi.fn((): DiscourseNode[] => []),
+  mockedReadImportedSourceIdentity: vi.fn(
+    (): ImportedSourceIdentity | undefined => undefined,
+  ),
+}));
 vi.mock("roamjs-components/queries/getPageUidByPageTitle", () => ({
   default: mockedGetPageUidByPageTitle,
+}));
+vi.mock("~/utils/importedSourceIdentity", () => ({
+  readImportedSourceIdentity: mockedReadImportedSourceIdentity,
 }));
 vi.mock("~/utils/getDiscourseNodes", () => ({
   default: mockedGetDiscourseNodes,
@@ -65,6 +74,7 @@ beforeEach(() => {
     (title: string) => PAGE_UIDS[title] ?? "",
   );
   mockedGetDiscourseNodes.mockReturnValue([SOURCE_TYPE]);
+  mockedReadImportedSourceIdentity.mockReset();
 });
 
 describe("discourseNodeSchemaToLocalConcept source slot", () => {
@@ -98,22 +108,49 @@ describe("discourseNodeSchemaToLocalConcept source slot", () => {
     });
   });
 
+  // Not covered: an upsert whose author_local_id doesn't resolve nulls author_id.
   it("carries the type author as author_local_id", () => {
     const concept = discourseNodeSchemaToLocalConcept(CONTEXT, nodeType({}));
     expect(concept.author_local_id).toBe("author-1");
   });
+});
 
-  it("keeps the label and template it already carried", () => {
+describe("discourseNodeSchemaToLocalConcept label and template", () => {
+  it("writes the template body to template_content, with no template title", () => {
     const concept = discourseNodeSchemaToLocalConcept(
       CONTEXT,
-      nodeType({ template: [{ text: "Question:" }] }),
+      nodeType({
+        template: [{ text: "Question:", children: [{ text: "Answer" }] }],
+      }),
     );
     expect(concept.literal_content).toEqual({
       label: "Evidence",
       format: "[[EVD]] - {content} - {Source}",
-      template: "* Question:\n",
+      template_content: "* Question:\n   * Answer\n   \n",
       roles: ["sourceDocument"],
     });
+  });
+
+  it.each([
+    ["no template", undefined],
+    ["an empty template", []],
+    ["a template of only components", [{ text: "{{query block}}" }]],
+  ])("omits template_content for %s", (_label, template) => {
+    const concept = discourseNodeSchemaToLocalConcept(
+      CONTEXT,
+      nodeType({ template }),
+    );
+    expect(concept.literal_content).not.toHaveProperty("template_content");
+    expect(concept.literal_content).not.toHaveProperty("template");
+  });
+
+  it("keeps a slash-separated name whole in label and name", () => {
+    const concept = discourseNodeSchemaToLocalConcept(
+      CONTEXT,
+      nodeType({ text: "Evidence/Figure" }),
+    );
+    expect(concept.name).toBe("Evidence/Figure");
+    expect(concept.literal_content).toMatchObject({ label: "Evidence/Figure" });
   });
 });
 
@@ -162,6 +199,20 @@ describe("discourseNodeBlockToLocalConcept source slot", () => {
     expect(concept.local_reference_content).toEqual({
       sourceDocument: "source-1",
     });
+  });
+
+  it("writes the origin RID when the source page was imported from another app", () => {
+    mockedReadImportedSourceIdentity.mockReturnValue({
+      sourceModifiedAt: "2026-06-14T15:00:00.000Z",
+      sourceNodeRid: "orn:obsidian.note:vault-a/node-1",
+    });
+    const concept = convert(
+      "[[EVD]] - REM sleep aids recall - [[@sun2019direct]]",
+    );
+    expect(concept.local_reference_content).toEqual({
+      sourceDocument: "orn:obsidian.note:vault-a/node-1",
+    });
+    expect(mockedReadImportedSourceIdentity).toHaveBeenCalledWith("source-1");
   });
 
   // Leniency on the target type: see sourceSlot.ts

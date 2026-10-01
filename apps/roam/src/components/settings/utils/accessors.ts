@@ -21,6 +21,7 @@ import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
 import getDiscourseNodes, {
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
+import getFirstAvailableShortcut from "~/utils/getFirstAvailableShortcut";
 import type { Condition } from "~/utils/types";
 import { z } from "zod";
 import {
@@ -226,10 +227,6 @@ const PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY = new Map<string, string>([
   [pathKey([PERSONAL_KEYS.disableSidebarOpen]), "disable-sidebar-open"],
   [pathKey([PERSONAL_KEYS.hideFeedbackButton]), "hide-feedback-button"],
   [pathKey([PERSONAL_KEYS.autoCanvasRelations]), "auto-canvas-relations"],
-  [
-    pathKey([PERSONAL_KEYS.overlayInCanvas]),
-    "discourse-context-overlay-in-canvas",
-  ],
   [pathKey([PERSONAL_KEYS.streamlineStyling]), "streamline-styling"],
   [pathKey([PERSONAL_KEYS.disableProductDiagnostics]), "disallow-diagnostics"],
   [pathKey([PERSONAL_KEYS.discourseToolShortcut]), "discourse-tool-shortcut"],
@@ -1096,15 +1093,15 @@ const toDiscourseNode = (settings: DiscourseNodeSettings): DiscourseNode => ({
     : undefined,
 });
 
-const getUnusedShortcut = (label: string): string => {
-  const candidateShortcut = label.slice(0, 1).toUpperCase();
-  const existingShortcuts = new Set(
-    getDiscourseNodes()
-      .map((n) => n.shortcut.toUpperCase())
-      .filter(Boolean),
+const getUnusedShortcut = (label: string): string =>
+  getFirstAvailableShortcut(
+    label,
+    new Set(
+      getDiscourseNodes()
+        .map((n) => n.shortcut)
+        .filter(Boolean),
+    ),
   );
-  return existingShortcuts.has(candidateShortcut) ? "" : candidateShortcut;
-};
 
 // getAllDiscourseNodes skips prop-less pages, so invalidate only after the props write settles.
 export const createDiscourseNodeType = async ({

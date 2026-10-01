@@ -5,7 +5,10 @@ import {
   getImportedNodesInfo,
   getLocalNodeKeyToEndpointId,
 } from "./relationsStore";
-import { fetchNodeImportInfoForInstances, getSpaceUris } from "./importNodes";
+import {
+  fetchNodeImportInfoForInstances,
+  getSpaceInfoFromIds,
+} from "./importNodes";
 import { QueryEngine } from "~/services/QueryEngine";
 import {
   fetchRelationInstancesFromSpace,
@@ -69,7 +72,7 @@ export const computeImportPreview = async ({
   }
 
   const spaceIds = [...nodesBySpace.keys()];
-  const spaceUris = await getSpaceUris(client, spaceIds);
+  const spaceInfoById = await getSpaceInfoFromIds(client, spaceIds);
 
   const newNodeTypeSchemas: Array<{ id: string; name: string }> = [];
   const seenNodeTypeIds = new Set<string>();
@@ -126,7 +129,7 @@ export const computeImportPreview = async ({
 
   // Add currently selected nodes to the sets
   for (const [spaceId, nodes] of nodesBySpace.entries()) {
-    const spaceUri = spaceUris.get(spaceId);
+    const spaceUri = spaceInfoById.get(spaceId)?.url;
     if (!spaceUri) continue;
     for (const node of nodes) {
       const key = `${spaceId}:${node.nodeInstanceId}`;
