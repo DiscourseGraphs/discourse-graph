@@ -1,0 +1,35 @@
+save both to memory
+
+---
+
+add another rule to memory that to not reply to comments from a human feedback directly. Always post the draft for me to review before posting it.
+
+---
+
+did u run cdp verification yet? if so you can use /pr-evidence then add the screenshots to the PR body
+
+---
+
+re-run the screenshots with clean text
+
+---
+
+/mattpocock-skills:teach the diff of this new approach
+
+---
+
+open these teaching for me
+
+---
+
+run all the steps in /create-pr again for me to modify this existing PR. update everything from PR body (eg: we need to include diagram), address the full delegated review and run all other checks. then watch if there's any codereview bot feedbacks
+
+---
+
+<task-notification>
+<task-id>b5synspqs</task-id>
+<tool-use-id>toolu_01XMbT3PgSDpavzRo3SsRCvi</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/e9bb47d2-c844-4381-8d17-490ed7677aa5/tasks/b5synspqs.output</output-file>
+<status>completed</status>
+<summary>Background command "Wait for delegated review" completed (exit code 0)</summary>
+</task-notification>
