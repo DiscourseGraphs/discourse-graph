@@ -68,6 +68,7 @@ export const TextLinkDialog = track(({ onClose }: TextLinkDialogProps) => {
 
   return (
     <TextLinkDialogInner
+      key={selectedShape.id}
       onClose={onClose}
       selectedShape={selectedShape as ShapeWithUrl}
     />
@@ -142,10 +143,6 @@ const TextLinkDialogInner = track(
       if (!urlInputState.valid) return;
       const onlySelectedShape = editor.getOnlySelectedShape();
       if (!onlySelectedShape) return;
-      // Selection can change under an open dialog; the value was validated
-      // against the type we opened on.
-      if (onlySelectedShape.type !== shapeType) return onClose();
-
       if (readLinkUrl(onlySelectedShape) !== urlInputState.safe) {
         editor.updateShapes([
           {
@@ -156,7 +153,7 @@ const TextLinkDialogInner = track(
         ]);
       }
       onClose();
-    }, [editor, onClose, shapeType, urlInputState]);
+    }, [editor, onClose, urlInputState]);
 
     const handleCancel = useCallback(() => {
       onClose();

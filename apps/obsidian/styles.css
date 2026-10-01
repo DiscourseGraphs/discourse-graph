@@ -146,6 +146,7 @@ body.dg-hide-frontmatter-ids .metadata-property[data-property-key^="rel_" i] {
 }
 .dg-text-link-overlay .tl-hyperlink-button {
   position: absolute;
+  right: auto;
   transform: translateY(-50%);
   pointer-events: all;
 }

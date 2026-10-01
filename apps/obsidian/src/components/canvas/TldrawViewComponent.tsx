@@ -480,7 +480,6 @@ export const TldrawPreviewComponent = ({
                       if (editor.getCurrentToolId() !== "select") {
                         editor.complete();
                         editor.setCurrentTool("select");
-                        return;
                       }
                       editor.markHistoryStoppingPoint("edit-link");
                       helpers.addDialog({ component: TextLinkDialog });

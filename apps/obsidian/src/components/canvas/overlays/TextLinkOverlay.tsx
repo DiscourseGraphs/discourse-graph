@@ -38,12 +38,13 @@ export const TextLinkOverlay = ({ plugin }: TextLinkOverlayProps) => {
     "textShapeLinks",
     () => {
       if (editor.getZoomLevel() < HIDE_BELOW_ZOOM) return [];
+      const viewport = editor.getViewportPageBounds();
       return editor.getCurrentPageShapes().flatMap<TextLink>((shape) => {
-        if (shape.type !== "text") return [];
+        if (shape.type !== "text" || editor.isShapeHidden(shape)) return [];
         const url = getTextShapeLinkUrl(shape);
         if (!url) return [];
         const bounds = editor.getShapePageBounds(shape.id);
-        if (!bounds) return [];
+        if (!bounds || !viewport.includes(bounds)) return [];
         const topRight = editor.pageToViewport({
           x: bounds.maxX,
           y: bounds.minY,
@@ -68,8 +69,6 @@ export const TextLinkOverlay = ({ plugin }: TextLinkOverlayProps) => {
   const openLink = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>, url: string) => {
       if (!isObsidianUrl(url)) return;
-      // Swallow every obsidian: href, parseable or not. Falling through hands
-      // the URI to the OS handler, which runs it against the reader's vault.
       event.preventDefault();
 
       const parsed = parseObsidianOpenUrl(url);
@@ -110,23 +109,38 @@ export const TextLinkOverlay = ({ plugin }: TextLinkOverlayProps) => {
         { "--dg-external-link-icon": ICON_MASK_URL } as React.CSSProperties
       }
     >
-      {links.map(({ id, url, left, top }) => (
-        <a
-          key={id}
-          className="tl-hyperlink-button"
-          style={{ left: `${left}px`, top: `${top}px` }}
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(event) => openLink(event, url)}
-          onPointerDown={stopUnlessShift}
-          onPointerUp={stopUnlessShift}
-          title={url}
-          draggable={false}
-        >
-          <div className="tl-hyperlink__icon" />
-        </a>
-      ))}
+      {links.map(({ id, url, left, top }) => {
+        // A page link never goes in href: middle-click and the context menu
+        // bypass onClick and would hand the URI to the OS handler.
+        const isPageLink = isObsidianUrl(url);
+        return (
+          <a
+            key={id}
+            className="tl-hyperlink-button"
+            style={{ left: `${left}px`, top: `${top}px` }}
+            href={isPageLink ? undefined : url}
+            target={isPageLink ? undefined : "_blank"}
+            rel={isPageLink ? undefined : "noopener noreferrer"}
+            role={isPageLink ? "link" : undefined}
+            tabIndex={isPageLink ? 0 : undefined}
+            onClick={(event) => openLink(event, url)}
+            onKeyDown={(event) => {
+              if (isPageLink && (event.key === "Enter" || event.key === " ")) {
+                openLink(
+                  event as unknown as React.MouseEvent<HTMLAnchorElement>,
+                  url,
+                );
+              }
+            }}
+            onPointerDown={stopUnlessShift}
+            onPointerUp={stopUnlessShift}
+            title={url}
+            draggable={false}
+          >
+            <div className="tl-hyperlink__icon" />
+          </a>
+        );
+      })}
     </div>
   );
 };

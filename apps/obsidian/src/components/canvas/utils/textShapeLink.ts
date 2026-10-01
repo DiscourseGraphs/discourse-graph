@@ -7,7 +7,8 @@ const ALLOWED_WEB_PROTOCOLS = new Set(["http:", "https:", "mailto:"]);
 // Only obsidian://open?...file=... -- a bare `obsidian:` check would admit
 // action URIs like advanced-uri's commandid from a shared canvas.
 const isAllowedObsidianUrl = (url: URL): boolean =>
-  url.host === "open" && !!url.searchParams.get("file");
+  // obsidian: is a non-special scheme, so WHATWG leaves the host case alone.
+  url.host.toLowerCase() === "open" && !!url.searchParams.get("file");
 
 export const isAllowedTextLinkUrl = (value: string): boolean => {
   if (value === "") return true;
@@ -21,12 +22,22 @@ export const isAllowedTextLinkUrl = (value: string): boolean => {
   }
 };
 
-export const isObsidianUrl = (url: string): boolean =>
-  url.toLowerCase().startsWith("obsidian:");
+export const isObsidianUrl = (url: string): boolean => {
+  try {
+    return new URL(url).protocol.toLowerCase() === "obsidian:";
+  } catch {
+    return false;
+  }
+};
 
-// Text links live in `meta`, which tldraw validates as arbitrary JSON, so every
-// read is untrusted: a hand-edited or synced canvas can hold anything.
+// Returns the parsed form: `new URL` strips leading control characters, so a
+// raw value could pass this allowlist and fail a prefix test further on.
 export const getTextShapeLinkUrl = (shape: TLShape): string => {
-  const url = (shape.meta as { url?: unknown }).url;
-  return typeof url === "string" && isAllowedTextLinkUrl(url) ? url : "";
+  const raw = (shape.meta as { url?: unknown }).url;
+  if (typeof raw !== "string" || !isAllowedTextLinkUrl(raw)) return "";
+  try {
+    return new URL(raw).toString();
+  } catch {
+    return "";
+  }
 };
