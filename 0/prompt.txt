@@ -199,3 +199,7 @@ If this event is something the user would act on now, send a PushNotification. R
 ---
 
 /roam-switch
+
+---
+
+i don't want the behavior where the icon disappear when the shape is selected
