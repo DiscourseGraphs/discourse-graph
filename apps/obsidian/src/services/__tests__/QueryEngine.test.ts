@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   QueryEngine,
   rankDiscourseNodesByTitle,
-  type DiscourseNodeCandidate,
+  type SearchableNode,
 } from "~/services/QueryEngine";
 import type { DiscourseNode } from "~/types";
 
@@ -386,18 +386,12 @@ describe("QueryEngine.getCandidateNodes", () => {
 });
 
 describe("rankDiscourseNodesByTitle with candidate nodes", () => {
-  const node = (
-    title: string,
-    nodeTypeId = "claim",
-  ): DiscourseNodeCandidate => ({
+  const node = (title: string, nodeTypeId = "claim"): SearchableNode => ({
     file: createFile(`${title}.md`),
     title,
     nodeTypeId,
   });
-  const candidate = (
-    title: string,
-    nodeTypeId = "claim",
-  ): DiscourseNodeCandidate => ({
+  const candidate = (title: string, nodeTypeId = "claim"): SearchableNode => ({
     file: createFile("Journal.md"),
     title,
     nodeTypeId,

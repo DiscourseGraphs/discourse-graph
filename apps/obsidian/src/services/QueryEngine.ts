@@ -36,7 +36,7 @@ type DatacoreApi = {
   query: (query: string) => DatacorePage[];
 };
 
-export type DiscourseNodeCandidate = {
+export type SearchableNode = {
   file: TFile;
   /**
    * The exact string the fuzzy scorer sees, so the offsets in
@@ -50,7 +50,7 @@ export type DiscourseNodeCandidate = {
   tagLine?: { line: number; tag: string };
 };
 
-export type RankedDiscourseNode = DiscourseNodeCandidate & {
+export type RankedDiscourseNode = SearchableNode & {
   match: SearchResult;
 };
 
@@ -75,8 +75,8 @@ export class QueryEngine {
    * owns that fallback. Call once per open, not per keystroke: the scan is the
    * pipeline's most expensive step, and staying unfiltered keeps filter changes free.
    */
-  getDiscourseNodeCandidates = (): DiscourseNodeCandidate[] => {
-    const candidates: DiscourseNodeCandidate[] = [];
+  getSearchableNodes = (): SearchableNode[] => {
+    const nodes: SearchableNode[] = [];
 
     for (const file of this.getFilesWithNodeTypeId()) {
       const frontmatter: Record<string, unknown> | undefined =
@@ -84,16 +84,16 @@ export class QueryEngine {
       const nodeTypeId = frontmatter?.nodeTypeId;
       if (typeof nodeTypeId !== "string" || !nodeTypeId) continue;
 
-      candidates.push({ file, title: file.basename, nodeTypeId });
+      nodes.push({ file, title: file.basename, nodeTypeId });
     }
 
-    return candidates;
+    return nodes;
   };
 
   /** One pass over the metadata cache's tag index; only files with a hit are read. */
   getCandidateNodes = async (
     nodeTypes: DiscourseNode[],
-  ): Promise<DiscourseNodeCandidate[]> => {
+  ): Promise<SearchableNode[]> => {
     const nodeTypeByTag = new Map<
       string,
       { nodeType: DiscourseNode; tag: string }
@@ -791,18 +791,16 @@ export class QueryEngine {
 }
 
 const filterCandidatesByNodeTypeIds = (
-  candidates: DiscourseNodeCandidate[],
+  candidates: SearchableNode[],
   nodeTypeIds?: string[],
-): DiscourseNodeCandidate[] => {
+): SearchableNode[] => {
   if (!nodeTypeIds?.length) return candidates;
   const selected = new Set(nodeTypeIds);
   return candidates.filter((candidate) => selected.has(candidate.nodeTypeId));
 };
 
-const nodesFirst = (
-  a: DiscourseNodeCandidate,
-  b: DiscourseNodeCandidate,
-): number => Number(!!a.tagLine) - Number(!!b.tagLine);
+const nodesFirst = (a: SearchableNode, b: SearchableNode): number =>
+  Number(!!a.tagLine) - Number(!!b.tagLine);
 
 /**
  * Best match first, uncapped — capping is the caller's, so a later re-sort orders the
@@ -813,7 +811,7 @@ export const rankDiscourseNodesByTitle = ({
   query,
   nodeTypeIds,
 }: {
-  candidates: DiscourseNodeCandidate[];
+  candidates: SearchableNode[];
   query: string;
   nodeTypeIds?: string[];
 }): RankedDiscourseNode[] => {

@@ -38,7 +38,7 @@ import {
 import {
   QueryEngine,
   rankDiscourseNodesByTitle,
-  type DiscourseNodeCandidate,
+  type SearchableNode,
   type RankedDiscourseNode,
 } from "~/services/QueryEngine";
 import {
@@ -63,9 +63,9 @@ import { findTaggedLineElement } from "~/utils/taggedLineLocator";
 const MAX_VISIBLE_RESULTS = 50;
 const SEARCH_DEBOUNCE_MS = 250;
 
-type CandidateState =
+type NodesState =
   | { status: "loading" }
-  | { status: "ready"; candidates: DiscourseNodeCandidate[] }
+  | { status: "ready"; nodes: SearchableNode[] }
   | { status: "error"; message: string };
 
 type NodeTypeDisplay = {
@@ -361,7 +361,7 @@ const NodeSearch = ({
   onClose: () => void;
 }): ReactElement => {
   const { app } = plugin;
-  const [candidateState, setCandidateState] = useState<CandidateState>({
+  const [nodesState, setNodesState] = useState<NodesState>({
     status: "loading",
   });
   const [query, setQuery] = useState("");
@@ -373,9 +373,7 @@ const NodeSearch = ({
   const [openDropdown, setOpenDropdown] = useState<SearchDropdownId>(null);
   const [sortKey, setSortKey] = useState<SortKey>(DEFAULT_SORT_KEY);
   const [showCandidates, setShowCandidates] = useState(false);
-  const [tagCandidates, setTagCandidates] = useState<DiscourseNodeCandidate[]>(
-    [],
-  );
+  const [tagCandidates, setTagCandidates] = useState<SearchableNode[]>([]);
   const [sortDirection, setSortDirection] = useState<SortDirection>(
     DEFAULT_SORT_DIRECTION,
   );
@@ -384,8 +382,7 @@ const NodeSearch = ({
   const userNames = useAuthorNames({
     app,
     plugin,
-    candidates:
-      candidateState.status === "ready" ? candidateState.candidates : null,
+    candidates: nodesState.status === "ready" ? nodesState.nodes : null,
   });
 
   const nodeTypesById = useMemo(() => {
@@ -408,13 +405,13 @@ const NodeSearch = ({
   // this ever becomes a network call, only this body changes.
   useEffect(() => {
     try {
-      const candidates = new QueryEngine(app).getDiscourseNodeCandidates();
-      setCandidateState({ status: "ready", candidates });
+      const nodes = new QueryEngine(app).getSearchableNodes();
+      setNodesState({ status: "ready", nodes });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unexpected error";
       new Notice(`Could not load discourse nodes: ${message}`);
-      setCandidateState({ status: "error", message });
+      setNodesState({ status: "error", message });
     }
   }, [app]);
 
@@ -452,9 +449,9 @@ const NodeSearch = ({
 
   // Sort before truncating, so a date or alphabetical sort covers every match.
   const results = useMemo<SearchResultRow[]>(() => {
-    if (candidateState.status !== "ready") return [];
+    if (nodesState.status !== "ready") return [];
     const ranked = rankDiscourseNodesByTitle({
-      candidates: [...candidateState.candidates, ...tagCandidates],
+      candidates: [...nodesState.nodes, ...tagCandidates],
       query: debouncedQuery,
       nodeTypeIds: selectedNodeTypeIds,
     });
@@ -482,7 +479,7 @@ const NodeSearch = ({
       }));
   }, [
     app,
-    candidateState,
+    nodesState,
     debouncedQuery,
     nodeTypesById,
     selectedNodeTypeIds,
@@ -651,18 +648,18 @@ const NodeSearch = ({
       </div>
       <div className="border-modifier-border mt-3 flex flex-1 overflow-hidden rounded border">
         <div className="border-modifier-border flex w-2/5 flex-col border-r">
-          {candidateState.status === "loading" && (
+          {nodesState.status === "loading" && (
             <div className="text-muted p-4">Loading discourse nodes…</div>
           )}
-          {candidateState.status === "error" && (
+          {nodesState.status === "error" && (
             <div className="text-error p-4">
-              Could not load discourse nodes. {candidateState.message}
+              Could not load discourse nodes. {nodesState.message}
             </div>
           )}
-          {candidateState.status === "ready" && results.length === 0 && (
+          {nodesState.status === "ready" && results.length === 0 && (
             <div className="text-muted p-4">No results</div>
           )}
-          {candidateState.status === "ready" && results.length > 0 && (
+          {nodesState.status === "ready" && results.length > 0 && (
             <ResultList
               results={results}
               activeIndex={activeIndexInRange}
@@ -673,7 +670,7 @@ const NodeSearch = ({
         <PreviewPane app={app} result={activeResult} authorName={authorName} />
       </div>
       <NodeSearchFooter
-        canAct={candidateState.status === "ready" && !!activeResult}
+        canAct={nodesState.status === "ready" && !!activeResult}
         canInsertLink={!!insertTarget}
         isActiveResultLinkable={isActiveResultLinkable}
         onClose={onClose}
