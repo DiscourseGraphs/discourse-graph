@@ -1,0 +1,17 @@
+find where advanced node search builds its results. start planning. my guess is that on the first query, the query only checks for notes with frontmatter field `nodeTypeId` without chekcing whether the value is valid or not -> a bunch of notes with invalid fm got in to the result. just a hypothesis to start you should do your own investigation. thanks
+
+---
+
+hmm suspicious: why did our implementation to look for node candidates, which should just scan tags, went looking for files with nodeTypeId?
+
+---
+
+ok, so modify the plan to:
+
+* rename this function for more clarity
+* apply the fix you proposed.
+
+---
+
+no, if the type is unknown then we shouldn't keep it
+don't filter out imported notes with imported node types. keep it in search results. because our filter still allows them right?
