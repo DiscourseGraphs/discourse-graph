@@ -1,11 +1,31 @@
 import React from "react";
-import { HyperlinkButton, TLShapeId, useEditor, useValue } from "tldraw";
-import { getTextShapeLinkUrl } from "~/utils/textShapeLink";
+import {
+  HyperlinkButton,
+  T,
+  TLShape,
+  TLShapeId,
+  useEditor,
+  useValue,
+} from "tldraw";
 
 type TextLink = { id: TLShapeId; url: string; left: number; top: number };
 
 // Matches the hit area of tldraw's .tl-hyperlink-button.
 const BUTTON_SIZE = 44;
+
+// meta is unvalidated, so this is the only guard before an href. Returning the
+// parsed form keeps the href identical to what passed validation.
+export const getTextShapeLinkUrl = (shape: TLShape): string | undefined => {
+  if (shape.type !== "text") return undefined;
+  const { url } = shape.meta;
+  if (typeof url !== "string" || !T.linkUrl.isValid(url)) return undefined;
+  try {
+    // linkUrl resolves relative paths against a dummy origin; only absolute URLs render.
+    return new URL(url).href;
+  } catch {
+    return undefined;
+  }
+};
 
 // Text bounds hug the glyphs, so the icon sits just outside the right edge
 // rather than in the shape corner where geo shapes draw it.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createTLSchema, TLShape } from "tldraw";
-import { getTextShapeLinkUrl } from "~/utils/textShapeLink";
+import { getTextShapeLinkUrl } from "~/components/canvas/overlays/TextLinkOverlay";
 
 const makeShape = ({
   type = "text",
