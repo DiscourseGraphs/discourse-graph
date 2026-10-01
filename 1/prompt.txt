@@ -176,3 +176,7 @@ validate: success
 ALL CHECKS DONE (7)</event>
 If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
 </task-notification>
+
+---
+
+does our changes affect geo shapes too?
