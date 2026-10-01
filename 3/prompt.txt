@@ -19,3 +19,7 @@ re-run the screenshots with clean text
 ---
 
 open these teaching for me
+
+---
+
+run all the steps in /create-pr again for me to modify this existing PR. update everything from PR body (eg: we need to include diagram), address the full delegated review and run all other checks. then watch if there's any codereview bot feedbacks
