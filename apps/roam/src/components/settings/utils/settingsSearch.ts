@@ -18,13 +18,23 @@ type Tier = (typeof MatchTier)[keyof typeof MatchTier];
 const normalize = (value: string): string =>
   value.toLowerCase().replace(/\s+/g, " ").trim();
 
+/** Per-node entries repeat their breadcrumb and description for every node type, so
+ *  matching either would bury the one relevant page under a row per type. */
+const isRepeated = (entry: SearchableEntry): boolean =>
+  entry.nodeTypeUid !== undefined;
+
+const searchableDescription = (entry: SearchableEntry): string =>
+  entry.kind === "setting" && !isRepeated(entry)
+    ? (entry.description ?? "")
+    : "";
+
 const haystackOf = (entry: SearchableEntry): string =>
   normalize(
     [
       entry.label,
-      entry.breadcrumb,
+      isRepeated(entry) ? "" : entry.breadcrumb,
       ...entry.keywords,
-      entry.kind === "setting" ? (entry.description ?? "") : "",
+      searchableDescription(entry),
     ].join(" "),
   );
 
@@ -33,15 +43,12 @@ const tierFor = (entry: SearchableEntry, query: string): Tier | null => {
   if (label === query) return MatchTier.exactLabel;
   if (label.startsWith(query)) return MatchTier.labelPrefix;
   if (label.includes(query)) return MatchTier.labelSubstring;
-  if (normalize(entry.breadcrumb).includes(query)) return MatchTier.breadcrumb;
+  if (!isRepeated(entry) && normalize(entry.breadcrumb).includes(query))
+    return MatchTier.breadcrumb;
   if (entry.keywords.some((keyword) => normalize(keyword).includes(query)))
     return MatchTier.keyword;
-  if (
-    entry.kind === "setting" &&
-    entry.description &&
-    normalize(entry.description).includes(query)
-  )
-    return MatchTier.description;
+  const description = normalize(searchableDescription(entry));
+  if (description && description.includes(query)) return MatchTier.description;
   return null;
 };
 
