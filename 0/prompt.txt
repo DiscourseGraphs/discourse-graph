@@ -15,3 +15,7 @@ ok, so modify the plan to:
 
 no, if the type is unknown then we shouldn't keep it
 don't filter out imported notes with imported node types. keep it in search results. because our filter still allows them right?
+
+---
+
+go ahead. and make sure that we drop the unknown types for both datacore search and the fallback
