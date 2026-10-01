@@ -3,7 +3,7 @@
   "checkpoint_id": "01M3W9ZSGEHJF8ZAJTE8AS5173",
   "strategy": "manual-commit",
   "branch": "eng-2332-non-node-results-appear-in-advanced-node-search-in-obsidian",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "apps/obsidian/src/components/NodeSearchModal.tsx",
     "apps/obsidian/src/services/QueryEngine.ts",
@@ -23,14 +23,21 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 22,
-    "cache_creation_tokens": 15235,
-    "cache_read_tokens": 5943470,
-    "output_tokens": 8505,
-    "api_call_count": 11,
+    "input_tokens": 24,
+    "cache_creation_tokens": 15653,
+    "cache_read_tokens": 6239047,
+    "output_tokens": 9040,
+    "api_call_count": 12,
     "subagent_tokens": {
       "input_tokens": 0,
       "cache_creation_tokens": 0,
