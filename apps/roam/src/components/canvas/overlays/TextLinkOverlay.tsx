@@ -35,7 +35,11 @@ export const TextLinkOverlay = (): JSX.Element => {
     "textShapeLinks",
     () => {
       const viewport = editor.getViewportPageBounds();
+      // The overlay sits above the selection handles, so it would swallow
+      // resize and rotate drags on a selected shape.
+      const selectedIds = new Set(editor.getSelectedShapeIds());
       return editor.getCurrentPageShapes().flatMap((shape) => {
+        if (selectedIds.has(shape.id)) return [];
         const url = getTextShapeLinkUrl(shape);
         if (!url) return [];
         const bounds = editor.getShapePageBounds(shape.id);
