@@ -1,33 +1,40 @@
 import { useEffect } from "react";
-import {
-  SETTING_ANCHOR_FLASH_CLASS,
-  settingAnchorSelector,
-} from "../utils/settingAnchor";
+import { settingAnchorSelector } from "~/components/settings/utils/settingAnchor";
 
 /** Roughly 500ms at 60fps. */
 const MAX_LOOKUP_FRAMES = 30;
-const FLASH_DURATION_MS = 1600;
+const FLASH_HOLD_MS = 600;
+const FLASH_FADE_MS = 700;
 
-const flashTimeouts = new WeakMap<Element, number>();
+/** `-mx-2 px-2` widens the highlight past the row's content without moving it. */
+const FLASH_FRAME_CLASSES = [
+  "-mx-2",
+  "px-2",
+  "rounded",
+  "transition-colors",
+  "duration-700",
+];
+const FLASH_FILL_CLASS = "bg-gray-100";
+
+const flashTimeouts = new WeakMap<Element, number[]>();
 
 /** Owns the flash independently of the effect: settling clears anchorId and re-runs the
- *  effect, whose cleanup would otherwise strip the class before it is seen. */
+ *  effect, whose cleanup would otherwise strip the classes before they are seen. */
 const flashRow = (target: Element): void => {
-  const pending = flashTimeouts.get(target);
-  if (pending !== undefined) window.clearTimeout(pending);
+  flashTimeouts.get(target)?.forEach((id) => window.clearTimeout(id));
 
-  // Remove and reflow so hitting the same row twice restarts the animation.
-  target.classList.remove(SETTING_ANCHOR_FLASH_CLASS);
-  target.getBoundingClientRect();
-  target.classList.add(SETTING_ANCHOR_FLASH_CLASS);
-
-  flashTimeouts.set(
-    target,
+  target.classList.add(...FLASH_FRAME_CLASSES, FLASH_FILL_CLASS);
+  flashTimeouts.set(target, [
+    // Dropping the fill while the transition class is still on fades it out.
+    window.setTimeout(
+      () => target.classList.remove(FLASH_FILL_CLASS),
+      FLASH_HOLD_MS,
+    ),
     window.setTimeout(() => {
-      target.classList.remove(SETTING_ANCHOR_FLASH_CLASS);
+      target.classList.remove(...FLASH_FRAME_CLASSES);
       flashTimeouts.delete(target);
-    }, FLASH_DURATION_MS),
-  );
+    }, FLASH_HOLD_MS + FLASH_FADE_MS),
+  ]);
 };
 
 /** The row is not in the DOM when the jump is dispatched — only the active panel renders,

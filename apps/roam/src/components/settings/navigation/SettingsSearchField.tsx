@@ -10,8 +10,8 @@ import {
 import {
   buildSettingsCatalog,
   type SearchableEntry,
-} from "../utils/settingsCatalog";
-import { rankSettings } from "../utils/settingsSearch";
+} from "~/components/settings/utils/settingsCatalog";
+import { rankSettings } from "~/components/settings/utils/settingsSearch";
 
 const SettingsSearchResult = ({
   entry,
@@ -31,10 +31,8 @@ const SettingsSearchResult = ({
     text={
       <div className="flex flex-col">
         <span>{entry.label}</span>
-        {/* Undimmed: any opacity drops white-on-#137CBD below AA. */}
-        <span
-          className={`text-xs ${isActive ? "text-inherit" : "text-gray-500"}`}
-        >
+        {/* Active rows inherit the white text undimmed: any opacity fails AA on #137CBD. */}
+        <span className={`text-xs ${isActive ? "" : "text-gray-500"}`}>
           {entry.breadcrumb}
         </span>
       </div>
@@ -127,30 +125,31 @@ const SettingsSearchField = ({
       autoFocus={false}
       enforceFocus={false}
       fill={true}
-      popoverClassName="dg-settings-search__results"
       content={
-        results.length === 0 ? (
-          <div className="flex items-center gap-2 p-3 text-sm text-gray-500">
-            <Icon icon="search" iconSize={12} />
-            <span>No settings match “{query.trim()}”</span>
-          </div>
-        ) : (
-          <div className="dg-settings-search__scroll" ref={scrollContainerRef}>
-            <Menu>
-              {results.map((entry, index) => (
+        // Inside Menu either way, so the host theme paints the surface.
+        <div className="max-h-80 overflow-y-auto" ref={scrollContainerRef}>
+          <Menu className="w-96">
+            {results.length === 0 ? (
+              <li className="flex items-center gap-2 p-2 text-sm text-gray-500">
+                <Icon icon="search" iconSize={12} />
+                <span>No settings match “{query.trim()}”</span>
+              </li>
+            ) : (
+              results.map((entry, index) => (
                 <SettingsSearchResult
                   key={entry.id}
                   entry={entry}
                   isActive={index === activeIndex}
                   onSelect={select}
                 />
-              ))}
-            </Menu>
-          </div>
-        )
+              ))
+            )}
+          </Menu>
+        </div>
       }
     >
-      <div className="dg-settings-search">
+      {/* Inset to the tab titles' left edge. */}
+      <div className="mx-2.5 mb-2 mt-1">
         <InputGroup
           inputRef={(input) => {
             inputRef.current = input;

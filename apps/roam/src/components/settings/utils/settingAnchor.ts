@@ -10,5 +10,3 @@ export const settingAnchor = (
 /** Escaped so a key with a quote or backslash cannot break the selector. */
 export const settingAnchorSelector = (anchorId: string): string =>
   `[${SETTING_ANCHOR_ATTRIBUTE}="${anchorId.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"]`;
-
-export const SETTING_ANCHOR_FLASH_CLASS = "dg-setting-row--flash";
