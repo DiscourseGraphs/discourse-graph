@@ -1,0 +1,42 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3WAA741724YSM5FFQ91Q97J",
+  "strategy": "manual-commit",
+  "branch": "prototype-c-patch-hyperlinkbutton",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/obsidian/src/components/canvas/TextLinkDialog.tsx",
+    "apps/obsidian/src/components/canvas/TldrawViewComponent.tsx",
+    "apps/obsidian/src/components/canvas/overlays/TextLinkOverlay.tsx",
+    "apps/obsidian/src/components/canvas/utils/linkNavigation.ts",
+    "apps/obsidian/src/components/canvas/utils/textShapeLink.ts",
+    "apps/obsidian/styles.css",
+    "patches/@tldraw__validate@3.14.2.patch",
+    "patches/tldraw@3.14.2.patch",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 22,
+    "cache_creation_tokens": 11292,
+    "cache_read_tokens": 7997966,
+    "output_tokens": 9851,
+    "api_call_count": 11,
+    "subagent_tokens": {
+      "input_tokens": 0,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 0,
+      "api_call_count": 0
+    }
+  }
+}
