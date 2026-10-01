@@ -95,7 +95,6 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
     };
   }, []);
 
-  // Track the single selected discourse node
   const selectedNode = useValue<DiscourseNodeShape | null>(
     "dragHandleSelectedNode",
     () => {
