@@ -5,7 +5,6 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
-import { baseShapeUtils } from "./baseShapeUtils";
 import { Icon } from "@blueprintjs/core";
 import ExtensionApiContextProvider, {
   useExtensionAPI,
@@ -25,6 +24,7 @@ import {
   TldrawUi,
   defaultBindingUtils,
   defaultShapeTools,
+  defaultShapeUtils,
   defaultTools,
   useEditor,
   VecModel,
@@ -1339,7 +1339,7 @@ const TldrawCanvasShared = ({
             // instanceId={initialState.instanceId}
             autoFocus={false}
             initialState="select"
-            shapeUtils={[...baseShapeUtils, ...customShapeUtils]}
+            shapeUtils={[...defaultShapeUtils, ...customShapeUtils]}
             tools={[...defaultTools, ...defaultShapeTools, ...customTools]}
             bindingUtils={[...defaultBindingUtils, ...customBindingUtils]}
             components={editorComponents}

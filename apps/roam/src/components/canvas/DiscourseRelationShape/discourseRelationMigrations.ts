@@ -18,7 +18,6 @@ import { createMigrationIds } from "tldraw";
 import { RelationBinding } from "./DiscourseRelationBindings";
 import { getRelationColor } from "./DiscourseRelationUtil";
 import { DISCOURSE_NODE_SHAPE_TYPE } from "~/components/canvas/DiscourseNodeUtil";
-import { backfillTextShapeUrl, isTextShapeRecord } from "~/utils/textShapeLink";
 
 const SEQUENCE_ID_BASE = "com.roam-research.discourse-graphs";
 
@@ -53,7 +52,6 @@ export const createMigrations = ({
     AddSizeAndFontFamily: 3,
     RemoveNullAssetFileSize: 4,
     MigrateNodeTypeToDiscourseNode: 5,
-    AddTextShapeUrl: 6,
   });
   return createMigrationSequence({
     sequenceId: `${SEQUENCE_ID_BASE}`,
@@ -203,17 +201,6 @@ export const createMigrations = ({
         up: (shape: any) => {
           shape.props.nodeTypeId = shape.type;
           shape.type = DISCOURSE_NODE_SHAPE_TYPE;
-        },
-      },
-      {
-        id: versions["AddTextShapeUrl"],
-        scope: "record",
-        filter: (r: any) => isTextShapeRecord(r),
-        up: (shape: any) => {
-          backfillTextShapeUrl(shape);
-        },
-        down: (shape: any) => {
-          delete shape.props.url;
         },
       },
     ],
