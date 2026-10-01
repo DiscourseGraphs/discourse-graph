@@ -28,9 +28,8 @@ type TextLink = { id: TLShapeId; url: string; left: number; top: number };
 
 type TextLinkOverlayProps = { plugin: DiscourseGraphPlugin };
 
-// The affordance lives here rather than on a custom text shape util so the
-// stock tldraw text shape stays untouched. Trade-off: it does not rotate with
-// the shape, is not clipped by a frame, and draws above overlapping shapes.
+// Rendered here, not on a custom shape util, so the stock text shape stays
+// untouched -- at the cost of rotation, frame clipping and stacking fidelity.
 export const TextLinkOverlay = ({ plugin }: TextLinkOverlayProps) => {
   const editor = useEditor();
 

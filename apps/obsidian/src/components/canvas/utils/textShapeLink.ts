@@ -4,9 +4,8 @@ import type { TLShape } from "tldraw";
 // arbitrary protocols would make `javascript:` an XSS vector.
 const ALLOWED_WEB_PROTOCOLS = new Set(["http:", "https:", "mailto:"]);
 
-// Only obsidian://open?...file=... is allowed. A bare `obsidian:` check would
-// also admit action URIs like advanced-uri's commandid, letting a shared canvas
-// run commands in the reader's vault with one click.
+// Only obsidian://open?...file=... -- a bare `obsidian:` check would admit
+// action URIs like advanced-uri's commandid from a shared canvas.
 const isAllowedObsidianUrl = (url: URL): boolean =>
   url.host === "open" && !!url.searchParams.get("file");
 
