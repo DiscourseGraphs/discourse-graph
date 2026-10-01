@@ -41,11 +41,7 @@ import {
   type SearchableNode,
   type RankedDiscourseNode,
 } from "~/services/QueryEngine";
-import {
-  getNodeTypeBadge,
-  getFallbackNodeTypeBadge,
-  type NodeTypeBadge,
-} from "~/utils/nodeTypeBadge";
+import { getNodeTypeBadge, type NodeTypeBadge } from "~/utils/nodeTypeBadge";
 import {
   buildAuthorNameByPath,
   resolveAuthorName,
@@ -70,8 +66,7 @@ type NodesState =
 
 type NodeTypeDisplay = {
   name: string;
-  /** Null when neither the config nor the title says what type this is. */
-  badge: NodeTypeBadge | null;
+  badge: NodeTypeBadge;
 };
 
 type SearchResultRow = RankedDiscourseNode & {
@@ -329,13 +324,11 @@ const ResultList = ({
         >
           {/* Fixed-width column, so every title starts at the same x. */}
           <span className="flex w-11 shrink-0">
-            {result.nodeType.badge && (
-              <NodeTypePill
-                badge={result.nodeType.badge}
-                isCandidate={!!result.tagLine}
-                label={result.nodeType.name}
-              />
-            )}
+            <NodeTypePill
+              badge={result.nodeType.badge}
+              isCandidate={!!result.tagLine}
+              label={result.nodeType.name}
+            />
           </span>
           <div className="min-w-0 flex-1">
             <HighlightedTitle title={result.title} match={result.match} />
@@ -405,7 +398,9 @@ const NodeSearch = ({
   // this ever becomes a network call, only this body changes.
   useEffect(() => {
     try {
-      const nodes = new QueryEngine(app).getSearchableNodes();
+      const nodes = new QueryEngine(app).getSearchableNodes(
+        plugin.settings.nodeTypes,
+      );
       setNodesState({ status: "ready", nodes });
     } catch (error) {
       const message =
@@ -413,7 +408,7 @@ const NodeSearch = ({
       new Notice(`Could not load discourse nodes: ${message}`);
       setNodesState({ status: "error", message });
     }
-  }, [app]);
+  }, [app, plugin.settings.nodeTypes]);
 
   // Rescans on every toggle-on, so node type edits made meanwhile are picked up.
   useEffect(() => {
@@ -470,13 +465,11 @@ const NodeSearch = ({
       authorNameByPath,
     })
       .slice(0, MAX_VISIBLE_RESULTS)
-      .map((result) => ({
-        ...result,
-        nodeType: nodeTypesById.get(result.nodeTypeId) ?? {
-          name: "Unknown type",
-          badge: getFallbackNodeTypeBadge(result.title),
-        },
-      }));
+      .flatMap((result) => {
+        // Loaders already drop unconfigured types; this covers a type deleted before they rerun.
+        const nodeType = nodeTypesById.get(result.nodeTypeId);
+        return nodeType ? [{ ...result, nodeType }] : [];
+      });
   }, [
     app,
     nodesState,

@@ -73,16 +73,23 @@ export class QueryEngine {
   /**
    * Datacore when installed, vault iteration otherwise — `getFilesWithNodeTypeId`
    * owns that fallback. Call once per open, not per keystroke: the scan is the
-   * pipeline's most expensive step, and staying unfiltered keeps filter changes free.
+   * pipeline's most expensive step, and ignoring the type filter keeps filter changes free.
+   * Both paths only check that `nodeTypeId` exists, so unconfigured types are dropped here.
    */
-  getSearchableNodes = (): SearchableNode[] => {
+  getSearchableNodes = (nodeTypes: DiscourseNode[]): SearchableNode[] => {
+    const configuredTypeIds = new Set(nodeTypes.map((nodeType) => nodeType.id));
     const nodes: SearchableNode[] = [];
 
     for (const file of this.getFilesWithNodeTypeId()) {
       const frontmatter: Record<string, unknown> | undefined =
         this.app.metadataCache.getFileCache(file)?.frontmatter;
       const nodeTypeId = frontmatter?.nodeTypeId;
-      if (typeof nodeTypeId !== "string" || !nodeTypeId) continue;
+      if (
+        typeof nodeTypeId !== "string" ||
+        !configuredTypeIds.has(nodeTypeId)
+      ) {
+        continue;
+      }
 
       nodes.push({ file, title: file.basename, nodeTypeId });
     }
