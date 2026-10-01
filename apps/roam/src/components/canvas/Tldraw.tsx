@@ -55,6 +55,7 @@ import {
 import "tldraw/tldraw.css";
 import tldrawStyles from "./tldrawStyles";
 import { DragHandleOverlay } from "./overlays/DragHandleOverlay";
+import { TextLinkOverlay } from "./overlays/TextLinkOverlay";
 import { hasAcceptedRelationSchema, isDiscourseNodeShape } from "./canvasUtils";
 import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseRelations, {
@@ -171,6 +172,14 @@ const setActiveCanvas = ({
     editor.focus();
   }
 };
+
+// InFrontOfTheCanvas takes one component; module scope keeps its identity stable across renders.
+const CanvasOverlays = (): JSX.Element => (
+  <>
+    <DragHandleOverlay />
+    <TextLinkOverlay />
+  </>
+);
 
 export const DEFAULT_WIDTH = 160;
 export const DEFAULT_HEIGHT = 64;
@@ -1017,7 +1026,7 @@ const TldrawCanvasShared = ({
   const editorComponents: TLEditorComponents = {
     ...defaultEditorComponents,
     OnTheCanvas: ToastListener,
-    InFrontOfTheCanvas: DragHandleOverlay,
+    InFrontOfTheCanvas: CanvasOverlays,
   };
   const customUiComponents: TLUiComponents = createUiComponents({
     allNodes,
