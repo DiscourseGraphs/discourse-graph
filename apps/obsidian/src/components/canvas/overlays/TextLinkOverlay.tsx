@@ -1,37 +1,14 @@
-import React, { useCallback } from "react";
-import { useEditor, useValue, stopEventPropagation, TLShapeId } from "tldraw";
-import DiscourseGraphPlugin from "~/index";
-import { EXTERNAL_LINK_ICON_SVG } from "~/icons";
-import {
-  getTextShapeLinkUrl,
-  isObsidianUrl,
-} from "~/components/canvas/utils/textShapeLink";
-import {
-  parseObsidianOpenUrl,
-  resolveObsidianUrlToFile,
-} from "~/components/canvas/utils/externalContentHandlers";
-import {
-  openFileInNewLeaf,
-  openFileInNewTab,
-  openFileInSidebar,
-} from "~/components/canvas/utils/openFileUtils";
-import { showToast } from "~/components/canvas/utils/toastUtils";
-
-// The icon lives in CSS; only the per-shape coordinates can be inline.
-const ICON_MASK_URL = `url("data:image/svg+xml;utf8,${encodeURIComponent(
-  EXTERNAL_LINK_ICON_SVG,
-)}")`;
+import { HyperlinkButton, useEditor, useValue, TLShapeId } from "tldraw";
+import { getTextShapeLinkUrl } from "~/components/canvas/utils/textShapeLink";
 
 // Matches tldraw's own HyperlinkButton, which hides itself when zoomed out.
 const HIDE_BELOW_ZOOM = 0.32;
 
 type TextLink = { id: TLShapeId; url: string; left: number; top: number };
 
-type TextLinkOverlayProps = { plugin: DiscourseGraphPlugin };
-
 // Rendered here, not on a custom shape util, so the stock text shape stays
 // untouched -- at the cost of rotation, frame clipping and stacking fidelity.
-export const TextLinkOverlay = ({ plugin }: TextLinkOverlayProps) => {
+export const TextLinkOverlay = () => {
   const editor = useEditor();
 
   const links = useValue<TextLink[]>(
@@ -66,81 +43,17 @@ export const TextLinkOverlay = ({ plugin }: TextLinkOverlayProps) => {
     [editor],
   );
 
-  const openLink = useCallback(
-    (event: React.MouseEvent<HTMLAnchorElement>, url: string) => {
-      if (!isObsidianUrl(url)) return;
-      event.preventDefault();
-
-      const parsed = parseObsidianOpenUrl(url);
-      const file = parsed ? resolveObsidianUrlToFile(plugin, parsed) : null;
-      if (!file) {
-        showToast({
-          severity: "warning",
-          title: "Cannot open link",
-          description: "The linked file is not in this vault",
-        });
-        return;
-      }
-
-      // Mirrors the discourse-node gestures in TldrawViewComponent.
-      const open = event.altKey
-        ? openFileInNewLeaf
-        : event.metaKey || event.ctrlKey
-          ? openFileInNewTab
-          : openFileInSidebar;
-      void open(plugin.app, file);
-      editor.selectNone();
-    },
-    [editor, plugin],
-  );
-
-  // Upstream lets shift-click through so the canvas can still select the shape.
-  const stopUnlessShift = useCallback(
-    (event: React.PointerEvent<HTMLAnchorElement>) => {
-      if (!editor.inputs.shiftKey) stopEventPropagation(event);
-    },
-    [editor],
-  );
-
   return (
-    <div
-      className="dg-text-link-overlay"
-      style={
-        { "--dg-external-link-icon": ICON_MASK_URL } as React.CSSProperties
-      }
-    >
-      {links.map(({ id, url, left, top }) => {
-        // A page link never goes in href: middle-click and the context menu
-        // bypass onClick and would hand the URI to the OS handler.
-        const isPageLink = isObsidianUrl(url);
-        return (
-          <a
-            key={id}
-            className="tl-hyperlink-button"
-            style={{ left: `${left}px`, top: `${top}px` }}
-            href={isPageLink ? undefined : url}
-            target={isPageLink ? undefined : "_blank"}
-            rel={isPageLink ? undefined : "noopener noreferrer"}
-            role={isPageLink ? "link" : undefined}
-            tabIndex={isPageLink ? 0 : undefined}
-            onClick={(event) => openLink(event, url)}
-            onKeyDown={(event) => {
-              if (isPageLink && (event.key === "Enter" || event.key === " ")) {
-                openLink(
-                  event as unknown as React.MouseEvent<HTMLAnchorElement>,
-                  url,
-                );
-              }
-            }}
-            onPointerDown={stopUnlessShift}
-            onPointerUp={stopUnlessShift}
-            title={url}
-            draggable={false}
-          >
-            <div className="tl-hyperlink__icon" />
-          </a>
-        );
-      })}
+    <div className="dg-text-link-overlay">
+      {links.map(({ id, url, left, top }) => (
+        <div
+          key={id}
+          className="dg-text-link-anchor"
+          style={{ left: `${left}px`, top: `${top}px` }}
+        >
+          <HyperlinkButton url={url} />
+        </div>
+      ))}
     </div>
   );
 };

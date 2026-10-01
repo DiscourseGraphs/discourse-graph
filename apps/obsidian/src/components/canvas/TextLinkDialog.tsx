@@ -39,16 +39,11 @@ type TextLinkDialogProps = { onClose: () => void };
 
 type UrlValidity = { isValid: boolean; hasProtocol: boolean };
 
-// Only text shapes carry the widened url validator. Geo and friends keep
-// tldraw's T.linkUrl, so accepting obsidian:// for them would throw on save.
-const validateUrlForShape = (url: string, shapeType: string): UrlValidity => {
-  const isAllowed =
-    shapeType === "text"
-      ? (value: string) => isAllowedTextLinkUrl(value)
-      : (value: string) => T.linkUrl.isValid(value);
-
-  if (isAllowed(url)) return { isValid: true, hasProtocol: true };
-  if (isAllowed(`https://${url}`)) return { isValid: true, hasProtocol: false };
+// One validator for every shape type now that tldraw's own accepts obsidian://.
+const validateUrl = (url: string): UrlValidity => {
+  if (T.linkUrl.isValid(url)) return { isValid: true, hasProtocol: true };
+  if (T.linkUrl.isValid(`https://${url}`))
+    return { isValid: true, hasProtocol: false };
   return { isValid: false, hasProtocol: false };
 };
 
@@ -92,7 +87,7 @@ const TextLinkDialogInner = track(
 
     const [urlInputState, setUrlInputState] = useState(() => {
       const initialUrl = readLinkUrl(selectedShape);
-      const result = validateUrlForShape(initialUrl, shapeType);
+      const result = validateUrl(initialUrl);
       const initialValue = result.isValid
         ? result.hasProtocol
           ? initialUrl
@@ -108,7 +103,7 @@ const TextLinkDialogInner = track(
           /https?:\/\/(https?:\/\/)/,
           (_match, arg1: string) => arg1,
         );
-        const result = validateUrlForShape(fixedRawValue, shapeType);
+        const result = validateUrl(fixedRawValue);
         const safeValue = result.isValid
           ? result.hasProtocol
             ? fixedRawValue
