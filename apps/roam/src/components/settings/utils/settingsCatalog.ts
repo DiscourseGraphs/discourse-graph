@@ -1,5 +1,6 @@
 import getDiscourseNodes, {
   excludeDefaultNodes,
+  type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
 import { isSyncEnabled } from "./accessors";
 import { rootPath, type SettingsPath } from "./settingsNavigation";
@@ -112,6 +113,8 @@ export type SearchableSetting = {
   keywords: readonly string[];
   path: SettingsPath;
   breadcrumb: string;
+  /** Set on entries repeated per node type, whose shared breadcrumb is not matched. */
+  nodeTypeUid?: string;
 };
 
 export type SearchablePage = {
@@ -121,6 +124,7 @@ export type SearchablePage = {
   keywords: readonly string[];
   path: SettingsPath;
   breadcrumb: string;
+  nodeTypeUid?: string;
 };
 
 export type SearchableEntry = SearchableSetting | SearchablePage;
@@ -473,27 +477,29 @@ const toSearchable = ({
   setting,
   anchorId,
   path,
-  idSuffix,
+  node,
   trailing,
 }: {
   setting: AuthoredSetting;
   anchorId: string;
   path: SettingsPath;
-  idSuffix?: string;
+  node?: DiscourseNode;
   trailing: string[];
 }): SearchableSetting => ({
   kind: "setting",
-  id: idSuffix ? `${anchorId}@${idSuffix}` : anchorId,
+  id: node ? `${anchorId}@${node.type}` : anchorId,
   anchorId,
-  label: setting.label,
+  // Names the node type so repeated rows ("Color" per type) stay distinguishable.
+  label: node ? `${node.text} \u203a ${setting.label}` : setting.label,
+  nodeTypeUid: node?.type,
   description: setting.description,
   keywords: setting.keywords ?? [],
   path,
   breadcrumb: breadcrumbOf(path, trailing),
 });
 
-const buildPages = (): SearchablePage[] =>
-  Object.entries(SETTINGS_TAB_META)
+const buildPages = (nodeTypes: DiscourseNode[]): SearchablePage[] => [
+  ...Object.entries(SETTINGS_TAB_META)
     .filter(([, meta]) => meta.searchable)
     .map(([tabId, meta]) => ({
       kind: "page" as const,
@@ -502,7 +508,20 @@ const buildPages = (): SearchablePage[] =>
       keywords: [meta.section],
       path: rootPath(tabId),
       breadcrumb: meta.section,
-    }));
+    })),
+  ...nodeTypes.map((node) => {
+    const path = nodePath()(node.type);
+    return {
+      kind: "page" as const,
+      id: `page:node:${node.type}`,
+      label: node.text,
+      keywords: ["node type"],
+      path,
+      breadcrumb: breadcrumbOf(path, []),
+      nodeTypeUid: node.type,
+    };
+  }),
+];
 
 /** Rebuilt per query, not memoised: node types and feature gates change while Settings is
  *  open, and `getDiscourseNodes` is cache-backed. */
@@ -513,11 +532,7 @@ export const buildSettingsCatalog = (): SearchableEntry[] => {
     ([, setting]) =>
       setting.path !== undefined && (setting.isAvailable?.() ?? true),
   );
-  const nodeTypes = available.some(([, setting]) =>
-    isNodeTypePath(setting.path),
-  )
-    ? getDiscourseNodes().filter(excludeDefaultNodes)
-    : [];
+  const nodeTypes = getDiscourseNodes().filter(excludeDefaultNodes);
 
   const settings = available.flatMap(([id, setting]): SearchableSetting[] => {
     const anchorId = settingKeysOf(id, setting).join("/");
@@ -532,13 +547,13 @@ export const buildSettingsCatalog = (): SearchableEntry[] => {
         setting,
         anchorId,
         path: path(node.type),
-        idSuffix: node.type,
-        trailing: [node.text, ...groupTrail],
+        node,
+        trailing: groupTrail,
       }),
     );
   });
 
-  return [...settings, ...buildPages()];
+  return [...settings, ...buildPages(nodeTypes)];
 };
 
 const BY_ADDRESS = new Map(
