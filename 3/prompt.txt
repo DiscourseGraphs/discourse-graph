@@ -1,0 +1,21 @@
+save both to memory
+
+---
+
+add another rule to memory that to not reply to comments from a human feedback directly. Always post the draft for me to review before posting it.
+
+---
+
+did u run cdp verification yet? if so you can use /pr-evidence then add the screenshots to the PR body
+
+---
+
+re-run the screenshots with clean text
+
+---
+
+/mattpocock-skills:teach the diff of this new approach
+
+---
+
+open these teaching for me
