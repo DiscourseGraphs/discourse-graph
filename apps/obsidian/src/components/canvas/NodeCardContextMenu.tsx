@@ -38,7 +38,6 @@ export const NodeCardContextMenu = ({
 }: NodeCardContextMenuProps) => {
   const editor = useEditor();
   const styles = useRelevantStyles();
-  const isEnabled = plugin.settings.nodeCardContextMenuEnabled ?? false;
   const currentToolId = useValue(
     "current tool for node card context menu",
     () => editor.getCurrentToolId(),
@@ -53,7 +52,7 @@ export const NodeCardContextMenu = ({
     [editor],
   );
   const selectedNode =
-    isEnabled && selectedShape?.type === "discourse-node"
+    selectedShape?.type === "discourse-node"
       ? (selectedShape as DiscourseNodeShape)
       : null;
   const [activeTab, setActiveTab] = useState<NodeCardContextMenuTab>("context");
@@ -65,9 +64,8 @@ export const NodeCardContextMenu = ({
   // The DiscourseToolPanel occupies the top-right corner while these tools
   // are active; don't render a second panel next to it.
   if (
-    isEnabled &&
-    (currentToolId === "discourse-node" ||
-      currentToolId === "discourse-relation")
+    currentToolId === "discourse-node" ||
+    currentToolId === "discourse-relation"
   ) {
     return null;
   }

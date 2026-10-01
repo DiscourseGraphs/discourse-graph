@@ -95,7 +95,7 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
     };
   }, []);
 
-  // Track the single selected discourse node — mirrors RelationsOverlay pattern
+  // Track the single selected discourse node
   const selectedNode = useValue<DiscourseNodeShape | null>(
     "dragHandleSelectedNode",
     () => {
