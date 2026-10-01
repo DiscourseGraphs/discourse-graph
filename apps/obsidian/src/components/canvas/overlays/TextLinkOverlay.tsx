@@ -17,9 +17,10 @@ import {
 } from "~/components/canvas/utils/openFileUtils";
 import { showToast } from "~/components/canvas/utils/toastUtils";
 
-const LINK_ICON_MASK = `url("data:image/svg+xml;utf8,${encodeURIComponent(
+// The icon lives in CSS; only the per-shape coordinates can be inline.
+const ICON_MASK_URL = `url("data:image/svg+xml;utf8,${encodeURIComponent(
   EXTERNAL_LINK_ICON_SVG,
-)}") center 100% / 100% no-repeat`;
+)}")`;
 
 // Matches tldraw's own HyperlinkButton, which hides itself when zoomed out.
 const HIDE_BELOW_ZOOM = 0.32;
@@ -103,18 +104,17 @@ export const TextLinkOverlay = ({ plugin }: TextLinkOverlayProps) => {
   );
 
   return (
-    <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+    <div
+      className="dg-text-link-overlay"
+      style={
+        { "--dg-external-link-icon": ICON_MASK_URL } as React.CSSProperties
+      }
+    >
       {links.map(({ id, url, left, top }) => (
         <a
           key={id}
           className="tl-hyperlink-button"
-          style={{
-            position: "absolute",
-            left: `${left}px`,
-            top: `${top}px`,
-            transform: "translateY(-50%)",
-            pointerEvents: "all",
-          }}
+          style={{ left: `${left}px`, top: `${top}px` }}
           href={url}
           target="_blank"
           rel="noopener noreferrer"
@@ -124,10 +124,7 @@ export const TextLinkOverlay = ({ plugin }: TextLinkOverlayProps) => {
           title={url}
           draggable={false}
         >
-          <div
-            className="tl-hyperlink__icon"
-            style={{ mask: LINK_ICON_MASK, WebkitMask: LINK_ICON_MASK }}
-          />
+          <div className="tl-hyperlink__icon" />
         </a>
       ))}
     </div>
