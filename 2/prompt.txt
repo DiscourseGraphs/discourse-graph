@@ -1,0 +1,25 @@
+save both to memory
+
+---
+
+add another rule to memory that to not reply to comments from a human feedback directly. Always post the draft for me to review before posting it.
+
+---
+
+did u run cdp verification yet? if so you can use /pr-evidence then add the screenshots to the PR body
+
+---
+
+re-run the screenshots with clean text
+
+---
+
+/mattpocock-skills:teach the diff of this new approach
+
+---
+
+open these teaching for me
+
+---
+
+run all the steps in /create-pr again for me to modify this existing PR. update everything from PR body (eg: we need to include diagram), address the full delegated review and run all other checks. then watch if there's any codereview bot feedbacks

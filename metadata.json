@@ -3,7 +3,7 @@
   "checkpoint_id": "01M3TGG2HNSS4585KFMCVZM5Y1",
   "strategy": "manual-commit",
   "branch": "eng-1339-migrate-obsidian-to-the-node-card-context-menu",
-  "checkpoints_count": 3,
+  "checkpoints_count": 4,
   "files_touched": [
     "apps/obsidian/src/components/canvas/overlays/DragHandleOverlay.tsx"
   ],
@@ -21,13 +21,27 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 6,
-    "cache_creation_tokens": 4657,
-    "cache_read_tokens": 571221,
-    "output_tokens": 959,
-    "api_call_count": 3
+    "input_tokens": 60,
+    "cache_creation_tokens": 645529,
+    "cache_read_tokens": 16742717,
+    "output_tokens": 26778,
+    "api_call_count": 30,
+    "subagent_tokens": {
+      "input_tokens": 56,
+      "cache_creation_tokens": 107030,
+      "cache_read_tokens": 2441701,
+      "output_tokens": 318,
+      "api_call_count": 28
+    }
   }
 }
