@@ -1,3 +1,90 @@
+diff --git a/dist-cjs/index.d.ts b/dist-cjs/index.d.ts
+index 494fc8cf2bcf3b3eac5ef1dd4151d10637bc64f4..d6bcac283a9264ac53cfed0c56c1a492452e0ead 100644
+--- a/dist-cjs/index.d.ts
++++ b/dist-cjs/index.d.ts
+@@ -2384,6 +2384,9 @@ export declare const RichTextArea: React_3.ForwardRefExoticComponent<TextAreaPro
+  *
+  * @public @react
+  */
++/** patched export for custom link handling */
++export declare function HyperlinkButton({ url }: { url: string }): JSX_2.Element;
++
+ export declare const RichTextLabel: React_3.NamedExoticComponent<RichTextLabelProps>;
+ 
+ /** @public */
+diff --git a/dist-cjs/index.js b/dist-cjs/index.js
+index 0147c606b112a6deb5c327f871948b879d05331b..9f33578afbac1cdad85483afa8e8b004168df61a 100644
+--- a/dist-cjs/index.js
++++ b/dist-cjs/index.js
+@@ -165,6 +165,7 @@ __export(index_exports, {
+   ReorderMenuSubmenu: () => import_menu_items.ReorderMenuSubmenu,
+   RhombusToolbarItem: () => import_DefaultToolbarContent.RhombusToolbarItem,
+   RichTextArea: () => import_RichTextArea.RichTextArea,
++  HyperlinkButton: () => import_HyperlinkButton.HyperlinkButton,
+   RichTextLabel: () => import_RichTextLabel.RichTextLabel,
+   RichTextSVG: () => import_RichTextLabel.RichTextSVG,
+   RotateCWMenuItem: () => import_DefaultActionsMenuContent.RotateCWMenuItem,
+@@ -412,6 +413,7 @@ var import_default_shape_constants = require("./lib/shapes/shared/default-shape-
+ var import_defaultFonts = require("./lib/shapes/shared/defaultFonts");
+ var import_PlainTextLabel = require("./lib/shapes/shared/PlainTextLabel");
+ var import_RichTextLabel = require("./lib/shapes/shared/RichTextLabel");
++var import_HyperlinkButton = require("./lib/shapes/shared/HyperlinkButton.js");
+ var import_useDefaultColorTheme = require("./lib/shapes/shared/useDefaultColorTheme");
+ var import_useEditablePlainText = require("./lib/shapes/shared/useEditablePlainText");
+ var import_useEditableRichText = require("./lib/shapes/shared/useEditableRichText");
+diff --git a/dist-cjs/lib/shapes/shared/HyperlinkButton.js b/dist-cjs/lib/shapes/shared/HyperlinkButton.js
+index 17be37d15741ae5ebdd78d123382129a3c6f4fdb..dd75ac28d29e730388c56e0662ee32e210cab6f0 100644
+--- a/dist-cjs/lib/shapes/shared/HyperlinkButton.js
++++ b/dist-cjs/lib/shapes/shared/HyperlinkButton.js
+@@ -36,6 +36,14 @@ var import_editor = require("@tldraw/editor");
+ var import_classnames = __toESM(require("classnames"));
+ var import_react = require("react");
+ const LINK_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' fill='none'%3E%3Cpath stroke='%23000' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M13 5H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6M19 5h6m0 0v6m0-6L13 17'/%3E%3C/svg%3E";
++const WEB_PROTOCOLS = /* @__PURE__ */ new Set(["http:", "https:", "mailto:"]);
++function isWebUrl(url) {
++  try {
++    return WEB_PROTOCOLS.has(new URL(url).protocol.toLowerCase());
++  } catch {
++    return false;
++  }
++}
+ function HyperlinkButton({ url }) {
+   const editor = (0, import_editor.useEditor)();
+   const hideButton = (0, import_editor.useValue)("zoomLevel", () => editor.getZoomLevel() < 0.32, [editor]);
+@@ -45,15 +53,30 @@ function HyperlinkButton({ url }) {
+     },
+     [editor]
+   );
++  const web = isWebUrl(url);
++  const onClick = useCallback(
++    (e) => {
++      const ev = new CustomEvent("tldraw.navigate-link", {
++        bubbles: true,
++        cancelable: true,
++        detail: { url, metaKey: e.metaKey, ctrlKey: e.ctrlKey, altKey: e.altKey, shiftKey: e.shiftKey }
++      });
++      if (!e.currentTarget.dispatchEvent(ev) || !web) e.preventDefault();
++    },
++    [url, web]
++  );
+   return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+     "a",
+     {
+       className: (0, import_classnames.default)("tl-hyperlink-button", {
+         "tl-hyperlink-button__hidden": hideButton
+       }),
+-      href: url,
+-      target: "_blank",
+-      rel: "noopener noreferrer",
++      href: web ? url : void 0,
++      target: web ? "_blank" : void 0,
++      rel: web ? "noopener noreferrer" : void 0,
++      role: web ? void 0 : "link",
++      tabIndex: web ? void 0 : 0,
++      onClick,
+       onPointerDown: useStopPropagationOnShiftKey,
+       onPointerUp: useStopPropagationOnShiftKey,
+       title: url,
 diff --git a/dist-cjs/lib/ui/hooks/menu-hooks.js b/dist-cjs/lib/ui/hooks/menu-hooks.js
 index a3289bc10d59b071bc093bd4a681ddef53631d38..a4a2ed4ce58e417816a62f4359daa3d554afcf41 100644
 --- a/dist-cjs/lib/ui/hooks/menu-hooks.js
@@ -11,6 +98,94 @@ index a3289bc10d59b071bc093bd4a681ddef53631d38..a4a2ed4ce58e417816a62f4359daa3d5
      },
      [editor]
    );
+diff --git a/dist-esm/index.d.mts b/dist-esm/index.d.mts
+index 494fc8cf2bcf3b3eac5ef1dd4151d10637bc64f4..d6bcac283a9264ac53cfed0c56c1a492452e0ead 100644
+--- a/dist-esm/index.d.mts
++++ b/dist-esm/index.d.mts
+@@ -2384,6 +2384,9 @@ export declare const RichTextArea: React_3.ForwardRefExoticComponent<TextAreaPro
+  *
+  * @public @react
+  */
++/** patched export for custom link handling */
++export declare function HyperlinkButton({ url }: { url: string }): JSX_2.Element;
++
+ export declare const RichTextLabel: React_3.NamedExoticComponent<RichTextLabelProps>;
+ 
+ /** @public */
+diff --git a/dist-esm/index.mjs b/dist-esm/index.mjs
+index b704ca9de912cf561e35c254af1b3c1c3782044b..ea81756d289322953ee1bbe3fd0f10db4fb8750b 100644
+--- a/dist-esm/index.mjs
++++ b/dist-esm/index.mjs
+@@ -103,6 +103,8 @@ import {
+   RichTextLabel,
+   RichTextSVG
+ } from "./lib/shapes/shared/RichTextLabel.mjs";
++/** patched export for custom link handling */
++import { HyperlinkButton } from "./lib/shapes/shared/HyperlinkButton.mjs";
+ import { useDefaultColorTheme } from "./lib/shapes/shared/useDefaultColorTheme.mjs";
+ import { useEditablePlainText, useEditableText } from "./lib/shapes/shared/useEditablePlainText.mjs";
+ import { useEditableRichText } from "./lib/shapes/shared/useEditableRichText.mjs";
+@@ -630,6 +632,7 @@ export {
+   ReorderMenuSubmenu,
+   RhombusToolbarItem,
+   RichTextArea,
++  HyperlinkButton,
+   RichTextLabel,
+   RichTextSVG,
+   RotateCWMenuItem,
+diff --git a/dist-esm/lib/shapes/shared/HyperlinkButton.mjs b/dist-esm/lib/shapes/shared/HyperlinkButton.mjs
+index 9395646868e44c2ed1537dadaf4129a87d6cd2aa..2ab231604efae4b4bedd95f361038220abe819db 100644
+--- a/dist-esm/lib/shapes/shared/HyperlinkButton.mjs
++++ b/dist-esm/lib/shapes/shared/HyperlinkButton.mjs
+@@ -3,6 +3,14 @@ import { stopEventPropagation, useEditor, useValue } from "@tldraw/editor";
+ import classNames from "classnames";
+ import { useCallback } from "react";
+ const LINK_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' fill='none'%3E%3Cpath stroke='%23000' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M13 5H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6M19 5h6m0 0v6m0-6L13 17'/%3E%3C/svg%3E";
++const WEB_PROTOCOLS = /* @__PURE__ */ new Set(["http:", "https:", "mailto:"]);
++function isWebUrl(url) {
++  try {
++    return WEB_PROTOCOLS.has(new URL(url).protocol.toLowerCase());
++  } catch {
++    return false;
++  }
++}
+ function HyperlinkButton({ url }) {
+   const editor = useEditor();
+   const hideButton = useValue("zoomLevel", () => editor.getZoomLevel() < 0.32, [editor]);
+@@ -12,15 +20,30 @@ function HyperlinkButton({ url }) {
+     },
+     [editor]
+   );
++  const web = isWebUrl(url);
++  const onClick = useCallback(
++    (e) => {
++      const ev = new CustomEvent("tldraw.navigate-link", {
++        bubbles: true,
++        cancelable: true,
++        detail: { url, metaKey: e.metaKey, ctrlKey: e.ctrlKey, altKey: e.altKey, shiftKey: e.shiftKey }
++      });
++      if (!e.currentTarget.dispatchEvent(ev) || !web) e.preventDefault();
++    },
++    [url, web]
++  );
+   return /* @__PURE__ */ jsx(
+     "a",
+     {
+       className: classNames("tl-hyperlink-button", {
+         "tl-hyperlink-button__hidden": hideButton
+       }),
+-      href: url,
+-      target: "_blank",
+-      rel: "noopener noreferrer",
++      href: web ? url : void 0,
++      target: web ? "_blank" : void 0,
++      rel: web ? "noopener noreferrer" : void 0,
++      role: web ? void 0 : "link",
++      tabIndex: web ? void 0 : 0,
++      onClick,
+       onPointerDown: useStopPropagationOnShiftKey,
+       onPointerUp: useStopPropagationOnShiftKey,
+       title: url,
 diff --git a/dist-esm/lib/ui/hooks/menu-hooks.mjs b/dist-esm/lib/ui/hooks/menu-hooks.mjs
 index aec3d2936032f118aa70afb33872d3b0f3e9887c..5bcde1a144b5be958821eb110b7940d88b4de5dd 100644
 --- a/dist-esm/lib/ui/hooks/menu-hooks.mjs

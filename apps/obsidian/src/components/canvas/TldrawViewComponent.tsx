@@ -54,6 +54,7 @@ import { WHITE_LOGO_SVG } from "~/icons";
 import { CustomContextMenu } from "./CustomContextMenu";
 import { TextLinkDialog } from "~/components/canvas/TextLinkDialog";
 import { TextLinkOverlay } from "~/components/canvas/overlays/TextLinkOverlay";
+import { registerLinkNavigation } from "~/components/canvas/utils/linkNavigation";
 import {
   openFileInSidebar,
   openFileInNewTab,
@@ -133,6 +134,11 @@ export const TldrawPreviewComponent = ({
   }, []);
 
   // Add keyboard event listener for Meta+Alt+Enter when editor is mounted
+  useEffect(() => {
+    if (!isEditorMounted || !editorRef.current) return;
+    return registerLinkNavigation(editorRef.current, plugin);
+  }, [isEditorMounted, plugin]);
+
   useEffect(() => {
     if (!isEditorMounted || !editorRef.current) return;
 
@@ -567,7 +573,7 @@ export const TldrawPreviewComponent = ({
                 <>
                   <RelationsOverlay plugin={plugin} file={file} />
                   <DragHandleOverlay plugin={plugin} file={file} />
-                  <TextLinkOverlay plugin={plugin} />
+                  <TextLinkOverlay />
                 </>
               ),
             }}

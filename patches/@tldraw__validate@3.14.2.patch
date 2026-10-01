@@ -1,0 +1,40 @@
+diff --git a/dist-cjs/lib/validation.js b/dist-cjs/lib/validation.js
+index 368a20ff3d175196c190b667b65d16b7a482fe49..7810b007e2d05239359ce8b75410aaed1f7b81bc 100644
+--- a/dist-cjs/lib/validation.js
++++ b/dist-cjs/lib/validation.js
+@@ -696,6 +696,15 @@ const validLinkProtocols = /* @__PURE__ */ new Set(["http:", "https:", "mailto:"
+ const linkUrl = string.check((value) => {
+   if (value === "") return;
+   const url = parseUrl(value);
++  const protocol = url.protocol.toLowerCase();
++  if (protocol === "obsidian:") {
++    if (url.host.toLowerCase() !== "open" || !url.searchParams.get("file")) {
++      throw new ValidationError(
++        `Expected a valid url, got ${JSON.stringify(value)} (obsidian links must be open?file=)`
++      );
++    }
++    return;
++  }
+   if (!validLinkProtocols.has(url.protocol.toLowerCase())) {
+     throw new ValidationError(
+       `Expected a valid url, got ${JSON.stringify(value)} (invalid protocol)`
+diff --git a/dist-esm/lib/validation.mjs b/dist-esm/lib/validation.mjs
+index 4ed200ee79e8339ed3c454ff2744e35479dd9c73..754ce54eb58213f20423c63fa5a7acb0f354f990 100644
+--- a/dist-esm/lib/validation.mjs
++++ b/dist-esm/lib/validation.mjs
+@@ -643,6 +643,15 @@ const validLinkProtocols = /* @__PURE__ */ new Set(["http:", "https:", "mailto:"
+ const linkUrl = string.check((value) => {
+   if (value === "") return;
+   const url = parseUrl(value);
++  const protocol = url.protocol.toLowerCase();
++  if (protocol === "obsidian:") {
++    if (url.host.toLowerCase() !== "open" || !url.searchParams.get("file")) {
++      throw new ValidationError(
++        `Expected a valid url, got ${JSON.stringify(value)} (obsidian links must be open?file=)`
++      );
++    }
++    return;
++  }
+   if (!validLinkProtocols.has(url.protocol.toLowerCase())) {
+     throw new ValidationError(
+       `Expected a valid url, got ${JSON.stringify(value)} (invalid protocol)`
