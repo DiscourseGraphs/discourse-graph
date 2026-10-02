@@ -16,7 +16,12 @@ export type FailedSharedNodeImport = {
 };
 
 export type SharedNodeImportItem =
-  | { sharedNode: SharedNode; status: "imported" | "skipped"; warning?: string }
+  | {
+      sharedNode: SharedNode;
+      status: "imported" | "skipped";
+      pageUid: string;
+      warning?: string;
+    }
   | FailedSharedNodeImport;
 
 export const isFailedSharedNodeImport = (
@@ -100,6 +105,7 @@ export const importSharedNodes = async ({
           ? {
               sharedNode,
               status: result.action === "skipped" ? "skipped" : "imported",
+              pageUid: result.pageUid,
               ...(result.warning ? { warning: result.warning } : {}),
             }
           : { sharedNode, status: "failed", message: result.error.message },
