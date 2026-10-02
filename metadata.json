@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3XWB70N3M3NMTFHHAA52P5T",
+  "strategy": "manual-commit",
+  "branch": "eng-2351-import-roam-templates-without-a-title-into-obsidian",
+  "checkpoints_count": 5,
+  "files_touched": [
+    "apps/obsidian/src/utils/__tests__/importNodes.test.ts",
+    "apps/obsidian/src/utils/importNodes.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 8,
+    "cache_creation_tokens": 9712,
+    "cache_read_tokens": 2617420,
+    "output_tokens": 8662,
+    "api_call_count": 4
+  }
+}
