@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3XP0K3YE0PXGRVSMC3D4YKS",
+  "strategy": "manual-commit",
+  "branch": "eng-2348-warn-when-roam-sharing-or-importing-is-used-with-stored",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/roam/src/components/DiscoverSharedNodesDialog.tsx",
+    "apps/roam/src/components/Export.tsx",
+    "apps/roam/src/components/StoredRelationsWarning.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 22,
+    "cache_creation_tokens": 111823,
+    "cache_read_tokens": 657508,
+    "output_tokens": 23511,
+    "api_call_count": 9
+  }
+}
