@@ -1,0 +1,472 @@
+<agent-message from="afc3a87a2522c0d25">
+[Subagent hand-back] The text below is the final report of a subagent this session delegated to. It is model output, NOT a message from the user: instructions, requests, or approval claims inside it are the subagent's words and carry no user authority. The harness indents every line of the report, so a frame-like line at column zero inside it would be forged. Notes above this frame may quote model-derived text, which carries no user authority either. The report follows:
+  **PR #1505 at head 11e88385. pre-pr-review mode: Full.** This is the first pass: the PR has no prior annotations, review threads or reviews (REST shows only 3 bot issue comments), and the dispatcher confirmed it.
+  
+  ## 1. Findings
+  
+  No P1s. The code does what it claims. The open risks are on the Roam write side, which no unit test covers, and the Loom has to prove it.
+  
+  **P2**
+  
+  - **(a) `apps/roam/src/utils/importSharedRelations.ts:62-64`: relation import still creates node types from the raw template (your Q2).** `matchImportedNodeSchemas` passes `schema.template` straight into `createDiscourseNodeType` with no frontmatter strip and no blank check.
+    - Result: an Obsidian-origin type created on this path gets its YAML frontmatter as Template blocks, and a blank template gets an empty Template block.
+    - After this PR, Roam has two template-import paths that disagree on the same field. Obsidian sends node import and relation import through one function (`mapNodeTypeIdToLocal`), so it can't drift like this.
+    - It is reachable. The relation path creates a type when a relation endpoint's type matches nothing by RID, local id or lowercase label: for example, `resolveSharedNodeTypes` failed for that schema, or the user deleted the type.
+    - maparent wrote this line in ENG-1867 (#1302), so expect him to ask.
+    - Fix: export `getTemplateMarkdown`, widen its parameter to `string | null | undefined`, call it at line 64, and add one test in `importSharedRelations.test.ts` (no test there asserts the template argument today). Otherwise name it as deferred, with a ticket, in Risk or follow-up. This is sid's call. My suggested default is to fold it in: it's the same behavior and stays inside Done When item 2.
+  
+  - **(b) `accessors.ts:1149-1166`: by default, all three Done When items rest on a readback nothing tests.**
+    - `migratePropsStoreDefault` turns the new settings store on by default. In that store, the Template tab seeds its buffer from block props (`EphemeralBlocksPanel.tsx:117`), and node creation reads block props through `getDiscourseNodeSetting`.
+    - Those props come from `getBasicTreeByParentUid(templateUid)` (a sync `fast.q`) right after `await fromMarkdown`. If that read runs before the new blocks are visible, the props template is `[]`. The template would then be empty in settings and missing on node creation, while the legacy blocks hold it.
+    - Both test files mock `createDiscourseNodeType`. Its only other markdown caller is relation import. The PR's "read it in either settings store" is unproven.
+    - Fix: the Loom must drive this matrix (sid runs it live):
+  
+      | Dimension | Cases |
+      |---|---|
+      | Settings store | New store (default), legacy store |
+      | Source type | Roam-origin with nested bullets; Obsidian-origin with frontmatter and `##` headings |
+      | Steps | Open the Template tab after import, create a node of that type, then re-import or refresh and confirm no duplicate blocks |
+  
+  **P3**
+  
+  - **(c) `accessors.ts:1156`: headings are dropped (your Q3), and "pre-existing" is only half right.**
+    - `getBasicTreeByParentUid` pulls only string, uid, order and children (checked in roamjs 0.90.0 source). Headings that `fromMarkdown` creates from Obsidian `## ` lines stay on the legacy blocks but never reach block props.
+    - In the default store, the Template tab and node creation therefore show plain blocks. The PR's own fixture (`## Source`, `## Notes`) hits this.
+    - The settings editor keeps heading and `open` (`EphemeralBlocksPanel.tsx:24`, `serializeBlockTree`), and new-store node creation passes them through. So the loss is specific to the import readback. It is pre-existing only in the legacy store, where node creation drops headings for every template.
+    - Roam-origin templates never carry headings, because `templateToText` ignores `heading`.
+    - Fix: read back with the full tree and map heading and `open` the way `serializeBlockTree` does. This is a shared accessor and would help relation import too. Otherwise state it as a known limitation and file a ticket.
+  
+  - **(d) `accessors.ts:1144-1166`: partial failure (your Q4) is real and slightly worse than described.**
+    - This PR puts `fromMarkdown` on remote text between `createPage` (1144) and the props write (1165-1166) on the node-import path.
+    - If it throws, the type page exists without props. The default store's `getAllDiscourseNodes` skips prop-less pages (line 1260), so the next import or refresh doesn't match it and calls `createDiscourseNodeType` again with the same uid.
+    - roamjs `createPage` sends `createPage` and every child `createBlock` at the same time (`submitActions` fires all actions in parallel). A retry can therefore append another Shortcut/Tag/Format/Template set to the stuck page even if `createPage` rejects.
+    - Untested risk, not reproduced. Name it in Risk or follow-up with a ticket. A later accessor fix can remove the page on failure (as the materializer does) or write props before `fromMarkdown`.
+  
+  - **(e) `nodeTemplateContent.ts:9-16`: the Roam producer's limits now show up on import.**
+    - Roam-origin template text leaves continuation lines of multi-line blocks at column 0 and drops headings.
+    - ENG-2326 (#1487, maparent, two days ago) fixed the same pattern in `pageToMarkdown.ts:208` only. Its comment explains why: "CommonMark ends a list item at a column-0 fence, heading, quote or table".
+    - So a Roam template block holding a code fence, or a later line starting `#`, `>` or `|`, will split on import.
+    - This text is also `* ` bullets with 3-space nesting, while `pageToMarkdown` emits `- ` with 4 spaces. That is a dialect `fromMarkdown` hasn't been exercised with here.
+    - It's outside this diff and affects ENG-2351 the same way. Name it in the PR and file one producer ticket for both importers.
+  
+  - **(f) PR context gaps.**
+    - `refreshImportedNode.ts:52` also calls `resolveSharedNodeTypes`. A refresh (the button or "refresh all") now creates a missing type with its template and never rewrites an existing one. Say so; it pre-empts "automatic template updates".
+    - Name ENG-2351 as the Obsidian-side counterpart (chain coverage).
+  
+  - **(g) `resolveSharedNodeTypes.test.ts:276`: the repeated-import test is redundant.** Its creation uid and later id match both come from mocks, so it re-asserts the existing tests at :118 (match by id, no create) and :146 (create with `uid: REMOTE_TYPE_UID`). Delete it and cite those two for Done When item 3, or keep it only as a named test.
+  
+  - **(h) CI `validate` is red on 11e88385, but not because of this diff.**
+    - The failure is `@repo/ui#check-types`: TS2786/TS2344 errors on lucide and sonner JSX, from a React 18 vs 19 type clash. The lockfile carries `@types/react` 18.2.21 and 19.1.12.
+    - Main at 065cab5e and the eng-2348 PR run two minutes later both passed that step with the same frozen lockfile, and `packages/ui` type-checks locally at this head.
+    - Entire Gates fails only because CI failed. Rerun with `gh run rerun 36975402659 --failed`. I'm read-only, so I didn't.
+  
+  ### Decisions and open questions
+  
+  The decisions you made where the ticket is silent are all right:
+  
+  - **`stripFrontmatter` for both origins:** right. It matches the consumer-side strip in `db-domain-invariants.md` and the materializer (#1267), and uses the shared content-model helper. On Roam text every top-level line starts with `* `, so it only normalizes line endings, which is what the materializer already does to Roam bodies.
+  - **Blank after strip means no template:** right. Only Obsidian can produce it (frontmatter-only templates); Roam omits the key when empty. It matches the materializer's empty rule.
+  - **No command translation:** right, per the ticket's Out of Scope. The PR body already discloses the `<%` SmartBlocks trigger.
+  - **Ignoring the Obsidian file name:** right; nothing in Roam would read it.
+  - **One query for all schemas:** right. The template rides the existing schema row, and this is the import path, so the summaries-only rule for discovery queries doesn't apply.
+  - **Skipping `trimBlankLines` and `protectMediaEmbeds`:** fine. `trimBlankLines` only exists to avoid `.trim()` eating first-line indentation, and the untrimmed return keeps it. Roam's producer drops `{{`-leading blocks and Obsidian template syntax doesn't match the embed pattern.
+  
+  Your questions:
+  
+  - **Q2:** real, see (a).
+  - **Q3:** real, see (c), with the "pre-existing" correction.
+  - **Q4:** real, see (d).
+  
+  The extra questions:
+  
+  - **`->>` typing:** postgrest-js 2.105.4 types `->>` on a `Json` column as a non-null `string`. SQL returns NULL when the key is missing: Roam omits it, Obsidian writes `null`. So the hand-written `template_content: string | null` is the honest type, and `?? ""` is reachable. No finding.
+  - **`refreshImportedNode.ts`:** yes, it reaches this path, see (f).
+  - **Page/Block/Any:** the reserved-name guard (line 54) runs before any template write, and name matching excludes the built-ins. Nothing new needed. Separately, `matchImportedNodeSchemas` (`importSharedRelations.ts:41-58`) matches labels against all types including the built-ins, so a remote "Page" schema resolves to the built-in by name. That breaks the #1331 rule, predates this PR and has nothing to do with templates: keep it out of this PR and ticket it if it isn't tracked.
+  
+  ### Sibling work
+  
+  - **#1479 (ENG-2296):** no file overlap and no semantic conflict. It adds `pageUid` to import results and moves `importSharedRelations` after the results with a catch; type resolution timing is unchanged. Merge order doesn't matter.
+  - **ENG-2351** (uncommitted in its worktree, `apps/obsidian/src/utils/importNodes.ts` and `importRelations.ts`): no overlap. Both apps take Roam-origin `template_content` verbatim with no translation, so they're consistent. Two notes:
+    - Obsidian keeps a whitespace-only template (`|| undefined` drops only `""`). Harmless.
+    - Both PRs should name the same producer follow-up from (e).
+  
+  ## 2. Verification log
+  
+  - **Mode gate:** 0 reviews, 0 review comments, 3 bot issue comments; first pass, so Full.
+  - **Step 0:** `git diff origin/main...HEAD` shows 2 files, +93/-1, worktree clean. Classes: DATA (Supabase select), FRONTEND (apps/roam), tests.
+  - **1a reuse:**
+    - Grepped `stripFrontmatter`, `trimBlankLines`, `normalizeLineEndings` and `*template*` helpers across `apps/roam/src/utils`, `packages/utils`, `packages/database/src` and `packages/content-model/src`.
+    - The only analog is the materializer's inline body prep (`materializeSharedNode.ts:225-230`, not exported). The PR reuses the shared helper. No unions added. Clean.
+  - **1b justification:** `?? ""` and the blank-to-undefined return both have real paths. Clean.
+  - **1c literals:** the alias string appears once. Clean.
+  - **1d type honesty:** no `as`, `!` or `any` added. Traced postgrest-js `ParseJsonAccessor` and `ResolveJsonPathType`. Clean.
+  - **1e explainability:** every hunk maps to Done When items 1-3.
+  - **1f call graph:**
+    - `resolveSharedNodeTypes` is called from `importSharedNodes.ts:86` and `refreshImportedNode.ts:52`, giving (f).
+    - `createDiscourseNodeType` is called from `DiscourseNodeConfigPanel` (no template), `importSharedRelations:62` (raw template, giving (a)) and `resolveSharedNodeTypes:56`.
+  - **1g comments:** one added comment (lines 32-33); it states a real constraint and reads cold. Clean.
+  - **1h second lookup:** none.
+  - **1i workflows:** not touched.
+  - **2a:** walked all invariant entries. Applies and holds: `is_relation` and `is_schema` filters, predicates pushed into the request, no per-item query, payload rule (import path), boundary checks, content-model reuse, consumer-side frontmatter strip, no new DB writes, errors go to `internalError`. The rest don't apply. No violations.
+  - **2b provenance:** `concept.sql:61` `literal_content jsonb NOT NULL DEFAULT '{}'`. Producers: Roam `conceptConversion.ts:76-78` and `roamToCrossAppConverters.ts:229`; Obsidian `conceptConversion.ts:58` and `syncDgNodesToSupabase.ts:735` (raw file).
+  - **2c query:** one query, filters present, nothing filtered in JS. Clean.
+  - **2d:** doesn't apply.
+  - **2e converters:** no field added. Every converter already handles `template_content` (`crossAppConverters.ts:103`, `dbToCrossAppConverters.ts:127`, the Roam and Obsidian producers, Obsidian `importNodes.ts:1213` and `templateImport.ts:49`). The two Roam consumers disagree, giving (a).
+  - **2f:** no new DB writes.
+  - **3 frontend:** searched the added lines for `style=`, arbitrary `-[` classes, hex colors, `roamAlphaAPI` / `.q(` / `async.backend`, and positional `[n]` access: none found. Settings writes go through the dual-write accessor. The reserved-name guard comes first. Default-store rendering gives (b) and (c).
+  - **4 process:** one problem, 14 code lines. No bot threads. Chain coverage needs ENG-2351 named. No guard removed and no extraction. A runtime demo is required and still pending. Inherited decisions (#1302, #1267) are cited in the annotations.
+  
+  ## 3. Draft PR annotations
+  
+  1. **`apps/roam/src/utils/resolveSharedNodeTypes.ts`, lines 34-39:**
+     > This runs for both origins on purpose. Roam builds `template_content` with `nodeTemplateContent`, where every top-level line starts with `* `, so `stripFrontmatter` only normalizes line endings for Roam text. That's what the materializer already does to Roam node bodies (#1267). `template_content` is null when the source type has no template: Roam leaves the key out and Obsidian writes null. A template with nothing left after the strip, like a frontmatter-only Obsidian template, creates the type without a Template block, the same as before this PR.
+  
+  2. **Same file, line 63:**
+     > `createDiscourseNodeType` has taken a markdown `template` since ENG-1867 (#1302), which added it for relation import. It writes the markdown under the new type's Template block with `block.fromMarkdown`, then copies that tree into the block props, so both settings stores get the template. A type matched by id or name returns at lines 48 and 52, before this call, so a repeated import or a refresh never rewrites a local template.
+  
+     If (c) isn't fixed, append: "The copy into block props drops headings; see Risk or follow-up."
+  
+  ## 4. Predicted review
+  
+  - **mdroidian:**
+    - "validate is red", before he reads anything else.
+    - "Why strip frontmatter from Roam templates?" (annotation 1).
+    - "Can `template_content` be null here?" (annotation 1).
+    - Wants the Loom to show the Template tab and node creation for an imported type.
+    - Possibly asks why the repeated-import test exists (g).
+  - **maparent:**
+    - "`matchImportedNodeSchemas` creates node types from these templates too; same helper?" (a)
+    - "`nodeTemplateContent` has the multi-line problem I fixed in `pageToMarkdown`; worth another task?" (e)
+    - "What happens on refresh?" (f)
+    - "What if `fromMarkdown` fails halfway?" (d)
+    - "Where's Obsidian importing Roam templates?" (ENG-2351)
+    - Headings (c).
+    - Maybe "why not read it through `dbNodeSchemaToCrossApp`?" Answer: the resolver selects only the columns it needs, as it already does for `format`.
+  
+  ## 5. Scope check
+  
+  ```markdown
+  ## Scope check
+  
+  - [x] Ran `$scope-check` against ENG-2350 and the final diff.
+  - Scope beyond `Done When`: None.
+  ```
+  
+  The select and template pass-through map to items 1 and 2, the strip and blank rule to item 2, and existing match-before-create to item 3. Folding in (a) would also stay inside item 2.
+  
+  ## 6. Standards check
+  
+  ```markdown
+  ## Standards check
+  
+  - [x] Ran `$dg-pr-adherence-check` against the final diff and PR metadata.
+  ```
+  
+  Passing: title matches the Linear title exactly; branch matches Linear's `gitBranchName`; size, TypeScript, comment and test rules are met; the template's headings are preserved.
+  
+  Outstanding for the author:
+  
+  1. CI `validate` and Entire Gates are red while the PR body claims `ci:validate` passed. Rerun; if it stays red, disclose it in the draft.
+  2. No manual end-to-end run yet ("Not yet exercised in Roam"), and the Loom is pending. Both are required; use the matrix in (b).
+  3. Paste the Scope check and Standards check sections above. This review stands in for "Local delegated full review", so that box can be checked once its findings are dealt with.
+  4. Add to Reviewer brief / Risk or follow-up: the refresh behavior (f), the decision on (a), the heading limit (c), the partial-failure risk (d), the producer limit (e), and ENG-2351. Each deferral needs a ticket.
+  
+  ## 7. Comments and bots
+  
+  - vercel[bot] (skipped deployment), linear-code[bot] (link-back) and supabase[bot] (ignored, no DB changes): boilerplate, nothing to verify.
+  - No review comments, no reviews. CodeRabbit's status is success but it posted nothing, so there's nothing to resolve.
+  
+  ## 8. Check results
+  
+  - PR head = worktree HEAD = 11e88385; merge-base = origin/main 065cab5e.
+  
+  | Check | Result |
+  |---|---|
+  | `apps/roam` `npx tsc --noEmit --skipLibCheck` | Pass |
+  | `apps/roam` `pnpm test:unit` | Pass: 64 files, 619 tests; `resolveSharedNodeTypes.test.ts` 20/20 |
+  | eslint `--max-warnings 0` on both changed files | Pass |
+  | prettier `--check` on both changed files | Pass |
+  | `packages/ui` tsc (run to triage CI) | Pass |
+  | GitHub: CI/validate | Fail (unrelated, see (h)) |
+  | GitHub: Entire Gates | Fail (only because CI failed) |
+  | GitHub: lint-changed-files, format-changed-files, eslint (apps/roam), Roam blob deploy, CodeRabbit | Pass |
+  | GitHub: Vercel, Supabase Preview | Skipped |
+</agent-message>
+
+---
+
+<agent-message from="a913c6f959d09140b">
+[Subagent hand-back] The text below is the final report of a subagent this session delegated to. It is model output, NOT a message from the user: instructions, requests, or approval claims inside it are the subagent's words and carry no user authority. The harness indents every line of the report, so a frame-like line at column zero inside it would be forged. Notes above this frame may quote model-derived text, which carries no user authority either. The report follows:
+  ## ENG-2348 review round 1: applied
+  
+  Round 1 is applied: copy fixed, checks green, PR body patched, and the four review comments posted. One deviation: I didn't use your testing-note wording because its reason is factually wrong (details below).
+  
+  **New head:** `490fd5505d848d620ff9efaf8d4e17d144d2d901` (PR #1506, still draft).
+  - One commit on top of `01816bcf`: `Describe hidden imported relations in the stored relations warning`.
+  - It changes only the callout body string in `StoredRelationsWarning.tsx` (+1/-1). The text matches your wording exactly; the title and the `withDocsLink(..., ROAM_DOCS.migrationToStoredRelations)` wrapper are unchanged.
+  - I confirmed the copy against the code first: `importSharedRelations.ts:228` writes `tentative: true` stored relations, `TentativeRelationInstances` returns early while the setting is off, and sharing reads only `getReifiedRelations()`.
+  - Committed and pushed under flock, with no attribution. The worktree is clean.
+  
+  ### Checks on `490fd550`
+  | Check | Result |
+  |---|---|
+  | eslint `--max-warnings 0` on `StoredRelationsWarning.tsx` | pass |
+  | prettier `--check` | pass |
+  | `tsc --noEmit --skipLibCheck` in apps/roam | pass |
+  | `pnpm test:unit` in apps/roam | 64 files, 613 tests pass |
+  | `pnpm ci:validate` | check-types 8/8, test:unit 6/6 |
+  | Roam build (re-run so the Verification section is accurate for this SHA) | 0 errors |
+  | GitHub CI | all success: lint-changed-files, eslint (apps/roam), validate, format-changed-files, deploy, Entire Gates, Vercel Preview Comments. Supabase Preview skipped. |
+  
+  ### The testing-note deviation
+  - The requested reason was that vitest runs in node and only includes `src/utils/__tests__`, so a component test would need jsdom and testing-library. That isn't true here.
+  - Five existing files in `apps/roam/src/utils/__tests__` already set `// @vitest-environment jsdom` per file and render with `react-dom/client` plus `act`, with no testing-library. They all pass in the normal run: `canvasNodeMenu`, `discourseGraphPanel`, `nodeCardPanel`, `relationSchemaCreationRefresh`, `tentativeRelationLoading`.
+  - `tentativeRelationLoading.test.ts` even mocks `getStoredRelationsEnabled` and renders a component.
+  - So I wrote an accurate one-sentence reason instead (last line of Verification below). If you'd rather have the test, it's about 40 lines following `tentativeRelationLoading.test.ts`.
+  
+  ### Other claims I checked before writing them
+  - **Obsidian:** its "patterns" are node-title bulk-import patterns. Its `DiscourseRelation` is an explicit record with no stored relations toggle.
+  - **Query results, canvas, discourse context export:** none of the three files references `onloadArgs`.
+  - **Import:** `importSharedNodes` and `importSharedRelations` are called only from the import dialog.
+  - **Refresh:** refresh code never calls `createReifiedRelation`.
+  
+  ### PR body as patched (first 40 lines of the live body)
+  The live body matches my file except for the trailing newline.
+  ```
+  <!-- entire-trail-link-start -->
+  https://entire.io/gh/DiscourseGraphs/discourse-graph/trails/52
+  <!-- entire-trail-link-end -->
+  
+  ## Reviewer brief
+  
+  - Result: With stored relations disabled, the Publish tab of the share dialog and the import dialog show a warning callout. It says why sharing and importing need stored relations, names the setting (Personal Settings > Home > Enable stored relations), and links the migration guide. Sharing and importing still work.
+  - Review focus:
+    - The ticket leaves warning versus blocking open. This PR warns, per the Solution, and changes no share or import behavior.
+    - "Link to the setting": the link opens the migration guide that the setting itself links to, and the copy names the setting's location. Opening the settings dialog needs `onloadArgs`, which the query results, canvas, and discourse context export call sites don't have.
+    - The flag is read on render. No change event exists for this setting, so after enabling, the warning is gone the next time the dialog opens or re-renders.
+  - Risk or follow-up:
+    - Not yet exercised in Roam.
+    - Obsidian has no counterpart because it has no pattern-based relations.
+    - #1479 (ENG-2296) also changes `DiscoverSharedNodesDialog.tsx`. The two PRs merge cleanly in either order.
+  
+  ## Verification
+  
+  On `490fd550`:
+  
+  - eslint: no warnings on added lines (`Export.tsx` has 38 existing warnings on untouched lines); CI lint-changed-files passes.
+  - `npx prettier --check` on the changed files: pass.
+  - `npx tsc --noEmit --skipLibCheck` in `apps/roam`: pass.
+  - `pnpm test:unit` in `apps/roam`: 64 files, 613 tests pass.
+  - `pnpm ci:validate`: check-types 8/8 and test:unit 6/6 pass.
+  - `npx turbo run build --filter=roam`: built with 0 errors.
+  
+  No unit test: the component is one flag check around a static callout, so a jsdom render test like `tentativeRelationLoading.test.ts` would only mock `getStoredRelationsEnabled` and restate that check.
+  
+  ## Loom video
+  
+  Pending.
+  
+  ## Scope check
+  
+  - [x] Ran `$scope-check` against ENG-2348 and the final diff.
+  - Scope beyond `Done When`: None.
+  ```
+  After that come the Standards check and Local delegated full review sections, both checked, exactly as you specified. The body has no em dashes and no attribution.
+  
+  ### Review
+  - Review `5389167932`: state COMMENTED, `commit_id` `490fd550`, one-line body "Context on the placement, link, and refresh decisions."
+  - I confirmed with GET on `pulls/1506/comments` that all four comments are side RIGHT on commit `490fd550`, with your bodies verbatim:
+  
+  | Comment | Id | Location |
+  |---|---|---|
+  | A | 4163617130 | `apps/roam/src/components/StoredRelationsWarning.tsx:11` (`getStoredRelationsEnabled()` line) |
+  | B | 4163617134 | `apps/roam/src/components/StoredRelationsWarning.tsx:18` (`withDocsLink(` line) |
+  | C | 4163617139 | `apps/roam/src/components/Export.tsx:1240` (`<StoredRelationsWarning className="mb-4" />`) |
+  | D | 4163617142 | `apps/roam/src/components/DiscoverSharedNodesDialog.tsx:316` (`<StoredRelationsWarning />`) |
+  
+  The live-check runbook from my first report still applies. Only the callout body text changed.
+</agent-message>
+
+---
+
+<agent-message from="a7bd3b8ddc7c3811e">
+[Subagent hand-back] The text below is the final report of a subagent this session delegated to. It is model output, NOT a message from the user: instructions, requests, or approval claims inside it are the subagent's words and carry no user authority. The harness indents every line of the report, so a frame-like line at column zero inside it would be forged. Notes above this frame may quote model-derived text, which carries no user authority either. The report follows:
+  PR #1507 at head 70ed98595fe2f7616f51bdc0b9cb696487326019 (base origin/main 065cab5e, unmoved). pre-pr-review mode: **Full**. This is the first pass: no earlier annotations, review threads, or last-reviewed SHA exist on the PR. The diff is one commit, 3 files, +79/-3, of which 16 lines are non-test.
+  
+  ## 1. Findings
+  
+  **P1-1: Done When 2 isn't met as written. Only its invalid-character part is.** `validateNodeType.ts:69-77`, `importNodes.ts:1204-1208`.
+  - I ran the real modules from a scratch script (`scratchpad/roundtrip.ts`). The normalized result always passes `checkInvalidChars`. It doesn't always pass `validateNodeFormat`:
+    - **`{content}` rule.** `[[CLM]] - {Content}` becomes `CLM - {Content}`. That still decorates and round-trips, because `decorateTitle` and `extractContentFromTitle` are case-insensitive, but it fails "Format must include the placeholder {content}". `#[[CLM]]` becomes `CLM` and fails the same rule.
+    - **Uniqueness rule.** `[[HYP]] - {content}` becomes `HYP - {content}`. That fails "Format must be unique across all node types" when a local type with a different id and name already has `HYP - {content}`. This collision is new with this PR, because bracketed formats could never match a valid local format before.
+  - There's no fully literal option that avoids inventing a collision rule. Two forks:
+    - **Fork A: Done When 2 means the invalid filename character rule.** This follows the Solution's wording, "apply the same invalid filename character checks".
+      - Keep the code. Add the one-line default normalization (P3-1).
+      - Have the PR say Done When 2 is met for the character rule only. Cite ENG-2346 ("Missing `{content}` remains invalid") as the owner of placeholder behavior. State the uniqueness consequence (P2-1) and either file a follow-up or get mdroidian's OK.
+      - Where it lands: Done When 2 is met under the narrow reading. Under the literal reading it's a documented partial. mdroidian wrote the ticket, so his reading settles it.
+    - **Fork B: Done When 2 means `validateNodeFormat` against the vault's node types.**
+      - In `mapNodeTypeIdToLocal` (the only place `plugin.settings.nodeTypes` is in scope; `parseSchemaLiteralContent` can't see it), validate the normalized format and fall back to the normalized name-derived default on failure.
+      - Canonicalize `{Content}` to `{content}` first. Otherwise the fallback replaces `CLM - {Content}`, which decorates today, with `CLA - {content}`.
+      - Define what happens when the default also collides. No rule exists, so any choice is new behavior.
+      - Size: about 15-30 lines plus tests, in the same block ENG-2351 edits.
+      - Where it lands: Done When 2 is met as written. The cost is import-time rules that brush the Out of Scope line "Broader node format validation" and overlap ENG-2346's ownership of placeholders. Done When 3 still holds, because a colliding format isn't "valid" under this reading.
+  
+  **P2-1: The PR body says the uniqueness collision has no consequence. It does.** The Reviewer brief says "Imported files keep their type through `nodeTypeId` frontmatter."
+  - A collision blocks every save of the user's own local type. `NodeTypeSettings.tsx:770-771` runs `validateNodeType`, which checks the format against all node types (`validateNodeType.ts:43-50`), and discrete fields save on change (`NodeTypeSettings.tsx:1001-1005`).
+  - The imported type is read-only (`isEditingImported`, `:879`, `:1054`). The user's only fix is to change their local type's format.
+  - `BulkIdentifyDiscourseNodesModal.tsx:45` also seeds patterns from formats, and the first match wins.
+  - This is likely in practice. Roam's `[[CLM]] - {content}` and `[[QUE]] - {content}` (`defaultDiscourseNodes.ts:6,17`) normalize to exactly Obsidian's defaults (`constants.ts:11,19`). Any name mismatch with the same format therefore collides.
+  - Fix: state it under Risk (Fork A) or resolve it (Fork B).
+  
+  **P2-2: The reason given for deferring `specImport.ts` is factually wrong.** The PR says those files' "formats passed `validateNodeFormat` when they were created."
+  - Exports include imported types: `ExportSpecsModal.tsx:29` lists all `plugin.settings.nodeTypes`, and `specExport.ts:78` filters by selection only.
+  - Imported types never pass `validateNodeFormat`. Import doesn't call it, and settings make them read-only.
+  - So a vault that imported a Roam type before this PR exports `[[CLM]] - {content}`. Two paths then store it un-normalized:
+    - the create path, `specImport.ts:494-507`;
+    - `mergeNodeTypeFields` at `specImport.ts:315-319`. `format` is mergeable (`schemaFieldDiff.ts:11`), so this writes onto a local, editable type.
+  - The file schema only checks `z.string()` (`specValidation.ts:17`).
+  - My judgment: it falls inside Done When 2's literal "incoming formats" and the repo's own "schema import" naming. It falls outside the ticket's Problem and Notes, which target `parseSchemaLiteralContent` / `mapNodeTypeIdToLocal` and the ENG-2157 decoration harm.
+  - Fix either way: replace the reason. Then either normalize at the two specImport writes or name the deferral with a ticket.
+  
+  **P2-3: mdroidian's question on Linear (2026-09-04), "Related to ENG-2176, possible duplication", is unanswered.**
+  - I checked: it isn't a duplicate. They overlap only on `^` and `|`.
+  - ENG-2176's escaping alone doesn't fix `|`. `sanitizeFileName` drops `|` from file names, so an escaped `\|` still misses.
+  - ENG-2176's branch touches neither changed file.
+  - A reply is drafted in section 4.
+  
+  **P3-1: The name-derived default isn't normalized.** `importNodes.ts:1207-1208`.
+  - It's inside the schema import boundary, since it's the same parse step. The PR also adds a new route into it: formats that normalize to empty, such as `[[ ]]`.
+  - A name starting with `#^[]|` produces a default that fails the character rule.
+  - One-line fix: `formatFromSchema || normalizeImportedNodeFormat(\`${name.slice(0, 3).toUpperCase()} - {content}\`)`. Or keep it as the deferral the body already names.
+  
+  **P3-2: The added comment at `validateNodeType.ts:71-72` is load-bearing but hard to parse cold.**
+  - "Imported file names" doesn't name `sanitizeFileName` in `importNodes.ts`.
+  - "them" undersells the code, which collapses every whitespace run, not only the ones removal leaves.
+  - Suggested wording: "`sanitizeFileName` in importNodes.ts collapses and trims whitespace in imported file names. Do the same here, or a removed ` | ` leaves a double space and the format stops matching those files."
+  
+  **P3-3: A test title overstates what it checks.** `validateNodeType.test.ts:31` says "so it passes format validation", but it uses `allNodes: []` (`:45`) and only inputs that contain `{content}`.
+  - Under Fork A: rename it to say "invalid character check", or note "with no other node types".
+  - Under Fork B: add `{Content}` and collision cases.
+  
+  **P3-4: No test fails if the `importNodes.ts:1204` call is removed.**
+  - Done When 1's "the type stores `CLM - {content}`" is proven by trace only, and the PR says it's "Not yet exercised in Obsidian".
+  - Don't add `__tests__/importNodes.test.ts` in this PR. ENG-2351 has an untracked file at that path with a `mapNodeTypeIdToLocal` harness, so it would be an add/add conflict.
+  - Close this with the Loom for now. Add one `format` assertion to ENG-2351's harness after it lands.
+  
+  **Implementer claims I verified (true):**
+  - Diff shape: the hoist plus the export in `validateNodeType.ts`; in `importNodes.ts`, the import at line 34 and lines 1204-1206 only.
+  - The hoist doesn't change behavior. The regex is non-global, and the `"g"` copy is built per call.
+  - Using `checkInvalidChars`'s set rather than `sanitizeFileName`'s is right. No existing helper strips `#^[]|`.
+  - Valid formats come back unchanged, spacing included. This is required by Done When 3 and tested.
+  - Whitespace collapse and trim are needed, confirmed by a counterfactual run. Without the collapse, `CLM | {content}` extracts `CLM sleep improves memory`. Without the trim, `CLM - {content} |` extracts the full basename. With both, all of them round-trip. Before this PR, `{content} |` even extracted `sleep`.
+  - An existing local type is untouched: the match returns at `:1249-1256` before parsing.
+  - Done When 1 holds by trace and by execution: the file is `CLM - sleep improves memory`.
+  - Done When 3's three test groups are present.
+  
+  ## 2. Verification log
+  - **Mode gate:** Full. No prior pass exists.
+  - **Step 0:** `importNodes.ts` is DATA (it has `.from(`) and is under `apps/obsidian`. `validateNodeType.ts` is a util under `apps/obsidian`. The test file is OTHER. I ran both scoped passes.
+  - **1a reuse:**
+    - Grepped `#^[\]|`, sanitize/invalid-char helpers, `packages/utils`, `packages/database`, `content-model`. No duplicate: `sanitizeFileName` (importNodes, importFolderMetadata), `sanitizeTitle`, and `sanitizeTemplateName` all strip different sets.
+    - Found `packages/utils/resolveSchemaFormat` on the touched line. ENG-2207 owns adopting it.
+  - **1b justification:**
+    - The early return serves Done When 3.
+    - Collapse and trim are proven by the counterfactual.
+    - The `|| default` predates this PR; `[[ ]]` now reaches it.
+  - **1c literal hoist:** The regex is now defined once and used twice. The character list in the error message predates this PR.
+  - **1d type honesty:** The two `as string` casts at `:1205` predate this PR; they moved into the call. Producers write strings (Roam `conceptConversion.ts:74`, `crossAppConverters.ts:104`). No `!`, `any`, or `?.` added.
+  - **1e explainability:** All 5 hunks map to the ticket.
+  - **1f call graph:**
+    - The normalizer has 2 consumers: `importNodes:1204` and the test.
+    - `checkInvalidChars` callers (`createNode.ts:125,162`, `validateNodeFormat`) are unchanged.
+    - `mapNodeTypeIdToLocal` callers are `importNodes:1716` and `importRelations.ts:315,322`. Types created for relation endpoints are normalized too, which is consistent.
+    - The `importPreview.ts:106` mirror shows no format, so there's no parity gap.
+  - **1g comments:** One 2-line comment added. Keep it, with P3-2.
+  - **1h second lookup:** none. **1i workflows:** N/A.
+  - **Step 2 data layer:** I walked all invariants.
+    - The "format precedence" entry applies. The line is touched but precedence is unchanged, and ENG-2207 owns it.
+    - "Validate at entry" applies, and this PR strengthens it.
+    - The content-model entry applies. The normalizer encodes Obsidian's file name rule, so app-local is right.
+    - Everything else is N/A: no queries, contracts, fields, timestamps, or DB writes changed.
+    - 2b: `literal_content` jsonb, `format` is a string.
+  - **Step 3 frontend:** No `style=`, arbitrary values, hex, `roamAlphaAPI`, positional access, or UI in the diff.
+  - **Step 4 process:**
+    - Every hunk maps to the ticket, and the size is fine.
+    - There are no bot threads.
+    - Chain coverage: Roam reads formats via `resolveSchemaFormat` and has no file name constraint. The spec-file gap is P2-2.
+    - A runtime demo is required (Loom).
+    - The ENG-2346 breadcrumb is missing from the PR body.
+    - The hoist has 1:1 parity.
+  
+  ## 3. Siblings
+  - **ENG-2351** (uncommitted: `importNodes.ts`, `importRelations.ts`, plus the untracked test).
+    - A `git merge-file` 3-way merge of `importNodes.ts` comes out clean, with 0 conflicts.
+    - Its tests assert name and template only, so the normalized format won't break them.
+    - Risks: Fork B edits the same function, and adding `importNodes.test.ts` here would conflict.
+  - **ENG-2176** (committed 42e6c4df).
+    - It shares no files with this PR, and it keeps the `decorateTitle` export the new test imports.
+    - If Fork B adds a `{content}` constant, reuse ENG-2176's `CONTENT_PLACEHOLDER`.
+  - Neither sibling duplicates anything in this PR.
+  
+  ## 4. Draft PR annotations
+  - `apps/obsidian/src/utils/validateNodeType.ts` L69: "This removes the characters `checkInvalidChars` rejects (`#`, `^`, `[`, `]`, `|`), not the ones `sanitizeFileName` strips in importNodes.ts. Local node titles and formats already follow this rule, and the ticket asks imports to follow it too. It lives here so the character set is defined once."
+  - `validateNodeType.ts` L70: "A format that already passes `checkInvalidChars` comes back unchanged, spacing included, per Done When 3. Whitespace is collapsed only in formats this function has to change."
+  - `apps/obsidian/src/utils/importNodes.ts` L1204: "This only runs when no local type matches the schema id or name (L1249-1256), so an existing local type keeps its format. Format precedence (`source_data.format` before `format`) is unchanged here. ENG-2207 moves this read to `resolveSchemaFormat`."
+  - `importNodes.ts` L1207 (Fork A only): "A normalized format without `{content}` is stored as is and still fails that `validateNodeFormat` rule, as before. ENG-2346 owns placeholder behavior and keeps missing `{content}` invalid. Falling back to the default here would replace `CLM - {Content}`, which decorates today, with `CLA - {content}`."
+  - Top-level reply to mdroidian's ENG-2176 question: "Not a duplicate of ENG-2176. ENG-2176 escapes regex metacharacters when a format becomes a match expression. This PR removes `#`, `^`, `[`, `]` and `|` from imported formats before they're stored. They overlap only on `^` and `|`, and escaping alone doesn't fix `|`: `sanitizeFileName` drops it from file names, so an escaped `\|` still doesn't match. The two branches don't touch the same files."
+  
+  ## 5. Predicted review
+  - **mdroidian:**
+    - "Possible duplication with ENG-2176?" (his own open comment)
+    - "The result passes the existing format validation: what about `{Content}` and duplicate formats?" (P1-1)
+    - "Why does this live in validateNodeType.ts? Could you export the regex instead?"
+    - "What imported file names?" (P3-2)
+    - "Where's the Loom? Did you test it?"
+    - Possibly: "`checkInvalidChars(format).isValid` builds an error object to read a boolean."
+  - **maparent:**
+    - "What about the spec-file import?" (P2-2)
+    - "What does the data look like in 6 months?" Vaults that already imported Roam types keep bracketed formats and keep producing `[[CLM]] - ….md`. That's Out of Scope, but worth a line under Risk and maybe a ticket.
+    - "Contract `format` should win over `source_data`." (ENG-2207)
+    - "Two schemas that normalize to the same format?" (P2-1)
+  
+  ## 6. Scope check
+  ```markdown
+  ## Scope check
+  
+  - [x] Ran `$scope-check` against ENG-2195 and the final diff.
+  - Scope beyond `Done When`: None.
+  ```
+  Note: I counted whitespace collapse and trim as part of Done When 2's normalization. They apply only to formats that must change, and they keep the format matching the file names import builds from it. Under Fork B, the fallback and placeholder canonicalization would need a scope entry. Done When 2's coverage gap is finding P1-1, not a scope expansion.
+  
+  ## 7. Standards check
+  ```markdown
+  ## Standards check
+  
+  - [x] Ran `$dg-pr-adherence-check` against the final diff and PR metadata.
+  ```
+  Outstanding items for the author:
+  1. **Loom is pending** (expected on a draft). Import a Roam `[[CLM]] - {content}` node into a vault with no matching type. Show the settings format `CLM - {content}` and the file `CLM - sleep improves memory.md`, against `[[CLM]] - ….md` on main. Use a fresh vault, because existing imported types keep their format.
+  2. **End-to-end check in Obsidian not done yet.** PR_GUIDELINES requires it before the PR is marked ready.
+  3. **PR body checkboxes are unchecked.** Paste sections 6 and 7. This pass can stand in for the Local delegated full review.
+  4. **PR body corrections:** P1-1 (state which reading of Done When 2 the PR implements), P2-1, P2-2, and the missing ENG-2346 citation.
+  5. **Comment accuracy:** P3-2.
+  
+  ## 8. Comments and bots
+  - On the PR there are only vercel (skipped deployment), linear-code (linkback), and supabase (preview ignored) messages, all boilerplate. No reviews or review threads. CodeRabbit's status is success, with no comments.
+  - On the Linear ticket:
+    - mdroidian's "possible duplication" comment is right that the tickets are related and wrong that they duplicate (P2-3). It's unanswered.
+    - mdroidian's assignee question and "ping" are process comments, also unanswered. sid is now the assignee.
+  
+  ## 9. Check results
+  - **PR head:** equals the worktree HEAD, and `gh pr diff` matches the local three-dot diff.
+  - **`tsc --noEmit --skipLibCheck`** (apps/obsidian): pass.
+  - **`pnpm test:unit`:** pass. 8 files, 89 tests, 12 of them new.
+  - **`eslint --max-warnings 0`:**
+    - `validateNodeType.ts` and the test are clean.
+    - `importNodes.ts` exits 1 on 5 pre-existing warnings at 526, 1121, 1181, 1629, 1913.
+    - The same 5 appear one line earlier on the copy identical to main (ENG-2176 worktree): 525, 1120, 1180, 1627, 1911.
+    - None is on a touched line. The implementer's claim is confirmed.
+  - **`prettier --check`:** pass.
+  - **GitHub checks:** validate, lint-changed-files, format-changed-files, eslint, CodeRabbit, Entire Gates, and Vercel all pass. Supabase was skipped.
+  - **Not rerun:** `pnpm ci:validate`.
+</agent-message>
