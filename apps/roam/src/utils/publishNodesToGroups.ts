@@ -23,12 +23,13 @@ import { ensurePartialSpaceAccess } from "@repo/database/lib/groups";
 import { isIgnorableUpsertError } from "@repo/database/lib/contextFunctions";
 import { getAllPages } from "@repo/database/lib/pagination";
 import { isRid, ridToSpaceUriAndLocalId } from "@repo/database/lib/rid";
-import getDiscourseNodes from "./getDiscourseNodes";
+import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
+import findDiscourseNode from "./findDiscourseNode";
 import { difference, intersection } from "@repo/utils/setOperations";
 import internalError from "./internalError";
 import { readImportedSourceIdentity } from "./importedSourceIdentity";
 import { orderConceptsByDependency } from "./conceptConversion";
-import { SOURCE_SLOT } from "./sourceSlot";
+import { SOURCE_SLOT, sourceIdOfNode, sourceSlotSchemaId } from "./sourceSlot";
 import renderToast from "roamjs-components/components/Toast";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { publishNodeAssets, type NodeAssetResult } from "./publishNodeAssets";
@@ -221,6 +222,76 @@ export const gatherCorrespondingRelations = async ({
 const onlyStrings = (values: (string | null)[]): string[] =>
   values.filter((value): value is string => typeof value === "string");
 
+const pagesWithTitleContaining = async (
+  texts: string[],
+): Promise<Map<string, string>> => {
+  const matches = await Promise.all(
+    texts.map(
+      async (text) =>
+        (await window.roamAlphaAPI.data.async.q(
+          `[:find ?uid ?title
+            :in $ ?text
+            :where
+              [?page :node/title ?title]
+              [(clojure.string/includes? ?title ?text)]
+              [?page :block/uid ?uid]]`,
+          text,
+        )) as [string, string][],
+    ),
+  );
+  return new Map(matches.flat());
+};
+
+type PublishedSource = { uid: string; title: string; conceptId: number };
+
+// A node published before its Source was in this space was stored without its source
+// reference (see omitMissingSource). Publishing the Source sets only that reference.
+// Re-upserting the node would either publish its unpublished edits or stamp its current
+// edit time on the older stored body, so importers would skip its next publish. Node
+// concepts hold no other slot, so the whole reference_content is replaced.
+const restoreSourceReferences = async ({
+  client,
+  spaceId,
+  sources,
+  discourseNodes,
+}: {
+  client: DGSupabaseClient;
+  spaceId: number;
+  sources: PublishedSource[];
+  discourseNodes: DiscourseNode[];
+}): Promise<void> => {
+  if (sources.length === 0) return;
+  const dependentsBySourceUid = new Map<
+    string,
+    { conceptId: number; dependentUids: string[] }
+  >(
+    sources.map(({ uid, conceptId }) => [
+      uid,
+      { conceptId, dependentUids: [] },
+    ]),
+  );
+  const titlesByUid = await pagesWithTitleContaining(
+    sources.map(({ title }) => title),
+  );
+  for (const [uid, title] of titlesByUid) {
+    const nodeType = findDiscourseNode({ uid, title, nodes: discourseNodes });
+    if (!nodeType) continue;
+    const sourceId = sourceIdOfNode(title, nodeType, discourseNodes);
+    if (sourceId !== undefined)
+      dependentsBySourceUid.get(sourceId)?.dependentUids.push(uid);
+  }
+  for (const { conceptId, dependentUids } of dependentsBySourceUid.values()) {
+    if (dependentUids.length === 0) continue;
+    const { error } = await client
+      .from("Concept")
+      .update({ reference_content: { [SOURCE_SLOT]: conceptId } })
+      .eq("space_id", spaceId)
+      .in("source_local_id", dependentUids)
+      .is(`reference_content->>${SOURCE_SLOT}`, null);
+    if (error) throw error;
+  }
+};
+
 type PublishNodesResult = {
   publishedNodeSchemaUids: string[];
   publishedNodeUids: string[];
@@ -295,7 +366,8 @@ export const publishNodesToGroups = async ({
   const nodesByUid = new Map(nodes.map((node) => [node.localId, node]));
   let nodeUids = [...nodesByUid.keys()];
   const nodeSchemaUids = new Set(nodes.map((node) => node.nodeType));
-  const nodeSchemas = getDiscourseNodes()
+  const discourseNodes = getDiscourseNodes();
+  const nodeSchemas = discourseNodes
     .filter((s) => nodeSchemaUids.has(s.type))
     .map((s) => nodeSchemaToCrossApp(s))
     .filter((s) => s !== null);
@@ -423,6 +495,33 @@ export const publishNodesToGroups = async ({
   result.syncedRelationUids = [...syncedRelationUids];
   nodeUids = [...upsertedNodeUids];
   const failedUpsertIds = new Set(result.failedUpsertUids);
+
+  // Only Source nodes trigger the title scan, so an ordinary publish costs no query. A
+  // node naming another type as its source still needs publishing again.
+  const sourceNodeType = sourceSlotSchemaId(discourseNodes);
+  const conceptIdByUid = new Map(
+    upsertConcepts.map((concept, i) => [
+      concept.source_local_id,
+      response.data[i],
+    ]),
+  );
+  try {
+    await restoreSourceReferences({
+      client,
+      spaceId,
+      discourseNodes,
+      sources: [...nodesByUid.values()].flatMap((node): PublishedSource[] => {
+        const conceptId = conceptIdByUid.get(node.localId);
+        return node.nodeType === sourceNodeType &&
+          upsertedNodeUids.has(node.localId) &&
+          conceptId !== undefined
+          ? [{ uid: node.localId, title: node.content.direct.value, conceptId }]
+          : [];
+      }),
+    });
+  } catch (error) {
+    internalError({ error, type: "Restore Source References Failed" });
+  }
 
   // After the content upsert, because FileReference has a foreign key to Content, and
   // before the access grants, so a node becomes visible with its assets already recorded.
