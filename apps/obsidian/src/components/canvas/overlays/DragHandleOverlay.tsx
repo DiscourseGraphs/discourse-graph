@@ -23,7 +23,6 @@ import { showToast } from "~/components/canvas/utils/toastUtils";
 import {
   getDiscourseNodeAtPoint,
   getDiscourseNodeTypeId,
-  hasValidRelationTypeForNodePair,
 } from "~/components/canvas/utils/relationTypeUtils";
 import { RelationTypeDropdown } from "./RelationTypeDropdown";
 
@@ -41,6 +40,8 @@ type HandlePosition = {
 const HANDLE_RADIUS = 5;
 const HANDLE_HIT_AREA = 12;
 const HANDLE_PADDING = 8; // px offset in viewport space, outward from the node edge
+// Marks an arrow awaiting a relation type; the canvas save loop persists it
+const PENDING_RELATION_META_KEY = "pendingRelationMenu";
 
 /** Page-space edge midpoints and their outward direction vectors. */
 const getEdgeMidpoints = (bounds: {
@@ -94,6 +95,19 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
       dragCleanupRef.current?.();
     };
   }, []);
+
+  // A pending arrow found on mount was abandoned when the canvas last closed
+  useEffect(() => {
+    const abandonedArrowIds = editor
+      .getCurrentPageShapes()
+      .filter(
+        (shape) =>
+          shape.type === "discourse-relation" &&
+          shape.meta[PENDING_RELATION_META_KEY],
+      )
+      .map((shape) => shape.id);
+    if (abandonedArrowIds.length > 0) editor.deleteShapes(abandonedArrowIds);
+  }, [editor]);
 
   const selectedNode = useValue<DiscourseNodeShape | null>(
     "dragHandleSelectedNode",
@@ -164,6 +178,7 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
         type: "discourse-relation",
         x: startX,
         y: startY,
+        meta: { [PENDING_RELATION_META_KEY]: true },
         props: {
           color: DEFAULT_TLDRAW_COLOR,
           relationTypeId: "",
@@ -276,28 +291,17 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
         ) {
           const endTarget = editor.getShape(bindings.end.toId);
           if (endTarget && endTarget.type === "discourse-node") {
-            // Check if any relation types are valid for this node pair
             const startNodeTypeId = getDiscourseNodeTypeId(
               editor.getShape(bindings.start.toId),
             );
             const endNodeTypeId = getDiscourseNodeTypeId(endTarget);
 
-            const hasValidRelationType =
-              startNodeTypeId &&
-              endNodeTypeId &&
-              hasValidRelationTypeForNodePair({
-                settings: plugin.settings,
-                sourceNodeTypeId: startNodeTypeId,
-                targetNodeTypeId: endNodeTypeId,
-              });
-
-            if (!hasValidRelationType) {
+            if (!startNodeTypeId || !endNodeTypeId) {
               cleanupArrow(arrowId);
               showToast({
                 severity: "warning",
                 title: "Relation",
-                description:
-                  "No relation types are defined between these node types",
+                description: "Both nodes need a node type to create a relation",
                 targetCanvasId: file.path,
               });
               if (sourceNodeRef.current) {
@@ -340,7 +344,7 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
         dragCleanupRef.current = null;
       };
     },
-    [selectedNode, editor, cleanupArrow, file.path, plugin.settings],
+    [selectedNode, editor, cleanupArrow, file.path],
   );
 
   const handleDropdownSelect = useCallback(
@@ -365,6 +369,7 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
         {
           id: pendingArrowId,
           type: "discourse-relation",
+          meta: { ...shape.meta, [PENDING_RELATION_META_KEY]: false },
           props: {
             relationTypeId,
             color: relationType.color,
