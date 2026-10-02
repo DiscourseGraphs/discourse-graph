@@ -9,6 +9,7 @@ import {
 
 const TEMPLATES_FOLDER = "Templates";
 const SOURCE_SPACE_NAME = "my-graph";
+const TOO_LONG_SOURCE_SPACE_NAME = "s".repeat(200);
 
 describe("getUntitledTemplateFileName", () => {
   it("names the file after the node type and its source space", () => {
@@ -36,6 +37,39 @@ describe("getUntitledTemplateFileName", () => {
         sourceSpaceName: SOURCE_SPACE_NAME,
       }),
     ).toBe("Imported template (from my-graph)");
+  });
+
+  it("cuts a long name so the file name stays within 200 bytes", () => {
+    expect(
+      getUntitledTemplateFileName({
+        nodeTypeName: "x".repeat(300),
+        sourceSpaceName: SOURCE_SPACE_NAME,
+      }),
+    ).toBe(`${"x".repeat(184)} (from my-graph)`);
+  });
+
+  it.each([
+    ["CJK characters", "漢".repeat(100), `${"漢".repeat(61)} (from my-graph)`],
+    ["emoji", `a${"😀".repeat(60)}`, `a${"😀".repeat(45)} (from my-graph)`],
+  ])(
+    "cuts a long name of %s at a character boundary",
+    (_label, nodeTypeName, expected) => {
+      expect(
+        getUntitledTemplateFileName({
+          nodeTypeName,
+          sourceSpaceName: SOURCE_SPACE_NAME,
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  it("returns no name when the source space name alone is too long", () => {
+    expect(
+      getUntitledTemplateFileName({
+        nodeTypeName: "Evidence",
+        sourceSpaceName: TOO_LONG_SOURCE_SPACE_NAME,
+      }),
+    ).toBeUndefined();
   });
 });
 
@@ -110,16 +144,18 @@ const createPlugin = ({
 const importNodeType = ({
   plugin,
   schema,
+  sourceSpaceName = SOURCE_SPACE_NAME,
 }: {
   plugin: DiscourseGraphPlugin;
   schema: SchemaRow;
+  sourceSpaceName?: string;
 }): Promise<string> =>
   mapNodeTypeIdToLocal({
     plugin,
     client: createClient(schema),
     sourceSpaceId: 1,
     sourceSpaceUri: "https://roamresearch.com/#/app/my-graph",
-    sourceSpaceName: SOURCE_SPACE_NAME,
+    sourceSpaceName,
     sourceNodeTypeId: "remote-type",
   });
 
@@ -214,6 +250,22 @@ describe("mapNodeTypeIdToLocal template import", () => {
     const plugin = createPlugin({ vault, templatesEnabled: false });
 
     await importNodeType({ plugin, schema: UNTITLED_SCHEMA });
+
+    expect(files.size).toBe(0);
+    expect(
+      plugin.settings.nodeTypes.map((nodeType) => nodeType.template),
+    ).toEqual([undefined]);
+  });
+
+  it("imports the node type without a template when the source space name is too long for a file name", async () => {
+    const { files, vault } = createVault();
+    const plugin = createPlugin({ vault });
+
+    await importNodeType({
+      plugin,
+      schema: UNTITLED_SCHEMA,
+      sourceSpaceName: TOO_LONG_SOURCE_SPACE_NAME,
+    });
 
     expect(files.size).toBe(0);
     expect(

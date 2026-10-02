@@ -1216,6 +1216,23 @@ const parseSchemaLiteralContent = (
   };
 };
 
+/** File systems cap a file name at 255 bytes or UTF-16 units; 200 UTF-8 bytes leaves room for `.md` under either. */
+const MAX_TEMPLATE_FILE_NAME_BYTES = 200;
+
+const getUtf8ByteLength = (text: string): number =>
+  new TextEncoder().encode(text).length;
+
+const truncateToUtf8Bytes = (text: string, maxBytes: number): string => {
+  let truncated = "";
+  let byteLength = 0;
+  for (const character of text) {
+    byteLength += getUtf8ByteLength(character);
+    if (byteLength > maxBytes) break;
+    truncated += character;
+  }
+  return truncated;
+};
+
 /** Includes the source space name because `mapNodeTypeIdToLocal` assigns any file already at this name as the template, and a bare node type name would assign an unrelated local template. */
 export const getUntitledTemplateFileName = ({
   nodeTypeName,
@@ -1223,11 +1240,25 @@ export const getUntitledTemplateFileName = ({
 }: {
   nodeTypeName: string;
   sourceSpaceName: string;
-}): string =>
-  getImportedTemplateFileName({
-    templateName: sanitizeFileName(nodeTypeName),
-    sourceName: sanitizeFileName(sourceSpaceName),
+}): string | undefined => {
+  const templateName = sanitizeFileName(nodeTypeName);
+  const sourceName = sanitizeFileName(sourceSpaceName);
+  const fileName = getImportedTemplateFileName({ templateName, sourceName });
+  const overflowBytes =
+    getUtf8ByteLength(fileName) - MAX_TEMPLATE_FILE_NAME_BYTES;
+  if (overflowBytes <= 0) return fileName;
+
+  const truncatedFileName = getImportedTemplateFileName({
+    templateName: truncateToUtf8Bytes(
+      templateName,
+      getUtf8ByteLength(templateName) - overflowBytes,
+    ),
+    sourceName,
   });
+  return getUtf8ByteLength(truncatedFileName) <= MAX_TEMPLATE_FILE_NAME_BYTES
+    ? truncatedFileName
+    : undefined;
+};
 
 export const mapNodeTypeIdToLocal = async ({
   plugin,
@@ -1299,6 +1330,15 @@ export const mapNodeTypeIdToLocal = async ({
       nodeTypeName: parsed.name,
       sourceSpaceName,
     });
+    if (!newNodeType.template) {
+      new Notice(
+        `Node type "${parsed.name}" imported without template: the template file name would be too long.`,
+        6000,
+      );
+    }
+  }
+
+  if (parsed.templateContent && newNodeType.template) {
     const result = await createTemplateFile({
       app: plugin.app,
       templateName: newNodeType.template,
