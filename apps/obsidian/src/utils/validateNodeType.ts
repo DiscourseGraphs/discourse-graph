@@ -68,8 +68,9 @@ export const checkInvalidChars = (format: string): ValidationResult => {
 
 export const normalizeImportedNodeFormat = (format: string): string => {
   if (checkInvalidChars(format).isValid) return format;
-  // A removed separator such as ` | ` leaves stray spaces. Collapse and trim
-  // them as imported file names do, so the format keeps matching those names.
+  // `sanitizeFileName` in importNodes.ts collapses and trims whitespace in
+  // imported file names. Do the same here, or a removed ` | ` leaves a double
+  // space and the format stops matching those files.
   return format
     .replace(new RegExp(INVALID_FILENAME_CHARS_REGEX, "g"), "")
     .replace(/\s+/g, " ")

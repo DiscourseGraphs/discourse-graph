@@ -28,7 +28,7 @@ describe("normalizeImportedNodeFormat", () => {
     ["CLM | {content}", "CLM {content}"],
     ["#[[CLM]] - [[{content}]]", "CLM - {content}"],
   ])(
-    "removes invalid filename characters from %s so it passes format validation",
+    "removes invalid filename characters from %s so it passes the invalid character check",
     (format, expected) => {
       const normalized = normalizeImportedNodeFormat(format);
       expect(normalized).toBe(expected);
@@ -50,6 +50,12 @@ describe("normalizeImportedNodeFormat", () => {
 
   it("returns an empty format when the format has only invalid characters and spaces", () => {
     expect(normalizeImportedNodeFormat("[[ ]]")).toBe("");
+  });
+
+  it("removes the [ that a type name such as [Draft] carries into its default format", () => {
+    expect(normalizeImportedNodeFormat("[DR - {content}")).toBe(
+      "DR - {content}",
+    );
   });
 
   it.each([

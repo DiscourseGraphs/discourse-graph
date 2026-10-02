@@ -1205,7 +1205,10 @@ const parseSchemaLiteralContent = (
     (src.format as string) || (obj.format as string) || "",
   );
   const format =
-    formatFromSchema || `${name.slice(0, 3).toUpperCase()} - {content}`;
+    formatFromSchema ||
+    normalizeImportedNodeFormat(
+      `${name.slice(0, 3).toUpperCase()} - {content}`,
+    );
   return {
     name,
     format,
