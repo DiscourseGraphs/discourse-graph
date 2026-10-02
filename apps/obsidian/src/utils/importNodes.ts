@@ -31,6 +31,7 @@ import {
 import { createTemplateFile } from "./templates";
 import { resolveFolderForSpaceUri } from "./importFolderMetadata";
 import { getNodeTypeById, isAcceptedSchema } from "./typeUtils";
+import { normalizeImportedNodeFormat } from "./validateNodeType";
 import {
   type ImportedNodeContent,
   resolveImportedNodeContent,
@@ -1200,8 +1201,9 @@ const parseSchemaLiteralContent = (
       : (literalContent as Record<string, unknown>) || {};
   const src = (obj.source_data as Record<string, unknown>) || obj;
   const name = (obj.name as string) || (obj.label as string) || fallbackName;
-  const formatFromSchema =
-    (src.format as string) || (obj.format as string) || "";
+  const formatFromSchema = normalizeImportedNodeFormat(
+    (src.format as string) || (obj.format as string) || "",
+  );
   const format =
     formatFromSchema || `${name.slice(0, 3).toUpperCase()} - {content}`;
   return {

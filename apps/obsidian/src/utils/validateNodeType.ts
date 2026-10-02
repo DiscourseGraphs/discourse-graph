@@ -52,8 +52,9 @@ export const validateNodeFormat = ({
   return { isValid: true };
 };
 
+const INVALID_FILENAME_CHARS_REGEX = /[#^[\]|]/;
+
 export const checkInvalidChars = (format: string): ValidationResult => {
-  const INVALID_FILENAME_CHARS_REGEX = /[#^[\]|]/;
   const invalidCharMatch = format.match(INVALID_FILENAME_CHARS_REGEX);
   if (invalidCharMatch) {
     return {
@@ -63,6 +64,16 @@ export const checkInvalidChars = (format: string): ValidationResult => {
   }
 
   return { isValid: true };
+};
+
+export const normalizeImportedNodeFormat = (format: string): string => {
+  if (checkInvalidChars(format).isValid) return format;
+  // A removed separator such as ` | ` leaves stray spaces. Collapse and trim
+  // them as imported file names do, so the format keeps matching those names.
+  return format
+    .replace(new RegExp(INVALID_FILENAME_CHARS_REGEX, "g"), "")
+    .replace(/\s+/g, " ")
+    .trim();
 };
 
 export const validateNodeName = ({
