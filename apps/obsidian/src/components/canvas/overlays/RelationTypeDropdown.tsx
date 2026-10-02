@@ -14,8 +14,10 @@ import {
   getArrowBindings,
   getArrowInfo,
 } from "~/components/canvas/utils/relationUtils";
+import { CreateRelationTypeModal } from "~/components/canvas/CreateRelationTypeModal";
 import {
   associateRelationTypeWithNodePair,
+  createRelationTypeForNodePair,
   getAssociableRelationTypesForNodePair,
   getDiscourseNodeTypeId,
   getValidRelationTypesForNodePair,
@@ -45,6 +47,8 @@ export const RelationTypeDropdown = ({
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const [isPickingExisting, setIsPickingExisting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  // The dialog sits outside dropdownRef, so its clicks and Escape must not dismiss the menu
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const arrow = useValue<DiscourseRelationShape | null>(
     "dropdownArrow",
@@ -157,6 +161,7 @@ export const RelationTypeDropdown = ({
   // Handle click outside
   useEffect(() => {
     const handlePointerDown = (e: PointerEvent) => {
+      if (isCreateDialogOpen) return;
       if (
         dropdownRef.current &&
         !dropdownRef.current.contains(e.target as Node)
@@ -174,12 +179,12 @@ export const RelationTypeDropdown = ({
       clearTimeout(timer);
       window.removeEventListener("pointerdown", handlePointerDown, true);
     };
-  }, [onDismiss]);
+  }, [isCreateDialogOpen, onDismiss]);
 
   // Handle Escape key: leave the picker or add menu first, then the dropdown
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
+      if (e.key !== "Escape" || isCreateDialogOpen) return;
       if (isPickingExisting) {
         e.stopPropagation();
         setIsPickingExisting(false);
@@ -194,13 +199,30 @@ export const RelationTypeDropdown = ({
     };
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [isAddMenuOpen, isPickingExisting, onDismiss]);
+  }, [isAddMenuOpen, isCreateDialogOpen, isPickingExisting, onDismiss]);
 
   const handleSelect = useCallback(
     (relationTypeId: string) => {
       onSelect(relationTypeId);
     },
     [onSelect],
+  );
+
+  const showRelationAddedToast = useCallback(
+    (relationTypeLabel: string) => {
+      if (!nodePair) return;
+      const sourceName =
+        getNodeTypeById(plugin, nodePair.sourceNodeTypeId)?.name ?? "source";
+      const targetName =
+        getNodeTypeById(plugin, nodePair.targetNodeTypeId)?.name ?? "target";
+      showToast({
+        severity: "success",
+        title: "Discourse relation added",
+        description: `${relationTypeLabel} relation added for ${sourceName} and ${targetName}`,
+        targetCanvasId: canvasPath,
+      });
+    },
+    [nodePair, plugin, canvasPath],
   );
 
   const handleAssociate = useCallback(
@@ -224,19 +246,33 @@ export const RelationTypeDropdown = ({
         setIsSaving(false);
       }
       setIsPickingExisting(false);
-      const sourceName =
-        getNodeTypeById(plugin, nodePair.sourceNodeTypeId)?.name ?? "source";
-      const targetName =
-        getNodeTypeById(plugin, nodePair.targetNodeTypeId)?.name ?? "target";
-      showToast({
-        severity: "success",
-        title: "Discourse relation added",
-        description: `${relationType.label} relation added for ${sourceName} and ${targetName}`,
-        targetCanvasId: canvasPath,
-      });
+      showRelationAddedToast(relationType.label);
     },
-    [nodePair, isSaving, plugin, canvasPath],
+    [nodePair, isSaving, plugin, canvasPath, showRelationAddedToast],
   );
+
+  const handleCreateNew = useCallback(() => {
+    if (!nodePair) return;
+    setIsAddMenuOpen(false);
+    setIsCreateDialogOpen(true);
+    new CreateRelationTypeModal(plugin.app, {
+      getRelationTypes: () => plugin.settings.relationTypes,
+      onSubmit: async (fields) => {
+        const relationType = await createRelationTypeForNodePair({
+          plugin,
+          ...fields,
+          ...nodePair,
+        });
+        showToast({
+          severity: "success",
+          title: "Relation type created",
+          targetCanvasId: canvasPath,
+        });
+        showRelationAddedToast(relationType.label);
+      },
+      onClose: () => setIsCreateDialogOpen(false),
+    }).open();
+  }, [nodePair, plugin, canvasPath, showRelationAddedToast]);
 
   if (!dropdownPosition || !arrow) return null;
 
@@ -262,7 +298,9 @@ export const RelationTypeDropdown = ({
       >
         Add existing…
       </button>
-      <button className={actionClassName}>Create new</button>
+      <button className={actionClassName} onClick={handleCreateNew}>
+        Create new
+      </button>
     </>
   );
   const hasRelationTypes = validRelationTypes.length > 0;

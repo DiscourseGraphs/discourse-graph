@@ -3,7 +3,7 @@ import type { DiscourseNodeShape } from "~/components/canvas/shapes/DiscourseNod
 import type DiscourseGraphPlugin from "~/index";
 import type { DiscourseRelation, DiscourseRelationType } from "~/types";
 import generateUid from "~/utils/generateUid";
-import { COLOR_PALETTE } from "~/utils/tldrawColors";
+import { COLOR_PALETTE, type TldrawColorName } from "~/utils/tldrawColors";
 import { isAcceptedSchema } from "~/utils/typeUtils";
 
 export const isDiscourseNodeShape = (
@@ -203,6 +203,55 @@ export const associateRelationTypeWithNodePair = async ({
       plugin.settings.discourseRelations.filter(({ id }) => id !== relation.id);
     throw error;
   }
+};
+
+/**
+ * Creates a relation type, makes it valid for a source → target node pair and
+ * saves once. Removes the added type and relation again if the save fails.
+ */
+export const createRelationTypeForNodePair = async ({
+  plugin,
+  label,
+  complement,
+  color,
+  sourceNodeTypeId,
+  targetNodeTypeId,
+}: {
+  plugin: DiscourseGraphPlugin;
+  label: string;
+  complement: string;
+  color: TldrawColorName;
+  sourceNodeTypeId: string;
+  targetNodeTypeId: string;
+}): Promise<DiscourseRelationType> => {
+  const now = Date.now();
+  const relationType: DiscourseRelationType = {
+    id: generateUid("rel"),
+    label,
+    complement,
+    color,
+    created: now,
+    modified: now,
+  };
+  plugin.settings.relationTypes = [
+    ...plugin.settings.relationTypes,
+    relationType,
+  ];
+  try {
+    await associateRelationTypeWithNodePair({
+      plugin,
+      relationTypeId: relationType.id,
+      sourceNodeTypeId,
+      targetNodeTypeId,
+    });
+  } catch (error) {
+    // Filter by id, as the association helper does, so concurrent saves survive
+    plugin.settings.relationTypes = plugin.settings.relationTypes.filter(
+      ({ id }) => id !== relationType.id,
+    );
+    throw error;
+  }
+  return relationType;
 };
 
 /**
