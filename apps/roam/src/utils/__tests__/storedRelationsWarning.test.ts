@@ -42,6 +42,7 @@ describe("stored relations warning", () => {
   it("removes the warning once stored relations are enabled", () => {
     vi.mocked(getStoredRelationsEnabled).mockReturnValue(false);
     render();
+    expect(container.textContent).toContain("Stored relations are disabled");
     vi.mocked(getStoredRelationsEnabled).mockReturnValue(true);
     render();
     expect(container.innerHTML).toBe("");
