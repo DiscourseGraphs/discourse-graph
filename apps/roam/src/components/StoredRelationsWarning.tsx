@@ -16,7 +16,7 @@ const StoredRelationsWarning = ({
       title="Stored relations are disabled"
     >
       {withDocsLink(
-        "Sharing and importing only include stored relations. With stored relations disabled, shared and imported nodes are missing their relations. Enable stored relations in Personal Settings > Home.",
+        "Sharing and importing use stored relations. While stored relations are disabled, pattern-based relations aren't shared and imported relations don't appear. Enable stored relations in Personal Settings > Home.",
         ROAM_DOCS.migrationToStoredRelations,
       )}
     </Callout>
