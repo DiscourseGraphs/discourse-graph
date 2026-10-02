@@ -23,3 +23,7 @@ re the question about converting image -> node, when the node type has key image
 <status>completed</status>
 <summary>Background command "Wait for PR 1427 checks on the revert commit" completed (exit code 0)</summary>
 </task-notification>
+
+---
+
+fix the top-right docs wording and resolve that thread
