@@ -1216,7 +1216,7 @@ const parseSchemaLiteralContent = (
   };
 };
 
-/** Carries the source space name because a file already at this name is assigned as the template; a bare node type name would adopt a same-named local template. */
+/** Includes the source space name because `mapNodeTypeIdToLocal` assigns any file already at this name as the template, and a bare node type name would assign an unrelated local template. */
 export const getUntitledTemplateFileName = ({
   nodeTypeName,
   sourceSpaceName,
