@@ -1,0 +1,166 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3Z64KN606NGCMKT377QSWF1",
+  "session_id": "395f2894-8ff7-4954-8454-3f520c736e22",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-02T20:50:51.965101Z",
+  "branch": "eng-1356-implement-image-to-node-conversion-flow-via-icon-button-in",
+  "checkpoints_count": 6,
+  "save_step_count": 10,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "claude-fable-5-1",
+  "turn_id": "f60c69a604a9",
+  "checkpoint_transcript_start": 1084,
+  "transcript_lines_at_start": 1084,
+  "compact_transcript_start": 180,
+  "token_usage": {
+    "input_tokens": 158,
+    "cache_creation_tokens": 929454,
+    "cache_read_tokens": 12947087,
+    "output_tokens": 34264,
+    "api_call_count": 47,
+    "subagent_tokens": {
+      "input_tokens": 0,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 0,
+      "api_call_count": 0
+    }
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "prompt-skill-claude-code-roam-switch-2026-09-23T21:09:01.032988Z",
+      "event_type": "prompt_invocation",
+      "skill": {
+        "name": "roam-switch"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "prompt_slash_command",
+        "confidence": "explicit"
+      },
+      "turn_id": "1a39a53b036d",
+      "timestamp": "2026-09-23T21:09:01.032988Z",
+      "native": {
+        "command": "/roam-switch"
+      },
+      "collapse": {
+        "target": "user_message",
+        "label": "/roam-switch",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "prompt-skill-claude-code-roam-switch-2026-10-01T20:21:09.649603Z",
+      "event_type": "prompt_invocation",
+      "skill": {
+        "name": "roam-switch"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "prompt_slash_command",
+        "confidence": "explicit"
+      },
+      "turn_id": "7b39ab81af98",
+      "timestamp": "2026-10-01T20:21:09.649603Z",
+      "native": {
+        "command": "/roam-switch"
+      },
+      "collapse": {
+        "target": "user_message",
+        "label": "/roam-switch",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 10
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 2,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "packages/database/.gitignore": 2
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 2,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "packages/database/.gitignore": 2
+      }
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1597,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1928,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 8,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1928,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 9,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 10,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 11,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1928,
+      "agent_lines_removed": 0
+    }
+  ]
+}
