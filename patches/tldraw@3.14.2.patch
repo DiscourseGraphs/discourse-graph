@@ -1,0 +1,26 @@
+diff --git a/dist-cjs/lib/ui/hooks/menu-hooks.js b/dist-cjs/lib/ui/hooks/menu-hooks.js
+index a3289bc10d59b071bc093bd4a681ddef53631d38..a4a2ed4ce58e417816a62f4359daa3d554afcf41 100644
+--- a/dist-cjs/lib/ui/hooks/menu-hooks.js
++++ b/dist-cjs/lib/ui/hooks/menu-hooks.js
+@@ -155,7 +155,7 @@ function useHasLinkShapeSelected() {
+     "hasLinkShapeSelected",
+     () => {
+       const onlySelectedShape = editor.getOnlySelectedShape();
+-      return !!(onlySelectedShape && onlySelectedShape.type !== "embed" && "url" in onlySelectedShape.props && !onlySelectedShape.isLocked);
++      return !!(onlySelectedShape && onlySelectedShape.type !== "embed" && ("url" in onlySelectedShape.props || onlySelectedShape.type === "text") && !onlySelectedShape.isLocked);
+     },
+     [editor]
+   );
+diff --git a/dist-esm/lib/ui/hooks/menu-hooks.mjs b/dist-esm/lib/ui/hooks/menu-hooks.mjs
+index aec3d2936032f118aa70afb33872d3b0f3e9887c..5bcde1a144b5be958821eb110b7940d88b4de5dd 100644
+--- a/dist-esm/lib/ui/hooks/menu-hooks.mjs
++++ b/dist-esm/lib/ui/hooks/menu-hooks.mjs
+@@ -124,7 +124,7 @@ function useHasLinkShapeSelected() {
+     "hasLinkShapeSelected",
+     () => {
+       const onlySelectedShape = editor.getOnlySelectedShape();
+-      return !!(onlySelectedShape && onlySelectedShape.type !== "embed" && "url" in onlySelectedShape.props && !onlySelectedShape.isLocked);
++      return !!(onlySelectedShape && onlySelectedShape.type !== "embed" && ("url" in onlySelectedShape.props || onlySelectedShape.type === "text") && !onlySelectedShape.isLocked);
+     },
+     [editor]
+   );

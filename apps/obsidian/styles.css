@@ -136,3 +136,21 @@ body.dg-hide-frontmatter-ids .metadata-property[data-property-key^="rel_" i] {
   border-radius: 0;
   color: var(--interactive-accent);
 }
+
+/* tldraw's HyperlinkButton is not exported; these mirror it for the text-link
+   overlay, which positions each icon with inline left/top only. */
+.dg-text-link-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.dg-text-link-overlay .tl-hyperlink-button {
+  position: absolute;
+  right: auto;
+  transform: translateY(-50%);
+  pointer-events: all;
+}
+.dg-text-link-overlay .tl-hyperlink__icon {
+  mask: var(--dg-external-link-icon) center 100% / 100% no-repeat;
+  -webkit-mask: var(--dg-external-link-icon) center 100% / 100% no-repeat;
+}
