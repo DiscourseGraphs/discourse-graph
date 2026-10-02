@@ -444,6 +444,7 @@ export const DragHandleOverlay = ({ plugin, file }: DragHandleOverlayProps) => {
         <RelationTypeDropdown
           arrowId={pendingArrowId}
           plugin={plugin}
+          canvasPath={file.path}
           onSelect={handleDropdownSelect}
           onDismiss={handleDropdownDismiss}
         />
