@@ -28,7 +28,7 @@ import {
   importRelationsForImportedNodes,
   type RemoteRelationInstance,
 } from "./importRelations";
-import { createTemplateFile } from "./templates";
+import { createTemplateFile, getImportedTemplateFileName } from "./templates";
 import { resolveFolderForSpaceUri } from "./importFolderMetadata";
 import { getNodeTypeById, isAcceptedSchema } from "./typeUtils";
 import {
@@ -1216,17 +1216,32 @@ const parseSchemaLiteralContent = (
   };
 };
 
+/** Carries the source space name because a file already at this name is assigned as the template; a bare node type name would adopt a same-named local template. */
+export const getUntitledTemplateFileName = ({
+  nodeTypeName,
+  sourceSpaceName,
+}: {
+  nodeTypeName: string;
+  sourceSpaceName: string;
+}): string =>
+  getImportedTemplateFileName({
+    templateName: sanitizeFileName(nodeTypeName),
+    sourceName: sanitizeFileName(sourceSpaceName),
+  });
+
 export const mapNodeTypeIdToLocal = async ({
   plugin,
   client,
   sourceSpaceId,
   sourceSpaceUri,
+  sourceSpaceName,
   sourceNodeTypeId,
 }: {
   plugin: DiscourseGraphPlugin;
   client: DGSupabaseClient;
   sourceSpaceId: number;
   sourceSpaceUri: string;
+  sourceSpaceName: string;
   sourceNodeTypeId: string;
 }): Promise<string> => {
   // Find the schema in the source space with this nodeTypeId (my_concepts applies RLS)
@@ -1279,15 +1294,19 @@ export const mapNodeTypeIdToLocal = async ({
     importedFromRid,
   };
 
-  if (parsed.templateContent && parsed.template) {
+  if (parsed.templateContent) {
+    newNodeType.template ??= getUntitledTemplateFileName({
+      nodeTypeName: parsed.name,
+      sourceSpaceName,
+    });
     const result = await createTemplateFile({
       app: plugin.app,
-      templateName: parsed.template,
+      templateName: newNodeType.template,
       content: parsed.templateContent,
     });
     if (result.created) {
       new Notice(
-        `Template "${parsed.template}" created for imported node type "${parsed.name}".`,
+        `Template "${newNodeType.template}" created for imported node type "${parsed.name}".`,
         4000,
       );
     } else if (
@@ -1716,6 +1735,7 @@ const importNodes = async ({
           client,
           sourceSpaceId: spaceId,
           sourceSpaceUri: spaceUri,
+          sourceSpaceName: spaceName,
           sourceNodeTypeId,
         });
 
@@ -1876,6 +1896,7 @@ const importNodes = async ({
         client,
         spaceId,
         spaceUri,
+        spaceName,
         keyToRelationEndpointId,
         precomputedRelationInstances,
       });
