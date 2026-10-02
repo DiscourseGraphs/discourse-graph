@@ -235,4 +235,23 @@ describe("mapNodeTypeIdToLocal template import", () => {
       plugin.settings.nodeTypes.map((nodeType) => nodeType.template),
     ).toEqual([undefined]);
   });
+
+  it("creates no template file when the template has a title but no content", async () => {
+    const { files, vault } = createVault();
+    const plugin = createPlugin({ vault });
+
+    // Older Roam schemas carry the template body in `template` and have no `template_content`.
+    await importNodeType({
+      plugin,
+      schema: {
+        name: "Evidence",
+        literal_content: {
+          label: "Evidence",
+          template: UNTITLED_TEMPLATE_CONTENT,
+        },
+      },
+    });
+
+    expect(files.size).toBe(0);
+  });
 });
