@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
-import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
+import { getDiscourseNodeFormatExpression } from "@repo/database/lib/getDiscourseNodeFormatExpression";
 
 vi.mock("roamjs-components/queries/getPageUidByPageTitle", () => ({
   default: vi.fn(),

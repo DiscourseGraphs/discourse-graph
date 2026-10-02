@@ -7,8 +7,8 @@ import {
 } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import { BulkImportPattern, BulkImportCandidate, DiscourseNode } from "~/types";
-import { getDiscourseNodeFormatExpression } from "~/utils/getDiscourseNodeFormatExpression";
-import { extractContentFromTitle } from "~/utils/extractContentFromTitle";
+import { getDiscourseNodeFormatExpression } from "@repo/database/lib/getDiscourseNodeFormatExpression";
+import { extractContentFromTitle } from "@repo/database/lib/extractContentFromTitle";
 import { AppWithUnofficialApis } from "~/utils/obsidianUnofficialTypes";
 import { titleFromTaggedLine } from "~/utils/taggedLine";
 

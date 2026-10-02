@@ -1,8 +1,10 @@
-import { FORMAT_PLACEHOLDER } from "@repo/database/lib/decorateTitle";
+import {
+  CONTENT_PLACEHOLDER,
+  FORMAT_PLACEHOLDER,
+} from "@repo/database/lib/decorateTitle";
 import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
-import { extractFieldFromTitle } from "./extractContentFromTitle";
+import { getDiscourseNodeFormatExpression } from "@repo/database/lib/getDiscourseNodeFormatExpression";
 import { readImportedSourceIdentity } from "./importedSourceIdentity";
 
 // Temporary hack, until slots are a first-class node type setting: a node type whose
@@ -14,7 +16,6 @@ import { readImportedSourceIdentity } from "./importedSourceIdentity";
 export const SOURCE_SLOT = "sourceDocument";
 export const MISSING_SOURCE_PLACEHOLDER = "@placeholder";
 const DEFAULT_SOURCE_SCHEMA_ID = "_SRC-node";
-const CONTENT_PLACEHOLDER = "{content}";
 const SOURCE_PLACEHOLDER = "{source}";
 
 type NodeFormat = Pick<DiscourseNode, "format">;
@@ -90,8 +91,13 @@ export const sourceIdOfNode = (
 ): string | undefined => {
   if (schema === undefined) return undefined;
   if (!schemaHasSourceSlot(schema)) return undefined;
-  const sourceTitle = extractFieldFromTitle(title, schema, "source")
-    ?.replace(/^\[\[(.*)\]\]$/s, "$1")
+  const sourceIndex = (schema.format.match(FORMAT_PLACEHOLDER) ?? []).findIndex(
+    (placeholder) => placeholder.toLowerCase() === SOURCE_PLACEHOLDER,
+  );
+  const sourceTitle = matcherFor(schema.format)
+    .exec(title)
+    ?.[sourceIndex + 1].trim()
+    .replace(/^\[\[(.*)\]\]$/s, "$1")
     .trim();
   // The missing-source placeholder page is never a real Source.
   if (
