@@ -1,0 +1,24 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3XVK5ETSZ5PSD7RWYD6MNZR",
+  "strategy": "manual-commit",
+  "branch": "eng-2195-normalize-imported-node-type-formats-for-obsidian-filenames",
+  "checkpoints_count": 8,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 286,
+    "cache_creation_tokens": 445613,
+    "cache_read_tokens": 31575634,
+    "output_tokens": 184269,
+    "api_call_count": 121
+  }
+}
