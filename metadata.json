@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3XSDT49D63NWZ5T9FC7N0MT",
+  "strategy": "manual-commit",
+  "branch": "eng-2176-escape-regex-metacharacters-in-discourse-node-format",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "apps/roam/src/utils/__tests__/sourceSlot.test.ts",
+    "packages/database/src/lib/__tests__/getDiscourseNodeFormatExpression.test.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 54,
+    "cache_creation_tokens": 309040,
+    "cache_read_tokens": 4981006,
+    "output_tokens": 160118,
+    "api_call_count": 25
+  }
+}
