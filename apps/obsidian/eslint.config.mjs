@@ -1,4 +1,8 @@
 import { config } from "@repo/eslint-config/react-internal";
+import {
+  editorRules,
+  errorPlugins,
+} from "@repo/eslint-config/obsidian-scanner";
 
 export default [
   ...config,
@@ -13,5 +17,8 @@ export default [
         },
       },
     },
+    // Only the rules that block installability, so editors surface them.
+    plugins: errorPlugins,
+    rules: editorRules,
   },
 ];

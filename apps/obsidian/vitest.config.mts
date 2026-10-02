@@ -7,7 +7,7 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   test: {
     environment: "node",
-    include: ["src/**/__tests__/**/*.test.ts", "test/**/*.test.ts"],
+    include: ["src/**/__tests__/**/*.test.ts", "test/**/*.test.{ts,mts}"],
   },
   resolve: {
     alias: {
