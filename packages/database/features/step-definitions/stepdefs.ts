@@ -332,6 +332,95 @@ Then(
 );
 /* eslint-enable max-params */
 
+const INSUFFICIENT_PRIVILEGE = "42501";
+
+// Exact list comparison, so duplicated rows fail.
+const expectVisibleConcepts = async ({
+  viewerSpaceName,
+  filterSpaceName,
+  inFilterSpace,
+  table,
+}: {
+  viewerSpaceName: string;
+  filterSpaceName: string;
+  inFilterSpace: boolean;
+  table: DataTable;
+}): Promise<void> => {
+  const localRefs = (world.localRefs || {}) as LocalRefsType;
+  const viewerSpaceId = localRefs[viewerSpaceName];
+  const filterSpaceId = localRefs[filterSpaceName];
+  if (typeof viewerSpaceId !== "number")
+    assert.fail("viewer spaceId not a number");
+  if (typeof filterSpaceId !== "number")
+    assert.fail("filter spaceId not a number");
+  const client = await getLoggedinDatabase(viewerSpaceId);
+  const query = client.from("my_concepts").select("id");
+  const response = await (inFilterSpace
+    ? query.eq("space_id", filterSpaceId)
+    : query.neq("space_id", filterSpaceId));
+  assert.equal(response.error, null);
+  const expectedIds = table.hashes().map(({ concept }) => {
+    const id = localRefs[concept!];
+    if (typeof id !== "number") assert.fail(`unknown concept ${concept}`);
+    return id;
+  });
+  const visibleIds = (response.data || []).map(({ id }) => id!);
+  const byId = (a: number, b: number): number => a - b;
+  assert.deepEqual(visibleIds.sort(byId), expectedIds.sort(byId));
+};
+
+Then(
+  "a user logged in space {word} should see these concepts in space {word}:",
+  (viewerSpaceName: string, filterSpaceName: string, table: DataTable) =>
+    expectVisibleConcepts({
+      viewerSpaceName,
+      filterSpaceName,
+      inFilterSpace: true,
+      table,
+    }),
+);
+
+Then(
+  "a user logged in space {word} cannot {word} concepts through my_concepts",
+  async (spaceName: string, operation: string) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    const client = await getLoggedinDatabase(spaceId);
+    const view = client.from("my_concepts");
+    let response: PostgrestSingleResponse<null>;
+    if (operation === "insert") {
+      const now = new Date().toISOString();
+      response = await view.insert({
+        name: "written through my_concepts",
+        space_id: spaceId,
+        created: now,
+        last_modified: now,
+      });
+    } else if (operation === "update") {
+      response = await view
+        .update({ name: "written through my_concepts" })
+        .eq("space_id", spaceId);
+    } else if (operation === "delete") {
+      response = await view.delete().eq("space_id", spaceId);
+    } else {
+      assert.fail(`unknown operation ${operation}`);
+    }
+    assert.equal(response.error?.code, INSUFFICIENT_PRIVILEGE);
+  },
+);
+
+Then(
+  "a user logged in space {word} should see these concepts outside space {word}:",
+  (viewerSpaceName: string, filterSpaceName: string, table: DataTable) =>
+    expectVisibleConcepts({
+      viewerSpaceName,
+      filterSpaceName,
+      inFilterSpace: false,
+      table,
+    }),
+);
+
 // invoke the upsert_accounts_in_space function, expects json
 Given(
   "user {word} upserts these accounts to space {word}:",
