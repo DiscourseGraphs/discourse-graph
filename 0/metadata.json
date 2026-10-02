@@ -1,0 +1,121 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3XPC01QMHZ7MTFEB4GFHM4P",
+  "session_id": "0739d78c-0bd2-4ab2-aa36-09f70cfe1400",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-02T06:56:03.075822901Z",
+  "branch": "eng-2176-escape-regex-metacharacters-in-discourse-node-format",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/obsidian/src/components/DiscourseContextView.tsx",
+    "apps/obsidian/src/services/QueryEngine.ts",
+    "apps/obsidian/src/utils/__tests__/conceptConversion.test.ts",
+    "apps/obsidian/src/utils/conceptConversion.ts",
+    "apps/obsidian/src/utils/createNode.ts",
+    "apps/obsidian/src/utils/extractContentFromTitle.ts",
+    "apps/obsidian/src/utils/getDiscourseNodeFormatExpression.ts",
+    "apps/roam/src/components/CreateRelationDialog.tsx",
+    "apps/roam/src/components/settings/DiscourseNodeSpecification.tsx",
+    "apps/roam/src/utils/__tests__/discourseNodeFormatToDatalog.test.ts",
+    "apps/roam/src/utils/__tests__/extractContentFromTitle.test.ts",
+    "apps/roam/src/utils/__tests__/materializeSharedNode.test.ts",
+    "apps/roam/src/utils/__tests__/roamToCrossAppConverters.test.ts",
+    "apps/roam/src/utils/__tests__/sourceSlot.test.ts",
+    "apps/roam/src/utils/conceptConversion.ts",
+    "apps/roam/src/utils/discourseNodeFormatToDatalog.ts",
+    "apps/roam/src/utils/discourseNodeSearch.ts",
+    "apps/roam/src/utils/discourseNodeSearchProviders.ts",
+    "apps/roam/src/utils/extractContentFromTitle.ts",
+    "apps/roam/src/utils/getAllDiscourseNodesSince.ts",
+    "apps/roam/src/utils/getDiscourseNodeFormatExpression.ts",
+    "apps/roam/src/utils/matchDiscourseNode.ts",
+    "apps/roam/src/utils/roamToCrossAppConverters.ts",
+    "apps/roam/src/utils/sourceSlot.ts",
+    "apps/roam/src/utils/syncDgNodesToSupabase.ts",
+    "packages/database/src/lib/__tests__/extractContentFromTitle.test.ts",
+    "packages/database/src/lib/__tests__/getDiscourseNodeFormatExpression.test.ts",
+    "packages/database/src/lib/decorateTitle.ts",
+    "packages/database/src/lib/extractContentFromTitle.ts",
+    "packages/database/src/lib/getDiscourseNodeFormatExpression.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "5d36d2b4a154",
+  "checkpoint_transcript_start": 142,
+  "transcript_lines_at_start": 142,
+  "compact_transcript_start": 19,
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_018YppJuRUBb7tVNCWEBJ3zy",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "artifact-diagramming"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "5d36d2b4a154",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 77,
+        "end": 78,
+        "entry_ids": [
+          "32b79cc2-f47d-46fc-a99f-863778b38f87"
+        ],
+        "tool_use_id": "toolu_018YppJuRUBb7tVNCWEBJ3zy"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_018YppJuRUBb7tVNCWEBJ3zy"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: artifact-diagramming",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "initial_attribution": {
+    "calculated_at": "2026-10-02T06:56:03.042696103Z",
+    "agent_lines": 374,
+    "agent_removed": 203,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 374,
+    "total_lines_changed": 577,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 158,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".agents/skills/discourse-engineering-writing-style/SKILL.md": 37,
+        ".agents/skills/discourse-engineering-writing-style/agents/openai.yaml": 9,
+        ".agents/skills/roam-load-extension/SKILL.md": 45,
+        ".agents/skills/roam-playwright-session/SKILL.md": 51,
+        ".husky/commit-msg": 3,
+        ".husky/post-commit": 3,
+        ".husky/post-rewrite": 3,
+        ".husky/pre-push": 3,
+        ".husky/prepare-commit-msg": 3,
+        ".lsp/.cache/db.transit.json": 1
+      }
+    }
+  ]
+}

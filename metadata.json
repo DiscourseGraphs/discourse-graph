@@ -1,0 +1,55 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3XPC01QMHZ7MTFEB4GFHM4P",
+  "strategy": "manual-commit",
+  "branch": "eng-2176-escape-regex-metacharacters-in-discourse-node-format",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/obsidian/src/components/DiscourseContextView.tsx",
+    "apps/obsidian/src/services/QueryEngine.ts",
+    "apps/obsidian/src/utils/__tests__/conceptConversion.test.ts",
+    "apps/obsidian/src/utils/conceptConversion.ts",
+    "apps/obsidian/src/utils/createNode.ts",
+    "apps/obsidian/src/utils/extractContentFromTitle.ts",
+    "apps/obsidian/src/utils/getDiscourseNodeFormatExpression.ts",
+    "apps/roam/src/components/CreateRelationDialog.tsx",
+    "apps/roam/src/components/settings/DiscourseNodeSpecification.tsx",
+    "apps/roam/src/utils/__tests__/discourseNodeFormatToDatalog.test.ts",
+    "apps/roam/src/utils/__tests__/extractContentFromTitle.test.ts",
+    "apps/roam/src/utils/__tests__/materializeSharedNode.test.ts",
+    "apps/roam/src/utils/__tests__/roamToCrossAppConverters.test.ts",
+    "apps/roam/src/utils/__tests__/sourceSlot.test.ts",
+    "apps/roam/src/utils/conceptConversion.ts",
+    "apps/roam/src/utils/discourseNodeFormatToDatalog.ts",
+    "apps/roam/src/utils/discourseNodeSearch.ts",
+    "apps/roam/src/utils/discourseNodeSearchProviders.ts",
+    "apps/roam/src/utils/extractContentFromTitle.ts",
+    "apps/roam/src/utils/getAllDiscourseNodesSince.ts",
+    "apps/roam/src/utils/getDiscourseNodeFormatExpression.ts",
+    "apps/roam/src/utils/matchDiscourseNode.ts",
+    "apps/roam/src/utils/roamToCrossAppConverters.ts",
+    "apps/roam/src/utils/sourceSlot.ts",
+    "apps/roam/src/utils/syncDgNodesToSupabase.ts",
+    "packages/database/src/lib/__tests__/extractContentFromTitle.test.ts",
+    "packages/database/src/lib/__tests__/getDiscourseNodeFormatExpression.test.ts",
+    "packages/database/src/lib/decorateTitle.ts",
+    "packages/database/src/lib/extractContentFromTitle.ts",
+    "packages/database/src/lib/getDiscourseNodeFormatExpression.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  }
+}
