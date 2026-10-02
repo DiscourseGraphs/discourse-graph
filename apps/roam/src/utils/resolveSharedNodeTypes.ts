@@ -1,4 +1,5 @@
 import posthog from "posthog-js";
+import { stripFrontmatter } from "@repo/content-model";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { Tables } from "@repo/database/dbTypes";
 import type { SharedNode } from "@repo/database/lib/sharedNodes";
@@ -12,7 +13,7 @@ import internalError from "./internalError";
 import refreshConfigTree from "./refreshConfigTree";
 
 const SCHEMA_COLUMNS =
-  "format:literal_content->>format, id, name, source_data_format:literal_content->source_data->>format, source_local_id";
+  "format:literal_content->>format, id, name, source_data_format:literal_content->source_data->>format, source_local_id, template_content:literal_content->>template_content";
 
 const RESERVED_NODE_TYPE_NAMES = new Set(["Page", "Block", "Any"]);
 
@@ -25,6 +26,16 @@ type SharedNodeSchema = Pick<
 > & {
   format: string | null;
   source_data_format: string | null;
+  template_content: string | null;
+};
+
+// Obsidian publishes the template file as written, so its frontmatter would
+// otherwise become template blocks.
+const getTemplateMarkdown = (
+  templateContent: string | null,
+): string | undefined => {
+  const markdown = stripFrontmatter(templateContent ?? "");
+  return markdown.trim() ? markdown : undefined;
 };
 
 const findOrCreateNodeType = async (
@@ -49,6 +60,7 @@ const findOrCreateNodeType = async (
       format: schema.format,
       sourceDataFormat: schema.source_data_format,
     }),
+    template: getTemplateMarkdown(schema.template_content),
     uid: schema.source_local_id,
   });
   refreshConfigTree();

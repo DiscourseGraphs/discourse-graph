@@ -72,6 +72,7 @@ type SchemaRow = {
   source_local_id: string | null;
   format: string | null;
   source_data_format: string | null;
+  template_content: string | null;
 };
 
 const schemaRow = (overrides: Partial<SchemaRow> = {}): SchemaRow => ({
@@ -80,6 +81,7 @@ const schemaRow = (overrides: Partial<SchemaRow> = {}): SchemaRow => ({
   source_local_id: REMOTE_TYPE_UID,
   format: FORMAT,
   source_data_format: null,
+  template_content: null,
   ...overrides,
 });
 
@@ -207,6 +209,84 @@ describe("resolveSharedNodeTypes", () => {
     expect(mockedCreateDiscourseNodeType).toHaveBeenCalledWith(
       expect.objectContaining({ format: "" }),
     );
+  });
+
+  it("creates a node type with the template a Roam graph published", async () => {
+    const template = "* Claim\n   * Supporting evidence\n* Notes\n";
+    const { client, builder } = makeClient({
+      rows: [schemaRow({ template_content: template })],
+    });
+    mockedCreateDiscourseNodeType.mockResolvedValue(evidenceType);
+
+    await resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] });
+
+    expect(builder.select).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "template_content:literal_content->>template_content",
+      ),
+    );
+    expect(mockedCreateDiscourseNodeType).toHaveBeenCalledWith(
+      expect.objectContaining({ template }),
+    );
+  });
+
+  it("creates a node type with the body of the template file an Obsidian vault published", async () => {
+    const { client } = makeClient({
+      rows: [
+        schemaRow({
+          template_content:
+            "---\ntags: evidence\n---\n\n## Source\n\n## Notes\n- {{date}}\n",
+        }),
+      ],
+    });
+    mockedCreateDiscourseNodeType.mockResolvedValue(evidenceType);
+
+    await resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] });
+
+    expect(mockedCreateDiscourseNodeType).toHaveBeenCalledWith(
+      expect.objectContaining({
+        template: "## Source\n\n## Notes\n- {{date}}\n",
+      }),
+    );
+  });
+
+  it.each([
+    { published: "no template", templateContent: null },
+    {
+      published: "a frontmatter-only template",
+      templateContent: "---\ntags: evidence\n---\n",
+    },
+    { published: "a blank template", templateContent: "\n\n" },
+  ])(
+    "creates a node type without a template from a schema with $published",
+    async ({ templateContent }) => {
+      const { client } = makeClient({
+        rows: [schemaRow({ template_content: templateContent })],
+      });
+      mockedCreateDiscourseNodeType.mockResolvedValue(evidenceType);
+
+      await resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] });
+
+      expect(mockedCreateDiscourseNodeType).toHaveBeenCalledWith(
+        expect.objectContaining({ template: undefined }),
+      );
+    },
+  );
+
+  it("reuses the node type a previous import created instead of writing its template again", async () => {
+    const { client } = makeClient({
+      rows: [schemaRow({ template_content: "* Claim\n" })],
+    });
+    const createdType = { ...evidenceType, type: REMOTE_TYPE_UID };
+    mockedCreateDiscourseNodeType.mockResolvedValue(createdType);
+
+    await resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] });
+    mockedGetDiscourseNodes.mockReturnValue([createdType]);
+    await expect(
+      resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] }),
+    ).resolves.toEqual(new Map([[SCHEMA_ID, createdType]]));
+
+    expect(mockedCreateDiscourseNodeType).toHaveBeenCalledTimes(1);
   });
 
   it("never resolves a schema named like a built-in type to the built-in by name", async () => {
