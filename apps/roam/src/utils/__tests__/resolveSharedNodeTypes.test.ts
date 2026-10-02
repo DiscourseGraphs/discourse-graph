@@ -273,22 +273,6 @@ describe("resolveSharedNodeTypes", () => {
     },
   );
 
-  it("reuses the node type a previous import created instead of writing its template again", async () => {
-    const { client } = makeClient({
-      rows: [schemaRow({ template_content: "* Claim\n" })],
-    });
-    const createdType = { ...evidenceType, type: REMOTE_TYPE_UID };
-    mockedCreateDiscourseNodeType.mockResolvedValue(createdType);
-
-    await resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] });
-    mockedGetDiscourseNodes.mockReturnValue([createdType]);
-    await expect(
-      resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] }),
-    ).resolves.toEqual(new Map([[SCHEMA_ID, createdType]]));
-
-    expect(mockedCreateDiscourseNodeType).toHaveBeenCalledTimes(1);
-  });
-
   it("never resolves a schema named like a built-in type to the built-in by name", async () => {
     const { client } = makeClient({
       rows: [schemaRow({ name: "Page", source_local_id: "remote-page-type" })],

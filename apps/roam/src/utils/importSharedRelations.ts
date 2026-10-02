@@ -28,6 +28,7 @@ import { discoverSharedRelations } from "./discoverSharedRelations";
 import { DGSupabaseClient } from "@repo/database/lib/client";
 import { deleteBlock } from "roamjs-components/writes";
 import refreshConfigTree from "./refreshConfigTree";
+import { getTemplateMarkdown } from "./resolveSharedNodeTypes";
 
 const matchImportedNodeSchemas = async (
   nodeSchemas: CrossAppNodeSchema[],
@@ -61,7 +62,7 @@ const matchImportedNodeSchemas = async (
       // create a new node schema
       const node = await createDiscourseNodeType({
         label: schema.label,
-        template: schema.template,
+        template: getTemplateMarkdown(schema.template),
         // TODO: colour, other metadata?
       });
       blockUid = node.type;

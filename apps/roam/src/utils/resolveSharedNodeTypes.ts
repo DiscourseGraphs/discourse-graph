@@ -31,8 +31,8 @@ type SharedNodeSchema = Pick<
 
 // Obsidian publishes the template file as written, so its frontmatter would
 // otherwise become template blocks.
-const getTemplateMarkdown = (
-  templateContent: string | null,
+export const getTemplateMarkdown = (
+  templateContent: string | null | undefined,
 ): string | undefined => {
   const markdown = stripFrontmatter(templateContent ?? "");
   return markdown.trim() ? markdown : undefined;
