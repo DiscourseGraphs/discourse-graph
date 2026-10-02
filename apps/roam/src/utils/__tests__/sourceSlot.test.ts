@@ -117,4 +117,13 @@ describe("sourceIdOfNode", () => {
       sourceIdOfNode("[[EVD]] - X - [[@Smith 2020]]", schema, [sourceNode]),
     ).toBe("source-page");
   });
+
+  it("resolves a Source placeholder that comes before the content", () => {
+    expect(
+      sourceIdOfNode("[[@Smith 2020]]: X", { format: "{Source}: {content}" }, [
+        sourceNode,
+      ]),
+    ).toBe("source-page");
+    expect(getPageUidByPageTitle).toHaveBeenCalledWith("@Smith 2020");
+  });
 });

@@ -13,6 +13,7 @@ describe("getDiscourseNodeFormatExpression", () => {
     ["{content}", "^(.*?)$"],
     ["What? {content}.", "^What\\? (.*?)\\.$"],
     ["a+b {content}", "^a\\+b (.*?)$"],
+    ["{x1} - {content}", "^\\{x1\\} - (.*?)$"],
   ])("builds %s into /%s/", (format, source) => {
     expect(getDiscourseNodeFormatExpression(format).source).toBe(source);
   });
