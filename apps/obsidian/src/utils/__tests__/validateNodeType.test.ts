@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { decorateTitle } from "@repo/database/lib/decorateTitle";
 import {
+  checkInvalidChars,
   normalizeImportedNodeFormat,
-  validateNodeFormat,
 } from "~/utils/validateNodeType";
 
 describe("normalizeImportedNodeFormat", () => {
@@ -32,19 +32,7 @@ describe("normalizeImportedNodeFormat", () => {
     (format, expected) => {
       const normalized = normalizeImportedNodeFormat(format);
       expect(normalized).toBe(expected);
-      expect(
-        validateNodeFormat({
-          format: normalized,
-          currentNode: {
-            id: "imported-type",
-            name: "Imported type",
-            format: normalized,
-            created: 0,
-            modified: 0,
-          },
-          allNodes: [],
-        }),
-      ).toEqual({ isValid: true });
+      expect(checkInvalidChars(normalized).isValid).toBe(true);
     },
   );
 
