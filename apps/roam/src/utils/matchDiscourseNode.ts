@@ -2,7 +2,7 @@ import compileDatalog from "./compileDatalog";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import conditionToDatalog from "./conditionToDatalog";
-import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
+import { getDiscourseNodeFormatExpression } from "@repo/database/lib/getDiscourseNodeFormatExpression";
 import type { DiscourseNode } from "./getDiscourseNodes";
 import replaceDatalogVariables from "./replaceDatalogVariables";
 

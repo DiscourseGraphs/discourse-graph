@@ -153,6 +153,15 @@ describe("fullContentNodeToCrossApp coreTitle", () => {
     });
     expect(node.coreTitle).toBe("unrelated title");
   });
+
+  it("extracts the content from a format with regex metacharacters", () => {
+    const node = fullContentNodeToCrossApp({
+      ...baseNode,
+      format: "Claim (draft) - {content}",
+      text: "Claim (draft) - sleep improves memory",
+    });
+    expect(node.coreTitle).toBe("sleep improves memory");
+  });
 });
 
 const nodeSchema = (overrides: Partial<DiscourseNode>): DiscourseNode => ({

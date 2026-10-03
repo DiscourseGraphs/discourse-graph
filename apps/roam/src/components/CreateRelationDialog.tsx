@@ -13,7 +13,7 @@ import { excludeProvisionalRelationSchemas } from "~/utils/relationSchemaAccepta
 import { createReifiedRelation } from "~/utils/createReifiedBlock";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import findDiscourseNode from "~/utils/findDiscourseNode";
-import { getDiscourseNodeFormatInnerExpression } from "~/utils/getDiscourseNodeFormatExpression";
+import { getDiscourseNodeFormatInnerExpression } from "@repo/database/lib/getDiscourseNodeFormatExpression";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import type { Result } from "~/utils/types";
 import internalError from "~/utils/internalError";
