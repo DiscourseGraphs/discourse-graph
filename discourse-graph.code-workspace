@@ -9,6 +9,21 @@
       "**/target": true,
       "**/dist": true,
       "**/next": true,
+      "**/node_modules": true,
+      "**/.next/**": true,
+      "**/.turbo/**": true,
+      "**/build/**": true,
+    },
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/.next": true,
+      "**/.turbo": true,
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/.next": true,
+      "**/.turbo": true,
+      "**/dist": true,
     },
   },
 }
