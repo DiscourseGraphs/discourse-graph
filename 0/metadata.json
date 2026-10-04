@@ -93,6 +93,68 @@
         "label": "/mattpocock-skills:grilling",
         "default_collapsed": true
       }
+    },
+    {
+      "id": "claude-skill-toolu_01LUUCKQYcuh36fYgaZqiueX",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-roam-load-extension"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "e60060f85a0b",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 914,
+        "end": 915,
+        "entry_ids": [
+          "21f8b704-5cee-48f7-91bd-47ad15a86b18"
+        ],
+        "tool_use_id": "toolu_01LUUCKQYcuh36fYgaZqiueX"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01LUUCKQYcuh36fYgaZqiueX"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-roam-load-extension",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01KBs84sJVv4utTbB2q2FnGF",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-engineering-writing-style"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "e60060f85a0b",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 935,
+        "end": 936,
+        "entry_ids": [
+          "8d4000f5-e47c-4076-a418-643d7a19f754"
+        ],
+        "tool_use_id": "toolu_01KBs84sJVv4utTbB2q2FnGF"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01KBs84sJVv4utTbB2q2FnGF"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-engineering-writing-style",
+        "default_collapsed": true
+      }
     }
   ],
   "session_metrics": {
