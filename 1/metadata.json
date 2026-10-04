@@ -1,0 +1,170 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M44DRDWZ1MK7X76JXRHPC19K",
+  "session_id": "edb60ae0-02aa-457a-b783-0c17a6a6aa11",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-04T21:40:15.529456Z",
+  "branch": "eng-1884-add-convert-to-node-option-to-right-click-menu-for-tldraw",
+  "checkpoints_count": 2,
+  "save_step_count": 3,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "claude-opus-5",
+  "turn_id": "ef0c4104e78a",
+  "checkpoint_transcript_start": 753,
+  "transcript_lines_at_start": 753,
+  "compact_transcript_start": 123,
+  "token_usage": {
+    "input_tokens": 32,
+    "cache_creation_tokens": 15911,
+    "cache_read_tokens": 4189013,
+    "output_tokens": 13250,
+    "api_call_count": 16,
+    "subagent_tokens": {
+      "input_tokens": 58,
+      "cache_creation_tokens": 34665,
+      "cache_read_tokens": 2218075,
+      "output_tokens": 530,
+      "api_call_count": 29
+    }
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_01QVNiVP4UykYUUCaAFqQWN7",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "create-pr"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "d7da7a08c91f",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 421,
+        "end": 422,
+        "entry_ids": [
+          "ce6d7cbc-c6a7-4546-952c-3ec8cc1f2546"
+        ],
+        "tool_use_id": "toolu_01QVNiVP4UykYUUCaAFqQWN7"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01QVNiVP4UykYUUCaAFqQWN7"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: create-pr",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01Mbujyr3xMtDBasmc9yNnQJ",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "pre-pr-review"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "d7da7a08c91f",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 436,
+        "end": 437,
+        "entry_ids": [
+          "a0878d31-a660-43dd-999a-44d3196aacbb"
+        ],
+        "tool_use_id": "toolu_01Mbujyr3xMtDBasmc9yNnQJ"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01Mbujyr3xMtDBasmc9yNnQJ"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: pre-pr-review",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01MhxUB1TTByTA49mdR6TrXQ",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-delegated-full-review"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "d7da7a08c91f",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 683,
+        "end": 684,
+        "entry_ids": [
+          "6c8e819f-e8b1-4198-a70f-02c300446dcb"
+        ],
+        "tool_use_id": "toolu_01MhxUB1TTByTA49mdR6TrXQ"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01MhxUB1TTByTA49mdR6TrXQ"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-delegated-full-review",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 16,
+      "user_lines_removed": 18,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "apps/roam/src/components/canvas/ConvertToDialog.tsx": 2,
+        "apps/roam/src/components/canvas/convertShapeToDiscourseNode.ts": 8,
+        "apps/roam/src/components/canvas/uiOverrides.tsx": 6
+      },
+      "user_removed_per_file": {
+        "apps/roam/src/components/canvas/ConvertToDialog.tsx": 2,
+        "apps/roam/src/components/canvas/convertShapeToDiscourseNode.ts": 10,
+        "apps/roam/src/components/canvas/uiOverrides.tsx": 6
+      }
+    }
+  ]
+}
