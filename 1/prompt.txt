@@ -1,0 +1,7 @@
+<task-notification>
+<task-id>bpopdqwjh</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/edb60ae0-02aa-457a-b783-0c17a6a6aa11/tasks/bpopdqwjh.output</output-file>
+<status>completed</status>
+<summary>Background command "Validate after rebase" completed (exit code 0)</summary>
+</task-notification>
