@@ -15,28 +15,30 @@ Relationship types define how different nodes in your discourse graph can connec
 
 ## Adding relationship types
 
-1. Open Obsidian **Settings**, then the **Discourse Graphs** tab
-2. Open the **Relation types** tab
-   ![Relation types settings](/docs/obsidian/relation-types-settings.png)
-3. Click **Add relation type**
-4. In the new row:
-   - Enter the label (for example, "supports")
-   - Enter the complement (for example, "is supported by")
-   - Pick a color (Black by default)
-     ![Add relation type](/docs/obsidian/relation-types-add.png)
-
-Changes save when you leave a field, as long as both the label and the complement are filled in and neither matches an existing relation type.
+1. Open Obsidian Settings
+2. Navigate to the "Discourse Graphs" settings tab
+3. Under "Relation Types," click "Add Relationship Type"
+4. Configure the relationship:
+   - Enter the primary label (e.g., "supports", "contradicts")
+   - Enter the complement label (e.g., "is supported by", "is contradicted by")
+     ![add relation type](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2Fjk367dcO_K.png?alt=media&token=22d74e9f-882c-434b-8b50-afd7a754fb2b)
+5. Click "Save Changes"
 
 ## Configuring valid relationships
 
-After creating relationship types, you need to define which node types can be connected by each relationship.
+After creating relationship types, you need to define which node types can be connected by each relationship. There are two ways to configure the relationships between two node types.
 
-You can also do both from the canvas while connecting two nodes. See [Add a relation type from the canvas](/docs/obsidian/core-features/canvas#add-a-relation-type-from-the-canvas).
+### From the canvas
 
-1. Open the **Discourse relations** tab in settings
+While connecting two nodes on the canvas, you can add an existing relationship type or create a new one for those node types. See [Add a relation type from the canvas](/docs/obsidian/core-features/canvas#add-a-relation-type-from-the-canvas).
+
+### From settings
+
+1. Open Obsidian **Settings**, then the **Discourse Graphs** tab
+2. Open the **Discourse relations** tab
    ![Discourse relations settings](/docs/obsidian/discourse-relations-settings.png)
-2. Click **Add relation**
-3. In the new row, choose:
+3. Click **Add relation**
+4. In the new row, choose:
    - **Source Node Type** (for example, Claim)
    - **Relation Type** (for example, supports / is supported by)
    - **Target Node Type** (for example, Question)
