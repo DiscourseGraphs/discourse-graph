@@ -3,7 +3,7 @@
   "checkpoint_id": "01M44MF33YS6GS0739P6GBF9V2",
   "strategy": "manual-commit",
   "branch": "eng-1955-full-migration-to-discourse-relation-only",
-  "checkpoints_count": 15,
+  "checkpoints_count": 16,
   "files_touched": null,
   "sessions": [
     {
@@ -19,20 +19,27 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 236,
-    "cache_creation_tokens": 247864,
-    "cache_read_tokens": 20733491,
-    "output_tokens": 101329,
-    "api_call_count": 114,
+    "input_tokens": 1160,
+    "cache_creation_tokens": 3613399,
+    "cache_read_tokens": 205910460,
+    "output_tokens": 517976,
+    "api_call_count": 577,
     "subagent_tokens": {
-      "input_tokens": 156,
-      "cache_creation_tokens": 356968,
-      "cache_read_tokens": 4846609,
-      "output_tokens": 4030,
-      "api_call_count": 78
+      "input_tokens": 284,
+      "cache_creation_tokens": 598619,
+      "cache_read_tokens": 10646220,
+      "output_tokens": 28712,
+      "api_call_count": 142
     }
   }
 }

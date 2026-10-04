@@ -1,0 +1,17 @@
+/babysit . Uh, don't do anything drastic yet. Start planning with me and present me with the plan to fix and the options and considerations.
+
+---
+
+/babysit
+
+---
+
+Can you make a PNG for me to show instead?
+
+---
+
+make a table to compare the 2 approaches
+
+---
+
+hmm i want something that a reviewer with no context can easily understand. so maybe you need to start with a simple summary of how the two approaches are different -> only mention the highest level differences to discuss trade-offs between the two approaches. i want to send this out for review
