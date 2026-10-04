@@ -430,3 +430,9 @@ no, make the retime + per-step gifs like you recommended
 </result>
 <usage><subagent_tokens>131604</subagent_tokens><tool_uses>36</tool_uses><duration_ms>142754</duration_ms></usage>
 </task-notification>
+
+---
+
+* remove the changes under ## Adding relationship types. it's out of scope for this feature.
+* under ## Configuring valid relationships. explicitly say that there are 2 ways to configure relationships between 2 nodes. way 1: see  [Add a relation type from the canvas](/docs/obsidian/core-features/canvas#add-a-relation-type-from-the-canvas). way 2: explain the steps
+* files like: apps/website/public/docs/obsidian/export-options.png
