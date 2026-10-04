@@ -126,9 +126,12 @@ const getSpaceSharingByUrl = async ({
   client: DGSupabaseClient;
   spaceUris: string[];
 }): Promise<Map<string, SpaceSharing>> => {
+  // The view also reaches Space through LocalAccess; PostgREST needs the join named.
   const { data, error } = await client
     .from("my_pseudo_accounts")
-    .select("space_id, group_id, sharing_permissions, Space!inner(url)")
+    .select(
+      "space_id, group_id, sharing_permissions, Space!SpaceAccess_space_id_fkey!inner(url)",
+    )
     .in("Space.url", spaceUris)
     .not("sharing_permissions", "is", null);
   if (error) throw error;
