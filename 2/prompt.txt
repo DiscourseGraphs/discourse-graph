@@ -15,3 +15,35 @@ make a table to compare the 2 approaches
 ---
 
 hmm i want something that a reviewer with no context can easily understand. so maybe you need to start with a simple summary of how the two approaches are different -> only mention the highest level differences to discuss trade-offs between the two approaches. i want to send this out for review
+
+---
+
+you can create an artifact with better explanation. use /mattpocock-skills:teach to help create it. i can then share this artifact for decision. use template/ parts of it if helpful
+
+<pasted_content id="40fb">
+* Problem / Decision Template #roam/templates
+   * Problem
+      * What is the issue, gap, or decision that needs attention?
+   * Context / Use Case
+      * Where does this show up?
+      * Who is affected?
+      * How would someone reproduce or encounter it?
+   * Why It Matters
+      * What breaks, becomes confusing, slows us down, or creates risk if we do nothing?
+   * Options
+      * Option 1: [Name]
+         * Summary:
+         * Pros:
+         * Cons / risks:
+      * Option 2: [Name]
+         * Summary:
+         * Pros:
+         * Cons / risks:
+      * ...
+   * Recommendation
+      * What do you think we should do, and why?
+   * Open Questions
+      * What still needs clarification before deciding or implementing?
+   * Decision / Next Step
+      * What was decided, or what needs to happen next?
+</pasted_content id="40fb">
