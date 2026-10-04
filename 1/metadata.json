@@ -122,6 +122,37 @@
         "label": "Skill: dg-delegated-full-review",
         "default_collapsed": true
       }
+    },
+    {
+      "id": "claude-skill-toolu_01Q57J8YZ3JRoG3owz8DTmYX",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-roam-load-extension"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "ef0c4104e78a",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 874,
+        "end": 875,
+        "entry_ids": [
+          "5d02065a-f11b-4fd4-a22e-e8d811910874"
+        ],
+        "tool_use_id": "toolu_01Q57J8YZ3JRoG3owz8DTmYX"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01Q57J8YZ3JRoG3owz8DTmYX"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-roam-load-extension",
+        "default_collapsed": true
+      }
     }
   ],
   "session_metrics": {
