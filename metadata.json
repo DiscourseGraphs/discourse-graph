@@ -1,0 +1,49 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M449YKSDF15A4Z3AJGA1Q1ZS",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "apps/roam/local/roam-playwright/artifacts/key-image-diag/load-extension-slot-1-last-run.json",
+    "apps/roam/local/roam-playwright/artifacts/key-image-diag/roam-load-extension-slot-1-2026-09-23T22-15-47-878Z.png",
+    "apps/roam/local/roam-playwright/artifacts/key-image-diag/roam-load-extension-slot-1-failure.png",
+    "apps/roam/local/roam-playwright/artifacts/key-image-main-repro/load-extension-slot-1-last-run.json",
+    "apps/roam/local/roam-playwright/artifacts/key-image-main-repro/roam-load-extension-slot-1-2026-10-01T01-52-32-381Z.png",
+    "apps/roam/local/roam-playwright/artifacts/key-image-main-repro/roam-load-extension-slot-1-failure.png",
+    "apps/roam/local/roam-playwright/artifacts/key-image-query/load-extension-slot-1-last-run.json",
+    "apps/roam/local/roam-playwright/artifacts/key-image-query/roam-load-extension-slot-1-2026-09-23T22-16-44-131Z.png",
+    "apps/roam/local/roam-playwright/artifacts/key-image-query/roam-load-extension-slot-1-failure.png",
+    "apps/roam/local/roam-playwright/artifacts/key-image-timing/load-extension-slot-1-last-run.json",
+    "apps/roam/local/roam-playwright/artifacts/key-image-timing/roam-load-extension-slot-1-2026-09-23T22-17-47-866Z.png",
+    "apps/roam/local/roam-playwright/artifacts/key-image-timing/roam-load-extension-slot-1-failure.png",
+    "apps/roam/local/roam-playwright/key-image-diagnosis.mjs",
+    "apps/roam/local/roam-playwright/key-image-main-repro.mjs",
+    "apps/roam/local/roam-playwright/key-image-query.mjs",
+    "apps/roam/local/roam-playwright/key-image-timing.mjs",
+    "apps/website/public/docs/roam/dg-schema02.PNG"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 12,
+    "cache_creation_tokens": 4285,
+    "cache_read_tokens": 1651117,
+    "output_tokens": 1157,
+    "api_call_count": 5,
+    "subagent_tokens": {
+      "input_tokens": 0,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 0,
+      "api_call_count": 0
+    }
+  }
+}
