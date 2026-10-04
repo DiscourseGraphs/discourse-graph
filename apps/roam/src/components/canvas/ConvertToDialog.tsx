@@ -3,7 +3,7 @@ import { OnloadArgs } from "roamjs-components/types";
 import { Editor } from "tldraw";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { getOnSelectForShape } from "./uiOverrides";
-import { getConvertibleShapeText } from "./convertShapeToDiscourseNode";
+import { isConvertibleShape } from "./convertShapeToDiscourseNode";
 import { Dialog, Button, Classes } from "@blueprintjs/core";
 import posthog from "posthog-js";
 
@@ -25,7 +25,7 @@ const ConvertToDialog = ({
   const isImageSelected = selectedShapes[0]?.type === "image";
   const oneShapeSelected = selectedShapes.length === 1;
   const isNodeSelected =
-    oneShapeSelected && getConvertibleShapeText(selectedShapes[0]) !== null;
+    oneShapeSelected && isConvertibleShape(selectedShapes[0]);
 
   let errorMessage =
     "Please select an image, a text shape, or a sticky note or shape with text";

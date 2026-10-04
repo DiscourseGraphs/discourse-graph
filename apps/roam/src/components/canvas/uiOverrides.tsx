@@ -56,7 +56,8 @@ import {
 import {
   replaceShapeWithDiscourseNode,
   uploadImageShapeToRoam,
-  getConvertibleShapeText,
+  getShapeText,
+  isConvertibleShape,
 } from "./convertShapeToDiscourseNode";
 import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelationTool";
 import {
@@ -202,8 +203,7 @@ export const getOnSelectForShape = ({
     });
   };
 
-  const shapeText = getConvertibleShapeText(shape);
-  if (shapeText === null) return () => {};
+  if (!isConvertibleShape(shape)) return () => {};
 
   if (shape.type === "image") {
     return async () => {
@@ -217,7 +217,7 @@ export const getOnSelectForShape = ({
       openDialogAndCreateShape({ initialText, imageUrl: src });
     };
   }
-  return () => openDialogAndCreateShape({ initialText: shapeText });
+  return () => openDialogAndCreateShape({ initialText: getShapeText(shape) });
 };
 
 type ArrowBoundNodeInfo = {
@@ -408,7 +408,7 @@ export const CustomContextMenu = ({
   const shareableResults = getShareableCanvasSelectionResults({
     shapes: selectedShapes,
   });
-  const convertibleText = getConvertibleShapeText(selectedShape);
+  const canConvertSelectedShape = isConvertibleShape(selectedShape);
   const isImageSelected = selectedShape?.type === "image";
   const arrowRelationOptions = useValue(
     "arrowRelationOptions",
@@ -455,7 +455,7 @@ export const CustomContextMenu = ({
           />
         </TldrawUiMenuGroup>
       )}
-      {selectedShape && convertibleText !== null && (
+      {selectedShape && canConvertSelectedShape && (
         <TldrawUiMenuGroup id="convert-to-group">
           <TldrawUiMenuSubmenu id="convert-to-submenu" label="Convert To">
             {allNodes

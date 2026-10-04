@@ -11,17 +11,15 @@ import { DISCOURSE_NODE_SHAPE_TYPE } from "./DiscourseNodeUtil";
 
 const TEXT_SHAPE_TYPES = ["text", "geo", "note"];
 
-export const getConvertibleShapeText = (
-  shape?: TLShape | null,
-): string | null => {
-  if (!shape || shape.isLocked) return null;
-  if (shape.type === "image") return "";
-  if (!TEXT_SHAPE_TYPES.includes(shape.type)) return null;
-  if (!("text" in shape.props)) return null;
-  const { text } = shape.props;
+export const getShapeText = (shape: TLShape): string =>
+  "text" in shape.props ? shape.props.text : "";
+
+export const isConvertibleShape = (shape?: TLShape | null): boolean => {
+  if (!shape || shape.isLocked) return false;
+  if (shape.type === "image") return true;
+  if (!TEXT_SHAPE_TYPES.includes(shape.type)) return false;
   // Geo and note shapes convert only when they carry text.
-  if (shape.type !== "text" && !text.trim()) return null;
-  return text;
+  return shape.type === "text" || !!getShapeText(shape).trim();
 };
 
 export const uploadImageShapeToRoam = async ({
