@@ -27,7 +27,8 @@ const ConvertToDialog = ({
   const isNodeSelected =
     oneShapeSelected && getConvertibleShapeText(selectedShapes[0]) !== null;
 
-  let errorMessage = "Please select an image, or a shape with text in it";
+  let errorMessage =
+    "Please select an image, a text shape, or a sticky note or shape with text";
   if (!oneShapeSelected) errorMessage = "Please select only one shape";
 
   return (

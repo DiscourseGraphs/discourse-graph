@@ -1,4 +1,10 @@
-import { createShapeId, Editor, TLImageShape, TLShape } from "tldraw";
+import {
+  createShapeId,
+  Editor,
+  isShapeId,
+  TLImageShape,
+  TLShape,
+} from "tldraw";
 import type { OnloadArgs } from "roamjs-components/types";
 import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
 import { DISCOURSE_NODE_SHAPE_TYPE } from "./DiscourseNodeUtil";
@@ -53,6 +59,7 @@ export const replaceShapeWithDiscourseNode = async ({
   uid: string;
 }): Promise<void> => {
   const { x, y, parentId } = shape;
+  const pagePoint = editor.getShapePageTransform(shape.id).point();
   // Size before deleting so a failed key-image query leaves the source shape in place
   const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
     nodeText: text,
@@ -61,6 +68,8 @@ export const replaceShapeWithDiscourseNode = async ({
     uid,
   });
   editor.deleteShapes([shape.id]);
+  // Deleting a child of a two-shape group dissolves that group, so re-check the parent.
+  const keepsParent = isShapeId(parentId) && !!editor.getShape(parentId);
   editor.createShapes([
     {
       type: DISCOURSE_NODE_SHAPE_TYPE,
@@ -75,9 +84,10 @@ export const replaceShapeWithDiscourseNode = async ({
         size: "s",
         nodeTypeId: nodeType,
       },
-      parentId,
-      x,
-      y,
+      // x/y are parent-relative; without parentId tldraw reads them as page coordinates.
+      ...(keepsParent
+        ? { parentId, x, y }
+        : { x: pagePoint.x, y: pagePoint.y }),
     },
   ]);
 };
