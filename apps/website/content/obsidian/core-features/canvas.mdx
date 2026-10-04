@@ -46,7 +46,7 @@ You can add discourse nodes to a canvas in several ways. Most flows open the **C
 ### Add a discourse node to canvas
 
 1. Click the **Discourse Graph** icon in the bottom toolbar
-2. In the panel on the right, click a node type to select it (or drag a node type onto the canvas)
+2. In the panel at the top right, click a node type to select it (or drag a node type onto the canvas). The panel collapses to show only the selected type
 3. Click on the canvas where you want the node
 4. In the **Create discourse node** modal, enter a title, confirm the node type, and click **Confirm**
    The new node appears on the canvas as a discourse node card linked to the note that was created.
@@ -94,8 +94,8 @@ Turn tldraw text or image shapes into discourse nodes without leaving the canvas
 
 ### Create new relations between nodes
 
-- Click the discourse node icon in the toolbar
-- Click the type of relations you want to create between two nodes
+- Click the **Discourse Graph** icon in the bottom toolbar
+- In the panel at the top right, click the relation type you want to create between two nodes
 - Click and drag the arrow from the source node to target node
 
 ![Create relations](/docs/obsidian/create-relations.gif)
@@ -104,9 +104,36 @@ Turn tldraw text or image shapes into discourse nodes without leaving the canvas
 
 ![drag-relation](/docs/obsidian/drag-relation.gif)
 
-_Note_: The relation type selected must be compatible between the source and target nodes. Otherwise, you will receive a relation tool error. To update the setting on what relation types are possible between two kinds of discourse nodes, you can change the setting [Relation types setting](/docs/obsidian/configuration/relationship-types#configuring-valid-relationships)
+When you drag from the dots and drop on another discourse node, the **Relation type** menu opens. It lists the relation types defined for these two node types. Click one to apply it to the arrow.
+
+_Note_: When you use the toolbar, the relation type selected must be compatible between the source and target nodes. Otherwise, you will receive a relation tool error. To add a relation type for two node types, drag from the dots instead and use the **Relation type** menu, as described in [Add a relation type from the canvas](#add-a-relation-type-from-the-canvas). You can also change the [Relation types setting](/docs/obsidian/configuration/relationship-types#configuring-valid-relationships).
 
 ![Relation error](/docs/obsidian/relation-error.png)
+
+### Add a relation type from the canvas
+
+You don't need to leave the canvas when no relation type is defined for the two node types you're connecting, or when the one you need is missing.
+
+1. Drag from the dots of a discourse node to another discourse node.
+2. In the **Relation type** menu:
+   - If no relation type is defined for these node types, the menu shows **Add existing…** and **Create new** right away.
+     ![Empty relation type menu](/docs/obsidian/relation-type-menu-empty.gif)
+   - Otherwise, click the **+** button next to the **Relation type** heading to see the same two options.
+     ![Relation type menu with the add options open](/docs/obsidian/relation-type-menu-add.gif)
+3. Choose one of the options:
+   - **Add existing…** lists the relation types that aren't yet allowed between these node types, shown as `label / complement`. Click one to allow it for these node types.
+     ![Add an existing relation type](/docs/obsidian/relation-type-add-existing.gif)
+   - **Create new** opens the **Add relation type** dialog. Enter a label (for example, "supports") and a complement (for example, "is supported by"), pick a color, then click **Continue**. Labels and complements must be unique across your relation types.
+     ![Create a relation type from the canvas](/docs/obsidian/create-relation-type-from-canvas.gif)
+4. A **Discourse relation added** message confirms the change. If you created a new relation type, you'll also see **Relation type created**.
+5. The relation type now appears in the **Relation type** menu. Click it to apply it to the arrow.
+
+The relation type is allowed from the source node type to the target node type, in the direction you drew the arrow. Both changes are saved to your [relation type settings](/docs/obsidian/configuration/relationship-types), so you can edit them there later.
+
+<Callout type="info">
+  Both ends of the arrow must be discourse nodes with a node type. Clicking
+  outside the menu or pressing `Esc` removes the arrow you were drawing.
+</Callout>
 
 ### Adding existing relations
 
@@ -123,7 +150,7 @@ _Note_: The relation type selected must be compatible between the source and tar
 
 ### Key figures
 
-You can choose to show the first image of discourse nodes of certain type. To change the setting on whether this first image show up, you can edit it in the Node Type Setting
+You can show the first image from a node's file on its canvas card. To turn this on for a node type, open **Settings** → **Discourse Graphs** → **Node types**, click the node type, and turn on **Key image (first image from file)**.
 
 ![Key figure](/docs/obsidian/key-figure.png)
 
