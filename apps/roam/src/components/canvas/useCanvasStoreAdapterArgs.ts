@@ -12,11 +12,13 @@ import {
 import {
   createAllReferencedNodeUtils,
   createAllRelationShapeUtils,
+  createLegacyDiscourseRelationShapeUtils,
 } from "./DiscourseRelationShape/DiscourseRelationUtil";
 import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelationTool";
 import {
   createAllReferencedNodeBindings,
   createAllRelationBindings,
+  createLegacyRelationBindings,
 } from "./DiscourseRelationShape/DiscourseRelationBindings";
 import { createMigrations } from "./DiscourseRelationShape/discourseRelationMigrations";
 
@@ -62,10 +64,12 @@ const createShapeUtils = ({
   allNodes,
   allAddReferencedNodeByAction,
   includeLegacyNodeTypes = false,
+  legacyRelationIds = [],
 }: {
   allNodes: DiscourseNode[];
   allAddReferencedNodeByAction: AddReferencedNodeType;
   includeLegacyNodeTypes?: boolean;
+  legacyRelationIds?: string[];
 }): TLAnyShapeUtilConstructor[] => {
   return [
     DiscourseNodeUtil,
@@ -73,17 +77,21 @@ const createShapeUtils = ({
       ? createLegacyDiscourseNodeShapeUtils(allNodes)
       : []),
     ...createAllRelationShapeUtils(),
+    ...createLegacyDiscourseRelationShapeUtils(legacyRelationIds),
     ...createAllReferencedNodeUtils(allAddReferencedNodeByAction),
   ];
 };
 
 const createBindingUtils = ({
   allAddReferencedNodeByAction,
+  legacyRelationIds = [],
 }: {
   allAddReferencedNodeByAction: AddReferencedNodeType;
+  legacyRelationIds?: string[];
 }): TLAnyBindingUtilConstructor[] => {
   return [
     ...createAllRelationBindings(),
+    ...createLegacyRelationBindings(legacyRelationIds),
     ...createAllReferencedNodeBindings(allAddReferencedNodeByAction),
   ];
 };
@@ -131,20 +139,22 @@ export const useCanvasStoreAdapterArgs = ({
       value: createShapeUtils({
         allNodes,
         allAddReferencedNodeByAction,
-        // Cloudflare rooms may still stream pre-migration node-id shape records.
+        // Cloudflare rooms may still stream pre-migration node-id and relation-id records.
         includeLegacyNodeTypes: true,
+        legacyRelationIds: allRelationIds,
       }),
     }),
-    [pageUid, allNodes, allAddReferencedNodeByAction],
+    [pageUid, allNodes, allRelationIds, allAddReferencedNodeByAction],
   ).value;
   const stableCustomBindingUtils = useMemo(
     () => ({
       pageUid,
       value: createBindingUtils({
         allAddReferencedNodeByAction,
+        legacyRelationIds: allRelationIds,
       }),
     }),
-    [pageUid, allAddReferencedNodeByAction],
+    [pageUid, allRelationIds, allAddReferencedNodeByAction],
   ).value;
   const stableCustomShapeTypes = useMemo(
     () => ({

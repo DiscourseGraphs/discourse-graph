@@ -52,6 +52,13 @@ export const createAllRelationBindings = () => {
     },
   ];
 };
+export const createLegacyRelationBindings = (relationIds: string[]) => {
+  return relationIds.map((relationId) => {
+    return class LegacyRelationBindingUtil extends BaseRelationBindingUtil {
+      static override type = relationId;
+    };
+  });
+};
 
 export type RelationBindings = {
   start: RelationBinding | undefined;

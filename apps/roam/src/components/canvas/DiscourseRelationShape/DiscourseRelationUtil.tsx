@@ -1258,6 +1258,24 @@ export const createAllRelationShapeUtils =
     return [DiscourseRelationUtil];
   };
 
+// Cloud rooms are never migrated, so they can still hold relation-uid-typed arrows.
+export const createLegacyDiscourseRelationShapeUtils = (
+  relationIds: string[],
+): TLShapeUtilConstructor<DiscourseRelationShape>[] => {
+  const [DiscourseRelationUtil] =
+    createAllRelationShapeUtils() as (typeof BaseDiscourseRelationUtil)[];
+  return relationIds.map(
+    (relationId) =>
+      class LegacyDiscourseRelationUtil extends DiscourseRelationUtil {
+        static override type = relationId;
+
+        override getDefaultProps(): DiscourseRelationShape["props"] {
+          return { ...super.getDefaultProps(), relationTypeId: relationId };
+        }
+      },
+  );
+};
+
 const relationShapeProps = {
   ...arrowShapeProps,
   relationTypeId: T.string.nullable().optional(),
