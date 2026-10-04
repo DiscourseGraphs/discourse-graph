@@ -83,6 +83,37 @@
         "label": "Skill: pre-pr-review",
         "default_collapsed": true
       }
+    },
+    {
+      "id": "claude-skill-toolu_01MhxUB1TTByTA49mdR6TrXQ",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-delegated-full-review"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "d7da7a08c91f",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 683,
+        "end": 684,
+        "entry_ids": [
+          "6c8e819f-e8b1-4198-a70f-02c300446dcb"
+        ],
+        "tool_use_id": "toolu_01MhxUB1TTByTA49mdR6TrXQ"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01MhxUB1TTByTA49mdR6TrXQ"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-delegated-full-review",
+        "default_collapsed": true
+      }
     }
   ],
   "initial_attribution": {
