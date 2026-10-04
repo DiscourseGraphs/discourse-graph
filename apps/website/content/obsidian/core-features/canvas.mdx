@@ -48,7 +48,7 @@ You can add discourse nodes to a canvas in several ways. Most flows open the **C
 1. Click the **Discourse Graph** icon in the bottom toolbar
 2. In the panel at the top right, click a node type to select it (or drag a node type onto the canvas). The panel collapses to show only the selected type
 3. Click on the canvas where you want the node
-4. In the **Create discourse node** modal, enter a title, confirm the node type, and click **Confirm**
+4. In the **Create discourse node** modal, enter the content, confirm the node type, and click **Confirm**
    The new node appears on the canvas as a discourse node card linked to the note that was created.
 
 ![Create discourse node](/docs/obsidian/create-discourse-node.gif)
@@ -66,7 +66,7 @@ _From the file explorer_
 1. In the Obsidian file explorer, drag a discourse node note onto the canvas
 2. The node is added at the drop location
 
-![drag-node](/docs/obsidian/file-explorer-drag.gif)
+![Drag a node from the file explorer](/docs/obsidian/file-explorer-drag.gif)
 
 _From the editor_
 
@@ -78,7 +78,7 @@ When a Discourse Graph canvas is open, internal links in **Live Preview** show a
 
 The handle appears for `[[wikilinks]]` and `[markdown links](path.md)` that point to notes in your vault. It does not appear on image embeds (`![[...]]`).
 
-![drag-node](/docs/obsidian/editor-drag-node.gif)
+![Drag a node from the editor](/docs/obsidian/editor-drag-node.gif)
 
 ### Convert text or image shapes into a node
 
@@ -102,7 +102,7 @@ Turn tldraw text or image shapes into discourse nodes without leaving the canvas
 
 - Alternatively, you can select the dots that show up when you click a node, then start dragging to the destination node to create a new relation
 
-![drag-relation](/docs/obsidian/drag-relation.gif)
+![Drag a relation between nodes](/docs/obsidian/drag-relation.gif)
 
 When you drag from the dots and drop on another discourse node, the **Relation type** menu opens. It lists the relation types defined for these two node types. Click one to apply it to the arrow.
 
@@ -121,7 +121,7 @@ You don't need to leave the canvas when no relation type is defined for the two 
    - Otherwise, click the **+** button next to the **Relation type** heading to see the same two options.
      ![Relation type menu with the add options open](/docs/obsidian/relation-type-menu-add.gif)
 3. Choose one of the options:
-   - **Add existing…** lists the relation types that aren't yet allowed between these node types, shown as `label / complement`. Click one to allow it for these node types.
+   - **Add existing…** lists the relation types that aren't yet allowed between these node types, shown as `label / complement`. Click one to allow it for these node types. If every relation type is already allowed, the list says so.
      ![Add an existing relation type](/docs/obsidian/relation-type-add-existing.gif)
    - **Create new** opens the **Add relation type** dialog. Enter a label (for example, "supports") and a complement (for example, "is supported by"), pick a color, then click **Continue**. Labels and complements must be unique across your relation types.
      ![Create a relation type from the canvas](/docs/obsidian/create-relation-type-from-canvas.gif)
@@ -132,7 +132,8 @@ The relation type is allowed from the source node type to the target node type, 
 
 <Callout type="info">
   Both ends of the arrow must be discourse nodes with a node type. Clicking
-  outside the menu or pressing `Esc` removes the arrow you were drawing.
+  outside the menu removes the arrow you were drawing. `Esc` first steps back
+  out of **Add existing…** or the **+** options, then removes the arrow.
 </Callout>
 
 ### Adding existing relations
@@ -146,7 +147,7 @@ The relation type is allowed from the source node type to the target node type, 
 
 ![Adding existing relations](/docs/obsidian/node-card-context-menu.png)
 
-## Canvas Features
+## Canvas features
 
 ### Key figures
 
@@ -219,7 +220,7 @@ If your vault sits inside a cloud storage folder, move it out or turn off the ot
 **Relations Won't Connect**:
 
 - Ensure the node types allow the relation type you're trying to create
-- Check your discourse relation configuration in settings
+- Check your discourse relation configuration in settings, or add the relation type from the canvas (see [Add a relation type from the canvas](#add-a-relation-type-from-the-canvas))
 - Verify both nodes are valid discourse nodes
 
 **Canvas Is Missing Recent Changes**:

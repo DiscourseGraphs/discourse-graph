@@ -25,7 +25,7 @@ Relationship types define how different nodes in your discourse graph can connec
    - Pick a color (Black by default)
      ![Add relation type](/docs/obsidian/relation-types-add.png)
 
-Changes save automatically once both the label and the complement are filled in.
+Changes save when you leave a field, as long as both the label and the complement are filled in and neither matches an existing relation type.
 
 ## Configuring valid relationships
 
