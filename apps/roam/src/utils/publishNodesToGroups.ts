@@ -252,10 +252,6 @@ export const publishNodesToGroups = async ({
   const nodesByUid = new Map(nodes.map((node) => [node.localId, node]));
   let nodeUids = [...nodesByUid.keys()];
   const nodeSchemaUids = new Set(nodes.map((node) => node.nodeType));
-  const nodeSchemas = getDiscourseNodes()
-    .filter((s) => nodeSchemaUids.has(s.type))
-    .map((s) => nodeSchemaToCrossApp(s))
-    .filter((s) => s !== null);
   const { relations, relationTripleSchemas, relevantRelationIdsPerGroupId } =
     await gatherCorrespondingRelations({
       client,
@@ -263,6 +259,21 @@ export const publishNodesToGroups = async ({
       groupIds,
       forNodeIds: new Set(nodeUids),
     });
+  // An imported end's node type is not published along with its node, and may
+  // not be synced yet. A triple whose end type is missing fails its upsert, and its
+  // relation is then stored without a schema, so upload the end types here.
+  const relationEndTypeUids = new Set(
+    relationTripleSchemas.flatMap((rs3) => [
+      rs3.sourceType,
+      rs3.destinationType,
+    ]),
+  );
+  const nodeSchemas = getDiscourseNodes()
+    .filter(
+      (s) => nodeSchemaUids.has(s.type) || relationEndTypeUids.has(s.type),
+    )
+    .map((s) => nodeSchemaToCrossApp(s))
+    .filter((s) => s !== null);
 
   const relationUids = relations.map((r) => r.localId);
   const relationTripleSchemaUids = relationTripleSchemas.map((r) => r.localId);
@@ -275,6 +286,7 @@ export const publishNodesToGroups = async ({
 
   const neededUids = [
     ...nodeSchemaUids,
+    ...relationEndTypeUids,
     ...relationTripleSchemaUids,
     ...relationUids,
     ...localSourceUids,
@@ -399,19 +411,27 @@ export const publishNodesToGroups = async ({
       (r) =>
         groupRelationIds.has(r.localId) &&
         !failedUpsertIds.has(r.localId) &&
+        !failedUpsertIds.has(r.relationType) &&
         !failedUpsertIds.has(r.source) &&
         !failedUpsertIds.has(r.destination),
     );
     groupRelationIds = new Set(groupRelations.map((r) => r.localId));
     const groupRelationTripleSchemaIds = new Set(
-      groupRelations
-        .map((r) => r.relationType)
-        .filter((r) => !failedUpsertIds.has(r)),
+      groupRelations.map((r) => r.relationType),
+    );
+    // Importers need the end types to map the triple to their own node types.
+    const groupRelationEndTypeIds = new Set(
+      relationTripleSchemas
+        .filter((rs3) => groupRelationTripleSchemaIds.has(rs3.localId))
+        .flatMap((rs3) => [rs3.sourceType, rs3.destinationType]),
     );
     const groupResourceIds = [
-      ...resourceIds,
-      ...groupRelationIds,
-      ...groupRelationTripleSchemaIds,
+      ...new Set([
+        ...resourceIds,
+        ...groupRelationIds,
+        ...groupRelationTripleSchemaIds,
+        ...groupRelationEndTypeIds,
+      ]),
     ];
     resourceAccesses.push(
       ...groupResourceIds.map((sourceLocalId) => ({

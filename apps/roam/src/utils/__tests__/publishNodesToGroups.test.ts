@@ -153,9 +153,11 @@ type FakeSelectBuilder = PromiseLike<SelectResponse> & {
 const makeFakeClient = ({
   syncedUids = [],
   rpcResponse,
+  failedUpsertUids = [],
 }: {
   syncedUids?: string[];
   rpcResponse?: { data: number[] | null; error: { message: string } | null };
+  failedUpsertUids?: string[];
 }) => {
   const rpcCalls: { fn: string; args: RpcArgs }[] = [];
   const conceptLookups: string[][] = [];
@@ -214,7 +216,14 @@ const makeFakeClient = ({
     rpc: (fn: string, args: RpcArgs) => {
       rpcCalls.push({ fn, args });
       return Promise.resolve(
-        rpcResponse ?? { data: args.data.map((_, i) => i + 1), error: null },
+        rpcResponse ?? {
+          data: args.data.map((concept, i) =>
+            failedUpsertUids.includes(concept.source_local_id as string)
+              ? -2
+              : i + 1,
+          ),
+          error: null,
+        },
       );
     },
   } as unknown as DGSupabaseClient;
@@ -461,18 +470,23 @@ describe("publishNodesToGroups", () => {
   describe("relation with an imported end", () => {
     const OTHER_GROUP_ID = "group-2";
     const TRIPLE_UID = "triple-1";
+    const IMPORTED_TYPE_UID = "imported-type-1";
     const IMPORTED_UID = "imported-1";
     const IMPORTED_RID = "orn:obsidian.note:vault-a/node-9";
 
     beforeEach(() => {
       mocks.getAvailableGroupIds.mockResolvedValue([GROUP_ID, OTHER_GROUP_ID]);
+      mocks.getDiscourseNodes.mockReturnValue([
+        claimSchema,
+        { ...claimSchema, type: IMPORTED_TYPE_UID, text: "Result" },
+      ]);
       mocks.getDiscourseRelations.mockReturnValue([
         {
           id: TRIPLE_UID,
           label: "supports",
           complement: "supported by",
           source: SCHEMA_UID,
-          destination: SCHEMA_UID,
+          destination: IMPORTED_TYPE_UID,
           triples: [],
         },
       ]);
@@ -532,6 +546,43 @@ describe("publishNodesToGroups", () => {
         GROUP_ID,
         OTHER_GROUP_ID,
       ]);
+    });
+
+    it("uploads the imported end's node type before the triple, and grants it with the relation", async () => {
+      mocks.getPublishedGroupIdsByRid.mockResolvedValue({
+        [IMPORTED_RID]: [GROUP_ID],
+      });
+      const { client, rpcCalls, upsertCalls } = makeFakeClient({
+        syncedUids: [SCHEMA_UID],
+      });
+
+      await publish(client);
+
+      const upserted = rpcCalls[0].args.data.map(
+        (concept) => concept.source_local_id,
+      );
+      expect(upserted).toContain(IMPORTED_TYPE_UID);
+      expect(upserted.indexOf(IMPORTED_TYPE_UID)).toBeLessThan(
+        upserted.indexOf(TRIPLE_UID),
+      );
+      expect(grantedGroupIds(upsertCalls, IMPORTED_TYPE_UID)).toEqual([
+        GROUP_ID,
+      ]);
+    });
+
+    it("withholds the relation's grant when its triple fails to upsert", async () => {
+      mocks.getPublishedGroupIdsByRid.mockResolvedValue({
+        [IMPORTED_RID]: [GROUP_ID],
+      });
+      const { client, upsertCalls } = makeFakeClient({
+        failedUpsertUids: [TRIPLE_UID],
+      });
+
+      const result = await publish(client);
+
+      expect(result.failedUpsertUids).toContain(TRIPLE_UID);
+      expect(grantedGroupIds(upsertCalls, "rel-1")).toEqual([]);
+      expect(grantedGroupIds(upsertCalls, TRIPLE_UID)).toEqual([]);
     });
 
     it("neither syncs nor grants the relation when the imported end is published to no group", async () => {
