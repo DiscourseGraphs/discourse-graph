@@ -3,7 +3,7 @@
   "checkpoint_id": "01M44MF33YS6GS0739P6GBF9V2",
   "strategy": "manual-commit",
   "branch": "eng-1955-full-migration-to-discourse-relation-only",
-  "checkpoints_count": 16,
+  "checkpoints_count": 21,
   "files_touched": null,
   "sessions": [
     {
@@ -26,14 +26,21 @@
       "compact_transcript": "/2/transcript.jsonl",
       "content_hash": "/2/content_hash.txt",
       "prompt": "/2/prompt.txt"
+    },
+    {
+      "metadata": "/3/metadata.json",
+      "transcript": "/3/full.jsonl",
+      "compact_transcript": "/3/transcript.jsonl",
+      "content_hash": "/3/content_hash.txt",
+      "prompt": "/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 1160,
-    "cache_creation_tokens": 3613399,
-    "cache_read_tokens": 205910460,
-    "output_tokens": 517976,
-    "api_call_count": 577,
+    "input_tokens": 1332,
+    "cache_creation_tokens": 3740489,
+    "cache_read_tokens": 235296492,
+    "output_tokens": 594532,
+    "api_call_count": 663,
     "subagent_tokens": {
       "input_tokens": 284,
       "cache_creation_tokens": 598619,
