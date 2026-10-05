@@ -69,11 +69,22 @@ const matches = (
     : null;
 };
 
+const isLabelMatch = (tier: Tier): boolean => tier <= MatchTier.labelSubstring;
+
+/** Per-node rows trail one-off rows among label matches, so a row per node type cannot
+ *  fill the limit ahead of a page or a one-off setting with the same word. */
+const isPerNodeRow = (entry: SearchableEntry): boolean =>
+  entry.kind === "setting" && isRepeated(entry);
+
 /** Settings before pages at the same tier; then alphabetical, for a stable list. */
 const compare = (
   a: { entry: SearchableEntry; tier: Tier },
   b: { entry: SearchableEntry; tier: Tier },
 ): number => {
+  if (isLabelMatch(a.tier) !== isLabelMatch(b.tier))
+    return isLabelMatch(a.tier) ? -1 : 1;
+  if (isPerNodeRow(a.entry) !== isPerNodeRow(b.entry))
+    return isPerNodeRow(a.entry) ? 1 : -1;
   if (a.tier !== b.tier) return a.tier - b.tier;
   if (a.entry.kind !== b.entry.kind) return a.entry.kind === "setting" ? -1 : 1;
   return a.entry.label.localeCompare(b.entry.label);

@@ -2,6 +2,7 @@ import getDiscourseNodes, {
   excludeDefaultNodes,
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
+import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import { isSyncEnabled } from "./accessors";
 import { rootPath, type SettingsPath } from "./settingsNavigation";
 import { SETTINGS_TAB_IDS, SETTINGS_TAB_META } from "./settingsTabs";
@@ -498,6 +499,15 @@ const toSearchable = ({
   breadcrumb: breadcrumbOf(path, trailing),
 });
 
+/** Relation names open the Relations panel; deep-linking one relation's editor needs it in SettingsPath. */
+const relationKeywords = (): string[] => [
+  ...new Set(
+    getDiscourseRelations()
+      .flatMap(({ label, complement }) => [label, complement])
+      .filter(Boolean),
+  ),
+];
+
 const buildPages = (nodeTypes: DiscourseNode[]): SearchablePage[] => [
   ...Object.entries(SETTINGS_TAB_META)
     .filter(([, meta]) => meta.searchable)
@@ -505,7 +515,10 @@ const buildPages = (nodeTypes: DiscourseNode[]): SearchablePage[] => [
       kind: "page" as const,
       id: `page:${tabId}`,
       label: meta.label,
-      keywords: [meta.section],
+      keywords:
+        tabId === SETTINGS_TAB_IDS.grammarRelations
+          ? [meta.section, ...relationKeywords()]
+          : [meta.section],
       path: rootPath(tabId),
       breadcrumb: meta.section,
     })),
