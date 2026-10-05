@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M46AF6E7M6V0KQY6S76ZEX9Q",
+  "strategy": "manual-commit",
+  "branch": "eng-2227-add-link-support-to-tldraw-text-shapes-in-roam",
+  "checkpoints_count": 2,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 20,
+    "cache_creation_tokens": 304280,
+    "cache_read_tokens": 2403656,
+    "output_tokens": 3498,
+    "api_call_count": 8,
+    "subagent_tokens": {
+      "input_tokens": 124,
+      "cache_creation_tokens": 364054,
+      "cache_read_tokens": 8315788,
+      "output_tokens": 5121,
+      "api_call_count": 63
+    }
+  }
+}
