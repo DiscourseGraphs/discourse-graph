@@ -3,8 +3,13 @@
   "checkpoint_id": "01M4754R1FVHXMFEVNF5410CHJ",
   "strategy": "manual-commit",
   "branch": "eng-2366-show-candidate-nodes-as-results-in-roam-advanced-node-search",
-  "checkpoints_count": 4,
-  "files_touched": null,
+  "checkpoints_count": 5,
+  "files_touched": [
+    "apps/roam/src/components/AdvancedNodeSearchDialog/useAdvancedNodeSearchResults.ts",
+    "apps/roam/src/components/AdvancedNodeSearchDialog/utils.ts",
+    "apps/roam/src/utils/__tests__/candidateNodeSearch.test.ts",
+    "apps/roam/src/utils/discourseNodeSearchTypes.ts"
+  ],
   "sessions": [
     {
       "metadata": "/0/metadata.json",
@@ -19,6 +24,13 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
