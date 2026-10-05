@@ -1,8 +1,8 @@
 import { config } from "@repo/eslint-config/react-internal";
 import scannerConfig from "@repo/eslint-config/obsidian-scanner";
 
-// Merged last-wins like ESLint does; per-block `files` is ignored, which holds while
-// every escalation targets TypeScript.
+// Merged last-wins like ESLint does; per-block `files` is dropped, which holds while
+// every escalation targets TypeScript. Global ignores are kept below.
 const scannerRules = Object.assign(
   {},
   ...scannerConfig.map((block) => block.rules ?? {}),
@@ -11,6 +11,12 @@ const scannerPlugins = Object.assign(
   {},
   ...scannerConfig.map((block) => block.plugins ?? {}),
 );
+// Paths the scanner never lints (scripts, tests, mocks), from its ignores-only blocks.
+const scannerIgnores = scannerConfig
+  .filter((block) =>
+    Object.keys(block).every((key) => ["name", "ignores"].includes(key)),
+  )
+  .flatMap((block) => block.ignores);
 const severityOf = (value) => (Array.isArray(value) ? value[0] : value);
 
 // The rules that block an Obsidian submission, so editors surface them.
@@ -40,6 +46,10 @@ export default [
         },
       },
     },
+  },
+  {
+    files: ["**/*.{ts,tsx,mts,cts}"],
+    ignores: scannerIgnores,
     plugins: blockingPlugins,
     rules: blockingRules,
   },
