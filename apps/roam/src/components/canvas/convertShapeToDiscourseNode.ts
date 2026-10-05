@@ -56,13 +56,6 @@ export const replaceShapeWithDiscourseNode = async ({
   text: string;
   uid: string;
 }): Promise<void> => {
-  // The caller's shape is a snapshot from before the dialog, so re-read it to keep
-  // the position, the parent and the page point describing the same revision.
-  const current = editor.getShape(shape.id);
-  const { x, y, parentId } = current ?? shape;
-  const pagePoint = current
-    ? editor.getShapePageTransform(current.id).point()
-    : { x, y };
   // Size before deleting so a failed key-image query leaves the source shape in place
   const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
     nodeText: text,
@@ -70,6 +63,13 @@ export const replaceShapeWithDiscourseNode = async ({
     nodeType,
     uid,
   });
+  // The caller's shape is a snapshot taken before the dialog, so read the record again
+  // here, after the last await, to place the node from one consistent revision.
+  const current = editor.getShape(shape.id);
+  const { x, y, parentId } = current ?? shape;
+  const pagePoint = current
+    ? editor.getShapePageTransform(current.id).point()
+    : { x, y };
   editor.deleteShapes([shape.id]);
   // Deleting a child of a two-shape group dissolves that group, so re-check the parent.
   const keepsParent = isShapeId(parentId) && !!editor.getShape(parentId);
