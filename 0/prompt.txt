@@ -470,3 +470,105 @@ run the remaining checks first, then push
 ---
 
 yes post reply to codex comment
+
+---
+
+Manual Test Checklist
+Baseline Setup
+
+* Test in a graph with at least two discourse node types and at least two relation types.
+* Include relation types with complements, for example `Supports` / `Supported By`.
+* Include two distinct relation types that can connect the same source and target node types.
+* Test with both `auto canvas relations` enabled and disabled.
+* Test both local canvas mode and Cloudflare sync mode.
+
+Existing Canvas Migration
+
+* Open an existing pre-migration canvas with relation arrows whose shape `type` is a relation id.
+* Confirm the canvas loads without an upgrade/error screen.
+* Confirm old relation arrows render with correct label, color, endpoints, bend, and arrowhead.
+* Confirm old relation bindings still attach to the correct source and target nodes.
+* Confirm migrated relation shapes now behave as `discourse-relation` with `props.relationTypeId`.
+* Open a canvas containing an old relation id that no longer exists in settings; confirm it does not break the canvas.
+* Confirm normal tldraw arrows remain normal arrows and are not converted.
+* Confirm `Add Source` / referenced-node relation tools are not accidentally migrated into canonical discourse relations.
+
+Cloudflare Sync
+
+* Open an existing Cloudflare-synced room created before this migration.
+* Confirm no `invalidRecord` error appears.
+* Confirm legacy relation arrows in that room load before/after migration.
+* In two browser windows, create a new relation in one window and confirm it appears correctly in the other.
+* Drag relation endpoints in one window and confirm the other window updates.
+* Delete a relation or connected node and confirm deletion syncs cleanly.
+* Migrate a local canvas to cloud sync and confirm the cloud canvas preserves the local canvas exactly.
+* Confirm local-to-cloud migration does not auto-create duplicate relation arrows.
+
+New Relation Creation
+
+* Create a relation using the relation toolbar/tool.
+* Confirm the created shape has type `discourse-relation`, not the relation id.
+* Confirm `props.relationTypeId` is set to the selected relation id.
+* Confirm label, complement label, and color are correct.
+* Create a relation using the drag-handle overlay/dropdown.
+* Convert a regular tldraw arrow to a discourse relation via the context menu.
+* Confirm arrow conversion preserves geometry, bend, bindings, parent/layer position, and selection.
+* Confirm invalid source/target node combinations warn and do not persist invalid relations.
+
+Relation Editing
+
+* Drag a relation endpoint from one valid node to another valid node.
+* Confirm the binding updates and the relation remains attached.
+* Reverse a relation direction and confirm the displayed text switches to the complement when appropriate.
+* Move connected nodes and confirm arrows follow them.
+* Delete a connected node and confirm attached relation arrows are removed.
+* Duplicate/copy/paste relation arrows and confirm bindings and `relationTypeId` remain valid.
+* Confirm relation editing still persists to Roam when stored relations are enabled.
+
+Auto Canvas Relations
+
+* Add a node with auto canvas relations enabled and confirm expected relations are auto-created.
+* Confirm auto-created arrows use type `discourse-relation`.
+* Confirm exact duplicate relations are not created on repeated runs.
+* Confirm two different relation types between the same two nodes can both be created.
+* Confirm complement/reverse direction auto-relations are not incorrectly de-duped.
+* Confirm existing legacy relation arrows still count when preventing exact duplicates.
+
+Roam Persistence
+
+* Create a new relation and confirm the corresponding Roam relation/reified block is created.
+* Create a reverse/complement relation and confirm persistence uses the correct source, target, and relation type.
+* Trigger a persistence rejection case and confirm the temporary arrow is removed.
+* Reload Roam and confirm persisted relation arrows reappear correctly.
+* Rename a referenced Roam page/block and confirm canvas node title sync still works.
+* Delete a referenced Roam page/block and confirm the canvas node and attached relations are cleaned up.
+
+Export / Sharing
+
+* Export a canvas containing new `discourse-relation` arrows.
+* Confirm exported canvas/image/SVG includes relation labels and arrows.
+* Import or open exported canvas data in another graph.
+* Confirm canvases still load if the target graph does not have the same relation ids.
+* Confirm unknown relation ids do not crash rendering or export.
+* Confirm referenced-node/add-source arrows still export correctly.
+
+Cross-Graph / Missing Schema Cases
+
+* Copy/paste or import a canvas relation into a graph where the relation type exists.
+* Copy/paste or import a canvas relation into a graph where the relation type is missing.
+* Confirm missing relation types render gracefully instead of breaking the canvas.
+* Confirm known relation types still show correct labels/complements after import.
+
+Analytics / Instrumentation
+
+* Create a relation and confirm analytics/logging records the actual relation id/type, not just `discourse-relation`.
+* Confirm relation creation events still distinguish toolbar, drag-handle, and conversion flows if applicable.
+
+Regression Smoke Test
+
+* Create, edit, delete, undo, and redo a normal node.
+* Create, edit, delete, undo, and redo a normal tldraw arrow.
+* Create, edit, delete, undo, and redo a discourse relation.
+* Reload the canvas after each major flow and confirm state survives reload.
+* Check browser console for canvas store, migration, schema, or `invalidRecord` errors. 
+* Here are the test lists provided by Michael. I want to set up test cases in our discourse dev graph and point exactly how to use the test set up to prove each of the case. Or simply just link them. But basically, I want to seed test data for each of the cases.
