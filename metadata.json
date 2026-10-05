@@ -5,7 +5,18 @@
   "branch": "eng-1832-add-obsidian-eslint-to-the-project",
   "checkpoints_count": 9,
   "files_touched": [
-    "apps/roam/src/utils/__tests__/canvasStoreAdapterArgs.test.ts"
+    ".github/workflows/ci.yaml",
+    ".vscode/settings.json",
+    "apps/obsidian/AGENTS.md",
+    "apps/obsidian/eslint.config.mjs",
+    "apps/obsidian/eslint.config.scanner.mjs",
+    "apps/obsidian/package.json",
+    "apps/obsidian/test/scannerConfig.test.mts",
+    "apps/obsidian/tsconfig.json",
+    "apps/obsidian/vitest.config.mts",
+    "packages/eslint-config/obsidian-scanner.js",
+    "packages/eslint-config/package.json",
+    "pnpm-lock.yaml"
   ],
   "sessions": [
     {
@@ -31,11 +42,11 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 134,
-    "cache_creation_tokens": 1315665,
-    "cache_read_tokens": 21360169,
-    "output_tokens": 66978,
-    "api_call_count": 67,
+    "input_tokens": 64,
+    "cache_creation_tokens": 1229275,
+    "cache_read_tokens": 17873248,
+    "output_tokens": 40203,
+    "api_call_count": 32,
     "subagent_tokens": {
       "input_tokens": 0,
       "cache_creation_tokens": 0,
