@@ -1,0 +1,53 @@
+/cleanup-ticket eng-1734
+
+---
+
+/cleanup-ticket eng-2186
+
+---
+
+/cleanup-ticket eng-2188
+
+---
+
+/cleanup-ticket eng-2185
+
+---
+
+/cleanup-ticket eng-2341
+
+---
+
+/cleanup-ticket eng-2272 and eng-2273
+
+---
+
+<bash-input>git branch -D eng-2272-show-candidate-nodes-as-results-in-advanced-node-search</bash-input><bash-stdout>Deleted branch eng-2272-show-candidate-nodes-as-results-in-advanced-node-search (was db37e785).</bash-stdout><bash-stderr></bash-stderr>
+
+---
+
+/cleanup-ticket eng-2183
+
+---
+
+delete both backups
+
+---
+
+/cleanup-ticket eng-2256
+
+---
+
+<bash-input>git branch -D backup/2026-10-02/eng-2256-implement-new-relation-menu-empty-state</bash-input><bash-stdout>Deleted branch backup/2026-10-02/eng-2256-implement-new-relation-menu-empty-state (was 6ff29b6a).</bash-stdout><bash-stderr></bash-stderr>
+
+---
+
+/cleanup-ticket eng-2257 and eng-2258. just delete all the local branches and any scratchpad backups etc for these branches as well
+
+---
+
+/cleanup-ticket eng-2227
+
+---
+
+/cleanup-ticket eng-1884
