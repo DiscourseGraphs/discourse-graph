@@ -612,3 +612,11 @@ And then for the IDE, I want you to point to me one to two rules that are curren
 </result>
 <usage><subagent_tokens>94104</subagent_tokens><tool_uses>17</tool_uses><duration_ms>171303</duration_ms></usage>
 </task-notification>
+
+---
+
+if there is packages/eslint-config/obsidian-scanner.upstream.js, why do we still keep obsidian-scanner.js?
+
+then remove the config tests
+
+fix the code comment
