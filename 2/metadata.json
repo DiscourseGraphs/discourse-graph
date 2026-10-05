@@ -3,7 +3,7 @@
   "checkpoint_id": "01M474H71Q8ZZST0ZFWWRX9DSH",
   "session_id": "415b1f78-7053-478a-bd65-26960f3ce684",
   "strategy": "manual-commit",
-  "created_at": "2026-10-05T22:56:45.831809Z",
+  "created_at": "2026-10-05T22:57:07.133006Z",
   "branch": "eng-2366-show-candidate-nodes-as-results-in-roam-advanced-node-search",
   "checkpoints_count": 1,
   "files_touched": [
@@ -90,14 +90,14 @@
     }
   ],
   "initial_attribution": {
-    "calculated_at": "2026-10-05T22:56:45.77454Z",
+    "calculated_at": "2026-10-05T22:57:07.076852Z",
     "agent_lines": 0,
     "agent_removed": 0,
-    "human_added": 606,
+    "human_added": 605,
     "human_modified": 42,
     "human_removed": 0,
-    "total_committed": 606,
-    "total_lines_changed": 648,
+    "total_committed": 605,
+    "total_lines_changed": 647,
     "agent_percentage": 0,
     "metric_version": 2
   },
