@@ -142,11 +142,12 @@ describe("buildSearchIndex", () => {
     });
 
     expect(
-      results.map(({ uid, type, title, isCandidate }) => ({
+      results.map(({ uid, type, title, isCandidate, candidateTypes }) => ({
         uid,
         type,
         title,
         isCandidate,
+        candidateTypes,
       })),
     ).toEqual([
       {
@@ -154,14 +155,22 @@ describe("buildSearchIndex", () => {
         type: "clm",
         title: "[[CLM]] - Soil",
         isCandidate: undefined,
+        candidateTypes: undefined,
       },
       {
         uid: "b1",
         type: "clm",
         title: "Soil moisture drives yield",
         isCandidate: true,
+        candidateTypes: ["clm"],
       },
-      { uid: "b2", type: "clm", title: "shared block", isCandidate: true },
+      {
+        uid: "b2",
+        type: "clm",
+        title: "shared block",
+        isCandidate: true,
+        candidateTypes: ["clm", "evd"],
+      },
     ]);
   });
 
@@ -200,16 +209,17 @@ describe("buildSearchIndex", () => {
       includeCandidates: true,
     });
 
-    const search = (typeFilter?: string[]) =>
+    const search = (searchTerm: string, typeFilter?: string[]) =>
       searchDiscourseNodesWithMiniSearch({
         miniSearch,
         allResults: results,
-        searchTerm: "moisture",
+        searchTerm,
         typeFilter,
       }).map((entry) => entry.result.uid);
 
-    expect(search()).toEqual(["b1"]);
-    expect(search(["evd"])).toEqual([]);
+    expect(search("moisture")).toEqual(["b1"]);
+    expect(search("moisture", ["evd"])).toEqual([]);
+    expect(search("shared", ["evd"])).toEqual(["b2"]);
   });
 });
 

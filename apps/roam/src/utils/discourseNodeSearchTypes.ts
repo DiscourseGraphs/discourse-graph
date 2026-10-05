@@ -14,6 +14,8 @@ export type SearchResult = {
   authorName: string;
   // A block tagged with a node type's candidate tag, not a node page.
   isCandidate?: boolean;
+  // Every node type whose tag a candidate block carries.
+  candidateTypes?: string[];
 };
 
 // score and source are carried for diagnostics and future rank fusion; ordering

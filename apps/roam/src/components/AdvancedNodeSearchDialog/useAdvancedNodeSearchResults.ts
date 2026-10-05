@@ -3,6 +3,7 @@ import MiniSearch from "minisearch";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import { searchDiscourseNodes } from "~/utils/searchDiscourseNodes";
 import {
+  matchesTypeFilter,
   searchDiscourseNodesWithMiniSearch,
   sortSearchResults,
   type ScoredSearchResult,
@@ -88,12 +89,13 @@ export const useAdvancedNodeSearchResults = ({
     const resultsByUid = new Map(
       searchIndex.allResults.map((result) => [result.uid, result]),
     );
+    const allowedTypes = typeFilter ? new Set(typeFilter) : null;
     const candidateUids = new Set(
       searchIndex.allResults
         .filter(
           (result) =>
             result.isCandidate &&
-            (!typeFilter || typeFilter.includes(result.type)),
+            (!allowedTypes || matchesTypeFilter(result, allowedTypes)),
         )
         .map((result) => result.uid),
     );

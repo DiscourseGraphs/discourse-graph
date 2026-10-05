@@ -184,7 +184,11 @@ const queryCandidatesForType = async ({
         }),
       )
       .filter((result): result is SearchResult => !!result)
-      .map((result) => ({ ...result, isCandidate: true }));
+      .map((result) => ({
+        ...result,
+        isCandidate: true,
+        candidateTypes: [node.type],
+      }));
   } catch (error) {
     console.error(
       `Error querying candidates for node type ${node.type}:`,
@@ -229,15 +233,21 @@ export const buildSearchIndex = async ({
     );
   }
 
-  // Candidates come after nodes, and a block tagged with several types keeps
-  // the first configured type, so every row stays keyed by uid.
+  // Candidates come after nodes. A block tagged with several types is one row
+  // shown as the first configured type, and type filters match any of its tags.
   const results: SearchResult[] = [];
-  const seenUids = new Set<string>();
+  const resultsByUid = new Map<string, SearchResult>();
   for (const resultByType of [...resultsByType, ...candidatesByType]) {
     if (resultByType.status !== "fulfilled") continue;
     for (const result of resultByType.value) {
-      if (seenUids.has(result.uid)) continue;
-      seenUids.add(result.uid);
+      const existing = resultsByUid.get(result.uid);
+      if (existing) {
+        if (existing.candidateTypes && result.candidateTypes) {
+          existing.candidateTypes.push(...result.candidateTypes);
+        }
+        continue;
+      }
+      resultsByUid.set(result.uid, result);
       results.push(result);
     }
   }
@@ -332,6 +342,13 @@ export const sortSearchResults = ({
   return sorted.map((entry) => entry.result);
 };
 
+export const matchesTypeFilter = (
+  result: SearchResult,
+  allowedTypes: Set<string>,
+): boolean =>
+  allowedTypes.has(result.type) ||
+  !!result.candidateTypes?.some((type) => allowedTypes.has(type));
+
 export const searchDiscourseNodesWithMiniSearch = ({
   miniSearch,
   allResults,
@@ -353,7 +370,12 @@ export const searchDiscourseNodesWithMiniSearch = ({
       fields: ["title", "nodeTypeLabel"],
       ...DISCOURSE_NODE_MINI_SEARCH_OPTIONS,
       filter: allowedTypes
-        ? (result) => allowedTypes.has(String(result.type))
+        ? (result) => {
+            const searchResult = resultsByUid.get(String(result.id));
+            return (
+              !!searchResult && matchesTypeFilter(searchResult, allowedTypes)
+            );
+          }
         : undefined,
     })
     .filter((result) => result.score > DISCOURSE_NODE_MIN_SEARCH_SCORE)
