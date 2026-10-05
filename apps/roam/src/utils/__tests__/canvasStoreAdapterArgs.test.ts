@@ -34,10 +34,11 @@ vi.mock(
   () => ({ createMigrations: () => ({}) }),
 );
 
-import { useCanvasStoreAdapterArgs } from "~/components/canvas/useCanvasStoreAdapterArgs";
+// useMemo is mocked above, so the hook runs as a plain function outside React.
+import { useCanvasStoreAdapterArgs as getCanvasStoreAdapterArgs } from "~/components/canvas/useCanvasStoreAdapterArgs";
 
 const getArgs = (isCloudflareSync: boolean) =>
-  useCanvasStoreAdapterArgs({
+  getCanvasStoreAdapterArgs({
     pageUid: "page-uid",
     isCloudflareSync,
     allNodes: [],
