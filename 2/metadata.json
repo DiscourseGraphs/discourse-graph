@@ -1,0 +1,113 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M474H71Q8ZZST0ZFWWRX9DSH",
+  "session_id": "415b1f78-7053-478a-bd65-26960f3ce684",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-05T22:56:45.831809Z",
+  "branch": "eng-2366-show-candidate-nodes-as-results-in-roam-advanced-node-search",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/roam/src/components/AdvancedNodeSearchDialog/AdvancedSearchDialog.tsx",
+    "apps/roam/src/components/AdvancedNodeSearchDialog/AdvancedSearchFooter.tsx",
+    "apps/roam/src/components/AdvancedNodeSearchDialog/AdvancedSearchSidebarPanel.tsx",
+    "apps/roam/src/components/AdvancedNodeSearchDialog/DisplayOptionsMenu.tsx",
+    "apps/roam/src/components/AdvancedNodeSearchDialog/useAdvancedNodeSearchResults.ts",
+    "apps/roam/src/components/AdvancedNodeSearchDialog/utils.ts",
+    "apps/roam/src/utils/__tests__/candidateNodeSearch.test.ts",
+    "apps/roam/src/utils/__tests__/searchDiscourseNodes.test.ts",
+    "apps/roam/src/utils/discourseNodeSearch.ts",
+    "apps/roam/src/utils/discourseNodeSearchProviders.ts",
+    "apps/roam/src/utils/discourseNodeSearchTypes.ts",
+    "apps/roam/src/utils/searchDiscourseNodes.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "37d6bf763d26",
+  "checkpoint_transcript_start": 308,
+  "transcript_lines_at_start": 308,
+  "compact_transcript_start": 43,
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "prompt-skill-claude-code-go-ticket-2026-10-05T15:28:21.320562Z",
+      "event_type": "prompt_invocation",
+      "skill": {
+        "name": "go-ticket"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "prompt_slash_command",
+        "confidence": "explicit"
+      },
+      "turn_id": "37d6bf763d26",
+      "timestamp": "2026-10-05T15:28:21.320562Z",
+      "native": {
+        "command": "/go-ticket"
+      },
+      "collapse": {
+        "target": "user_message",
+        "label": "/go-ticket",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_013QEUPadr8khUq88Yn4dhKK",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-roam-load-extension"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "37d6bf763d26",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 146,
+        "end": 147,
+        "entry_ids": [
+          "0a98c2a0-d904-4cc6-b4ff-96c8a1036a38"
+        ],
+        "tool_use_id": "toolu_013QEUPadr8khUq88Yn4dhKK"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_013QEUPadr8khUq88Yn4dhKK"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-roam-load-extension",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "initial_attribution": {
+    "calculated_at": "2026-10-05T22:56:45.77454Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 606,
+    "human_modified": 42,
+    "human_removed": 0,
+    "total_committed": 606,
+    "total_lines_changed": 648,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
