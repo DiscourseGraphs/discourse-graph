@@ -9,6 +9,28 @@ and this project does not follow [Semantic Versioning](https://semver.org/), her
 - Minor version bumps are released on a regular cadence.
 - Patch version bumps are for bugfixes and hotfixes.
 
+## [0.23.0] - 2026-09-15
+
+### Added
+
+- **Canvas node context** - Selected node cards show relations in a tabbed context menu, with controls to add or remove related nodes from the canvas. ([ENG-2037](https://linear.app/discourse-graphs/issue/ENG-2037/add-tabbed-node-card-context-menu-to-roam-tldraw))
+- **Canvas search** - Search filters discourse nodes in the canvas drawer. ([ENG-2178](https://linear.app/discourse-graphs/issue/ENG-2178/add-search-to-filter-nodes-to-canvas-drawer-in-tldraw-roam))
+- **Canvas tagging** - Add tags directly from canvas block cards. ([ENG-2088](https://linear.app/discourse-graphs/issue/ENG-2088/implement-add-tag-to-block-button))
+- **Semantic node search** - Advanced Node Search uses Roam semantic search when available, with keyword fallback. ([ENG-1734](https://linear.app/discourse-graphs/issue/ENG-1734/add-roam-semantic-search-to-advanced-node-search))
+
+### Changed
+
+- **Settings migration** - New graphs use props-based settings by default, while existing graphs migrate once and retain explicit administrator choices. ([ENG-2173](https://linear.app/discourse-graphs/issue/ENG-2173/use-props-based-settings-by-default))
+
+### Fixed
+
+- **Canvas loading** - Directly opening or reloading a canvas no longer triggers the `.next` error. ([ENG-2211](https://linear.app/discourse-graphs/issue/ENG-2211/fix-recurring-roam-canvas-direct-load-next-error))
+- **Canvas relation UI** - The obsolete canvas context overlay has been removed in favor of the node-card context menu. ([ENG-2096](https://linear.app/discourse-graphs/issue/ENG-2096/remove-the-discourse-context-overlay-from-roam-canvas))
+- **Relation selectors** - New relations cannot use generic Page, Block, or Any endpoints. ([ENG-2097](https://linear.app/discourse-graphs/issue/ENG-2097/exclude-page-block-and-any-from-relation-endpoint-selectors))
+- **Query deletion** - Delete Query uses the correct API for page-backed and block-backed queries. ([ENG-2205](https://linear.app/discourse-graphs/issue/ENG-2205/use-the-correct-roam-delete-api-for-query-pages))
+- **Error styling** - Error messages use a consistent text color. ([ENG-1963](https://linear.app/discourse-graphs/issue/ENG-1963/standardize-roam-error-text-on-text-red-700))
+- **Duplicate shortcuts** - Duplicate node shortcuts are handled without conflicting bindings. ([ENG-2055](https://linear.app/discourse-graphs/issue/ENG-2055/handle-duplicate-node-shortcuts))
+
 ## [0.22.0] - 2026-08-15
 
 ### Added
