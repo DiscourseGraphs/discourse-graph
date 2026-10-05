@@ -10,21 +10,11 @@ type NodeKind = "claim" | "question" | "result";
 
 const NODE_STYLES: Record<
   NodeKind,
-  { bold: string; label: string; soft: string; text: string }
+  { bold: string; label: string; soft: string }
 > = {
-  claim: { bold: "#396618", label: "Claim", soft: "#d5f0c1", text: "#396618" },
-  question: {
-    bold: "#6e48a0",
-    label: "Question",
-    soft: "#d7cae7",
-    text: "#6e48a0",
-  },
-  result: {
-    bold: "#8e222f",
-    label: "Result",
-    soft: "#f0c1c7",
-    text: "#8e222f",
-  },
+  claim: { bold: "#396618", label: "Claim", soft: "#d5f0c1" },
+  question: { bold: "#6e48a0", label: "Question", soft: "#d7cae7" },
+  result: { bold: "#8e222f", label: "Result", soft: "#f0c1c7" },
 };
 
 const abs = (left: number, top: number): CSSProperties => ({
@@ -58,7 +48,7 @@ const NodePill = ({ kind }: { kind: NodeKind }): ReactElement => (
     className="rounded-full p-2.5 text-[12px] font-semibold"
     style={{
       backgroundColor: NODE_STYLES[kind].soft,
-      color: NODE_STYLES[kind].text,
+      color: NODE_STYLES[kind].bold,
     }}
   >
     {NODE_STYLES[kind].label}
