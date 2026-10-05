@@ -56,8 +56,13 @@ export const replaceShapeWithDiscourseNode = async ({
   text: string;
   uid: string;
 }): Promise<void> => {
-  const { x, y, parentId } = shape;
-  const pagePoint = editor.getShapePageTransform(shape.id).point();
+  // The caller's shape is a snapshot from before the dialog, so re-read it to keep
+  // the position, the parent and the page point describing the same revision.
+  const current = editor.getShape(shape.id);
+  const { x, y, parentId } = current ?? shape;
+  const pagePoint = current
+    ? editor.getShapePageTransform(current.id).point()
+    : { x, y };
   // Size before deleting so a failed key-image query leaves the source shape in place
   const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
     nodeText: text,
