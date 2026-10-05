@@ -1012,6 +1012,46 @@ export type Database = {
           source_local_id: string | null
           space_id: number | null
         }
+        Insert: {
+          arity?: number | null
+          author_id?: number | null
+          created?: string | null
+          description?: string | null
+          epistemic_status?:
+            | Database["public"]["Enums"]["EpistemicStatus"]
+            | null
+          id?: number | null
+          is_relation?: boolean | null
+          is_schema?: boolean | null
+          last_modified?: string | null
+          literal_content?: Json | null
+          name?: string | null
+          reference_content?: Json | null
+          refs?: number[] | null
+          schema_id?: number | null
+          source_local_id?: string | null
+          space_id?: number | null
+        }
+        Update: {
+          arity?: number | null
+          author_id?: number | null
+          created?: string | null
+          description?: string | null
+          epistemic_status?:
+            | Database["public"]["Enums"]["EpistemicStatus"]
+            | null
+          id?: number | null
+          is_relation?: boolean | null
+          is_schema?: boolean | null
+          last_modified?: string | null
+          literal_content?: Json | null
+          name?: string | null
+          reference_content?: Json | null
+          refs?: number[] | null
+          schema_id?: number | null
+          source_local_id?: string | null
+          space_id?: number | null
+        }
         Relationships: [
           {
             foreignKeyName: "Concept_author_id_fkey"

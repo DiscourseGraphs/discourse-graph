@@ -24,6 +24,7 @@ import {
 import { importSharedRelations } from "~/utils/importSharedRelations";
 import internalError from "~/utils/internalError";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
+import StoredRelationsWarning from "~/components/StoredRelationsWarning";
 
 const IMPORT_ERROR_TYPE = "Shared node import failed";
 const IMPORT_ERROR_OPERATION = "import-shared-nodes";
@@ -312,6 +313,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
           " ",
         )}
       >
+        <StoredRelationsWarning />
         <div className="flex items-center gap-2">
           <InputGroup
             className="min-w-0 flex-1"

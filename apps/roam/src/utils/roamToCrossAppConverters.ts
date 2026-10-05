@@ -17,6 +17,7 @@ import getPageViewType from "roamjs-components/queries/getPageViewType";
 import { contentTypes } from "@repo/content-model";
 import getDiscourseNodes from "./getDiscourseNodes";
 import extractContentFromTitle from "./extractContentFromTitle";
+import { nodeTemplateContent } from "./nodeTemplateContent";
 import {
   SOURCE_SLOT,
   schemaHasSourceSlot,
@@ -225,6 +226,7 @@ export const nodeSchemaToCrossApp = (
     createdAt: new Date(createdTime),
     modifiedAt: new Date(Math.max(pageEditTime, createdTime)),
     format: s.format,
+    template: nodeTemplateContent(s.template),
     ...(hasSourceSlot
       ? { slotDefinitions: { [SOURCE_SLOT]: sourceSlotSchemaId() } }
       : {}),

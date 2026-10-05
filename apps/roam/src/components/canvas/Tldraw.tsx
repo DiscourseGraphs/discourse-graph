@@ -1,3 +1,4 @@
+import { subscribeToRelationSchemaChanges } from "~/utils/relationSchemaChanges";
 import React, {
   useState,
   useRef,
@@ -54,7 +55,8 @@ import {
 import "tldraw/tldraw.css";
 import tldrawStyles from "./tldrawStyles";
 import { DragHandleOverlay } from "./overlays/DragHandleOverlay";
-import { isDiscourseNodeShape } from "./canvasUtils";
+import { TextLinkOverlay } from "./overlays/TextLinkOverlay";
+import { hasAcceptedRelationSchema, isDiscourseNodeShape } from "./canvasUtils";
 import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseRelations, {
   DiscourseRelation,
@@ -170,6 +172,14 @@ const setActiveCanvas = ({
     editor.focus();
   }
 };
+
+// InFrontOfTheCanvas takes one component; module scope keeps its identity stable across renders.
+const CanvasOverlays = (): JSX.Element => (
+  <>
+    <DragHandleOverlay />
+    <TextLinkOverlay />
+  </>
+);
 
 export const DEFAULT_WIDTH = 160;
 export const DEFAULT_HEIGHT = 64;
@@ -766,6 +776,7 @@ const TldrawCanvasShared = ({
       },
       {} as Record<string, DiscourseRelation[]>,
     );
+
     return relations;
   }, []);
   const allRelationsById = useMemo(() => {
@@ -777,9 +788,29 @@ const TldrawCanvasShared = ({
   const allRelationIds = useMemo(() => {
     return Object.keys(allRelationsById);
   }, [allRelationsById]);
-  const allRelationNames = useMemo(() => {
-    return Object.keys(discourseContext.relations);
-  }, []);
+  const registeredRelationNames = useMemo(
+    () => [...new Set(allRelations.map((relation) => relation.label))],
+    [allRelations],
+  );
+  const allRelationNames = useMemo(
+    () => registeredRelationNames.filter(hasAcceptedRelationSchema),
+    [registeredRelationNames],
+  );
+  useEffect(
+    () =>
+      subscribeToRelationSchemaChanges(() => {
+        const editor = appRef.current;
+        if (!editor) return;
+        const tool = editor.getCurrentToolId();
+        if (
+          registeredRelationNames.includes(tool) &&
+          !hasAcceptedRelationSchema(tool)
+        ) {
+          editor.setCurrentTool("select");
+        }
+      }),
+    [registeredRelationNames],
+  );
   const allNodes = useMemo(() => {
     const allNodes = getDiscourseNodes();
     discourseContext.nodes = Object.fromEntries(
@@ -995,7 +1026,7 @@ const TldrawCanvasShared = ({
   const editorComponents: TLEditorComponents = {
     ...defaultEditorComponents,
     OnTheCanvas: ToastListener,
-    InFrontOfTheCanvas: DragHandleOverlay,
+    InFrontOfTheCanvas: CanvasOverlays,
   };
   const customUiComponents: TLUiComponents = createUiComponents({
     allNodes,
@@ -1025,7 +1056,9 @@ const TldrawCanvasShared = ({
     static override isLockable = true;
   };
   const discourseNodeTools = createNodeShapeTools(allNodes);
-  const discourseRelationTools = createAllRelationShapeTools(allRelationNames);
+  const discourseRelationTools = createAllRelationShapeTools(
+    registeredRelationNames,
+  );
   const referencedNodeTools = createAllReferencedNodeTools(
     allAddReferencedNodeByAction,
   );

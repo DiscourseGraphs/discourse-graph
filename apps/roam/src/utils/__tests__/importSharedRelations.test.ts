@@ -2,12 +2,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
 import { importSharedRelations } from "~/utils/importSharedRelations";
+import refreshConfigTree from "~/utils/refreshConfigTree";
+import { writeImportedSourceIdentity } from "~/utils/importedSourceIdentity";
 import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import { createRelationSchema } from "~/utils/createRelationSchema";
+import { createDiscourseNodeType } from "~/components/settings/utils/accessors";
+import { discoverSharedRelations } from "~/utils/discoverSharedRelations";
 
 vi.hoisted(() => {
   vi.stubGlobal("window", { roamAlphaAPI: { graph: { name: "local" } } });
 });
+vi.mock("~/utils/refreshConfigTree", () => ({ default: vi.fn() }));
 vi.mock("~/utils/getDiscourseRelations", () => ({ default: vi.fn() }));
 vi.mock("~/utils/getDiscourseNodes", () => ({
   default: () => [{ type: "local-claim", text: "Claim" }],
@@ -29,7 +34,7 @@ vi.mock("~/utils/createReifiedBlock", () => ({
 }));
 vi.mock("roamjs-components/writes", () => ({ deleteBlock: vi.fn() }));
 vi.mock("~/utils/discoverSharedRelations", () => ({
-  discoverSharedRelations: () =>
+  discoverSharedRelations: vi.fn(() =>
     Promise.resolve({
       relations: [],
       relTypeSchemas: [],
@@ -55,6 +60,7 @@ vi.mock("~/utils/discoverSharedRelations", () => ({
         },
       ],
     }),
+  ),
 }));
 
 const relation = (id: string): DiscourseRelation => ({
@@ -70,6 +76,23 @@ const client = {} as DGSupabaseClient;
 beforeEach(() => vi.clearAllMocks());
 
 describe("importSharedRelations schema matching", () => {
+  it("refreshes the grammar after storing a new schema and its provenance", async () => {
+    vi.mocked(getDiscourseRelations).mockReturnValue([]);
+    vi.mocked(createRelationSchema).mockResolvedValue("imported-supports");
+    await importSharedRelations(client, 7);
+    expect(writeImportedSourceIdentity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pageUid: "imported-supports",
+        sourceNodeRid: "orn:obsidian.schema:remote/supports",
+      }),
+    );
+    expect(refreshConfigTree).toHaveBeenCalledOnce();
+    expect(
+      vi.mocked(refreshConfigTree).mock.invocationCallOrder[0],
+    ).toBeGreaterThan(
+      vi.mocked(writeImportedSourceIdentity).mock.invocationCallOrder[0],
+    );
+  });
   it("reuses one schema when its query patterns produce multiple matches", async () => {
     vi.mocked(getDiscourseRelations).mockReturnValue([
       {
@@ -94,5 +117,54 @@ describe("importSharedRelations schema matching", () => {
       "multiple matches",
     );
     expect(createRelationSchema).not.toHaveBeenCalled();
+  });
+
+  it("creates a missing node type with its template prepared as node import does", async () => {
+    vi.mocked(getDiscourseRelations).mockReturnValue([]);
+    vi.mocked(discoverSharedRelations).mockResolvedValueOnce({
+      relations: [],
+      relTypeSchemas: [],
+      relTripleSchemas: [],
+      nodeSchemas: [
+        {
+          localId: "evidence",
+          rid: "orn:obsidian.schema:remote/evidence",
+          label: "Evidence",
+          template: "---\ntags: evidence\n---\n## Source\n",
+          authorId: "author",
+          createdAt: new Date("2026-09-07"),
+        },
+        {
+          localId: "question",
+          rid: "orn:obsidian.schema:remote/question",
+          label: "Question",
+          template: "\n\n",
+          authorId: "author",
+          createdAt: new Date("2026-09-07"),
+        },
+      ],
+    });
+    vi.mocked(createDiscourseNodeType).mockImplementation(({ label }) =>
+      Promise.resolve({
+        text: label,
+        type: `imported-${label}`,
+        shortcut: "",
+        format: "",
+        specification: [],
+        backedBy: "user",
+        canvasSettings: {},
+      }),
+    );
+
+    await importSharedRelations(client, 7);
+
+    expect(createDiscourseNodeType).toHaveBeenCalledWith({
+      label: "Evidence",
+      template: "## Source\n",
+    });
+    expect(createDiscourseNodeType).toHaveBeenCalledWith({
+      label: "Question",
+      template: undefined,
+    });
   });
 });

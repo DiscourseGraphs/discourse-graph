@@ -47,7 +47,6 @@ import {
   BaseRelationBindingUtil,
 } from "~/components/canvas/shapes/DiscourseRelationBinding";
 import ToastListener from "./ToastListener";
-import { RelationsOverlay } from "./overlays/RelationOverlay";
 import { DragHandleOverlay } from "./overlays/DragHandleOverlay";
 import { NodeCardContextMenu } from "./NodeCardContextMenu";
 import { WHITE_LOGO_SVG } from "~/icons";
@@ -541,7 +540,6 @@ export const TldrawPreviewComponent = ({
               },
               InFrontOfTheCanvas: () => (
                 <>
-                  <RelationsOverlay plugin={plugin} file={file} />
                   <DragHandleOverlay plugin={plugin} file={file} />
                 </>
               ),

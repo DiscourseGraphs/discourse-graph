@@ -114,7 +114,7 @@ export const useSchemaSelection = ({
     setSelectedTemplateNames(
       new Set(initialTemplateNames ?? source.templateNames),
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- selection resets only when resetKey changes
   }, [resetKey]);
 
   const requiredRelationTypeIds = useMemo(() => {
