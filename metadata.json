@@ -3,7 +3,7 @@
   "checkpoint_id": "01M44PQDRFA54DSJ9G561HDXRK",
   "strategy": "manual-commit",
   "branch": "eng-1356-implement-image-to-node-conversion-flow-via-icon-button-in",
-  "checkpoints_count": 1,
+  "checkpoints_count": 5,
   "files_touched": null,
   "sessions": [
     {
@@ -12,20 +12,27 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": "/0/prompt.txt"
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 16,
-    "cache_creation_tokens": 686567,
-    "cache_read_tokens": 2057972,
-    "output_tokens": 9237,
-    "api_call_count": 8,
+    "input_tokens": 48,
+    "cache_creation_tokens": 709342,
+    "cache_read_tokens": 6837127,
+    "output_tokens": 23120,
+    "api_call_count": 23,
     "subagent_tokens": {
-      "input_tokens": 0,
-      "cache_creation_tokens": 0,
-      "cache_read_tokens": 0,
-      "output_tokens": 0,
-      "api_call_count": 0
+      "input_tokens": 124,
+      "cache_creation_tokens": 209278,
+      "cache_read_tokens": 6754105,
+      "output_tokens": 2297,
+      "api_call_count": 62
     }
   }
 }
