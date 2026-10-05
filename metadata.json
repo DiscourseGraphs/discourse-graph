@@ -3,7 +3,7 @@
   "checkpoint_id": "01M44PQDRFA54DSJ9G561HDXRK",
   "strategy": "manual-commit",
   "branch": "eng-1356-implement-image-to-node-conversion-flow-via-icon-button-in",
-  "checkpoints_count": 6,
+  "checkpoints_count": 11,
   "files_touched": null,
   "sessions": [
     {
@@ -26,6 +26,13 @@
       "compact_transcript": "/2/transcript.jsonl",
       "content_hash": "/2/content_hash.txt",
       "prompt": "/2/prompt.txt"
+    },
+    {
+      "metadata": "/3/metadata.json",
+      "transcript": "/3/full.jsonl",
+      "compact_transcript": "/3/transcript.jsonl",
+      "content_hash": "/3/content_hash.txt",
+      "prompt": "/3/prompt.txt"
     }
   ],
   "token_usage": {
