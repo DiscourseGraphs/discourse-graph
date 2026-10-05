@@ -1,0 +1,30 @@
+/dg-pr-adherence-check on PR 1441
+
+---
+
+looks like @[eng-2227 support linking for text shape] didn't run this check. can you inspect and see if the case is:
+
+* we never called the skill in /create-pr flow?
+* the skill was called but not acted upon?
+
+also if i should run this call inside that chat instead of here, let me know
+
+---
+
+did create-pr not call it again because i called it by hand? or how else to enforce that create-pr actually run ALL the steps sequentially? did it miss and check the box roughly because of context overflow? trouble shoot because i want to be able to rely on this skill
+
+---
+
+definitely do the skill edit. but explain to me more on the hook idea.
+
+---
+
+open the create-pr skill for me. and i want to understand why step 5 checked all the boxes even though the checks didn't run
+
+---
+
+go ahead and build the hook
+
+---
+
+then address the PR comments on tailwind for this ticket. make sure you verify live to make sure that stylings were applied

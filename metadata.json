@@ -3,7 +3,7 @@
   "checkpoint_id": "01M46AF6E7M6V0KQY6S76ZEX9Q",
   "strategy": "manual-commit",
   "branch": "eng-2227-add-link-support-to-tldraw-text-shapes-in-roam",
-  "checkpoints_count": 6,
+  "checkpoints_count": 12,
   "files_touched": null,
   "sessions": [
     {
@@ -19,20 +19,27 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 58,
-    "cache_creation_tokens": 392650,
-    "cache_read_tokens": 4400534,
-    "output_tokens": 14287,
-    "api_call_count": 27,
+    "input_tokens": 148,
+    "cache_creation_tokens": 583912,
+    "cache_read_tokens": 10717668,
+    "output_tokens": 52056,
+    "api_call_count": 72,
     "subagent_tokens": {
-      "input_tokens": 146,
-      "cache_creation_tokens": 433186,
-      "cache_read_tokens": 8862020,
-      "output_tokens": 6160,
-      "api_call_count": 74
+      "input_tokens": 170,
+      "cache_creation_tokens": 505928,
+      "cache_read_tokens": 9575045,
+      "output_tokens": 6310,
+      "api_call_count": 86
     }
   }
 }
