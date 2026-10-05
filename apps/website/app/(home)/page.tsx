@@ -15,6 +15,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { getAllBlogs } from "~/(home)/blog/readBlogs";
+import { FoundationsSection } from "~/components/FoundationsSection";
 import { Logo } from "~/components/Logo";
 import { PlatformBadge } from "~/components/PlatformBadge";
 import { TeamPerson } from "~/components/TeamPerson";
@@ -428,6 +429,8 @@ const Home = async (): Promise<ReactElement> => {
             </div>
           </div>
         </section>
+
+        <FoundationsSection />
 
         <section className="bg-white px-5 py-16 sm:px-6 lg:py-24">
           <div id="plugins" className="mx-auto max-w-7xl scroll-mt-20">
