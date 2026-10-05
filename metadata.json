@@ -3,7 +3,7 @@
   "checkpoint_id": "01M474H71Q8ZZST0ZFWWRX9DSH",
   "strategy": "manual-commit",
   "branch": "eng-2366-show-candidate-nodes-as-results-in-roam-advanced-node-search",
-  "checkpoints_count": 1,
+  "checkpoints_count": 3,
   "files_touched": null,
   "sessions": [
     {
@@ -12,20 +12,27 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": "/0/prompt.txt"
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 104,
-    "cache_creation_tokens": 94723,
-    "cache_read_tokens": 13218106,
-    "output_tokens": 47570,
-    "api_call_count": 52,
+    "input_tokens": 112,
+    "cache_creation_tokens": 99422,
+    "cache_read_tokens": 13985250,
+    "output_tokens": 49089,
+    "api_call_count": 54,
     "subagent_tokens": {
-      "input_tokens": 0,
-      "cache_creation_tokens": 0,
-      "cache_read_tokens": 0,
-      "output_tokens": 0,
-      "api_call_count": 0
+      "input_tokens": 36,
+      "cache_creation_tokens": 277840,
+      "cache_read_tokens": 4342199,
+      "output_tokens": 341,
+      "api_call_count": 18
     }
   }
 }
