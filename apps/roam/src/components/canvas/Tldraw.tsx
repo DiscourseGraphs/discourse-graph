@@ -55,6 +55,7 @@ import {
 import "tldraw/tldraw.css";
 import tldrawStyles from "./tldrawStyles";
 import { DragHandleOverlay } from "./overlays/DragHandleOverlay";
+import { ImageConvertOverlay } from "./overlays/ImageConvertOverlay";
 import { TextLinkOverlay } from "./overlays/TextLinkOverlay";
 import { hasAcceptedRelationSchema, isDiscourseNodeShape } from "./canvasUtils";
 import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
@@ -177,6 +178,7 @@ const setActiveCanvas = ({
 const CanvasOverlays = (): JSX.Element => (
   <>
     <DragHandleOverlay />
+    <ImageConvertOverlay />
     <TextLinkOverlay />
   </>
 );
