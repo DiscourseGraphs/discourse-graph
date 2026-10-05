@@ -8,13 +8,15 @@ const CARD_HEIGHT = 390;
 
 type NodeKind = "claim" | "question" | "result";
 
+// Default plugin node colors (see apps/obsidian/src/constants.ts). Result has
+// no default, so it uses Evidence's color.
 const NODE_STYLES: Record<
   NodeKind,
-  { bold: string; label: string; soft: string }
+  { color: string; label: string; onColor: string }
 > = {
-  claim: { bold: "#396618", label: "Claim", soft: "#d5f0c1" },
-  question: { bold: "#6e48a0", label: "Question", soft: "#d7cae7" },
-  result: { bold: "#8e222f", label: "Result", soft: "#f0c1c7" },
+  claim: { color: "#7DA13E", label: "Claim", onColor: "#000000" },
+  question: { color: "#99890e", label: "Question", onColor: "#000000" },
+  result: { color: "#DB134A", label: "Result", onColor: "#ffffff" },
 };
 
 const abs = (left: number, top: number): CSSProperties => ({
@@ -47,8 +49,8 @@ const NodePill = ({ kind }: { kind: NodeKind }): ReactElement => (
   <span
     className="rounded-full p-2.5 text-[12px] font-semibold"
     style={{
-      backgroundColor: NODE_STYLES[kind].soft,
-      color: NODE_STYLES[kind].bold,
+      backgroundColor: `color-mix(in srgb, ${NODE_STYLES[kind].color} 25%, white)`,
+      color: `color-mix(in srgb, ${NODE_STYLES[kind].color} 50%, black)`,
     }}
   >
     {NODE_STYLES[kind].label}
@@ -140,12 +142,27 @@ const RELATION_PILLS: {
   { kind: "question", left: 453, top: 56 },
 ];
 
-const RELATION_COLORS: Record<string, { bg: string; label: string }> = {
-  claim: { bg: NODE_STYLES.claim.bold, label: "Claim" },
-  experiment: { bg: "#066669", label: "Experiment" },
-  question: { bg: NODE_STYLES.question.bold, label: "Question" },
-  result: { bg: NODE_STYLES.result.bold, label: "Result" },
-  study: { bg: "#064e6e", label: "Study" },
+const RELATION_COLORS: Record<
+  string,
+  { bg: string; label: string; text: string }
+> = {
+  claim: {
+    bg: NODE_STYLES.claim.color,
+    label: "Claim",
+    text: NODE_STYLES.claim.onColor,
+  },
+  experiment: { bg: "#066669", label: "Experiment", text: "#ffffff" },
+  question: {
+    bg: NODE_STYLES.question.color,
+    label: "Question",
+    text: NODE_STYLES.question.onColor,
+  },
+  result: {
+    bg: NODE_STYLES.result.color,
+    label: "Result",
+    text: NODE_STYLES.result.onColor,
+  },
+  study: { bg: "#064e6e", label: "Study", text: "#ffffff" },
 };
 
 const RelationsCard = (): ReactElement => (
@@ -194,10 +211,11 @@ const RelationsCard = (): ReactElement => (
       {RELATION_PILLS.map((pill) => (
         <span
           key={`${pill.kind}-${pill.left}-${pill.top}`}
-          className="whitespace-nowrap rounded-full border border-black p-2.5 text-[16px] font-semibold text-white"
+          className="whitespace-nowrap rounded-full border border-black p-2.5 text-[16px] font-semibold"
           style={{
             ...abs(pill.left, pill.top),
             backgroundColor: RELATION_COLORS[pill.kind]?.bg,
+            color: RELATION_COLORS[pill.kind]?.text,
           }}
         >
           {RELATION_COLORS[pill.kind]?.label}
