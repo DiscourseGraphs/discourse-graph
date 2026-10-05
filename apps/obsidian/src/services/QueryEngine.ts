@@ -36,7 +36,7 @@ type DatacoreApi = {
   query: (query: string) => DatacorePage[];
 };
 
-export type DiscourseNodeCandidate = {
+export type SearchableNode = {
   file: TFile;
   /**
    * The exact string the fuzzy scorer sees, so the offsets in
@@ -50,7 +50,7 @@ export type DiscourseNodeCandidate = {
   tagLine?: { line: number; tag: string };
 };
 
-export type RankedDiscourseNode = DiscourseNodeCandidate & {
+export type RankedDiscourseNode = SearchableNode & {
   match: SearchResult;
 };
 
@@ -73,27 +73,34 @@ export class QueryEngine {
   /**
    * Datacore when installed, vault iteration otherwise — `getFilesWithNodeTypeId`
    * owns that fallback. Call once per open, not per keystroke: the scan is the
-   * pipeline's most expensive step, and staying unfiltered keeps filter changes free.
+   * pipeline's most expensive step, and ignoring the type filter keeps filter changes free.
+   * Both paths only check that `nodeTypeId` exists, so unconfigured types are dropped here.
    */
-  getDiscourseNodeCandidates = (): DiscourseNodeCandidate[] => {
-    const candidates: DiscourseNodeCandidate[] = [];
+  getSearchableNodes = (nodeTypes: DiscourseNode[]): SearchableNode[] => {
+    const configuredTypeIds = new Set(nodeTypes.map((nodeType) => nodeType.id));
+    const nodes: SearchableNode[] = [];
 
     for (const file of this.getFilesWithNodeTypeId()) {
       const frontmatter: Record<string, unknown> | undefined =
         this.app.metadataCache.getFileCache(file)?.frontmatter;
       const nodeTypeId = frontmatter?.nodeTypeId;
-      if (typeof nodeTypeId !== "string" || !nodeTypeId) continue;
+      if (
+        typeof nodeTypeId !== "string" ||
+        !configuredTypeIds.has(nodeTypeId)
+      ) {
+        continue;
+      }
 
-      candidates.push({ file, title: file.basename, nodeTypeId });
+      nodes.push({ file, title: file.basename, nodeTypeId });
     }
 
-    return candidates;
+    return nodes;
   };
 
   /** One pass over the metadata cache's tag index; only files with a hit are read. */
   getCandidateNodes = async (
     nodeTypes: DiscourseNode[],
-  ): Promise<DiscourseNodeCandidate[]> => {
+  ): Promise<SearchableNode[]> => {
     const nodeTypeByTag = new Map<
       string,
       { nodeType: DiscourseNode; tag: string }
@@ -791,18 +798,16 @@ export class QueryEngine {
 }
 
 const filterCandidatesByNodeTypeIds = (
-  candidates: DiscourseNodeCandidate[],
+  candidates: SearchableNode[],
   nodeTypeIds?: string[],
-): DiscourseNodeCandidate[] => {
+): SearchableNode[] => {
   if (!nodeTypeIds?.length) return candidates;
   const selected = new Set(nodeTypeIds);
   return candidates.filter((candidate) => selected.has(candidate.nodeTypeId));
 };
 
-const nodesFirst = (
-  a: DiscourseNodeCandidate,
-  b: DiscourseNodeCandidate,
-): number => Number(!!a.tagLine) - Number(!!b.tagLine);
+const nodesFirst = (a: SearchableNode, b: SearchableNode): number =>
+  Number(!!a.tagLine) - Number(!!b.tagLine);
 
 /**
  * Best match first, uncapped — capping is the caller's, so a later re-sort orders the
@@ -813,7 +818,7 @@ export const rankDiscourseNodesByTitle = ({
   query,
   nodeTypeIds,
 }: {
-  candidates: DiscourseNodeCandidate[];
+  candidates: SearchableNode[];
   query: string;
   nodeTypeIds?: string[];
 }): RankedDiscourseNode[] => {

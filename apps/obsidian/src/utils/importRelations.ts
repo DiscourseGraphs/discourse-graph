@@ -204,6 +204,7 @@ export const importRelationsForImportedNodes = async ({
   client,
   spaceId,
   spaceUri,
+  spaceName,
   keyToRelationEndpointId,
   precomputedRelationInstances,
 }: {
@@ -211,6 +212,7 @@ export const importRelationsForImportedNodes = async ({
   client: DGSupabaseClient;
   spaceId: number;
   spaceUri: string;
+  spaceName: string;
   keyToRelationEndpointId: Map<string, string>;
   precomputedRelationInstances?: RemoteRelationInstance[];
 }): Promise<{ imported: number }> => {
@@ -317,6 +319,7 @@ export const importRelationsForImportedNodes = async ({
               client,
               sourceSpaceId: spaceId,
               sourceSpaceUri: spaceUri,
+              sourceSpaceName: spaceName,
               sourceNodeTypeId: remoteSourceNodeTypeId,
             });
             mappedDestNodeTypeId = await mapNodeTypeIdToLocal({
@@ -324,6 +327,7 @@ export const importRelationsForImportedNodes = async ({
               client,
               sourceSpaceId: spaceId,
               sourceSpaceUri: spaceUri,
+              sourceSpaceName: spaceName,
               sourceNodeTypeId: remoteDestNodeTypeId,
             });
           }

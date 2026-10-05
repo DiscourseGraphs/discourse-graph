@@ -28,9 +28,10 @@ import {
   importRelationsForImportedNodes,
   type RemoteRelationInstance,
 } from "./importRelations";
-import { createTemplateFile } from "./templates";
+import { createTemplateFile, getImportedTemplateFileName } from "./templates";
 import { resolveFolderForSpaceUri } from "./importFolderMetadata";
 import { getNodeTypeById, isAcceptedSchema } from "./typeUtils";
+import { normalizeImportedNodeFormat } from "./validateNodeType";
 import {
   type ImportedNodeContent,
   resolveImportedNodeContent,
@@ -1200,10 +1201,14 @@ const parseSchemaLiteralContent = (
       : (literalContent as Record<string, unknown>) || {};
   const src = (obj.source_data as Record<string, unknown>) || obj;
   const name = (obj.name as string) || (obj.label as string) || fallbackName;
-  const formatFromSchema =
-    (src.format as string) || (obj.format as string) || "";
+  const formatFromSchema = normalizeImportedNodeFormat(
+    (src.format as string) || (obj.format as string) || "",
+  );
   const format =
-    formatFromSchema || `${name.slice(0, 3).toUpperCase()} - {content}`;
+    formatFromSchema ||
+    normalizeImportedNodeFormat(
+      `${name.slice(0, 3).toUpperCase()} - {content}`,
+    );
   return {
     name,
     format,
@@ -1216,17 +1221,63 @@ const parseSchemaLiteralContent = (
   };
 };
 
+/** File systems cap a file name at 255 bytes or UTF-16 units; 200 UTF-8 bytes leaves room for `.md` under either. */
+const MAX_TEMPLATE_FILE_NAME_BYTES = 200;
+
+const getUtf8ByteLength = (text: string): number =>
+  new TextEncoder().encode(text).length;
+
+const truncateToUtf8Bytes = (text: string, maxBytes: number): string => {
+  let truncated = "";
+  let byteLength = 0;
+  for (const character of text) {
+    byteLength += getUtf8ByteLength(character);
+    if (byteLength > maxBytes) break;
+    truncated += character;
+  }
+  return truncated;
+};
+
+/** Includes the source space name because `mapNodeTypeIdToLocal` assigns any file already at this name as the template, and a bare node type name would assign an unrelated local template. */
+export const getUntitledTemplateFileName = ({
+  nodeTypeName,
+  sourceSpaceName,
+}: {
+  nodeTypeName: string;
+  sourceSpaceName: string;
+}): string | undefined => {
+  const templateName = sanitizeFileName(nodeTypeName);
+  const sourceName = sanitizeFileName(sourceSpaceName);
+  const fileName = getImportedTemplateFileName({ templateName, sourceName });
+  const overflowBytes =
+    getUtf8ByteLength(fileName) - MAX_TEMPLATE_FILE_NAME_BYTES;
+  if (overflowBytes <= 0) return fileName;
+
+  const truncatedFileName = getImportedTemplateFileName({
+    templateName: truncateToUtf8Bytes(
+      templateName,
+      getUtf8ByteLength(templateName) - overflowBytes,
+    ),
+    sourceName,
+  });
+  return getUtf8ByteLength(truncatedFileName) <= MAX_TEMPLATE_FILE_NAME_BYTES
+    ? truncatedFileName
+    : undefined;
+};
+
 export const mapNodeTypeIdToLocal = async ({
   plugin,
   client,
   sourceSpaceId,
   sourceSpaceUri,
+  sourceSpaceName,
   sourceNodeTypeId,
 }: {
   plugin: DiscourseGraphPlugin;
   client: DGSupabaseClient;
   sourceSpaceId: number;
   sourceSpaceUri: string;
+  sourceSpaceName: string;
   sourceNodeTypeId: string;
 }): Promise<string> => {
   // Find the schema in the source space with this nodeTypeId (my_concepts applies RLS)
@@ -1279,15 +1330,28 @@ export const mapNodeTypeIdToLocal = async ({
     importedFromRid,
   };
 
-  if (parsed.templateContent && parsed.template) {
+  if (parsed.templateContent) {
+    newNodeType.template ??= getUntitledTemplateFileName({
+      nodeTypeName: parsed.name,
+      sourceSpaceName,
+    });
+    if (!newNodeType.template) {
+      new Notice(
+        `Node type "${parsed.name}" imported without template: the template file name would be too long.`,
+        6000,
+      );
+    }
+  }
+
+  if (parsed.templateContent && newNodeType.template) {
     const result = await createTemplateFile({
       app: plugin.app,
-      templateName: parsed.template,
+      templateName: newNodeType.template,
       content: parsed.templateContent,
     });
     if (result.created) {
       new Notice(
-        `Template "${parsed.template}" created for imported node type "${parsed.name}".`,
+        `Template "${newNodeType.template}" created for imported node type "${parsed.name}".`,
         4000,
       );
     } else if (
@@ -1716,6 +1780,7 @@ const importNodes = async ({
           client,
           sourceSpaceId: spaceId,
           sourceSpaceUri: spaceUri,
+          sourceSpaceName: spaceName,
           sourceNodeTypeId,
         });
 
@@ -1876,6 +1941,7 @@ const importNodes = async ({
         client,
         spaceId,
         spaceUri,
+        spaceName,
         keyToRelationEndpointId,
         precomputedRelationInstances,
       });
