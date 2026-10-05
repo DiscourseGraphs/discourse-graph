@@ -34,11 +34,13 @@ export const searchDiscourseNodes = async ({
   query,
   resultsByUid,
   runMiniSearch,
+  candidateUids,
 }: {
   nodeTypes: DiscourseNode[];
   query: string;
   resultsByUid: Map<string, SearchResult>;
   runMiniSearch: () => ScoredSearchResult[];
+  candidateUids?: Set<string>;
 }): Promise<ScoredSearchResult[]> => {
   const trimmedQuery = query.trim();
   if (!trimmedQuery) return [];
@@ -52,6 +54,7 @@ export const searchDiscourseNodes = async ({
       const providerResult = await runRoamSemanticSearch({
         nodeTypes,
         query: trimmedQuery,
+        candidateUids,
       });
       const semanticResults = providerResult.filteredResults.map((item) =>
         toScoredSearchResultFromSemantic({

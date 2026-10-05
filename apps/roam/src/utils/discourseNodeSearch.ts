@@ -1,4 +1,5 @@
 import { type DiscourseNode } from "~/utils/getDiscourseNodes";
+import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
 
 export const DISCOURSE_NODE_MIN_SEARCH_SCORE = 0.1;
@@ -108,6 +109,67 @@ export const queryDiscourseNodesByFormat = async ({
 
   return queryResults.map(([result]) => result);
 };
+
+export const hasCandidateTag = (
+  node: DiscourseNode,
+): node is DiscourseNode & { tag: string } => !!node.tag?.trim();
+
+// Matches the "is a candidate" datalog translator: one leading "#", exact title.
+export const getCandidateTagTitle = (tag: string): string =>
+  tag.trim().replace(/^#/, "");
+
+export const buildCandidateBlocksByTagQuery = ({
+  tagTitle,
+  pullExpression,
+}: {
+  tagTitle: string;
+  pullExpression: string;
+}): string => `[
+  :find
+    (pull ?block ${pullExpression})
+  :where
+    [?tag :node/title "${normalizePageTitle(tagTitle)}"]
+    [?block :block/refs ?tag]
+]`;
+
+export const queryCandidateBlocksByTag = async ({
+  node,
+  pullExpression = BASIC_DISCOURSE_NODE_PULL,
+}: {
+  node: DiscourseNode & { tag: string };
+  pullExpression?: string;
+}): Promise<PulledDiscourseNode[]> => {
+  const query = buildCandidateBlocksByTagQuery({
+    tagTitle: getCandidateTagTitle(node.tag),
+    pullExpression,
+  });
+  const queryResults = (await window.roamAlphaAPI.data.async.fast.q(query)) as [
+    PulledDiscourseNode,
+  ][];
+
+  return queryResults.map(([result]) => result);
+};
+
+const escapeRegExp = (value: string): string =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+export const stripCandidateTags = ({
+  text,
+  tagTitles,
+}: {
+  text: string;
+  tagTitles: string[];
+}): string =>
+  tagTitles
+    .reduce((stripped, tagTitle) => {
+      const escaped = escapeRegExp(tagTitle);
+      return stripped.replace(
+        new RegExp(`#?\\[\\[${escaped}\\]\\]|#${escaped}(?![\\w-])`, "g"),
+        "",
+      );
+    }, text)
+    .replace(/\s+/g, " ")
+    .trim();
 
 export const queryDiscourseNodesByFormatSync = ({
   node,

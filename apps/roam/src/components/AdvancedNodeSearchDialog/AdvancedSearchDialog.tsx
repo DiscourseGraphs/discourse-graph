@@ -40,6 +40,7 @@ import {
 import { DiscourseNodeTypeFilter } from "~/components/AdvancedNodeSearchDialog/DiscourseNodeTypeFilter";
 import { RenderRoamBlock, RenderRoamPage } from "~/utils/roamReactComponents";
 import { AdvancedSearchFooter } from "./AdvancedSearchFooter";
+import { DisplayOptionsMenu } from "./DisplayOptionsMenu";
 import { NodeTypeChipsSearchInput } from "./NodeTypeChipsSearchInput";
 import {
   type SearchIndex,
@@ -52,10 +53,20 @@ const getNodeBadgeText = (node: DiscourseNode): string => {
   return formatBadgeText(node.tag?.trim() || node.text);
 };
 
-const getTagStyle = (node: DiscourseNode | undefined): React.CSSProperties => {
+const getTagStyle = ({
+  isCandidate,
+  node,
+}: {
+  isCandidate?: boolean;
+  node: DiscourseNode | undefined;
+}): React.CSSProperties => {
   const color = node?.canvasSettings?.color;
   if (!color) return { flexShrink: 0 };
-  return { ...getNodeTagStyles(color), flexShrink: 0 };
+  return {
+    ...getNodeTagStyles(color),
+    ...(isCandidate && { backgroundColor: "transparent", boxShadow: "none" }),
+    flexShrink: 0,
+  };
 };
 
 const renderHighlightedText = (
@@ -101,7 +112,15 @@ const ResultRow = ({
       boxShadow: active ? "inset 3px 0 0 rgba(167, 182, 194, 0.3)" : undefined,
     }}
   >
-    <Tag minimal style={getTagStyle(nodeConfig)}>
+    <Tag
+      aria-label={
+        result.isCandidate
+          ? `${nodeConfig?.text ?? result.nodeTypeLabel} candidate`
+          : undefined
+      }
+      minimal
+      style={getTagStyle({ isCandidate: result.isCandidate, node: nodeConfig })}
+    >
       {nodeConfig
         ? getNodeBadgeText(nodeConfig)
         : formatBadgeText(result.nodeTypeLabel)}
@@ -163,6 +182,8 @@ const AdvancedNodeSearchDialog = ({
   const [discourseNodes, setDiscourseNodes] = useState<DiscourseNode[]>([]);
   const [selectedNodeTypeIds, setSelectedNodeTypeIds] = useState<string[]>([]);
   const [isTypeFilterPopoverOpen, setIsTypeFilterPopoverOpen] = useState(false);
+  const [showCandidates, setShowCandidates] = useState(false);
+  const [isDisplayOptionsOpen, setIsDisplayOptionsOpen] = useState(false);
   const resultsPanelRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [insertTarget, setInsertTarget] = useState<InsertTarget | null>(null);
@@ -207,6 +228,8 @@ const AdvancedNodeSearchDialog = ({
       setActiveIndex(0);
       setSort(DEFAULT_SORT_CONFIG);
       setSelectedNodeTypeIds([]);
+      setShowCandidates(false);
+      setIsDisplayOptionsOpen(false);
       setSearchIndex(null);
       setIndexError(false);
     }
@@ -223,7 +246,7 @@ const AdvancedNodeSearchDialog = ({
     );
     setDiscourseNodes(discourseNodes);
 
-    void buildSearchIndex(discourseNodes)
+    void buildSearchIndex({ discourseNodes, includeCandidates: showCandidates })
       .then(({ miniSearch, results: indexedResults }) => {
         if (cancelled) return;
         setSearchIndex({ miniSearch, allResults: indexedResults });
@@ -245,7 +268,7 @@ const AdvancedNodeSearchDialog = ({
     return () => {
       cancelled = true;
     };
-  }, [isOpen]);
+  }, [isOpen, showCandidates]);
 
   useEffect(() => {
     const timeout = setTimeout(
@@ -257,7 +280,7 @@ const AdvancedNodeSearchDialog = ({
 
   useEffect(() => {
     setActiveIndex(0);
-  }, [debouncedSearchTerm, selectedNodeTypeIds, sort]);
+  }, [debouncedSearchTerm, selectedNodeTypeIds, showCandidates, sort]);
 
   useEffect(() => {
     const panel = resultsPanelRef.current;
@@ -268,7 +291,7 @@ const AdvancedNodeSearchDialog = ({
   }, [activeIndex, activeResult?.uid, debouncedSearchTerm]);
 
   const onInsert = useCallback(async () => {
-    if (!activeResult || !insertTarget) return;
+    if (!activeResult || activeResult.isCandidate || !insertTarget) return;
 
     const pageTitle =
       getPageTitleByPageUid(activeResult.uid) ??
@@ -308,6 +331,7 @@ const AdvancedNodeSearchDialog = ({
         results,
         selectedNodeTypeIds,
         sort,
+        showCandidates,
       });
 
       posthog.capture("Advanced Node Search: Dock search sidebar", {
@@ -332,6 +356,7 @@ const AdvancedNodeSearchDialog = ({
     onClose,
     results,
     selectedNodeTypeIds,
+    showCandidates,
     sort,
   ]);
   const handleSortChange = useCallback((nextSort: SortConfig): void => {
@@ -403,6 +428,7 @@ const AdvancedNodeSearchDialog = ({
         (event.metaKey || event.ctrlKey) &&
         contentState === "results" &&
         activeResult &&
+        !activeResult.isCandidate &&
         insertTarget
       ) {
         event.preventDefault();
@@ -411,6 +437,12 @@ const AdvancedNodeSearchDialog = ({
       }
       if (event.key === "Escape") {
         if (isTypeFilterPopoverOpen) return;
+        if (isDisplayOptionsOpen) {
+          event.preventDefault();
+          event.stopPropagation();
+          setIsDisplayOptionsOpen(false);
+          return;
+        }
         event.preventDefault();
         onClose();
       }
@@ -418,6 +450,7 @@ const AdvancedNodeSearchDialog = ({
     [
       activeResult,
       contentState,
+      isDisplayOptionsOpen,
       isTypeFilterPopoverOpen,
       insertTarget,
       onClose,
@@ -489,6 +522,12 @@ const AdvancedNodeSearchDialog = ({
             onSortChange={handleSortChange}
             sort={sort}
           />
+          <DisplayOptionsMenu
+            isOpen={isDisplayOptionsOpen}
+            onOpenChange={setIsDisplayOptionsOpen}
+            onShowCandidatesChange={setShowCandidates}
+            showCandidates={showCandidates}
+          />
           <Button
             className="shrink-0"
             icon="cross"
@@ -541,6 +580,7 @@ const AdvancedNodeSearchDialog = ({
         <AdvancedSearchFooter
           contentState={contentState}
           hasActiveResult={!!activeResult}
+          isActiveResultLinkable={!!activeResult && !activeResult.isCandidate}
           insertTarget={insertTarget}
           onInsert={() => void onInsert()}
           onOpen={() => void onOpen()}

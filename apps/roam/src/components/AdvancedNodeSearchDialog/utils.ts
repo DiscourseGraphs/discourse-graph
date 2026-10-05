@@ -4,10 +4,15 @@ import {
   DISCOURSE_NODE_MIN_SEARCH_SCORE,
   DISCOURSE_NODE_MINI_SEARCH_OPTIONS,
   DISCOURSE_NODE_SEARCH_METADATA_PULL,
+  getCandidateTagTitle,
   getPulledDiscourseNodeAuthorName,
   getPulledDiscourseNodeTitle,
   getPulledDiscourseNodeUid,
+  hasCandidateTag,
+  queryCandidateBlocksByTag,
   queryDiscourseNodesByFormat,
+  stripCandidateTags,
+  type PulledDiscourseNode,
 } from "~/utils/discourseNodeSearch";
 import {
   MAX_RESULTS,
@@ -51,6 +56,7 @@ export type DockedSearchState = {
   results: SearchResult[];
   selectedNodeTypeIds: string[];
   sort: SortConfig;
+  showCandidates?: boolean;
   windowId?: string;
   dgSearchId?: string;
 };
@@ -105,6 +111,30 @@ export const splitWithHighlights = (
     }));
 };
 
+const toSearchResult = ({
+  node,
+  pulled,
+  title,
+}: {
+  node: DiscourseNode;
+  pulled: PulledDiscourseNode;
+  title: string;
+}): SearchResult | null => {
+  const uid = getPulledDiscourseNodeUid(pulled);
+  if (!uid || !title) return null;
+
+  return {
+    uid,
+    title,
+    type: node.type,
+    nodeTypeLabel: node.text,
+    excerpt: "",
+    createdAt: String(pulled[":create/time"] || ""),
+    lastModified: String(pulled[":edit/time"] || pulled[":create/time"] || ""),
+    authorName: getPulledDiscourseNodeAuthorName(pulled),
+  };
+};
+
 const queryNodesForType = async (
   node: DiscourseNode,
 ): Promise<SearchResult[]> => {
@@ -115,24 +145,13 @@ const queryNodesForType = async (
     });
 
     return pulledNodes
-      .map((result) => {
-        const uid = getPulledDiscourseNodeUid(result);
-        const title = getPulledDiscourseNodeTitle(result);
-        if (!uid || !title) return null;
-
-        return {
-          uid,
-          title,
-          type: node.type,
-          nodeTypeLabel: node.text,
-          excerpt: "",
-          createdAt: String(result[":create/time"] || ""),
-          lastModified: String(
-            result[":edit/time"] || result[":create/time"] || "",
-          ),
-          authorName: getPulledDiscourseNodeAuthorName(result),
-        };
-      })
+      .map((pulled) =>
+        toSearchResult({
+          node,
+          pulled,
+          title: getPulledDiscourseNodeTitle(pulled),
+        }),
+      )
       .filter((result): result is SearchResult => !!result);
   } catch (error) {
     console.error(`Error querying for node type ${node.type}:`, error);
@@ -140,15 +159,65 @@ const queryNodesForType = async (
   }
 };
 
-export const buildSearchIndex = async (
+const queryCandidatesForType = async ({
+  node,
+  tagTitles,
+}: {
+  node: DiscourseNode & { tag: string };
+  tagTitles: string[];
+}): Promise<SearchResult[]> => {
+  try {
+    const pulledBlocks = await queryCandidateBlocksByTag({
+      node,
+      pullExpression: DISCOURSE_NODE_SEARCH_METADATA_PULL,
+    });
+
+    return pulledBlocks
+      .map((pulled) =>
+        toSearchResult({
+          node,
+          pulled,
+          title: stripCandidateTags({
+            text: pulled[":block/string"] || "",
+            tagTitles,
+          }),
+        }),
+      )
+      .filter((result): result is SearchResult => !!result)
+      .map((result) => ({ ...result, isCandidate: true }));
+  } catch (error) {
+    console.error(
+      `Error querying candidates for node type ${node.type}:`,
+      error,
+    );
+    throw error;
+  }
+};
+
+const queryCandidates = async (
   discourseNodes: DiscourseNode[],
-): Promise<{
+): Promise<PromiseSettledResult<SearchResult[]>[]> => {
+  const taggedNodes = discourseNodes.filter(hasCandidateTag);
+  const tagTitles = taggedNodes.map((node) => getCandidateTagTitle(node.tag));
+  return Promise.allSettled(
+    taggedNodes.map((node) => queryCandidatesForType({ node, tagTitles })),
+  );
+};
+
+export const buildSearchIndex = async ({
+  discourseNodes,
+  includeCandidates = false,
+}: {
+  discourseNodes: DiscourseNode[];
+  includeCandidates?: boolean;
+}): Promise<{
   miniSearch: MiniSearch<MiniSearchDocument>;
   results: SearchResult[];
 }> => {
-  const resultsByType = await Promise.allSettled(
-    discourseNodes.map(queryNodesForType),
-  );
+  const [resultsByType, candidatesByType] = await Promise.all([
+    Promise.allSettled(discourseNodes.map(queryNodesForType)),
+    includeCandidates ? queryCandidates(discourseNodes) : [],
+  ]);
 
   const rejected = resultsByType.filter(
     (result): result is PromiseRejectedResult => result.status === "rejected",
@@ -160,9 +229,11 @@ export const buildSearchIndex = async (
     );
   }
 
+  // Candidates come after nodes, and a block tagged with several types keeps
+  // the first configured type, so every row stays keyed by uid.
   const results: SearchResult[] = [];
   const seenUids = new Set<string>();
-  for (const resultByType of resultsByType) {
+  for (const resultByType of [...resultsByType, ...candidatesByType]) {
     if (resultByType.status !== "fulfilled") continue;
     for (const result of resultByType.value) {
       if (seenUids.has(result.uid)) continue;

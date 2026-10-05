@@ -88,6 +88,15 @@ export const useAdvancedNodeSearchResults = ({
     const resultsByUid = new Map(
       searchIndex.allResults.map((result) => [result.uid, result]),
     );
+    const candidateUids = new Set(
+      searchIndex.allResults
+        .filter(
+          (result) =>
+            result.isCandidate &&
+            (!typeFilter || typeFilter.includes(result.type)),
+        )
+        .map((result) => result.uid),
+    );
 
     const runMiniSearch = (): ScoredSearchResult[] =>
       searchDiscourseNodesWithMiniSearch({
@@ -102,6 +111,7 @@ export const useAdvancedNodeSearchResults = ({
       query: debouncedSearchTerm,
       resultsByUid,
       runMiniSearch,
+      candidateUids,
     })
       .then((results) => {
         if (cancelled) return;
