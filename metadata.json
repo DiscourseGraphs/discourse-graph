@@ -49,17 +49,17 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 86,
-    "cache_creation_tokens": 61290,
-    "cache_read_tokens": 6011499,
-    "output_tokens": 25637,
-    "api_call_count": 41,
+    "input_tokens": 78,
+    "cache_creation_tokens": 56591,
+    "cache_read_tokens": 5244355,
+    "output_tokens": 24118,
+    "api_call_count": 39,
     "subagent_tokens": {
-      "input_tokens": 62,
-      "cache_creation_tokens": 364127,
-      "cache_read_tokens": 5238121,
-      "output_tokens": 1572,
-      "api_call_count": 31
+      "input_tokens": 26,
+      "cache_creation_tokens": 86287,
+      "cache_read_tokens": 895922,
+      "output_tokens": 1231,
+      "api_call_count": 13
     }
   }
 }
