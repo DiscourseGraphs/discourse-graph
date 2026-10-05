@@ -6,15 +6,18 @@ import type { ReactElement, ReactNode } from "react";
 type ScaledStageProps = {
   children: ReactNode;
   height: number;
-  /** Text alternative for the illustration, read by screen readers. */
   label: string;
   width: number;
 };
 
+const supportsLengthDivision = (): boolean =>
+  CSS.supports("transform", "scale(calc(100cqw / 570px))");
+
 /**
- * Renders children in a fixed-size design coordinate space (`width` x `height`)
- * and scales it to fit the container, so absolutely positioned illustrations
- * keep their proportions at any viewport size.
+ * Draws children in a fixed `width` x `height` coordinate space scaled to the
+ * container. The scale is `100cqw / width` in CSS, so it works before
+ * hydration and without JavaScript. Browsers that can't divide lengths in
+ * `calc()` ignore it, so we measure the container instead.
  */
 export const ScaledStage = ({
   children,
@@ -23,16 +26,15 @@ export const ScaledStage = ({
   width,
 }: ScaledStageProps): ReactElement => {
   const containerRef = useRef<HTMLDivElement>(null);
-  // Null until measured so the unscaled stage is never painted.
-  const [scale, setScale] = useState<number | null>(null);
+  const [measuredScale, setMeasuredScale] = useState<number | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || supportsLengthDivision()) return;
     const update = () => {
-      // A hidden container reports 0; wait for a real width instead of
-      // collapsing the stage to scale 0.
-      if (container.clientWidth > 0) setScale(container.clientWidth / width);
+      // A hidden container reports width 0; skip it rather than scale to 0.
+      if (container.clientWidth > 0)
+        setMeasuredScale(container.clientWidth / width);
     };
     update();
     const observer = new ResizeObserver(update);
@@ -45,9 +47,8 @@ export const ScaledStage = ({
       ref={containerRef}
       role="img"
       aria-label={label}
-      className="relative w-full overflow-hidden"
-      // aspect-ratio reserves the scaled height before hydration, so the
-      // page layout doesn't shift when the scale is measured.
+      className="relative w-full overflow-hidden [container-type:inline-size]"
+      // Reserves the scaled height so the layout doesn't shift on load.
       style={{ aspectRatio: `${width} / ${height}` }}
     >
       <div
@@ -55,8 +56,10 @@ export const ScaledStage = ({
         className="absolute left-0 top-0 origin-top-left"
         style={{
           height,
-          transform: `scale(${scale ?? 1})`,
-          visibility: scale === null ? "hidden" : "visible",
+          transform:
+            measuredScale === null
+              ? `scale(calc(100cqw / ${width}px))`
+              : `scale(${measuredScale})`,
           width,
         }}
       >

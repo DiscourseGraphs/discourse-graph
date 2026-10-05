@@ -2,7 +2,7 @@ import type { CSSProperties, ReactElement, ReactNode } from "react";
 import Image from "next/image";
 import { ScaledStage } from "~/components/ScaledStage";
 
-// Design coordinates come from the Figma "Foundations" frame (570 x 390 cards).
+// Card size in the Figma frame; positions below use these coordinates.
 const CARD_WIDTH = 570;
 const CARD_HEIGHT = 390;
 
@@ -342,8 +342,8 @@ const MetaItem = ({
 
 const PROTOCOL_OFFSET = 126;
 
-// Network edges exported from Figma; `inset` is [top, right, bottom, left] in
-// percent to account for the stroke bleed in each exported vector.
+// Exported Figma vectors; `inset` is [top, right, bottom, left] in % to cover
+// stroke bleed.
 const NETWORK_EDGES: {
   height: number;
   inset: [number, number, number, number];
