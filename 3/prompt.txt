@@ -620,3 +620,17 @@ if there is packages/eslint-config/obsidian-scanner.upstream.js, why do we still
 then remove the config tests
 
 fix the code comment
+
+---
+
+<task-notification>
+<task-id>b8avqhtb5</task-id>
+<tool-use-id>toolu_01Y8sGkKq9KY1rNdMSe11qDt</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/823de576-c29f-4ff8-9795-a0393171af23/tasks/b8avqhtb5.output</output-file>
+<status>completed</status>
+<summary>Background command "Watch CI on the new head" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+yes, remove obsidian-scanner.js and derive from the vendored file
