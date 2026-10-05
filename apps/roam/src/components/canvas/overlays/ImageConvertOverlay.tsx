@@ -98,15 +98,13 @@ export const ImageConvertOverlay = (): JSX.Element | null => {
   if (!buttonPosition) return null;
 
   return (
-    <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+    <div className="pointer-events-none absolute inset-0">
       <Button
         small
-        className="absolute z-20 rounded border border-gray-300 bg-white shadow"
+        className="pointer-events-auto absolute z-20 -translate-x-full transform rounded border border-gray-300 bg-white shadow"
         style={{
           left: `${buttonPosition.left}px`,
           top: `${buttonPosition.top}px`,
-          transform: "translateX(-100%)",
-          pointerEvents: "all",
         }}
         icon={<Icon icon="document-open" />}
         loading={uploading}
