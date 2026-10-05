@@ -240,3 +240,7 @@ what's your proposed cap for each?
 ---
 
 Which semantic on, how are we sorting the search result that contain both semantic, which doesn't have scoring, and the candidate results, then, which comes from mini search?
+
+---
+
+Hmm, I assume people want the most relevant result first, regardless of whether it's an actual node or a candidate node. What is a way for us to ensure this relevancy so that it actually could mix up the result? Like a candidate can show up before an actual node if it is actually a better match.
