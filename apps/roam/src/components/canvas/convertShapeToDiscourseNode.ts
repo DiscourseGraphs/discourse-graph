@@ -37,14 +37,15 @@ export const replaceShapeWithDiscourseNode = async ({
   text: string;
   uid: string;
 }): Promise<void> => {
-  const { x, y } = shape;
-  editor.deleteShapes([shape.id]);
+  const { x, y, parentId } = shape;
+  // Size before deleting so a failed key-image query leaves the source shape in place
   const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
     nodeText: text,
     extensionAPI,
     nodeType,
     uid,
   });
+  editor.deleteShapes([shape.id]);
   editor.createShapes([
     {
       type: DISCOURSE_NODE_SHAPE_TYPE,
@@ -59,6 +60,7 @@ export const replaceShapeWithDiscourseNode = async ({
         size: "s",
         nodeTypeId: nodeType,
       },
+      parentId,
       x,
       y,
     },
