@@ -94,6 +94,7 @@ import {
 import { summarizeAssetResults } from "~/utils/publishNodeAssets";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
 import { isNodeSharingEnabled } from "~/components/settings/utils/accessors";
+import StoredRelationsWarning from "~/components/StoredRelationsWarning";
 
 const ExportProgress = ({ id }: { id: string }) => {
   const [progress, setProgress] = useState(0);
@@ -1236,6 +1237,7 @@ const ExportDialog: ExportDialogComponent = ({
   const PublishPanel = (
     <>
       <div className={Classes.DIALOG_BODY}>
+        <StoredRelationsWarning className="mb-4" />
         {groupsLoading || !groupsLoaded ? (
           <div className="my-2.5">Loading groups…</div>
         ) : groupsError ? (
