@@ -61,12 +61,12 @@ export const TextLinkOverlay = (): JSX.Element => {
   ]);
 
   return (
-    <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+    <div className="pointer-events-none absolute inset-0">
       {links.map(({ id, url, left, top }) => (
         <div
           key={id}
+          className="absolute"
           style={{
-            position: "absolute",
             left: `${left}px`,
             top: `${top}px`,
             width: `${BUTTON_SIZE}px`,
