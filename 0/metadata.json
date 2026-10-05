@@ -73,6 +73,37 @@
         "label": "/mattpocock-skills:ask-matt",
         "default_collapsed": true
       }
+    },
+    {
+      "id": "claude-skill-toolu_01WECjpu6k9WkFoitDapRjie",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-roam-load-extension"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "40e530c10db5",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 593,
+        "end": 594,
+        "entry_ids": [
+          "cc35ca0f-6327-4723-8336-8dd173062e71"
+        ],
+        "tool_use_id": "toolu_01WECjpu6k9WkFoitDapRjie"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01WECjpu6k9WkFoitDapRjie"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-roam-load-extension",
+        "default_collapsed": true
+      }
     }
   ],
   "session_metrics": {
