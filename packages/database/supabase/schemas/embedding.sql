@@ -49,10 +49,15 @@ emb.model,
 emb.vector
 FROM public."Content" AS ct
 JOIN public."ContentEmbedding_openai_text_embedding_3_small_1536" AS emb ON (ct.id = emb.target_id)
-LEFT OUTER JOIN public.my_accessible_resources () AS ra USING (space_id, source_local_id)
-WHERE (ct.space_id = any (public.my_space_ids ('reader'))
-OR (ct.space_id = any (public.my_space_ids ('partial')) AND ra.space_id IS NOT NULL))
-AND NOT emb.obsolete ;
+WHERE
+(
+ct.space_id = any((SELECT public.my_space_ids('reader'))::bigint [])
+OR (
+ct.space_id = any((SELECT public.my_space_ids('partial'))::bigint [])
+AND (ct.space_id, ct.source_local_id) IN (SELECT space_id, source_local_id FROM public.my_accessible_resources())
+)
+)
+AND NOT emb.obsolete;
 
 set search_path to public, extensions ;
 
