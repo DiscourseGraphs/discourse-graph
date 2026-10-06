@@ -24,7 +24,14 @@ import {
   createReifiedRelation,
   getReifiedRelations,
 } from "./createReifiedBlock";
-import { discoverSharedRelations } from "./discoverSharedRelations";
+import {
+  discoverSharedRelations,
+  type DiscoverSharedRelationsResult,
+  type TripleCandidate,
+} from "./discoverSharedRelations";
+import findDiscourseNode from "./findDiscourseNode";
+import internalError from "./internalError";
+import { getErrorMessage } from "./getErrorMessage";
 import { DGSupabaseClient } from "@repo/database/lib/client";
 import { deleteBlock } from "roamjs-components/writes";
 import refreshConfigTree from "./refreshConfigTree";
@@ -79,13 +86,18 @@ const matchImportedNodeSchemas = async (
   return result;
 };
 
-const matchImportedRelationSchemas = async (
-  nodeSchemaRidToLocalId: Record<string, string>,
-  relationTypeSchemas: CrossAppRelationTypeSchema[],
-  relationTripleSchemas: CrossAppRelationTripleSchema[],
-): Promise<Record<string, string>> => {
+const matchImportedRelationSchemas = async ({
+  nodeSchemaRidToLocalId,
+  relationTypeSchemas,
+  relationTripleSchemas,
+  relationSchemas,
+}: {
+  nodeSchemaRidToLocalId: Record<string, string>;
+  relationTypeSchemas: CrossAppRelationTypeSchema[];
+  relationTripleSchemas: CrossAppRelationTripleSchema[];
+  relationSchemas: DiscourseRelation[];
+}): Promise<Record<string, string>> => {
   const result: Record<string, string> = {};
-  const relationSchemas = getDiscourseRelations();
   const existing = await getImportedSourceRids();
   const relationTypeSchemasByRid = Object.fromEntries(
     relationTypeSchemas.map((s) => [s.rid!, s]),
@@ -178,83 +190,234 @@ const matchImportedRelationSchemas = async (
   return result;
 };
 
+type RelationTripleContext = {
+  relationSchemas: DiscourseRelation[];
+  importedRids: Set<string>;
+};
+
+// A local triple fitting the pages' node types is correct by construction, so it wins;
+// the source space's triple only supplies provenance for a new one.
+const findOrImportRelationTriple = async ({
+  relationType,
+  sourceUid,
+  destinationUid,
+  candidates,
+  matchedTripleRid,
+  context,
+}: {
+  relationType: CrossAppRelationTypeSchema;
+  sourceUid: string;
+  destinationUid: string;
+  candidates: TripleCandidate[];
+  matchedTripleRid?: string;
+  context: RelationTripleContext;
+}): Promise<string> => {
+  const sourceType = findDiscourseNode({ uid: sourceUid });
+  if (!sourceType) throw new Error(`No node type for page: ${sourceUid}`);
+  const destinationType = findDiscourseNode({ uid: destinationUid });
+  if (!destinationType)
+    throw new Error(`No node type for page: ${destinationUid}`);
+  const fitsPages = (r: DiscourseRelation) =>
+    r.source === sourceType.type && r.destination === destinationType.type;
+
+  const label = relationType.label;
+  // Each query pattern can produce a match for the same local schema.
+  const matchIds = [
+    ...new Set(
+      context.relationSchemas
+        .filter(
+          (r) => fitsPages(r) && r.label.toLowerCase() === label.toLowerCase(),
+        )
+        .map(({ id }) => id),
+    ),
+  ];
+  if (matchIds.length > 1) throw new Error("multiple matches");
+  if (matchIds.length === 1) return matchIds[0];
+
+  // Finds an imported triple even after a local rename.
+  for (const candidate of candidates) {
+    if (!context.importedRids.has(candidate.rid)) continue;
+    const uid = await findImportedNodeUidBySourceRid(candidate.rid);
+    const imported = context.relationSchemas.find((r) => r.id === uid);
+    if (imported && fitsPages(imported)) return imported.id;
+  }
+
+  // Ends come from the pages: the source space's node types may be hidden.
+  const matched = candidates.find(({ rid }) => rid === matchedTripleRid);
+  const newRelation: Omit<DiscourseRelation, "id"> = {
+    label: matched?.label ?? label,
+    complement: matched?.complement ?? relationType.complement,
+    source: sourceType.type,
+    destination: destinationType.type,
+    triples: [],
+  };
+  const id = await createRelationSchema(newRelation);
+  // One source RID names one local triple: the lookup above returns a single block.
+  if (matched && !context.importedRids.has(matched.rid)) {
+    await writeImportedSourceIdentity({
+      pageUid: id,
+      sourceNodeRid: matched.rid,
+      sourceModifiedAt: (matched.modifiedAt ?? new Date()).toISOString(),
+    });
+    context.importedRids.add(matched.rid);
+  }
+  context.relationSchemas.push({ ...newRelation, id });
+  return id;
+};
+
+const importRelation = async ({
+  relation,
+  schemaRidToLocalId,
+  discovered,
+  existing,
+  allRelations,
+  context,
+}: {
+  relation: CrossAppRelation;
+  schemaRidToLocalId: Record<string, string>;
+  discovered: DiscoverSharedRelationsResult;
+  existing: Set<string>;
+  allRelations: Awaited<ReturnType<typeof getReifiedRelations>>;
+  context: RelationTripleContext;
+}): Promise<void> => {
+  const { rid: sourceNodeRid, source, destination, relationType } = relation;
+  if (sourceNodeRid === undefined) return;
+  const { spaceUri } = ridToSpaceUriAndLocalId(sourceNodeRid);
+  const schemaRid = spaceUriAndLocalIdToRid(spaceUri, relationType, "schema");
+  const sourceUid = await findTargetUid(source, spaceUri);
+  if (sourceUid === null) throw new Error(`Missing relation source: ${source}`);
+  const destinationUid = await findTargetUid(destination, spaceUri);
+  if (destinationUid === null)
+    throw new Error(`Missing relation destination: ${destination}`);
+  let relationBlockUid = schemaRidToLocalId[schemaRid];
+  if (relationBlockUid === undefined) {
+    const relationTypeSchema = discovered.relTypeSchemas.find(
+      ({ rid }) => rid === schemaRid,
+    );
+    if (relationTypeSchema === undefined)
+      throw new Error(`Missing relation type: ${relationType}`);
+    relationBlockUid = await findOrImportRelationTriple({
+      relationType: relationTypeSchema,
+      sourceUid,
+      destinationUid,
+      candidates: discovered.tripleCandidatesByRelationType[schemaRid] ?? [],
+      matchedTripleRid: discovered.matchedTripleByRelation[sourceNodeRid],
+      context,
+    });
+  }
+  if (existing.has(sourceNodeRid)) {
+    // Update existing
+    const existingRelUid = await findImportedNodeUidBySourceRid(sourceNodeRid);
+    if (existingRelUid === null)
+      throw new Error("Could not get imported block");
+    const existingRel = allRelations.find(
+      (r) => r.relationId === existingRelUid,
+    );
+    if (existingRel === undefined) throw new Error("Could not find relation");
+    if (
+      existingRel.hasSchema === relationBlockUid &&
+      existingRel.sourceUid === sourceUid &&
+      existingRel.destinationUid === destinationUid
+    )
+      return;
+    // It was imported and modified. We could update, but easier to delete and recreate.
+    await deleteBlock(existingRelUid);
+  }
+
+  const existingRel = allRelations.filter(
+    (r) =>
+      r.hasSchema === relationBlockUid &&
+      r.sourceUid === sourceUid &&
+      r.destinationUid === destinationUid,
+  );
+  if (existingRel.length > 1) throw new Error("Multiple matching relations");
+  if (existingRel.length === 0) {
+    const uid = await createReifiedRelation({
+      sourceUid,
+      destinationUid,
+      relationBlockUid,
+      tentative: true,
+    });
+    await writeImportedSourceIdentity({
+      pageUid: uid,
+      sourceNodeRid,
+      sourceModifiedAt: (relation.modifiedAt ?? new Date()).toISOString(),
+    });
+  }
+};
+
 const importRelations = async (
   schemaRidToLocalId: Record<string, string>,
-  relations: CrossAppRelation[],
-): Promise<void> => {
+  discovered: DiscoverSharedRelationsResult,
+  relationSchemas: DiscourseRelation[],
+): Promise<string[]> => {
   const existing = await getImportedSourceRids();
   const allRelations = await getReifiedRelations();
-  for (const relation of relations) {
-    const { rid: sourceNodeRid, source, destination, relationType } = relation;
-    if (sourceNodeRid === undefined) continue;
-    const { spaceUri } = ridToSpaceUriAndLocalId(sourceNodeRid);
-    const schemaRid = spaceUriAndLocalIdToRid(spaceUri, relationType, "schema");
-    const relationBlockUid = schemaRidToLocalId[schemaRid];
-    if (relationBlockUid === undefined)
-      throw new Error(`Missing relation type: ${relationType}`);
-    const sourceUid = await findTargetUid(source, spaceUri);
-    if (sourceUid === null)
-      throw new Error(`Missing relation source: ${source}`);
-    const destinationUid = await findTargetUid(destination, spaceUri);
-    if (destinationUid === null)
-      throw new Error(`Missing relation destination: ${destination}`);
-    if (existing.has(sourceNodeRid)) {
-      // Update existing
-      const existingRelUid =
-        await findImportedNodeUidBySourceRid(sourceNodeRid);
-      if (existingRelUid === null)
-        throw new Error("Could not get imported block");
-      const existingRel = allRelations.find(
-        (r) => r.relationId === existingRelUid,
+  const context: RelationTripleContext = {
+    relationSchemas,
+    importedRids: existing,
+  };
+  const failures: string[] = [];
+  for (const relation of discovered.relations) {
+    try {
+      await importRelation({
+        relation,
+        schemaRidToLocalId,
+        discovered,
+        existing,
+        allRelations,
+        context,
+      });
+    } catch (error) {
+      failures.push(
+        `${relation.rid ?? relation.localId}: ${getErrorMessage(error)}`,
       );
-      if (existingRel === undefined) throw new Error("Could not find relation");
-      if (
-        existingRel.hasSchema === relationBlockUid &&
-        existingRel.sourceUid === sourceUid &&
-        existingRel.destinationUid === destinationUid
-      )
-        continue;
-      // It was imported and modified. We could update, but easier to delete and recreate.
-      await deleteBlock(existingRelUid);
-    }
-
-    const existingRel = allRelations.filter(
-      (r) =>
-        r.hasSchema === relationBlockUid &&
-        r.sourceUid === sourceUid &&
-        r.destinationUid === destinationUid,
-    );
-    if (existingRel.length > 1) throw new Error("Multiple matching relations");
-    if (existingRel.length === 0) {
-      const uid = await createReifiedRelation({
-        sourceUid,
-        destinationUid,
-        relationBlockUid,
-        tentative: true,
-      });
-      await writeImportedSourceIdentity({
-        pageUid: uid,
-        sourceNodeRid,
-        sourceModifiedAt: (relation.modifiedAt ?? new Date()).toISOString(),
-      });
     }
   }
+  if (failures.length > 0)
+    internalError({
+      error: new Error(
+        `${failures.length} of ${discovered.relations.length} shared relation imports failed`,
+      ),
+      type: "Shared relation import failed",
+      context: {
+        operation: "import-shared-relations",
+        failureMessages: failures,
+      },
+      sendEmail: false,
+    });
+  return failures;
+};
+
+// One message per relation: `failures` failed to import, `skipped` have a schema the
+// reader cannot see.
+export type SharedRelationImportResult = {
+  failures: string[];
+  skipped: string[];
 };
 
 export const importSharedRelations = async (
   client: DGSupabaseClient,
   spaceId: number,
-) => {
-  const { relations, relTripleSchemas, relTypeSchemas, nodeSchemas } =
-    await discoverSharedRelations(client, spaceId);
+): Promise<SharedRelationImportResult> => {
+  const discovered = await discoverSharedRelations(client, spaceId);
+  const { relTripleSchemas, relTypeSchemas, nodeSchemas } = discovered;
+  // Shared by both passes, so a triple the first creates is matched by the second.
+  const relationSchemas = getDiscourseRelations();
   let ridToLocalId = await matchImportedNodeSchemas(nodeSchemas);
-  const relationSchemaMap = await matchImportedRelationSchemas(
-    ridToLocalId,
-    relTypeSchemas,
-    relTripleSchemas,
-  );
+  const relationSchemaMap = await matchImportedRelationSchemas({
+    nodeSchemaRidToLocalId: ridToLocalId,
+    relationTypeSchemas: relTypeSchemas,
+    relationTripleSchemas: relTripleSchemas,
+    relationSchemas,
+  });
   ridToLocalId = { ...ridToLocalId, ...relationSchemaMap };
-  await importRelations(ridToLocalId, relations);
+  const failures = await importRelations(
+    ridToLocalId,
+    discovered,
+    relationSchemas,
+  );
   // Legacy settings read the cached grammar, including newly imported schemas.
   refreshConfigTree();
+  return { failures, skipped: discovered.skippedRelations };
 };
