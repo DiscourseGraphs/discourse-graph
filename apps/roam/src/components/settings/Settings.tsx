@@ -40,7 +40,13 @@ import {
   tabIdOf,
 } from "./utils/settingsNavigation";
 import { SettingsNavProvider } from "./navigation/SettingsNavContext";
+import SettingsSearchField from "./navigation/SettingsSearchField";
+import { useSettingAnchorScroll } from "./navigation/useSettingAnchorScroll";
+import type { SearchableEntry } from "./utils/settingsCatalog";
 import GrammarNodesRoute from "./GrammarNodesRoute";
+
+/** `pr-1` leaves room for the search flash's `-mx-2`, which the scroll box would clip. */
+const TAB_PANEL_CLASS = "overflow-y-auto pr-1";
 
 const SectionHeader = ({ children }: { children: React.ReactNode }) => (
   <div className="bp3-tab-copy mt-4 cursor-default select-none text-lg font-semibold text-neutral-dark">
@@ -95,6 +101,17 @@ export const SettingsDialog = ({
     (tabId: string) => dispatch({ type: "select-tab", tabId }),
     [],
   );
+  // Cleared once settled, so a repeat jump to the same row still scrolls.
+  const [pendingAnchorId, setPendingAnchorId] = useState<string | null>(null);
+  const handleSearchSelect = useCallback((entry: SearchableEntry) => {
+    dispatch({ type: "navigate", path: entry.path });
+    setPendingAnchorId(entry.kind === "setting" ? entry.anchorId : null);
+  }, []);
+  const clearPendingAnchor = useCallback(() => setPendingAnchorId(null), []);
+  useSettingAnchorScroll({
+    anchorId: pendingAnchorId,
+    onSettled: clearPendingAnchor,
+  });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const settings = useMemo(() => bulkReadSettings(), [activeTabId]);
   const [leftSidebarEnabled, setLeftSidebarEnabled] = useState(
@@ -190,11 +207,12 @@ export const SettingsDialog = ({
           vertical={true}
           renderActiveTabPanelOnly={true}
         >
+          <SettingsSearchField onSelect={handleSearchSelect} />
           <SectionHeader>Preferences</SectionHeader>
           <Tab
             id={SETTINGS_TAB_IDS.preferencesGeneral}
             title={SETTINGS_TAB_META[SETTINGS_TAB_IDS.preferencesGeneral].label}
-            className="overflow-y-auto"
+            className={TAB_PANEL_CLASS}
             panel={
               <PreferencesGeneral
                 onloadArgs={onloadArgs}
@@ -207,7 +225,7 @@ export const SettingsDialog = ({
           <Tab
             id={SETTINGS_TAB_IDS.preferencesStyling}
             title={SETTINGS_TAB_META[SETTINGS_TAB_IDS.preferencesStyling].label}
-            className="overflow-y-auto"
+            className={TAB_PANEL_CLASS}
             panel={
               <PreferencesStyling
                 personalSettings={settings.personalSettings}
@@ -220,7 +238,7 @@ export const SettingsDialog = ({
             title={
               SETTINGS_TAB_META[SETTINGS_TAB_IDS.featuresDiscourseContext].label
             }
-            className="overflow-y-auto"
+            className={TAB_PANEL_CLASS}
             panel={
               <DiscourseContextSettings
                 onloadArgs={onloadArgs}
@@ -231,7 +249,7 @@ export const SettingsDialog = ({
           <Tab
             id={SETTINGS_TAB_IDS.featuresCanvas}
             title={SETTINGS_TAB_META[SETTINGS_TAB_IDS.featuresCanvas].label}
-            className="overflow-y-auto"
+            className={TAB_PANEL_CLASS}
             panel={
               <CanvasSettings
                 onloadArgs={onloadArgs}
@@ -245,7 +263,7 @@ export const SettingsDialog = ({
             title={
               SETTINGS_TAB_META[SETTINGS_TAB_IDS.featuresLeftSidebar].label
             }
-            className="overflow-y-auto"
+            className={TAB_PANEL_CLASS}
             hidden={!leftSidebarEnabled}
             panel={
               <LeftSidebarSettings
@@ -268,7 +286,7 @@ export const SettingsDialog = ({
           <Tab
             id={SETTINGS_TAB_IDS.grammarRelations}
             title={SETTINGS_TAB_META[SETTINGS_TAB_IDS.grammarRelations].label}
-            className="overflow-y-auto"
+            className={TAB_PANEL_CLASS}
             panel={
               <DiscourseRelationConfigPanel
                 defaultValue={DEFAULT_RELATION_VALUES}
@@ -282,7 +300,7 @@ export const SettingsDialog = ({
           <Tab
             id={SETTINGS_TAB_IDS.advancedQueries}
             title={SETTINGS_TAB_META[SETTINGS_TAB_IDS.advancedQueries].label}
-            className="overflow-y-auto"
+            className={TAB_PANEL_CLASS}
             panel={
               <QuerySettings
                 extensionAPI={extensionAPI}
@@ -296,7 +314,7 @@ export const SettingsDialog = ({
             hidden={true}
             id={SETTINGS_TAB_IDS.admin}
             title="Admin"
-            className="overflow-y-auto"
+            className={TAB_PANEL_CLASS}
             panel={<AdminPanel globalSettings={settings.globalSettings} />}
           />
         </Tabs>
