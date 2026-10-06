@@ -49,7 +49,8 @@ const GrammarNodesRoute = ({
         rootLabel="Nodes"
         resolveLabel={resolveLabel}
       />
-      <div className="min-h-0 flex-auto overflow-y-auto">
+      {/* `-mx-1 px-1` widens the scroll box so the search flash is not clipped; content stays put. */}
+      <div className="-mx-1 min-h-0 flex-auto overflow-y-auto px-1">
         {!node ? (
           <div className="p-1">
             <DiscourseNodeConfigPanel />
