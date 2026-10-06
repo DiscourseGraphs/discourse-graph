@@ -1,0 +1,26 @@
+# Data layer reverse-engineering
+
+Status: v0 documentation complete. For the schema-to-internal-data-layer task, use the compressed single-document answer below; the rest of this folder is supporting reverse-engineering detail.
+
+Start here for the current task:
+
+- [O. Schema to internal data layer](./O-schema-to-internal-data-layer.md) is the compressed single-document answer for the schema-to-internal-data-layer task.
+
+Supporting notes:
+
+- [A. Executive summary](./A-executive-summary.md)
+- [B. Repo evidence](./B-repo-evidence.md)
+- [C. Current data layer model](./C-current-data-layer-model.md)
+- [D. Layer separation table](./D-layer-separation-table.md)
+- [E. Gaps and inconsistencies](./E-gaps-and-inconsistencies.md)
+- [F. Proposed draft definition of the data layer](./F-proposed-draft-definition.md)
+- [G. Suggested next refactors](./G-suggested-next-refactors.md)
+- [H. V0 scope: data-layer definition and crosswalk](./H-v0-data-layer-scope.md)
+- [I. Current layer architecture note](./I-current-layer-architecture-note.md)
+- [I2. Schema-to-data crosswalk](./I2-schema-to-data-crosswalk.md)
+- [J. V0 portable-package handoff contract](./J-v0-portable-package-scope.md)
+- [K. Obsidian-to-Obsidian sync overview for portable package](./K-obsidian-to-obsidian-sync-overview.md)
+- [L. Portable package JSON model based on current Obsidian-to-Obsidian sync](./L-obsidian-portable-package-json-model.md)
+- [M. Subgraph terminology decision](./M-subgraph-terminology.md)
+- [N. Cross-app interchange folder structure](./N-cross-app-interchange-folder-structure.md)
+- [O. Schema to internal data layer](./O-schema-to-internal-data-layer.md)
