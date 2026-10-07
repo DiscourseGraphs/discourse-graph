@@ -3,7 +3,7 @@
   "checkpoint_id": "01M4CAQR0QHAMZ7HVYX2S63FXT",
   "strategy": "manual-commit",
   "branch": "eng-2363-documentation-for-schema-import-and-export",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "apps/website/content/obsidian/advanced-features/_meta.ts",
     "apps/website/content/obsidian/advanced-features/sync-and-import.md",
@@ -17,20 +17,27 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": "/0/prompt.txt"
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 10,
-    "cache_creation_tokens": 8437,
-    "cache_read_tokens": 1083938,
-    "output_tokens": 2347,
-    "api_call_count": 5,
+    "input_tokens": 38,
+    "cache_creation_tokens": 22528,
+    "cache_read_tokens": 3042994,
+    "output_tokens": 9507,
+    "api_call_count": 19,
     "subagent_tokens": {
-      "input_tokens": 0,
-      "cache_creation_tokens": 0,
-      "cache_read_tokens": 0,
-      "output_tokens": 0,
-      "api_call_count": 0
+      "input_tokens": 10,
+      "cache_creation_tokens": 74544,
+      "cache_read_tokens": 266645,
+      "output_tokens": 56,
+      "api_call_count": 5
     }
   }
 }
