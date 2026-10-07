@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M4BRABGG6SDBZW6TMVNTBKN3",
+  "strategy": "manual-commit",
+  "branch": "eng-2339-import-cross-space-relations-into-obsidian",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "apps/obsidian/src/utils/importRelations.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 34,
+    "cache_creation_tokens": 22996,
+    "cache_read_tokens": 2748111,
+    "output_tokens": 12300,
+    "api_call_count": 17,
+    "subagent_tokens": {
+      "input_tokens": 8,
+      "cache_creation_tokens": 51224,
+      "cache_read_tokens": 137053,
+      "output_tokens": 50,
+      "api_call_count": 4
+    }
+  }
+}
