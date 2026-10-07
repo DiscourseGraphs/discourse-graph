@@ -173,6 +173,8 @@ CREATE TRIGGER concept_propagate_derived_columns_trigger
     FOR EACH ROW WHEN (NEW.is_schema AND OLD.literal_content IS DISTINCT FROM NEW.literal_content)
     EXECUTE FUNCTION public.concept_propagate_derived_columns();
 
+-- Single SELECT from Concept: PostgREST cannot infer foreign keys through a UNION.
+-- (SELECT ...) runs each space lookup once per query, not per row; ::bigint [] keeps = any() an array comparison.
 CREATE OR REPLACE VIEW public.my_concepts AS
 SELECT
     id,
@@ -192,11 +194,15 @@ SELECT
     source_local_id,
     is_relation
 FROM public."Concept"
-    LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
-WHERE (
-    space_id = any(public.my_space_ids('reader'))
-    OR (space_id = any(public.my_space_ids('partial')) AND ra.space_id IS NOT null)
-);
+WHERE
+    space_id = any((SELECT public.my_space_ids('reader'))::bigint [])
+    OR (
+        space_id = any((SELECT public.my_space_ids('partial'))::bigint [])
+        AND (space_id, source_local_id) IN (SELECT space_id, source_local_id FROM public.my_accessible_resources())
+    );
+
+-- Single-table views are writable, and writes run as the view owner, bypassing Concept's RLS.
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.my_concepts FROM anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.can_view_concept(concept_id BIGINT) RETURNS BOOLEAN
 STABLE

@@ -26,19 +26,25 @@ Relationship types define how different nodes in your discourse graph can connec
 
 ## Configuring valid relationships
 
-After creating relationship types, you need to define which node types can be connected by each relationship.
+After creating relationship types, you need to define which node types can be connected by each relationship. There are two ways to configure the relationships between two node types.
 
-1. Open the Discourse Relations tab in settings
-   ![discourse relation](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FNgm7Ha4Ul5.png?alt=media&token=a933bd3a-d9a6-42c1-9c6e-d779d41c7ebf)
+### From the canvas
 
-2. Choose the components:
-   - Source Node Type (e.g., Claim)
-   - Relationship Type (e.g., supports)
-   - Target Node Type (e.g., Question)
-     ![choose relation](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FlflJBkfdaK.png?alt=media&token=5de9617c-6099-46e8-931f-feafc604cabb)
+While connecting two nodes on the canvas, you can add an existing relationship type or create a new one for those node types. See [Add a relation type from the canvas](/docs/obsidian/core-features/canvas#add-a-relation-type-from-the-canvas).
 
-3. Review and confirm the configuration
-   ![final relations](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fdiscourse-graphs%2FycPW-N-rY8.png?alt=media&token=54867be2-9030-4c6c-82d2-b96069e52d81)
+### From settings
+
+1. Open Obsidian **Settings**, then the **Discourse Graphs** tab
+2. Open the **Discourse relations** tab
+   ![Discourse relations settings](/docs/obsidian/discourse-relations-settings.png)
+3. Click **Add relation**
+4. In the new row, choose:
+   - **Source Node Type** (for example, Claim)
+   - **Relation Type** (for example, supports / is supported by)
+   - **Target Node Type** (for example, Question)
+     ![Add discourse relation](/docs/obsidian/discourse-relations-add.png)
+
+The relation saves automatically once all three are set.
 
 ## Example relationships
 

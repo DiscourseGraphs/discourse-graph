@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   QueryEngine,
   rankDiscourseNodesByTitle,
-  type DiscourseNodeCandidate,
+  type SearchableNode,
 } from "~/services/QueryEngine";
 import type { DiscourseNode } from "~/types";
 
@@ -243,6 +243,69 @@ const createVaultApp = (notes: VaultNote[]) => {
   return { app, cachedRead };
 };
 
+describe("QueryEngine.getSearchableNodes", () => {
+  const IMPORTED_QUESTION: DiscourseNode = {
+    id: "remote-question",
+    name: "Question",
+    format: "QUE - {content}",
+    created: 0,
+    modified: 0,
+    importedFromRid: "orn:obsidian.schema:remote-vault/remote-question",
+  };
+  const nodeTypes = [CLAIM, IMPORTED_QUESTION];
+
+  const files = {
+    claim: createFile("CLM - Local claim.md"),
+    imported: createFile("import/remote-vault/QUE - Imported question.md"),
+    unknown: createFile("Stray note.md"),
+    empty: createFile("Empty type.md"),
+    nonString: createFile("Numeric type.md"),
+  };
+  const frontmatterByPath: Record<string, Frontmatter> = {
+    [files.claim.path]: { nodeTypeId: "claim" },
+    [files.imported.path]: {
+      nodeTypeId: "remote-question",
+      importedFromRid: "orn:obsidian.note:remote-vault/abc",
+    },
+    [files.unknown.path]: { nodeTypeId: "bogus" },
+    [files.empty.path]: { nodeTypeId: "" },
+    [files.nonString.path]: { nodeTypeId: 42 },
+  };
+  const allFiles = Object.values(files);
+
+  it.each([
+    { path: "Datacore", datacoreInitialized: true },
+    { path: "the vault-scan fallback", datacoreInitialized: false },
+  ])(
+    "keeps only configured local and imported node types via $path",
+    ({ datacoreInitialized }) => {
+      const datacoreQuery = vi.fn(() =>
+        allFiles.map((file) => ({ $path: file.path })),
+      );
+      const { app, getMarkdownFiles } = createApp({
+        datacoreInitialized,
+        datacoreQuery,
+        files: allFiles,
+        frontmatterByPath,
+      });
+
+      const nodes = new QueryEngine(app).getSearchableNodes(nodeTypes);
+
+      expect(nodes.map((node) => [node.file.path, node.nodeTypeId])).toEqual([
+        [files.claim.path, "claim"],
+        [files.imported.path, "remote-question"],
+      ]);
+      if (datacoreInitialized) {
+        expect(datacoreQuery).toHaveBeenCalledOnce();
+        expect(getMarkdownFiles).not.toHaveBeenCalled();
+      } else {
+        expect(datacoreQuery).not.toHaveBeenCalled();
+        expect(getMarkdownFiles).toHaveBeenCalledOnce();
+      }
+    },
+  );
+});
+
 describe("QueryEngine.getCandidateNodes", () => {
   it("returns only the tagged line of a paragraph as the candidate title", async () => {
     const { app } = createVaultApp([
@@ -386,18 +449,12 @@ describe("QueryEngine.getCandidateNodes", () => {
 });
 
 describe("rankDiscourseNodesByTitle with candidate nodes", () => {
-  const node = (
-    title: string,
-    nodeTypeId = "claim",
-  ): DiscourseNodeCandidate => ({
+  const node = (title: string, nodeTypeId = "claim"): SearchableNode => ({
     file: createFile(`${title}.md`),
     title,
     nodeTypeId,
   });
-  const candidate = (
-    title: string,
-    nodeTypeId = "claim",
-  ): DiscourseNodeCandidate => ({
+  const candidate = (title: string, nodeTypeId = "claim"): SearchableNode => ({
     file: createFile("Journal.md"),
     title,
     nodeTypeId,

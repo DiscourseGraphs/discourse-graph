@@ -332,6 +332,156 @@ Then(
 );
 /* eslint-enable max-params */
 
+const INSUFFICIENT_PRIVILEGE = "42501";
+
+// Exact list comparison, so duplicated rows fail.
+const expectVisibleConcepts = async ({
+  viewerSpaceName,
+  filterSpaceName,
+  inFilterSpace,
+  table,
+}: {
+  viewerSpaceName: string;
+  filterSpaceName: string;
+  inFilterSpace: boolean;
+  table: DataTable;
+}): Promise<void> => {
+  const localRefs = (world.localRefs || {}) as LocalRefsType;
+  const viewerSpaceId = localRefs[viewerSpaceName];
+  const filterSpaceId = localRefs[filterSpaceName];
+  if (typeof viewerSpaceId !== "number")
+    assert.fail("viewer spaceId not a number");
+  if (typeof filterSpaceId !== "number")
+    assert.fail("filter spaceId not a number");
+  const client = await getLoggedinDatabase(viewerSpaceId);
+  const query = client.from("my_concepts").select("id");
+  const response = await (inFilterSpace
+    ? query.eq("space_id", filterSpaceId)
+    : query.neq("space_id", filterSpaceId));
+  assert.equal(response.error, null);
+  const expectedIds = table.hashes().map(({ concept }) => {
+    const id = localRefs[concept!];
+    if (typeof id !== "number") assert.fail(`unknown concept ${concept}`);
+    return id;
+  });
+  const visibleIds = (response.data || []).map(({ id }) => id!);
+  const byId = (a: number, b: number): number => a - b;
+  assert.deepEqual(visibleIds.sort(byId), expectedIds.sort(byId));
+};
+
+Then(
+  "a user logged in space {word} should see these concepts in space {word}:",
+  (viewerSpaceName: string, filterSpaceName: string, table: DataTable) =>
+    expectVisibleConcepts({
+      viewerSpaceName,
+      filterSpaceName,
+      inFilterSpace: true,
+      table,
+    }),
+);
+
+type ViewWrites = Record<
+  "insert" | "update" | "delete",
+  () => PromiseLike<PostgrestSingleResponse<null>>
+>;
+
+// Each update and delete filter matches visible rows, so a granted write would succeed.
+const expectWriteRejected = async (
+  operation: string,
+  writes: ViewWrites,
+): Promise<void> => {
+  if (!Object.hasOwn(writes, operation))
+    assert.fail(`unknown operation ${operation}`);
+  const response = await writes[operation as keyof ViewWrites]();
+  assert.equal(response.error?.code, INSUFFICIENT_PRIVILEGE);
+};
+
+const getSpaceClient = async (
+  spaceName: string,
+): Promise<{
+  spaceId: number;
+  client: Awaited<ReturnType<typeof getLoggedinDatabase>>;
+}> => {
+  const localRefs = (world.localRefs || {}) as LocalRefsType;
+  const spaceId = localRefs[spaceName];
+  if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+  return { spaceId, client: await getLoggedinDatabase(spaceId) };
+};
+
+Then(
+  "a user logged in space {word} cannot {word} concepts through my_concepts",
+  async (spaceName: string, operation: string) => {
+    const { spaceId, client } = await getSpaceClient(spaceName);
+    const view = client.from("my_concepts");
+    const now = new Date().toISOString();
+    await expectWriteRejected(operation, {
+      insert: () =>
+        view.insert({
+          name: "written through my_concepts",
+          space_id: spaceId,
+          created: now,
+          last_modified: now,
+        }),
+      update: () =>
+        view
+          .update({ name: "written through my_concepts" })
+          .eq("space_id", spaceId),
+      delete: () => view.delete().eq("space_id", spaceId),
+    });
+  },
+);
+
+Then(
+  "a user logged in space {word} cannot {word} spaces through my_spaces",
+  async (spaceName: string, operation: string) => {
+    const { spaceId, client } = await getSpaceClient(spaceName);
+    const view = client.from("my_spaces");
+    await expectWriteRejected(operation, {
+      insert: () =>
+        view.insert({
+          name: "written through my_spaces",
+          url: "https://example.com/written-through-my-spaces",
+          platform: "Roam",
+        }),
+      update: () =>
+        view.update({ name: "written through my_spaces" }).eq("id", spaceId),
+      delete: () => view.delete().eq("id", spaceId),
+    });
+  },
+);
+
+Then(
+  "a user logged in space {word} cannot {word} accounts through my_accounts",
+  async (spaceName: string, operation: string) => {
+    const { client } = await getSpaceClient(spaceName);
+    const view = client.from("my_accounts");
+    await expectWriteRejected(operation, {
+      insert: () =>
+        view.insert({
+          name: "written through my_accounts",
+          account_local_id: "written-through-my-accounts",
+          platform: "Roam",
+        }),
+      update: () =>
+        view
+          .update({ name: "written through my_accounts" })
+          .eq("platform", "Roam"),
+      delete: () => view.delete().eq("platform", "Roam"),
+    });
+  },
+);
+
+Then(
+  "a user logged in space {word} should see these concepts outside space {word}:",
+  (viewerSpaceName: string, filterSpaceName: string, table: DataTable) =>
+    expectVisibleConcepts({
+      viewerSpaceName,
+      filterSpaceName,
+      inFilterSpace: false,
+      table,
+    }),
+);
+
 // invoke the upsert_accounts_in_space function, expects json
 Given(
   "user {word} upserts these accounts to space {word}:",

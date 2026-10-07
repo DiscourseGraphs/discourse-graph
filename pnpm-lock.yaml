@@ -86,7 +86,7 @@ patchedDependencies:
     hash: b5bbaa41bf2edae401d2bcd96dfa3c24086b564f297ef2df16a3b3156cd51ecc
     path: patches/@tldraw__state@2.4.6.patch
   tldraw@2.4.6:
-    hash: 56e196052862c9a58a11b43e5e121384cd1d6548416afa0f16e9fbfbf0e4080d
+    hash: 1dc6e0d5a14876d58a705c3446a937e7811078b17a0918da85f9faa4b096d68a
     path: patches/tldraw@2.4.6.patch
 
 importers:
@@ -364,7 +364,7 @@ importers:
         version: 0.90.0(323501797697e57d5f8d07d52746f463)
       tldraw:
         specifier: 2.4.6
-        version: 2.4.6(patch_hash=56e196052862c9a58a11b43e5e121384cd1d6548416afa0f16e9fbfbf0e4080d)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+        version: 2.4.6(patch_hash=1dc6e0d5a14876d58a705c3446a937e7811078b17a0918da85f9faa4b096d68a)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       use-sync-external-store:
         specifier: 1.5.0
         version: 1.5.0(react@18.2.0)
@@ -16293,7 +16293,7 @@ snapshots:
       nanoid: 4.0.2
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
-      tldraw: 2.4.6(patch_hash=56e196052862c9a58a11b43e5e121384cd1d6548416afa0f16e9fbfbf0e4080d)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      tldraw: 2.4.6(patch_hash=1dc6e0d5a14876d58a705c3446a937e7811078b17a0918da85f9faa4b096d68a)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       ws: 8.18.3
     transitivePeerDependencies:
       - '@types/react'
@@ -23744,7 +23744,7 @@ snapshots:
       chalk: 5.6.0
       clipboardy: 4.0.0
 
-  tldraw@2.4.6(patch_hash=56e196052862c9a58a11b43e5e121384cd1d6548416afa0f16e9fbfbf0e4080d)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
+  tldraw@2.4.6(patch_hash=1dc6e0d5a14876d58a705c3446a937e7811078b17a0918da85f9faa4b096d68a)(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
     dependencies:
       '@radix-ui/react-alert-dialog': 1.1.15(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-context-menu': 2.2.16(@types/react-dom@18.2.17)(@types/react@18.2.21)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)

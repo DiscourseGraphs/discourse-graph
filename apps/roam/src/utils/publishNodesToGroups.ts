@@ -4,7 +4,10 @@ import {
   CrossAppRelationTripleSchema,
 } from "@repo/database/crossAppContracts";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
-import { getAvailableGroupIds } from "@repo/database/lib/groups";
+import {
+  getAvailableGroupIds,
+  getPublishedGroupIdsByRid,
+} from "@repo/database/lib/groups";
 import { nodeUidsWithTypeToCrossApp } from "./roamToCrossAppConverters";
 import {
   reifiedRelationToCrossApp,
@@ -22,7 +25,7 @@ import {
 import { ensurePartialSpaceAccess } from "@repo/database/lib/groups";
 import { isIgnorableUpsertError } from "@repo/database/lib/contextFunctions";
 import { getAllPages } from "@repo/database/lib/pagination";
-import { isRid, ridToSpaceUriAndLocalId } from "@repo/database/lib/rid";
+import { isRid } from "@repo/database/lib/rid";
 import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
 import matchDiscourseNode from "./matchDiscourseNode";
 import { difference, intersection } from "@repo/utils/setOperations";
@@ -72,49 +75,6 @@ export const getAllPublishedIdsByGroup = async ({
   return publishedIdsByGroupId;
 };
 
-const getSpaceIdAndUrlsByGroupId = async (
-  client: DGSupabaseClient,
-  groupIds: string[],
-): Promise<{
-  spaceUrlById: Record<number, string>;
-  spaceIdsByGroupId: Record<string, Set<number>>;
-}> => {
-  const response = await client
-    .from("SpaceAccess")
-    .select("account_uid, space_id")
-    .in("account_uid", groupIds);
-  if (response.error) throw response.error;
-  const spaceIds = response.data.map((r) => r.space_id);
-  const response2 = await client
-    .from("Space")
-    .select("id, url")
-    .in("id", spaceIds);
-  if (response2.error) throw response2.error;
-  const spaceUrlById = Object.fromEntries(
-    response2.data.map(({ id, url }) => [id, url]),
-  );
-  const spaceIdsByGroupId = Object.fromEntries(
-    groupIds.map((gid) => [gid, new Set<number>()]),
-  );
-  response.data.forEach(({ account_uid, space_id }) => {
-    spaceIdsByGroupId[account_uid].add(space_id);
-  });
-  return {
-    spaceUrlById,
-    spaceIdsByGroupId,
-  };
-};
-
-// Use readImportedSourceIdentity from eng-1859 when it's merged.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const isImportedFromSpaceUri = (nodeId: string): string | undefined => {
-  const identity = readImportedSourceIdentity(nodeId);
-  if (identity === undefined) return undefined;
-  const { sourceNodeRid } = identity;
-  const { spaceUri } = ridToSpaceUriAndLocalId(sourceNodeRid);
-  return spaceUri;
-};
-
 export const gatherCorrespondingRelations = async ({
   client,
   spaceId,
@@ -138,25 +98,9 @@ export const gatherCorrespondingRelations = async ({
   const allRelationSchemasById = Object.fromEntries(
     allRelationsSchemas.map((s) => [s.id, s]),
   );
-  const { spaceIdsByGroupId, spaceUrlById } = await getSpaceIdAndUrlsByGroupId(
-    client,
-    groupIds,
-  );
-  const spaceIdByUrl = Object.fromEntries(
-    Object.entries(spaceUrlById).map(([id, url]) => [url, Number.parseInt(id)]),
-  );
   // Should we even handle non-reified relations? Assuming not.
   // I need a way to know if a relation is imported, see importedFromSpaceId
   const allRelations = await getReifiedRelations();
-  const spaceIdOfNodes: Record<string, number> = {};
-  const isImportedFrom = (nodeLocalId: string): number => {
-    let cached = spaceIdOfNodes[nodeLocalId];
-    if (cached === undefined) {
-      cached = spaceIdOfNodes[nodeLocalId] =
-        spaceIdByUrl[isImportedFromSpaceUri(nodeLocalId) ?? ""] || spaceId;
-    }
-    return cached === spaceId ? 0 : cached;
-  };
   const relations =
     forNodeIds !== undefined
       ? allRelations.filter(
@@ -165,31 +109,44 @@ export const gatherCorrespondingRelations = async ({
             (forNodeIds.has(r.sourceUid) || forNodeIds.has(r.destinationUid)),
         )
       : allRelations.filter((r) => r.importedFromRid === undefined);
-  const publishedIdsByGroup = await getAllPublishedIdsByGroup({
-    client,
-    spaceId,
-    groupIds,
-  });
+  const importedRidByUid = new Map<string, string | undefined>();
+  const importedRidOf = (uid: string): string | undefined => {
+    if (!importedRidByUid.has(uid))
+      importedRidByUid.set(uid, readImportedSourceIdentity(uid)?.sourceNodeRid);
+    return importedRidByUid.get(uid);
+  };
+  const importedRids = new Set(
+    relations
+      .flatMap((r) => [
+        importedRidOf(r.sourceUid),
+        importedRidOf(r.destinationUid),
+      ])
+      .filter((rid) => rid !== undefined),
+  );
+  const [publishedIdsByGroup, publishedGroupIdsByRid] = await Promise.all([
+    getAllPublishedIdsByGroup({ client, spaceId, groupIds }),
+    getPublishedGroupIdsByRid({ client, rids: [...importedRids] }),
+  ]);
+  const isEndPublishedToGroup = (uid: string, groupId: string): boolean => {
+    const importedRid = importedRidOf(uid);
+    if (importedRid !== undefined)
+      return publishedGroupIdsByRid[importedRid].includes(groupId);
+    return (
+      publishedIdsByGroup[groupId].has(uid) || (forNodeIds?.has(uid) ?? false)
+    );
+  };
   // calculate separately to avoid case of a relation between nodes published to or from different groups
   const relevantRelationIdsPerGroupId = Object.fromEntries(
-    groupIds.map((groupId) => {
-      const groupSpaceIds = spaceIdsByGroupId[groupId];
-      const publishedIds = publishedIdsByGroup[groupId];
-      return [
-        groupId,
-        relations
-          .filter(
-            (r) =>
-              (publishedIds.has(r.sourceUid) || // source already published
-                (forNodeIds ? forNodeIds.has(r.sourceUid) : false) || // source will be published
-                groupSpaceIds.has(isImportedFrom(r.sourceUid) || 0)) && // source imported from known space
-              (publishedIds.has(r.destinationUid) || // destination already published
-                (forNodeIds ? forNodeIds.has(r.destinationUid) : false) || // destination will be published
-                groupSpaceIds.has(isImportedFrom(r.destinationUid) || 0)), // destination imported from known space
-          )
-          .map((r) => r.relationId),
-      ];
-    }),
+    groupIds.map((groupId) => [
+      groupId,
+      relations
+        .filter(
+          (r) =>
+            isEndPublishedToGroup(r.sourceUid, groupId) &&
+            isEndPublishedToGroup(r.destinationUid, groupId),
+        )
+        .map((r) => r.relationId),
+    ]),
   );
   const allRelevantRelationIds = new Set(
     Object.values(relevantRelationIdsPerGroupId).flat(),
@@ -389,11 +346,6 @@ export const publishNodesToGroups = async ({
   const nodesByUid = new Map(nodes.map((node) => [node.localId, node]));
   let nodeUids = [...nodesByUid.keys()];
   const nodeSchemaUids = new Set(nodes.map((node) => node.nodeType));
-  const discourseNodes = getDiscourseNodes();
-  const nodeSchemas = discourseNodes
-    .filter((s) => nodeSchemaUids.has(s.type))
-    .map((s) => nodeSchemaToCrossApp(s))
-    .filter((s) => s !== null);
   const { relations, relationTripleSchemas, relevantRelationIdsPerGroupId } =
     await gatherCorrespondingRelations({
       client,
@@ -401,6 +353,22 @@ export const publishNodesToGroups = async ({
       groupIds,
       forNodeIds: new Set(nodeUids),
     });
+  // An imported end's node type is not published along with its node, and may
+  // not be synced yet. A triple whose end type is missing fails its upsert, and its
+  // relation is then stored without a schema, so upload the end types here.
+  const relationEndTypeUids = new Set(
+    relationTripleSchemas.flatMap((rs3) => [
+      rs3.sourceType,
+      rs3.destinationType,
+    ]),
+  );
+  const discourseNodes = getDiscourseNodes();
+  const nodeSchemas = discourseNodes
+    .filter(
+      (s) => nodeSchemaUids.has(s.type) || relationEndTypeUids.has(s.type),
+    )
+    .map((s) => nodeSchemaToCrossApp(s))
+    .filter((s) => s !== null);
 
   const relationUids = relations.map((r) => r.localId);
   const relationTripleSchemaUids = relationTripleSchemas.map((r) => r.localId);
@@ -413,6 +381,7 @@ export const publishNodesToGroups = async ({
 
   const neededUids = [
     ...nodeSchemaUids,
+    ...relationEndTypeUids,
     ...relationTripleSchemaUids,
     ...relationUids,
     ...localSourceUids,
@@ -564,19 +533,27 @@ export const publishNodesToGroups = async ({
       (r) =>
         groupRelationIds.has(r.localId) &&
         !failedUpsertIds.has(r.localId) &&
+        !failedUpsertIds.has(r.relationType) &&
         !failedUpsertIds.has(r.source) &&
         !failedUpsertIds.has(r.destination),
     );
     groupRelationIds = new Set(groupRelations.map((r) => r.localId));
     const groupRelationTripleSchemaIds = new Set(
-      groupRelations
-        .map((r) => r.relationType)
-        .filter((r) => !failedUpsertIds.has(r)),
+      groupRelations.map((r) => r.relationType),
+    );
+    // Importers need the end types to map the triple to their own node types.
+    const groupRelationEndTypeIds = new Set(
+      relationTripleSchemas
+        .filter((rs3) => groupRelationTripleSchemaIds.has(rs3.localId))
+        .flatMap((rs3) => [rs3.sourceType, rs3.destinationType]),
     );
     const groupResourceIds = [
-      ...resourceIds,
-      ...groupRelationIds,
-      ...groupRelationTripleSchemaIds,
+      ...new Set([
+        ...resourceIds,
+        ...groupRelationIds,
+        ...groupRelationTripleSchemaIds,
+        ...groupRelationEndTypeIds,
+      ]),
     ];
     resourceAccesses.push(
       ...groupResourceIds.map((sourceLocalId) => ({
