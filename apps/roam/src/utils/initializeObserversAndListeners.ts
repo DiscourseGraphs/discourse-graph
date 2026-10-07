@@ -124,8 +124,11 @@ export const initObservers = ({
 
       const sharingEnabled =
         settings.featureFlags[FEATURE_FLAG_KEYS.enableNodeSharing];
+      const syncEnabled =
+        settings.featureFlags[FEATURE_FLAG_KEYS.suggestiveModeOverlayEnabled];
       const isImportedNode =
-        sharingEnabled && Boolean(uid && readImportedSourceIdentity(uid));
+        (syncEnabled || sharingEnabled) &&
+        Boolean(uid && readImportedSourceIdentity(uid));
       if (isImportedNode) {
         renderRefreshImportedNodeTitleButton({ h1, uid });
       }

@@ -29,7 +29,6 @@ export type DiscoverSharedRelationsResult = {
 export const discoverSharedRelations = async (
   client: DGSupabaseClient,
   spaceId: number,
-  futureImportRids?: string[],
 ): Promise<DiscoverSharedRelationsResult> => {
   const response: DiscoverSharedRelationsResult = {
     relations: [],
@@ -82,9 +81,6 @@ export const discoverSharedRelations = async (
       .map(({ id }) => id),
   );
   const importedNodeRids = await getImportedSourceRids();
-  if (futureImportRids !== undefined) {
-    futureImportRids.forEach((id) => importedNodeRids.add(id));
-  }
   const dbRelations = dbAllImportableRelations.filter((r) => {
     const references = (r.reference_content || {}) as Record<string, number>;
     const sourceId = references["source"];
