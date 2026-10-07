@@ -27,7 +27,7 @@ export const parseSourceIdentity = (
   return { sourceModifiedAt, sourceNodeRid };
 };
 
-const parseImportedSourceIdentity = (
+export const parseImportedSourceIdentity = (
   props: Record<string, json>,
 ): ImportedSourceIdentity | undefined => {
   const discourseGraphProps = props[DISCOURSE_GRAPH_PROP_NAME];

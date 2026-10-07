@@ -39,7 +39,6 @@ import { DEFAULT_SETTINGS } from "~/constants";
 import ModifyNodeModal from "~/components/ModifyNodeModal";
 import {
   createDiscourseTagExtension,
-  DiscourseTagStyleManager,
   refreshDiscourseTagColors,
 } from "~/utils/tagNodeHandler";
 import { TldrawView } from "~/components/canvas/TldrawView";
@@ -65,7 +64,6 @@ import {
 export default class DiscourseGraphPlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
   relationsIndex: RelationsIndex = new RelationsIndex(this);
-  private tagStyleManager: DiscourseTagStyleManager | null = null;
   private fileChangeListener: FileChangeListener | null = null;
   private activeNodePopover:
     | NodeTagSuggestPopover
@@ -373,16 +371,6 @@ export default class DiscourseGraphPlugin extends Plugin {
     this.registerEditorExtension(createDiscourseContextOverlayExtension(this));
 
     this.registerEditorExtension(createDiscourseTagExtension(this));
-
-    this.tagStyleManager = new DiscourseTagStyleManager(this);
-    this.tagStyleManager.apply();
-    // A popout window has its own document, which the bundled styles.css
-    // reaches but the generated tag colours do not until they are re-applied.
-    this.registerEvent(
-      this.app.workspace.on("window-open", () => {
-        this.tagStyleManager?.apply();
-      }),
-    );
   }
 
   updateFrontmatterStyles(): void {
@@ -444,7 +432,6 @@ export default class DiscourseGraphPlugin extends Plugin {
   async saveSettings() {
     await this.saveData(this.settings);
     this.updateFrontmatterStyles();
-    this.tagStyleManager?.apply();
     refreshDiscourseTagColors(this);
   }
 
@@ -494,9 +481,6 @@ export default class DiscourseGraphPlugin extends Plugin {
     this.activeNodePopover = null;
     this.cleanupViewActions();
     activeDocument.body.classList.remove("dg-hide-frontmatter-ids");
-
-    this.tagStyleManager?.destroy();
-    this.tagStyleManager = null;
 
     if (this.fileChangeListener) {
       this.fileChangeListener.cleanup();

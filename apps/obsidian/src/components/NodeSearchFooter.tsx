@@ -4,6 +4,7 @@ import { getHintKeys, type HintKey } from "~/utils/keyboardHints";
 type NodeSearchFooterProps = {
   canAct: boolean;
   canInsertLink: boolean;
+  isActiveResultLinkable: boolean;
   onClose: () => void;
   onInsertLink: () => void;
   onOpenInNewTab: () => void;
@@ -53,6 +54,7 @@ const FooterAction = ({
 export const NodeSearchFooter = ({
   canAct,
   canInsertLink,
+  isActiveResultLinkable,
   onClose,
   onInsertLink,
   onOpenInNewTab,
@@ -62,7 +64,7 @@ export const NodeSearchFooter = ({
     {/* Absent, not disabled: with no cursor there is nothing to insert into. */}
     {canInsertLink && (
       <FooterAction
-        disabled={!canAct}
+        disabled={!canAct || !isActiveResultLinkable}
         keys={["Mod", "Enter"]}
         label="insert link at cursor"
         onClick={onInsertLink}

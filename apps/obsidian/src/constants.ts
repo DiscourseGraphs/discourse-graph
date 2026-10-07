@@ -115,7 +115,7 @@ export const DEFAULT_SETTINGS: Settings = {
   ],
   showIdsInFrontmatter: false,
   nodesFolderPath: "",
-  canvasFolderPath: "Discourse Canvas",
+  canvasFolderPath: "",
   canvasAttachmentsFolderPath: "attachments",
   nodeTagHotkey: "\\",
   showHelpMenuStatusBarIcon: false,
@@ -123,7 +123,6 @@ export const DEFAULT_SETTINGS: Settings = {
   spacePassword: undefined,
   accountLocalId: undefined,
   syncModeEnabled: false,
-  nodeCardContextMenuEnabled: false,
   spaceNames: {},
 };
 

@@ -5,7 +5,6 @@ import {
   TLImageShape,
   TLShape,
   TLShapeId,
-  TLTextShape,
   TLUiDialogProps,
   TLUiOverrides,
   TLUiTranslationKey,
@@ -50,12 +49,16 @@ import { DiscourseContextType } from "./Tldraw";
 import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import {
   COLOR_ARRAY,
-  DISCOURSE_NODE_SHAPE_TYPE,
   getDiscourseNodeTypeId,
   isDiscourseNodeShape,
   type DiscourseNodeShape,
 } from "./DiscourseNodeUtil";
-import calcCanvasNodeSizeAndImg from "~/utils/calcCanvasNodeSizeAndImg";
+import {
+  replaceShapeWithDiscourseNode,
+  uploadImageShapeToRoam,
+  getShapeText,
+  isConvertibleShape,
+} from "./convertShapeToDiscourseNode";
 import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelationTool";
 import {
   DiscourseRelationShape,
@@ -66,7 +69,7 @@ import {
   getValidRelationTypesBetween,
   persistRelationArrow,
 } from "./overlays/relationCreation";
-import { getAllRelations } from "./canvasUtils";
+import { getCreatableRelations } from "./canvasUtils";
 import { createOrUpdateArrowBinding } from "./DiscourseRelationShape/helpers";
 import DiscourseGraphPanel from "./DiscourseToolPanel";
 import type { CanvasNodeShortcuts } from "~/components/settings/utils/zodSchema";
@@ -172,8 +175,6 @@ export const getOnSelectForShape = ({
   editor: Editor;
   extensionAPI: OnloadArgs["extensionAPI"];
 }) => {
-  const { x, y } = shape;
-
   const openDialogAndCreateShape = ({
     initialText,
     imageUrl,
@@ -189,65 +190,34 @@ export const getOnSelectForShape = ({
       includeDefaultNodes: true,
       disableNodeTypeChange: true,
       imageUrl,
-      onSuccess: async ({ text, uid }) => {
-        editor.deleteShapes([shape.id]);
-
-        const {
-          h,
-          w,
-          imageUrl: nodeImageUrl,
-        } = await calcCanvasNodeSizeAndImg({
-          nodeText: text,
+      onSuccess: ({ text, uid }) =>
+        replaceShapeWithDiscourseNode({
+          editor,
           extensionAPI,
+          shape,
           nodeType,
+          text,
           uid,
-        });
-        editor.createShapes([
-          {
-            type: DISCOURSE_NODE_SHAPE_TYPE,
-            id: createShapeId(),
-            props: {
-              uid,
-              title: text,
-              h,
-              w,
-              imageUrl: nodeImageUrl,
-              fontFamily: "sans",
-              size: "s",
-              nodeTypeId: nodeType,
-            },
-            x,
-            y,
-          },
-        ]);
-      },
+        }),
       onClose: () => {},
     });
   };
 
+  if (!isConvertibleShape(shape)) return () => {};
+
   if (shape.type === "image") {
     return async () => {
-      const { assetId } = (shape as TLImageShape).props;
-      if (!assetId) return;
-      const asset = editor.getAsset(assetId);
-      if (!asset || !asset.props.src) return;
-      const file = await fetch(asset.props.src)
-        .then((r) => r.arrayBuffer())
-        .then((buf) => new File([buf], shape.id));
-      // this is a promise
-      // eslint-disable-next-line @typescript-eslint/await-thenable
-      const src = await window.roamAlphaAPI.util.uploadFile({ file });
+      const src = await uploadImageShapeToRoam({
+        editor,
+        shape: shape as TLImageShape,
+      });
+      if (!src) return;
       const initialText = nodeType === "blck-node" ? `![](${src})` : "";
 
       openDialogAndCreateShape({ initialText, imageUrl: src });
     };
-  } else if (shape.type === "text") {
-    return () => {
-      const { text } = (shape as TLTextShape).props;
-      openDialogAndCreateShape({ initialText: text });
-    };
   }
-  return () => {};
+  return () => openDialogAndCreateShape({ initialText: getShapeText(shape) });
 };
 
 type ArrowBoundNodeInfo = {
@@ -300,7 +270,9 @@ const convertArrowToRelation = async ({
   const boundNodes = getArrowBoundNodeInfo(editor, arrow);
   if (!boundNodes) return null;
 
-  const selectedRelation = getAllRelations().find((r) => r.id === relationId);
+  const selectedRelation = getCreatableRelations().find(
+    (r) => r.id === relationId,
+  );
   if (!selectedRelation) return null;
 
   const sourceNode = editor.getShape(boundNodes.startId);
@@ -436,7 +408,7 @@ export const CustomContextMenu = ({
   const shareableResults = getShareableCanvasSelectionResults({
     shapes: selectedShapes,
   });
-  const isTextSelected = selectedShape?.type === "text";
+  const canConvertSelectedShape = isConvertibleShape(selectedShape);
   const isImageSelected = selectedShape?.type === "image";
   const arrowRelationOptions = useValue(
     "arrowRelationOptions",
@@ -483,7 +455,7 @@ export const CustomContextMenu = ({
           />
         </TldrawUiMenuGroup>
       )}
-      {(isTextSelected || isImageSelected) && (
+      {selectedShape && canConvertSelectedShape && (
         <TldrawUiMenuGroup id="convert-to-group">
           <TldrawUiMenuSubmenu id="convert-to-submenu" label="Convert To">
             {allNodes

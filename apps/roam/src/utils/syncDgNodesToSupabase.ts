@@ -29,6 +29,7 @@ import {
   summarizeAssetResults,
   type NodeAssetResult,
 } from "./publishNodeAssets";
+import { requestAssetRetries } from "./requestAssetRetry";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { intersection } from "@repo/utils/setOperations";
 import { CORE_TITLE_PROBE_SELECT } from "@repo/database/lib/coreTitleBackfill";
@@ -930,10 +931,23 @@ const reportCoreTitleBackfill = ({
 };
 
 /**
- * A failed copy is not retried until the node changes again, so the counts are the only
- * standing signal that a shared node's asset never reached storage.
+ * A Roam asset URL's query string carries a download token that grants access to the
+ * file, so it must not reach analytics. The path still identifies the asset.
  */
-const reportSharedNodeAssets = (results: NodeAssetResult[]): void => {
+const withoutUrlQueries = (text: string): string =>
+  text.replace(/(https?:\/\/[^\s?]+)\?[^\s)]*/g, "$1");
+
+/**
+ * Retries are unbounded, so the per-asset events are how a node that keeps failing is
+ * found.
+ */
+export const reportSharedNodeAssets = ({
+  results,
+  retried,
+}: {
+  results: NodeAssetResult[];
+  retried: ReadonlySet<string>;
+}): void => {
   if (results.length === 0) return;
   const { copied, unchanged, distinctBlobs, tooLarge, failed } =
     summarizeAssetResults(results);
@@ -944,6 +958,16 @@ const reportSharedNodeAssets = (results: NodeAssetResult[]): void => {
     tooLarge: tooLarge.length,
     failed: failed.length,
   });
+  // Per node, unlike the summary: the same file failing in two nodes is two retries.
+  for (const result of results) {
+    if (result.status !== "failed") continue;
+    posthog.capture("Sync shared node asset failed", {
+      sourceLocalId: result.sourceLocalId,
+      sourceRef: withoutUrlQueries(result.sourceRef),
+      error: withoutUrlQueries(result.error),
+      retryScheduled: retried.has(result.sourceLocalId),
+    });
+  }
   if (failed.length > 0) {
     console.warn(
       `Sync could not copy ${failed.length} shared node assets`,
@@ -1348,6 +1372,15 @@ export const createOrUpdateDiscourseEmbedding = async (
     claimed = true;
     const activeClaimedAt = new Date();
     claimedAt = activeClaimedAt;
+    // Must run before the upserts: a deleted schema still in the database
+    // holds its name, so upsert_concepts refuses a recreated schema with that
+    // name and the sync fails before reaching a later cleanup.
+    await measureSyncPhase({
+      phase: "cleanupOrphanedNodes",
+      phases,
+      operation: () =>
+        cleanupOrphanedNodes(activeSupabaseClient, activeContext),
+    });
     const allUsers = await measureSyncPhase({
       phase: "getAllUsers",
       phases,
@@ -1493,14 +1526,18 @@ export const createOrUpdateDiscourseEmbedding = async (
               activeContext,
             ),
     });
-    reportSharedNodeAssets(
-      await upsertSharedNodesFullContentWithAssets({
+    const sharedNodeAssetResults = await upsertSharedNodesFullContentWithAssets(
+      {
         nodes: sharedFullContentNodes,
         supabaseClient: activeSupabaseClient,
         context: activeContext,
         phases,
-      }),
+      },
     );
+    reportSharedNodeAssets({
+      results: sharedNodeAssetResults,
+      retried: await requestAssetRetries(sharedNodeAssetResults),
+    });
     await measureSyncPhase({
       phase: "convertConcepts",
       phases,
@@ -1532,12 +1569,6 @@ export const createOrUpdateDiscourseEmbedding = async (
         orphaned: coreTitleBackfill.orphanedCount,
       });
     }
-    await measureSyncPhase({
-      phase: "cleanupOrphanedNodes",
-      phases,
-      operation: () =>
-        cleanupOrphanedNodes(activeSupabaseClient, activeContext),
-    });
     const completeEndResult = await measureSyncPhase({
       phase: "endSyncTask",
       phases,

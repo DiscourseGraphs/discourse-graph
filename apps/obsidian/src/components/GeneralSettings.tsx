@@ -295,15 +295,15 @@ const GeneralSettings = () => {
         <div className="setting-item-info">
           <div className="setting-item-name">Canvas folder path</div>
           <div className="setting-item-description">
-            Folder where new Discourse Graph canvases will be created. Default:
-            &quot;Discourse Canvas&quot;.
+            Folder where new Discourse Graph canvases will be created. Leave
+            empty to create canvases in the root folder.
           </div>
         </div>
         <div className="setting-item-control">
           <FolderSuggestInput
             value={canvasFolderPath}
             onChange={handleCanvasFolderPathChange}
-            placeholder="Example: Discourse Canvas"
+            placeholder="Example: folder 1/folder"
           />
         </div>
       </div>

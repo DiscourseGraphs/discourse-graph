@@ -3,10 +3,15 @@ import React from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { act } from "react-dom/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import deleteBlock from "roamjs-components/writes/deleteBlock";
 import TentativeRelationInstances from "~/components/TentativeRelationInstances";
-import { getTentativeRelationInstances } from "~/utils/tentativeRelations";
+import {
+  getTentativeRelationInstances,
+  type TentativeRelationInstance,
+} from "~/utils/tentativeRelations";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import internalError from "~/utils/internalError";
+import { acceptTentativeRelationInstance } from "~/utils/createReifiedBlock";
 
 vi.mock("~/utils/tentativeRelations", () => ({
   getTentativeRelationInstances: vi.fn(),
@@ -97,5 +102,53 @@ describe("pending relation loading", () => {
     await render();
     expect(onCountChange).toHaveBeenCalledExactlyOnceWith(0);
     expect(getTentativeRelationInstances).not.toHaveBeenCalled();
+  });
+});
+
+describe("pending relation review actions", () => {
+  const SELECTED_ROW_INDEX = 1;
+  const pendingRelations: TentativeRelationInstance[] = [
+    "first",
+    "second",
+    "third",
+  ].map((instanceUid) => ({
+    instanceUid,
+    schemaUid: "schema",
+    sourceUid: "node",
+    destinationUid: `${instanceUid}-target`,
+  }));
+  const selectedInstanceUid = pendingRelations[SELECTED_ROW_INDEX].instanceUid;
+
+  const clickInSelectedRow = async (title: string): Promise<void> => {
+    const buttons = container.querySelectorAll<HTMLButtonElement>(
+      `button[title="${title}"]`,
+    );
+    expect(buttons).toHaveLength(pendingRelations.length);
+    await act(async () => {
+      buttons[SELECTED_ROW_INDEX].click();
+      await Promise.resolve();
+    });
+  };
+
+  beforeEach(() => {
+    vi.mocked(getTentativeRelationInstances).mockResolvedValue(
+      pendingRelations,
+    );
+  });
+
+  it("accepts the relation in the clicked row", async () => {
+    await render();
+    await clickInSelectedRow("Accept relation");
+    expect(acceptTentativeRelationInstance).toHaveBeenCalledExactlyOnceWith({
+      instanceUid: selectedInstanceUid,
+    });
+    expect(deleteBlock).not.toHaveBeenCalled();
+  });
+
+  it("removes the relation in the clicked row", async () => {
+    await render();
+    await clickInSelectedRow("Remove relation");
+    expect(deleteBlock).toHaveBeenCalledExactlyOnceWith(selectedInstanceUid);
+    expect(acceptTentativeRelationInstance).not.toHaveBeenCalled();
   });
 });

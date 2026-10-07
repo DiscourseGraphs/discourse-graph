@@ -37,6 +37,7 @@ import {
   type SharedNodeSortColumn,
 } from "~/utils/sortSharedNodes";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
+import StoredRelationsWarning from "~/components/StoredRelationsWarning";
 
 const IMPORT_ERROR_TYPE = "Shared node import failed";
 const IMPORT_ERROR_OPERATION = "import-shared-nodes";
@@ -388,6 +389,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
           "flex min-h-0 flex-col gap-3 overflow-auto",
         ].join(" ")}
       >
+        <StoredRelationsWarning />
         <div className="flex flex-none items-center gap-2">
           <InputGroup
             className="min-w-0 flex-1"

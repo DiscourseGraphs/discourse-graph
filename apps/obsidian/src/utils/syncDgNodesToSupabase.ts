@@ -36,6 +36,7 @@ import {
   collectDiscourseNodesFromVault,
 } from "./getDiscourseNodes";
 import { isAcceptedSchema } from "./typeUtils";
+import { diffSchemaIds, findIdsMissingSchema } from "./schemaReconciliation";
 import { getTemplatePluginInfo } from "./templates";
 import { difference } from "@repo/utils/setOperations";
 import { getAllPages } from "@repo/database/lib/pagination";
@@ -237,6 +238,87 @@ const getLastRelationSyncTime = async (
   return new Date((data?.last_modified || DEFAULT_TIME) + "Z");
 };
 
+// Must run before the schema upsert: a stale schema holding a name makes
+// upsert_concepts refuse the local schema with that name.
+const deleteStaleSchemasAndFindMissing = async ({
+  supabaseClient,
+  spaceId,
+  localSchemaIds,
+}: {
+  supabaseClient: DGSupabaseClient;
+  spaceId: number;
+  localSchemaIds: string[];
+}): Promise<Set<string>> => {
+  const rows = await getAllPages(
+    supabaseClient
+      .from("my_concepts")
+      .select("source_local_id")
+      .eq("space_id", spaceId)
+      .eq("is_schema", true)
+      .not("source_local_id", "is", null)
+      .order("id"),
+    1000,
+  );
+  if (!Array.isArray(rows)) {
+    console.error("Could not list schemas in the database:", rows);
+    return new Set();
+  }
+  const { staleSchemaIds, missingSchemaIds } = diffSchemaIds({
+    databaseSchemaIds: rows
+      .map((row) => row.source_local_id)
+      .filter((id): id is string => id !== null),
+    localSchemaIds,
+  });
+  if (staleSchemaIds.size > 0) {
+    const { error: deleteError } = await supabaseClient
+      .from("Concept")
+      .delete()
+      .eq("space_id", spaceId)
+      .eq("is_schema", true)
+      .in("source_local_id", [...staleSchemaIds]);
+    if (deleteError)
+      console.error("Could not delete stale schemas:", deleteError);
+  }
+  return missingSchemaIds;
+};
+
+// A relation with no schema reference also has is_relation false, since that
+// column is derived from the schema, so this probe cannot filter on it.
+const findRelationIdsMissingSchema = async ({
+  supabaseClient,
+  spaceId,
+  relationInstances,
+  relationTypeIds,
+}: {
+  supabaseClient: DGSupabaseClient;
+  spaceId: number;
+  relationInstances: RelationInstance[];
+  relationTypeIds: Set<string>;
+}): Promise<Set<string>> => {
+  const rows = await getAllPages(
+    supabaseClient
+      .from("my_concepts")
+      .select("source_local_id, schema_id")
+      .eq("space_id", spaceId)
+      .eq("is_schema", false)
+      .is("schema_id", null)
+      .order("id"),
+    1000,
+  );
+  if (!Array.isArray(rows)) {
+    console.error("Could not list concepts with no schema:", rows);
+    return new Set();
+  }
+  return findIdsMissingSchema({
+    rows,
+    items: relationInstances.map((relation) => ({
+      id: relation.id,
+      typeId: relation.type,
+    })),
+    typeIds: relationTypeIds,
+  });
+};
+
 type BuildChangedNodesOptions = {
   nodes: DiscourseNodeInVault[];
   supabaseClient: DGSupabaseClient;
@@ -244,6 +326,7 @@ type BuildChangedNodesOptions = {
   changeTypesByPath?: Map<string, ChangeType[]>;
   fullSync?: boolean;
   sourceSlotByNodeId?: Record<string, string>;
+  nodeTypeIds?: Set<string>;
 };
 
 type BuildChangedNodesResult = {
@@ -346,6 +429,7 @@ const buildChangedNodesFromNodes = async ({
   changeTypesByPath,
   fullSync = false,
   sourceSlotByNodeId,
+  nodeTypeIds,
 }: BuildChangedNodesOptions): Promise<BuildChangedNodesResult> => {
   if (nodes.length === 0) {
     return { changedNodes: [] };
@@ -366,11 +450,14 @@ const buildChangedNodesFromNodes = async ({
   let missingConcepts: Set<string> | undefined;
   let missingCoreTitleIds: Set<string> | undefined;
   let staleSourceSlotIds: Set<string> | undefined;
+  let missingSchemaNodeIds: Set<string> | undefined;
   if (fullSync) {
     const existingConceptIds = await getAllPages(
       supabaseClient
         .from("my_concepts")
-        .select(`${CORE_TITLE_PROBE_SELECT}, ${SOURCE_SLOT_PROBE_SELECT}`)
+        .select(
+          `${CORE_TITLE_PROBE_SELECT}, ${SOURCE_SLOT_PROBE_SELECT}, schema_id`,
+        )
         .eq("space_id", context.spaceId)
         .eq("is_relation", false)
         .eq("is_schema", false)
@@ -399,6 +486,15 @@ const buildChangedNodesFromNodes = async ({
           sourceSlotByNodeId,
           spaceId: context.spaceId,
         });
+      if (nodeTypeIds)
+        missingSchemaNodeIds = findIdsMissingSchema({
+          rows: existingConceptIds,
+          items: nodes.map((node) => ({
+            id: node.nodeInstanceId,
+            typeId: node.nodeTypeId,
+          })),
+          typeIds: nodeTypeIds,
+        });
     }
   }
 
@@ -421,7 +517,8 @@ const buildChangedNodesFromNodes = async ({
       finalChangeTypes.length === 0 &&
       !missingConcepts?.has(node.nodeInstanceId) &&
       !missingCoreTitleIds?.has(node.nodeInstanceId) &&
-      !staleSourceSlotIds?.has(node.nodeInstanceId)
+      !staleSourceSlotIds?.has(node.nodeInstanceId) &&
+      !missingSchemaNodeIds?.has(node.nodeInstanceId)
     ) {
       continue;
     }
@@ -495,6 +592,9 @@ export const syncAllNodesAndRelations = async (
           context,
           fullSync: true,
           sourceSlotByNodeId,
+          nodeTypeIds: new Set(
+            (plugin.settings.nodeTypes ?? []).map((nodeType) => nodeType.id),
+          ),
         });
 
     const accountLocalId = plugin.settings.accountLocalId;
@@ -576,6 +676,20 @@ const convertDgToSupabaseConcepts = async ({
     nodeTypes.map((nodeType) => [nodeType.id, nodeType]),
   );
 
+  // Missing schemas bypass the modified-time filters below: a refused schema can
+  // be older than the newest schema the database holds.
+  const missingSchemaIds = fullSync
+    ? await deleteStaleSchemasAndFindMissing({
+        supabaseClient,
+        spaceId: context.spaceId,
+        localSchemaIds: [
+          ...nodeTypes.map((nodeType) => nodeType.id),
+          ...relationTypes.map((relationType) => relationType.id),
+          ...discourseRelations.map((relation) => relation.id),
+        ],
+      })
+    : new Set<string>();
+
   const { isEnabled: templatesEnabled, folderPath: templatesFolderPath } =
     getTemplatePluginInfo(plugin.app);
 
@@ -608,7 +722,8 @@ const convertDgToSupabaseConcepts = async ({
       .filter(
         (nodeType) =>
           nodeType.modified > lastNodeSchemaSync ||
-          missingTemplateLocalIds.has(nodeType.id),
+          missingTemplateLocalIds.has(nodeType.id) ||
+          missingSchemaIds.has(nodeType.id),
       )
       .map(async (nodeType) => {
         let templateContent: string | undefined;
@@ -633,7 +748,11 @@ const convertDgToSupabaseConcepts = async ({
   );
 
   const relationTypesToLocalConcepts = relationTypes
-    .filter((relationType) => relationType.modified > lastRelationSchemaSync)
+    .filter(
+      (relationType) =>
+        relationType.modified > lastRelationSchemaSync ||
+        missingSchemaIds.has(relationType.id),
+    )
     .map((relationType) =>
       discourseRelationTypeToLocalConcept(context, relationType),
     );
@@ -642,6 +761,7 @@ const convertDgToSupabaseConcepts = async ({
     .filter(
       (relationTriple) =>
         relationTriple.modified > lastRelationSchemaSync ||
+        missingSchemaIds.has(relationTriple.id) ||
         // resync if type was changed, to update labels in triple
         (relationTypesById[relationTriple.relationshipTypeId]?.modified ?? 0) >
           lastRelationSchemaSync ||
@@ -664,6 +784,14 @@ const convertDgToSupabaseConcepts = async ({
   relationInstancesData =
     relationInstancesData ?? (await loadRelations(plugin));
   const relationInstances = Object.values(relationInstancesData.relations);
+  const relationIdsMissingSchema = fullSync
+    ? await findRelationIdsMissingSchema({
+        supabaseClient,
+        spaceId: context.spaceId,
+        relationInstances,
+        relationTypeIds: new Set(relationTypes.map((type) => type.id)),
+      })
+    : new Set<string>();
   sourceSlotByNodeId =
     sourceSlotByNodeId ??
     indexSourceSlots({ plugin, nodes: allNodes, relations: relationInstances });
@@ -694,8 +822,9 @@ const convertDgToSupabaseConcepts = async ({
       (relationInstanceData) =>
         !relationInstanceData.importedFromRid &&
         relationInstanceData.tentative !== false &&
-        (relationInstanceData.lastModified || relationInstanceData.created) >
-          lastRelationsSync,
+        ((relationInstanceData.lastModified || relationInstanceData.created) >
+          lastRelationsSync ||
+          relationIdsMissingSchema.has(relationInstanceData.id)),
     )
     .map((relationInstanceData) =>
       relationInstanceToLocalConcept({
