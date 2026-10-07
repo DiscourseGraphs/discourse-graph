@@ -431,6 +431,9 @@ SELECT
     platform
 FROM public."Space" WHERE id = any(public.my_space_ids('partial'));
 
+-- Single-table views are writable, and writes run as the view owner, bypassing Space's RLS.
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.my_spaces FROM anon, authenticated;
+
 -- PlatformAccount: Access to anyone sharing a space with you to create an account, to allow editing authors
 -- Once the account is claimed by a user, only allow this user to modify it.
 -- Eventually: Allow platform admin to modify?
@@ -457,6 +460,9 @@ WHERE id IN (
     UNION
     SELECT id FROM public."PlatformAccount" WHERE dg_account = auth.uid()
 );
+
+-- Single-table views are writable, and writes run as the view owner, bypassing PlatformAccount's RLS.
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.my_accounts FROM anon, authenticated;
 
 CREATE OR REPLACE VIEW public.my_pseudo_accounts AS
 SELECT

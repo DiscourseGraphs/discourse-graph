@@ -109,9 +109,17 @@ describe("importSharedNodes", () => {
     });
 
     expect(items).toEqual([
-      { sharedNode: sharedNodes[0], status: "imported" },
-      { sharedNode: sharedNodes[1], status: "imported" },
-      { sharedNode: sharedNodes[2], status: "skipped" },
+      {
+        sharedNode: sharedNodes[0],
+        status: "imported",
+        pageUid: "page-node-1",
+      },
+      {
+        sharedNode: sharedNodes[1],
+        status: "imported",
+        pageUid: "page-node-2",
+      },
+      { sharedNode: sharedNodes[2], status: "skipped", pageUid: "page-node-3" },
       {
         sharedNode: sharedNodes[3],
         status: "failed",
@@ -270,6 +278,7 @@ describe("importSharedNodes", () => {
       {
         sharedNode: sharedNodes[0],
         status: "imported",
+        pageUid: "page-node-1",
         warning: "No source was published with this node.",
       },
     ]);
@@ -294,7 +303,11 @@ describe("importSharedNodes", () => {
         status: "failed",
         message: "roam api unavailable",
       },
-      { sharedNode: sharedNodes[1], status: "imported" },
+      {
+        sharedNode: sharedNodes[1],
+        status: "imported",
+        pageUid: "page-node-2",
+      },
     ]);
   });
   it("imports a discovered source this graph lacks before the node that names it", async () => {
@@ -331,8 +344,8 @@ describe("importSharedNodes", () => {
       mockedMaterializeSharedNode.mock.calls.map(([args]) => args.sharedNode),
     ).toEqual([source, evidence]);
     expect(items).toEqual([
-      { sharedNode: source, status: "imported" },
-      { sharedNode: evidence, status: "imported" },
+      { sharedNode: source, status: "imported", pageUid: "page-source" },
+      { sharedNode: evidence, status: "imported", pageUid: "page-evidence" },
     ]);
     expect(onProgress.mock.calls).toEqual([
       [1, 2],
@@ -361,7 +374,9 @@ describe("importSharedNodes", () => {
     expect(mockedFindImportedNodeUidBySourceRid).toHaveBeenCalledWith(
       source.rid,
     );
-    expect(items).toEqual([{ sharedNode: evidence, status: "imported" }]);
+    expect(items).toEqual([
+      { sharedNode: evidence, status: "imported", pageUid: "page-evidence" },
+    ]);
   });
 
   it("does not add a source that is selected", async () => {
@@ -403,7 +418,9 @@ describe("importSharedNodes", () => {
 
     expect(mockedFindImportedNodeUidBySourceRid).not.toHaveBeenCalled();
     expect(mockedMaterializeSharedNode).toHaveBeenCalledTimes(1);
-    expect(items).toEqual([{ sharedNode: evidence, status: "imported" }]);
+    expect(items).toEqual([
+      { sharedNode: evidence, status: "imported", pageUid: "page-evidence" },
+    ]);
   });
 
   it("adds a source once when several nodes name it by a bare id", async () => {

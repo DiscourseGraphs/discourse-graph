@@ -487,13 +487,15 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   void addCommand("DG: Export - Discourse graph", exportDiscourseGraph);
   void addCommand("DG: Open - Discourse settings", renderSettingsPopup);
   if (isSyncEnabled()) {
-    void addCommand("DG: Discover shared nodes", discoverSharedNodes);
+    void addCommand("DG: Import shared nodes", discoverSharedNodes);
   }
-  if (isNodeSharingEnabled()) {
+  if (isSyncEnabled() || isNodeSharingEnabled()) {
     void addCommand(
       "DG: Refresh all imported nodes",
       () => void refreshAllImportedNodesFromCommand(),
     );
+  }
+  if (isNodeSharingEnabled()) {
     void addCommand("DG: Share current node", shareCurrentNode);
   }
   if (getFeatureFlag("Advanced node search enabled")) {
