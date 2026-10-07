@@ -1,21 +1,19 @@
-/go-ticket eng-2184
+also create a message for team to test out this new setting with the deploy link
 
 ---
 
-rebase roam-setting-overhaul onto main. and get the deploy url
+maybe even an artifact with key screenshots or smt
 
 ---
 
-help me create a Linear ticket to track feedback: allow people to just comment the feedbacks there
+you can create a PR against main if needed
 
 ---
 
-and update the artifact to include this link
-
----
-
-the ticket is probably "FEEDBACK"
-
----
-
-the screenshots should be merged with 'What changed'. you can add highlight boxes to let viewer focuses exactly on the area that the change section is talking about
+<task-notification>
+<task-id>bji79jg3r</task-id>
+<tool-use-id>toolu_01V9srT1nXBisrSR2KnnxDcc</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/415b1f78-7053-478a-bd65-26960f3ce684/tasks/bji79jg3r.output</output-file>
+<status>completed</status>
+<summary>Background command "Wait for deploy run and print its URLs" completed (exit code 0)</summary>
+</task-notification>
