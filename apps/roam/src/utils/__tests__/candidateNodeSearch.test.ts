@@ -51,6 +51,7 @@ const pulledPage = (uid: string, title: string): PulledDiscourseNode => ({
 const pulledBlock = (uid: string, text: string): PulledDiscourseNode => ({
   ":block/uid": uid,
   ":block/string": text,
+  ":block/page": { ":node/title": "Field notes" },
   ":create/time": 3,
   ":edit/time": 4,
 });
@@ -142,34 +143,30 @@ describe("buildSearchIndex", () => {
     });
 
     expect(
-      results.map(({ uid, type, title, isCandidate, candidateTypes }) => ({
+      results.map(({ uid, type, title, candidate }) => ({
         uid,
         type,
         title,
-        isCandidate,
-        candidateTypes,
+        candidate,
       })),
     ).toEqual([
       {
         uid: "p1",
         type: "clm",
         title: "[[CLM]] - Soil",
-        isCandidate: undefined,
-        candidateTypes: undefined,
+        candidate: undefined,
       },
       {
         uid: "b1",
         type: "clm",
         title: "Soil moisture drives yield",
-        isCandidate: true,
-        candidateTypes: ["clm"],
+        candidate: { nodeTypes: ["clm"], pageTitle: "Field notes" },
       },
       {
         uid: "b2",
         type: "clm",
         title: "shared block",
-        isCandidate: true,
-        candidateTypes: ["clm", "evd"],
+        candidate: { nodeTypes: ["clm", "evd"], pageTitle: "Field notes" },
       },
     ]);
   });

@@ -20,6 +20,7 @@ import {
   type InsertTarget,
 } from "~/utils/advancedSearchFooterUtils";
 import { DiscourseNodeSortControl } from "~/components/DiscourseNodeSortControl";
+import { getCandidateTagTitle } from "~/utils/discourseNodeSearch";
 import getDiscourseNodes, {
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
@@ -69,6 +70,21 @@ const getTagStyle = ({
   };
 };
 
+// Mirrors Obsidian's "#tag · note · line" line under a candidate's title.
+const getCandidateSubtitle = ({
+  candidate,
+  nodeConfigByType,
+}: {
+  candidate: NonNullable<SearchResult["candidate"]>;
+  nodeConfigByType: Record<string, DiscourseNode>;
+}): string => {
+  const tags = candidate.nodeTypes
+    .map((type) => nodeConfigByType[type]?.tag)
+    .filter((tag): tag is string => !!tag?.trim())
+    .map((tag) => `#${getCandidateTagTitle(tag)}`);
+  return [tags.join(" "), candidate.pageTitle].filter(Boolean).join(" · ");
+};
+
 const renderHighlightedText = (
   text: string,
   keywords: string[],
@@ -90,6 +106,7 @@ const ResultRow = ({
   onClick,
   onMouseEnter,
   result,
+  subtitle,
 }: {
   active: boolean;
   keywords: string[];
@@ -97,11 +114,12 @@ const ResultRow = ({
   onClick: () => void;
   onMouseEnter: () => void;
   result: SearchResult;
+  subtitle?: string;
 }) => (
   <Button
     alignText="left"
     aria-selected={active}
-    className="flex-none !items-start gap-2 !px-3 !py-2"
+    className="flex-none !items-start !px-3 !py-2"
     fill
     minimal
     onClick={onClick}
@@ -112,21 +130,32 @@ const ResultRow = ({
       boxShadow: active ? "inset 3px 0 0 rgba(167, 182, 194, 0.3)" : undefined,
     }}
   >
-    <Tag
-      aria-label={
-        result.isCandidate
-          ? `${nodeConfig?.text ?? result.nodeTypeLabel} candidate`
-          : undefined
-      }
-      minimal
-      style={getTagStyle({ isCandidate: result.isCandidate, node: nodeConfig })}
-    >
-      {nodeConfig
-        ? getNodeBadgeText(nodeConfig)
-        : formatBadgeText(result.nodeTypeLabel)}
-    </Tag>
-    <span className="min-w-0 break-words text-sm leading-snug text-gray-900">
-      {renderHighlightedText(stripTypePrefix(result.title), keywords)}
+    {/* Blueprint wraps children in a block .bp3-button-text span, so this span is the row. */}
+    <span className="flex min-w-0 items-start gap-2">
+      <Tag
+        aria-label={
+          result.candidate
+            ? `${nodeConfig?.text ?? result.nodeTypeLabel} candidate`
+            : undefined
+        }
+        minimal
+        style={getTagStyle({
+          isCandidate: !!result.candidate,
+          node: nodeConfig,
+        })}
+      >
+        {nodeConfig
+          ? getNodeBadgeText(nodeConfig)
+          : formatBadgeText(result.nodeTypeLabel)}
+      </Tag>
+      <span className="flex min-w-0 flex-col">
+        <span className="break-words text-sm leading-snug text-gray-900">
+          {renderHighlightedText(stripTypePrefix(result.title), keywords)}
+        </span>
+        {subtitle && (
+          <span className="truncate text-xs text-gray-500">{subtitle}</span>
+        )}
+      </span>
     </span>
   </Button>
 );
@@ -291,7 +320,7 @@ const AdvancedNodeSearchDialog = ({
   }, [activeIndex, activeResult?.uid, debouncedSearchTerm]);
 
   const onInsert = useCallback(async () => {
-    if (!activeResult || activeResult.isCandidate || !insertTarget) return;
+    if (!activeResult || activeResult.candidate || !insertTarget) return;
 
     const pageTitle =
       getPageTitleByPageUid(activeResult.uid) ??
@@ -428,7 +457,7 @@ const AdvancedNodeSearchDialog = ({
         (event.metaKey || event.ctrlKey) &&
         contentState === "results" &&
         activeResult &&
-        !activeResult.isCandidate &&
+        !activeResult.candidate &&
         insertTarget
       ) {
         event.preventDefault();
@@ -554,6 +583,13 @@ const AdvancedNodeSearchDialog = ({
                     onClick={() => setActiveIndex(index)}
                     onMouseEnter={() => setActiveIndex(index)}
                     result={result}
+                    subtitle={
+                      result.candidate &&
+                      getCandidateSubtitle({
+                        candidate: result.candidate,
+                        nodeConfigByType,
+                      })
+                    }
                   />
                 ))}
               </div>
@@ -580,7 +616,7 @@ const AdvancedNodeSearchDialog = ({
         <AdvancedSearchFooter
           contentState={contentState}
           hasActiveResult={!!activeResult}
-          isActiveResultLinkable={!!activeResult && !activeResult.isCandidate}
+          isActiveResultLinkable={!!activeResult && !activeResult.candidate}
           insertTarget={insertTarget}
           onInsert={() => void onInsert()}
           onOpen={() => void onOpen()}

@@ -23,7 +23,7 @@ export const DisplayOptionsMenu = ({
   onShowCandidatesChange,
   showCandidates,
 }: DisplayOptionsMenuProps): React.ReactElement => (
-  <span className="inline-flex shrink-0 [&_.bp3-popover-wrapper]:shrink-0">
+  <span className="inline-flex shrink-0">
     <Popover
       autoFocus={false}
       canEscapeKeyClose

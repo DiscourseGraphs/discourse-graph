@@ -15,6 +15,8 @@ export const BASIC_DISCOURSE_NODE_PULL =
 
 export const DISCOURSE_NODE_SEARCH_METADATA_PULL = `[:block/string :node/title :block/uid :create/time :edit/time {:create/user [:user/display-name :user/email]} {:edit/user [:user/display-name :user/email]}]`;
 
+export const CANDIDATE_BLOCK_SEARCH_PULL = `[:block/string :block/uid :create/time :edit/time {:create/user [:user/display-name :user/email]} {:edit/user [:user/display-name :user/email]} {:block/page [:node/title]}]`;
+
 /* eslint-disable @typescript-eslint/naming-convention */
 type PulledDiscourseUser = {
   ":user/display-name"?: string;
@@ -36,6 +38,7 @@ export type PulledDiscourseNode = {
   ":edit/time"?: string | number;
   ":create/user"?: PulledDiscourseUser;
   ":edit/user"?: PulledDiscourseUser;
+  ":block/page"?: { ":node/title"?: string };
 };
 /* eslint-enable @typescript-eslint/naming-convention */
 

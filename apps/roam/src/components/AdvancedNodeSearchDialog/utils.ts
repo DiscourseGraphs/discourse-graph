@@ -3,6 +3,7 @@ import { type DiscourseNode } from "~/utils/getDiscourseNodes";
 import {
   DISCOURSE_NODE_MIN_SEARCH_SCORE,
   DISCOURSE_NODE_MINI_SEARCH_OPTIONS,
+  CANDIDATE_BLOCK_SEARCH_PULL,
   DISCOURSE_NODE_SEARCH_METADATA_PULL,
   getCandidateTagTitle,
   getPulledDiscourseNodeAuthorName,
@@ -169,26 +170,29 @@ const queryCandidatesForType = async ({
   try {
     const pulledBlocks = await queryCandidateBlocksByTag({
       node,
-      pullExpression: DISCOURSE_NODE_SEARCH_METADATA_PULL,
+      pullExpression: CANDIDATE_BLOCK_SEARCH_PULL,
     });
 
     return pulledBlocks
-      .map((pulled) =>
-        toSearchResult({
+      .map((pulled): SearchResult | null => {
+        const result = toSearchResult({
           node,
           pulled,
           title: stripCandidateTags({
             text: pulled[":block/string"] || "",
             tagTitles,
           }),
-        }),
-      )
-      .filter((result): result is SearchResult => !!result)
-      .map((result) => ({
-        ...result,
-        isCandidate: true,
-        candidateTypes: [node.type],
-      }));
+        });
+        if (!result) return null;
+        return {
+          ...result,
+          candidate: {
+            nodeTypes: [node.type],
+            pageTitle: pulled[":block/page"]?.[":node/title"] || "",
+          },
+        };
+      })
+      .filter((result): result is SearchResult => !!result);
   } catch (error) {
     console.error(
       `Error querying candidates for node type ${node.type}:`,
@@ -242,8 +246,8 @@ export const buildSearchIndex = async ({
     for (const result of resultByType.value) {
       const existing = resultsByUid.get(result.uid);
       if (existing) {
-        if (existing.candidateTypes && result.candidateTypes) {
-          existing.candidateTypes.push(...result.candidateTypes);
+        if (existing.candidate && result.candidate) {
+          existing.candidate.nodeTypes.push(...result.candidate.nodeTypes);
         }
         continue;
       }
@@ -347,7 +351,7 @@ export const matchesTypeFilter = (
   allowedTypes: Set<string>,
 ): boolean =>
   allowedTypes.has(result.type) ||
-  !!result.candidateTypes?.some((type) => allowedTypes.has(type));
+  !!result.candidate?.nodeTypes.some((type) => allowedTypes.has(type));
 
 export const searchDiscourseNodesWithMiniSearch = ({
   miniSearch,

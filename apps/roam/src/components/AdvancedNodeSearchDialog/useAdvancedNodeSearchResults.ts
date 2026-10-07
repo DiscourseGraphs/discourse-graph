@@ -94,7 +94,7 @@ export const useAdvancedNodeSearchResults = ({
       searchIndex.allResults
         .filter(
           (result) =>
-            result.isCandidate &&
+            !!result.candidate &&
             (!allowedTypes || matchesTypeFilter(result, allowedTypes)),
         )
         .map((result) => result.uid),
