@@ -1,0 +1,62 @@
+Now on ENG-2372. Two comments from Devin:
+apps/obsidian/src/utils/sourceTriple.ts:181
+
+
+<pasted_content id="d83d">
+Source triple matches disappear past first page
+
+When accessible triples exceed one response page, fetchSourceTripleRids silently omits later candidates. The query spans all accessible spaces before matching, leaving eligible imported triples with relation-instance RIDs.
+
+Learn more
+The candidate query fetches every visible relation schema referencing any imported relation type. PostgREST limits a response to one page, while getAllPages explicitly pages other concept queries. The later space check in selectSourceTripleRids cannot recover rows omitted by the response limit. This also prevents repair from finding a replacement for old triple RIDs.
+
+Example: A user can see 1,200 triples across several spaces. The only matching triple belongs to the last 200 rows; its imported relation retains its instance RID despite having an unambiguous source triple.
+
+Recommended fix: Page the candidate query with a stable ordering and getAllPages, or restrict and page queries by source space and relation type. Also consider paging the filtered relation-instance lookup used during repair.
+
+</pasted_content id="d83d">
+
+
+apps/obsidian/src/utils/repairTripleRids.ts:37
+
+
+<pasted_content id="d83d">
+Deleted Roam relations strand old triple RIDs
+
+After a user deletes an imported Roam relation, findTriplesWithRelationRid no longer recognizes its triple's URL-form RID. relationInstanceRids excludes deleted relations, so startup never repairs that triple.
+
+Learn more
+Roam RIDs are URLs without a subtype, so the repair recognizes them only by matching RIDs from the local relations store. removeRelationById can remove an imported instance without deleting its triple schema. The triple still holds the old relation RID, but it is never included in badTriples, even when the source relation is still visible remotely.
+
+Example: A vault imported a Roam relation https://roamresearch.com/#/app/g/page/rel1, creating a triple with that origin. The user removes the imported relation from relations.json. On restart the triple retains /rel1 instead of its source triple RID.
+
+Recommended fix: Identify potential URL-form instance RIDs independently of the currently stored relations, then verify their remote concept is a relation instance before replacing the triple's RID. Preserve already-correct schema RIDs.
+
+</pasted_content id="d83d">
+
+
+(Second at least may be a known issue)
+
+---
+
+For the second, do we already have an issue candidate?
+
+---
+
+Yes, worth it.
+
+---
+
+Now in https://roamresearch.com/#/app/discourse-graphs/page/rZSKK5dxg
+
+---
+
+Post them as thread reply. I'll merge as-is, then? Let's look at 2339 after that.
+
+---
+
+good, pushed
+
+---
+
+ok, we're on 2339, rebased on main. Yes, let's apply pagination
