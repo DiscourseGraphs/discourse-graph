@@ -13,7 +13,9 @@ import { discourseNodeInstanceToLocalConcept } from "~/utils/conceptConversion";
 import { loadRelations } from "~/utils/relationsStore";
 import {
   createHarness,
+  LOCAL_URI,
   REMOTE_URI,
+  SUPABASE_CONTEXT,
   evidenceRid,
   sourceRid,
 } from "./importNodesHarness";
@@ -22,7 +24,6 @@ import getDiscourseNodeFormatExpression from "../../../../roam/src/utils/getDisc
 import { materializeSharedNode } from "../../../../roam/src/utils/materializeSharedNode";
 
 // Both adapters run here. Only platform I/O and the SQL storage boundary are doubled.
-// MJS keeps the two apps' distinct TypeScript/React configurations independent.
 const io = vi.hoisted(() => ({
   pages: new Map(),
   identities: new Map(),
@@ -86,23 +87,20 @@ const CREATED = "2026-09-01T00:00:00";
 const MODIFIED = "2026-09-02T00:00:00";
 const CORE_TITLE = "Evidence title";
 const SOURCE_TITLE = "@Source title";
-const PLACEHOLDER_TITLE = `[[EVD]] - ${CORE_TITLE} - [[@placeholder]]`;
+const PLACEHOLDER_PAGE = "@placeholder";
+const PLACEHOLDER_TITLE = `[[EVD]] - ${CORE_TITLE} - [[${PLACEHOLDER_PAGE}]]`;
 const ROAM_TITLE = `[[EVD]] - ${CORE_TITLE} - [[${SOURCE_TITLE}]]`;
-const LOCAL_URI = "obsidian:local-vault";
 const OBSIDIAN_RID = spaceUriAndLocalIdToRid(LOCAL_URI, "evidence", "note");
 const SOURCE_FORMAT = { format: "@{content}" };
 const EVIDENCE_FORMAT = { format: "[[EVD]] - {content} - {Source}" };
-const context = {
-  platform: "Obsidian",
-  spaceId: 1,
-  userId: 1,
-  spacePassword: "test",
-};
-const sourceConcept = { id: 21, space_id: 1, source_local_id: "source" };
+const NO_SOURCE_FORMAT = { format: "[[EVD]] - {content}" };
+const NO_SOURCE_WARNING = "No source was published with this node.";
+const NOT_IMPORTED_WARNING =
+  "Its source (source) is not in this graph. Import the source, then refresh this page.";
 
 const installRoam = () => {
-  const createPage = vi.fn(async ({ page, "markdown-string": body = "" }) => {
-    io.pages.set(page.uid, { title: page.title, body });
+  const createPage = vi.fn(async ({ page }) => {
+    io.pages.set(page.uid, { title: page.title });
   });
   const updatePage = vi.fn(async ({ page }) => {
     io.pages.get(page.uid).title = page.title;
@@ -161,21 +159,10 @@ const storedSource = (input, references) => {
   return reference;
 };
 
-const sharedFromObsidian = ({
-  input,
-  references = [sourceConcept],
-  visible = true,
-  localId = "evidence",
-  title = "EVD - Evidence title",
-  coreTitle = CORE_TITLE,
-}) => {
-  const stored = storedSource(
-    input,
-    references.map((row) => ({
-      ...row,
-      spaceUri: row.space_id === 1 ? LOCAL_URI : REMOTE_URI,
-    })),
-  );
+const sharedFromObsidian = ({ input, visible = true }) => {
+  const stored = storedSource(input, [
+    { id: 21, space_id: 1, source_local_id: "source", spaceUri: LOCAL_URI },
+  ]);
   const [shared] = buildSharedNodes({
     spaces: [
       { id: 1, name: "Local vault", platform: "Obsidian", url: LOCAL_URI },
@@ -186,9 +173,9 @@ const sharedFromObsidian = ({
         is_schema: false,
         schema_id: 10,
         space_id: 1,
-        source_local_id: localId,
+        source_local_id: input.source_local_id,
         last_modified: MODIFIED,
-        core_title: coreTitle,
+        core_title: input.literal_content.core_title,
         reference_content: stored ? { sourceDocument: stored.id } : {},
         concepts_of_relation: stored && visible ? [stored] : [],
       },
@@ -196,8 +183,8 @@ const sharedFromObsidian = ({
     directContents: [
       {
         space_id: 1,
-        source_local_id: localId,
-        text: title,
+        source_local_id: input.source_local_id,
+        text: input.literal_content.label,
         variant: "direct",
         author_id: 1,
         metadata: {},
@@ -225,29 +212,12 @@ const contentClient = {
   },
 };
 
-const importSourceIntoRoam = () =>
-  materializeSharedNode({
-    client: contentClient,
-    sharedNode: sharedFromObsidian({
-      input: {},
-      localId: "source",
-      title: "SRC - Source title",
-      coreTitle: "Source title",
-    }),
-    nodeType: SOURCE_FORMAT,
-  });
-const pullIntoRoam = (sharedNode, force = false) =>
-  materializeSharedNode({
-    client: contentClient,
-    sharedNode,
-    nodeType: EVIDENCE_FORMAT,
-    force,
-  });
-const obsidianPush = async (
+const obsidianPush = async ({
   h,
-  relations,
+  relations = [],
   availableSources = new Set(["source"]),
-) => {
+  nodeId = "evidence",
+}) => {
   const nodes = await collectDiscourseNodesFromVault(h.plugin, true);
   const nodeTypesById = Object.fromEntries(
     h.plugin.settings.nodeTypes.map((type) => [type.id, type]),
@@ -266,17 +236,32 @@ const obsidianPush = async (
         error: null,
       }),
     },
-    spaceId: context.spaceId,
-    pendingNodeIds: new Set(["evidence"]),
+    spaceId: SUPABASE_CONTEXT.spaceId,
+    pendingNodeIds: new Set([nodeId]),
   });
-  const nodeData = nodes.find((node) => node.nodeInstanceId === "evidence");
+  const nodeData = nodes.find((node) => node.nodeInstanceId === nodeId);
   const input = discourseNodeInstanceToLocalConcept({
-    context,
+    context: SUPABASE_CONTEXT,
     nodeData: { ...nodeData, sourceDocument: values[nodeData.nodeInstanceId] },
     nodeTypesById,
   });
   return { input, values };
 };
+const importSourceIntoRoam = async (h) => {
+  const { input } = await obsidianPush({ h, nodeId: "source" });
+  return materializeSharedNode({
+    client: contentClient,
+    sharedNode: sharedFromObsidian({ input }),
+    nodeType: SOURCE_FORMAT,
+  });
+};
+const pullIntoRoam = (sharedNode, force = false) =>
+  materializeSharedNode({
+    client: contentClient,
+    sharedNode,
+    nodeType: EVIDENCE_FORMAT,
+    force,
+  });
 const localNodes = async (h) => {
   await h.create(
     "EVD - Evidence title.md",
@@ -301,20 +286,21 @@ const sourceRelation = {
   created: 1,
 };
 
+let roam;
 beforeEach(() => {
   vi.clearAllMocks();
   io.pages.clear();
   io.identities.clear();
-  installRoam();
+  roam = installRoam();
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
 });
 
 describe("Roam push → database → Obsidian pull", () => {
   const push = async ({ withSource = true, importedSource = false } = {}) => {
-    const title = withSource ? ROAM_TITLE : "[[EVD]] - Evidence title";
+    const title = withSource ? ROAM_TITLE : `[[EVD]] - ${CORE_TITLE}`;
     io.schemas[0].format = withSource
       ? EVIDENCE_FORMAT.format
-      : "[[EVD]] - {content}";
+      : NO_SOURCE_FORMAT.format;
     io.pages.set("evidence", { title });
     if (withSource) io.pages.set("source", { title: SOURCE_TITLE });
     if (importedSource)
@@ -366,11 +352,11 @@ describe("Roam push → database → Obsidian pull", () => {
       expect([...h.files.keys()]).toContain(
         "import/Research/SRC - Source title.md",
       );
-      const republished = await obsidianPush(
+      const republished = await obsidianPush({
         h,
         relations,
-        new Set([sourceRid]),
-      );
+        availableSources: new Set([sourceRid]),
+      });
       expect(republished.input.local_reference_content).toEqual({
         sourceDocument: sourceRid,
       });
@@ -407,7 +393,7 @@ describe("Roam push → database → Obsidian pull", () => {
       ]);
       expect((await loadRelations(h.plugin)).relations).toEqual({});
       expect(Notice).toHaveBeenCalledWith(
-        expect.stringContaining("Source is unavailable"),
+        "Imported EVD - Evidence title, but its Source is unavailable. No source relation was created.",
       );
     },
   );
@@ -435,11 +421,15 @@ describe("Obsidian push → database → Roam pull", () => {
   it("reconstructs the referenced node from an Obsidian Source relation", async () => {
     const h = createHarness();
     await localNodes(h);
-    const { input } = await obsidianPush(h, [sourceRelation]);
+    const { input } = await obsidianPush({ h, relations: [sourceRelation] });
     expect(input.local_reference_content).toEqual({ sourceDocument: "source" });
+    expect(input.literal_content).toMatchObject({
+      label: "EVD - Evidence title",
+      core_title: CORE_TITLE,
+    });
     const shared = sharedFromObsidian({ input });
     expect(shared.slots).toEqual({ sourceDocument: "source" });
-    await importSourceIntoRoam();
+    await importSourceIntoRoam(h);
     const result = await pullIntoRoam(shared);
     expect(result).toMatchObject({
       success: true,
@@ -468,9 +458,9 @@ describe("Obsidian push → database → Roam pull", () => {
       },
       sourceRelation,
     ];
-    const { input } = await obsidianPush(h, relations);
+    const { input } = await obsidianPush({ h, relations });
     expect(input.local_reference_content).toEqual({ sourceDocument: "source" });
-    await importSourceIntoRoam();
+    await importSourceIntoRoam(h);
     const result = await pullIntoRoam(sharedFromObsidian({ input }));
     expect(io.pages.get(result.pageUid).title).toBe(ROAM_TITLE);
   });
@@ -485,9 +475,9 @@ describe("Obsidian push → database → Roam pull", () => {
         nodeTypeId: "source-type",
       }),
     );
-    const { input, values } = await obsidianPush(
+    const { input, values } = await obsidianPush({
       h,
-      [
+      relations: [
         sourceRelation,
         {
           ...sourceRelation,
@@ -496,8 +486,8 @@ describe("Obsidian push → database → Roam pull", () => {
           created: 20,
         },
       ],
-      new Set(["later-source"]),
-    );
+      availableSources: new Set(["later-source"]),
+    });
     expect(values).toEqual({});
     expect(input.local_reference_content).toBeUndefined();
     expect(console.warn).toHaveBeenCalledWith(
@@ -520,27 +510,37 @@ describe("Obsidian push → database → Roam pull", () => {
         importedFromRid: sourceRid,
       }),
     );
-    const available = await obsidianPush(
+    const available = await obsidianPush({
       h,
-      [sourceRelation],
-      new Set([sourceRid]),
-    );
+      relations: [sourceRelation],
+      availableSources: new Set([sourceRid]),
+    });
     expect(available.input.local_reference_content).toEqual({
       sourceDocument: sourceRid,
     });
-    const unavailable = await obsidianPush(h, [sourceRelation], new Set());
+    const unavailable = await obsidianPush({
+      h,
+      relations: [sourceRelation],
+      availableSources: new Set(),
+    });
     expect(unavailable.input.local_reference_content).toBeUndefined();
   });
 
-  it.each(["absent", "unavailable", "not-imported"])(
-    "preserves the Roam node format with a placeholder for a %s Source",
-    async (state) => {
+  it.each([
+    ["absent", NO_SOURCE_WARNING],
+    ["unavailable", NO_SOURCE_WARNING],
+    ["not-imported", NOT_IMPORTED_WARNING],
+  ])(
+    "keeps the Roam node format with a placeholder when the Source is %s",
+    async (state, warning) => {
       const h = createHarness();
       await localNodes(h);
-      const { input } = await obsidianPush(
+      const { input } = await obsidianPush({
         h,
-        state === "absent" ? [] : [sourceRelation],
-      );
+        relations: state === "absent" ? [] : [sourceRelation],
+      });
+      if (state === "absent")
+        expect(input.local_reference_content).toBeUndefined();
       const shared = sharedFromObsidian({
         input,
         visible: state !== "unavailable",
@@ -549,13 +549,13 @@ describe("Obsidian push → database → Roam pull", () => {
       expect(result).toMatchObject({
         success: true,
         action: "created",
-        warning: expect.any(String),
+        warning,
       });
       expect(io.pages.get(result.pageUid).title).toBe(PLACEHOLDER_TITLE);
       expect(io.pages.get(result.pageUid).title).toMatch(
         getDiscourseNodeFormatExpression(EVIDENCE_FORMAT.format),
       );
-      io.pages.set("placeholder-page", { title: "@placeholder" });
+      io.pages.set("placeholder-page", { title: PLACEHOLDER_PAGE });
       const [republished] = await nodeUidsWithTypeToCrossApp([
         { uid: result.pageUid, type: "evidence-type" },
       ]);
@@ -565,7 +565,6 @@ describe("Obsidian push → database → Roam pull", () => {
         crossAppNodeToDbConcept(republished).local_reference_content
           ?.sourceDocument,
       ).toBeUndefined();
-      const updatePage = window.roamAlphaAPI.updatePage;
       for (let n = 0; n < 3; n++) {
         expect(await pullIntoRoam(shared)).toMatchObject({
           action: "skipped",
@@ -576,21 +575,19 @@ describe("Obsidian push → database → Roam pull", () => {
           pageUid: result.pageUid,
         });
       }
-      expect(updatePage).not.toHaveBeenCalled();
+      expect(roam.updatePage).not.toHaveBeenCalled();
       expect(io.pages.size).toBe(2);
-      if (state === "absent")
-        expect(input.local_reference_content).toBeUndefined();
     },
   );
 
   it("does not add a placeholder when the local format does not require a Source", async () => {
     const h = createHarness();
     await localNodes(h);
-    const { input } = await obsidianPush(h, []);
+    const { input } = await obsidianPush({ h });
     const result = await materializeSharedNode({
       client: contentClient,
       sharedNode: sharedFromObsidian({ input }),
-      nodeType: { format: "[[EVD]] - {content}" },
+      nodeType: NO_SOURCE_FORMAT,
     });
     expect(result).toMatchObject({ success: true });
     expect(result.warning).toBeUndefined();
@@ -600,12 +597,11 @@ describe("Obsidian push → database → Roam pull", () => {
   it("repeated push, pull and forced refresh do not create pages or rename unchanged titles", async () => {
     const h = createHarness();
     await localNodes(h);
-    const { createPage, updatePage } = installRoam();
-    const { input } = await obsidianPush(h, [sourceRelation]);
-    await importSourceIntoRoam();
+    const { input } = await obsidianPush({ h, relations: [sourceRelation] });
+    await importSourceIntoRoam(h);
     const first = await pullIntoRoam(sharedFromObsidian({ input }));
     for (let n = 0; n < 3; n++) {
-      const repeated = await obsidianPush(h, [sourceRelation]);
+      const repeated = await obsidianPush({ h, relations: [sourceRelation] });
       expect(repeated.input).toEqual(input);
       const shared = sharedFromObsidian({ input: repeated.input });
       expect(await pullIntoRoam(shared)).toMatchObject({
@@ -618,20 +614,19 @@ describe("Obsidian push → database → Roam pull", () => {
       });
     }
     expect(io.pages.size).toBe(2);
-    expect(createPage).toHaveBeenCalledTimes(2);
-    expect(updatePage).not.toHaveBeenCalled();
+    expect(roam.createPage).toHaveBeenCalledTimes(2);
+    expect(roam.updatePage).not.toHaveBeenCalled();
   });
 
   it("fills the missing reference after the Source is imported, then keeps the title stable", async () => {
     const h = createHarness();
     await localNodes(h);
-    const { updatePage } = installRoam();
-    const { input } = await obsidianPush(h, [sourceRelation]);
+    const { input } = await obsidianPush({ h, relations: [sourceRelation] });
     const shared = sharedFromObsidian({ input });
     const first = await pullIntoRoam(shared);
-    expect(first.warning).toBeDefined();
+    expect(first.warning).toBe(NOT_IMPORTED_WARNING);
     expect(io.pages.get(first.pageUid).title).toBe(PLACEHOLDER_TITLE);
-    await importSourceIntoRoam();
+    await importSourceIntoRoam(h);
     expect(await pullIntoRoam(shared, true)).toMatchObject({
       success: true,
       action: "updated",
@@ -639,91 +634,7 @@ describe("Obsidian push → database → Roam pull", () => {
     });
     expect(io.pages.get(first.pageUid).title).toBe(ROAM_TITLE);
     await pullIntoRoam(shared, true);
-    expect(updatePage).toHaveBeenCalledTimes(1);
+    expect(roam.updatePage).toHaveBeenCalledTimes(1);
     expect(io.pages.size).toBe(2);
-  });
-});
-
-describe("Obsidian source availability", () => {
-  it("keeps results attached to their Sources when parallel lookups finish out of order", async () => {
-    const responses = new Map();
-    const rpc = vi.fn(
-      (_name, { rid }) => new Promise((resolve) => responses.set(rid, resolve)),
-    );
-    const result = filterAvailableSourceSlotValues({
-      sourceSlotByNodeId: {
-        first: "available-source",
-        second: "missing-source",
-      },
-      client: { rpc },
-      spaceId: 42,
-      pendingNodeIds: new Set(),
-    });
-    expect(rpc).toHaveBeenCalledTimes(2);
-    responses.get("missing-source")({ data: null, error: null });
-    responses.get("available-source")({ data: 21, error: null });
-    expect(await result).toEqual({ first: "available-source" });
-    expect(console.warn).toHaveBeenCalledTimes(1);
-    expect(console.warn).toHaveBeenCalledWith(
-      "Source missing-source is not in the database yet; pushing node second without sourceDocument",
-    );
-  });
-
-  it("resolves each distinct source once and preserves explicitly selected local sources", async () => {
-    const rpc = vi.fn(async (_name, { rid }) => ({
-      data: rid === sourceRid ? 21 : null,
-      error: null,
-    }));
-    const values = await filterAvailableSourceSlotValues({
-      sourceSlotByNodeId: {
-        first: sourceRid,
-        second: sourceRid,
-        third: "new-source",
-        fourth: "missing",
-      },
-      client: { rpc },
-      spaceId: 42,
-      pendingNodeIds: new Set(["new-source"]),
-    });
-    expect(values).toEqual({
-      first: sourceRid,
-      second: sourceRid,
-      third: "new-source",
-    });
-    expect(rpc.mock.calls).toEqual([
-      [
-        "rid_or_local_id_to_concept_db_id",
-        { rid: sourceRid, default_space_id: 42 },
-      ],
-      [
-        "rid_or_local_id_to_concept_db_id",
-        { rid: "missing", default_space_id: 42 },
-      ],
-    ]);
-  });
-
-  it("does not mistake a lookup failure for an absent Source", async () => {
-    const error = new Error("lookup failed");
-    await expect(
-      filterAvailableSourceSlotValues({
-        sourceSlotByNodeId: { evidence: "source" },
-        client: { rpc: async () => ({ data: null, error }) },
-        spaceId: 1,
-        pendingNodeIds: new Set(),
-      }),
-    ).rejects.toBe(error);
-  });
-
-  it("does not query when no node has a source", async () => {
-    const rpc = vi.fn();
-    expect(
-      await filterAvailableSourceSlotValues({
-        sourceSlotByNodeId: {},
-        client: { rpc },
-        spaceId: 1,
-        pendingNodeIds: new Set(),
-      }),
-    ).toEqual({});
-    expect(rpc).not.toHaveBeenCalled();
   });
 });

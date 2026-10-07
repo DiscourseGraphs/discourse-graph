@@ -8,7 +8,14 @@ import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
 import { importSelectedNodes } from "~/utils/importNodes";
 
+export const LOCAL_URI = "obsidian:local-vault";
 export const REMOTE_URI = "https://roamresearch.com/#/app/research";
+export const SUPABASE_CONTEXT = {
+  spaceId: 1,
+  platform: "Obsidian" as const,
+  userId: 1,
+  spacePassword: "test",
+};
 export const evidenceRid = spaceUriAndLocalIdToRid(
   REMOTE_URI,
   "evidence",
@@ -25,9 +32,24 @@ export const selectedNode: ImportableNode = {
 };
 
 type Row = Record<string, unknown>;
+
+const setFilePath = (file: TFile, path: string): void => {
+  const name = path.slice(path.lastIndexOf("/") + 1);
+  const dot = name.lastIndexOf(".");
+  file.path = path;
+  file.name = name;
+  file.basename = dot > 0 ? name.slice(0, dot) : name;
+  file.extension = dot > 0 ? name.slice(dot + 1) : "";
+};
+
 export const createHarness = () => {
   const files = new Map<string, TFile>();
   const contents = new Map<string, string>();
+  const readContent = (path: string): string => {
+    const content = contents.get(path);
+    if (content === undefined) throw new Error(`No file at ${path}`);
+    return content;
+  };
   const schemas: Row[] = [
     {
       id: 10,
@@ -94,7 +116,7 @@ export const createHarness = () => {
     },
   ]);
   const spaces: Row[] = [
-    { id: 1, url: "obsidian:local-vault", name: "Local" },
+    { id: 1, url: LOCAL_URI, name: "Local" },
     { id: 2, url: REMOTE_URI, name: "Research" },
   ];
   const requests: {
@@ -153,16 +175,16 @@ export const createHarness = () => {
     if (files.has(path))
       return Promise.reject(new Error(`File already exists: ${path}`));
     const file = new TFile();
-    file.path = path;
+    setFilePath(file, path);
     files.set(path, file);
     contents.set(path, content);
     return Promise.resolve(file);
   });
   const renameFile = vi.fn((file: TFile, newPath: string) => {
-    const content = contents.get(file.path)!;
+    const content = readContent(file.path);
     files.delete(file.path);
     contents.delete(file.path);
-    file.path = newPath;
+    setFilePath(file, newPath);
     files.set(newPath, file);
     contents.set(newPath, content);
     return Promise.resolve();
@@ -180,13 +202,13 @@ export const createHarness = () => {
         getAbstractFileByPath: (path: string) => files.get(path) ?? null,
         getMarkdownFiles: () =>
           [...files.values()].filter((file) => file.extension === "md"),
-        read: (file: TFile) => Promise.resolve(contents.get(file.path)!),
+        read: (file: TFile) => Promise.resolve(readContent(file.path)),
         modify: (file: TFile, content: string) => {
           contents.set(file.path, content);
           return Promise.resolve();
         },
         process: (file: TFile, callback: (content: string) => string) => {
-          contents.set(file.path, callback(contents.get(file.path)!));
+          contents.set(file.path, callback(readContent(file.path)));
           return Promise.resolve();
         },
         createFolder: vi.fn(),
@@ -199,7 +221,7 @@ export const createHarness = () => {
           file: TFile,
           callback: (frontmatter: Row) => void,
         ) => {
-          const parsed = matter(contents.get(file.path)!);
+          const parsed = matter(readContent(file.path));
           callback(parsed.data);
           contents.set(
             file.path,
@@ -252,12 +274,7 @@ export const createHarness = () => {
   vi.mocked(getLoggedInClient).mockResolvedValue({
     from,
   } as unknown as DGSupabaseClient);
-  vi.mocked(getSupabaseContext).mockResolvedValue({
-    spaceId: 1,
-    platform: "Obsidian",
-    userId: 1,
-    spacePassword: "test",
-  });
+  vi.mocked(getSupabaseContext).mockResolvedValue(SUPABASE_CONTEXT);
   const pull = () =>
     importSelectedNodes({ plugin, selectedNodes: [selectedNode] });
   const seedSource = async (local = false): Promise<TFile> =>
