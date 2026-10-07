@@ -1,38 +1,37 @@
 import React, { useState } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import { Label, Dialog, Button, Intent, Classes } from "@blueprintjs/core";
-import Description from "~/components/settings/SettingsDescription";
-import { addStyle } from "roamjs-components/dom";
+import {
+  Alert,
+  Label,
+  Dialog,
+  Button,
+  Intent,
+  Classes,
+} from "@blueprintjs/core";
+import posthog from "posthog-js";
 import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
-import {
-  getOverlayHandler,
-  onPageRefObserverChange,
-} from "~/utils/pageRefObserverHandlers";
-import {
-  showDiscourseFloatingMenu,
-  hideDiscourseFloatingMenu,
-} from "~/components/DiscourseFloatingMenu";
 import { NodeSearchMenuTriggerSetting } from "../DiscourseNodeSearchMenu";
 import {
-  DISCOURSE_TOOL_SHORTCUT_KEY,
-  AUTO_CANVAS_RELATIONS_KEY,
-  STREAMLINE_STYLING_KEY,
   DISALLOW_DIAGNOSTICS,
   USE_STORED_RELATIONS,
 } from "~/data/userSettings";
 import { setSetting } from "~/utils/extensionSettings";
 import { enablePostHog, disablePostHog } from "~/utils/posthog";
-import KeyboardShortcutInput from "./KeyboardShortcutInput";
-import streamlineStyling from "~/styles/streamlineStyling";
-import { PersonalFlagPanel } from "./components/BlockPropSettingPanels";
-import { PERSONAL_KEYS } from "./utils/settingKeys";
 import migrateRelations from "~/utils/migrateRelations";
 import { countReifiedRelations } from "~/utils/createReifiedBlock";
-import posthog from "posthog-js";
 import internalError from "~/utils/internalError";
-import { setPersonalSetting, type SettingsSnapshot } from "./utils/accessors";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
+import {
+  FeatureFlagPanel,
+  GlobalTextPanel,
+  PersonalFlagPanel,
+} from "./components/BlockPropSettingPanels";
+import { GLOBAL_KEYS, PERSONAL_KEYS } from "./utils/settingKeys";
+import { setPersonalSetting, type SettingsSnapshot } from "./utils/accessors";
+import { useLegacyConfigBlocks } from "./utils/useLegacyConfigBlocks";
+import { SettingsGroup } from "./components/SettingsHeadings";
+import SettingItemRow from "./components/SettingItemRow";
 import { ROAM_DOCS, withDocsLink } from "./utils/docs";
 
 const enum RelationMigrationDialog {
@@ -42,22 +41,28 @@ const enum RelationMigrationDialog {
   "reactivate",
 }
 
-const HomePersonalSettings = ({
+const PreferencesGeneral = ({
   onloadArgs,
+  globalSettings,
   personalSettings,
+  featureFlags,
 }: {
   onloadArgs: OnloadArgs;
+  globalSettings: SettingsSnapshot["globalSettings"];
   personalSettings: SettingsSnapshot["personalSettings"];
-}) => {
+  featureFlags: SettingsSnapshot["featureFlags"];
+}): React.ReactElement => {
   const extensionAPI = onloadArgs.extensionAPI;
-  const overlayHandler = getOverlayHandler(onloadArgs);
+  const legacyBlocks = useLegacyConfigBlocks();
   const [activeRelationMigration, setActiveRelationMigration] =
     useState<RelationMigrationDialog>(RelationMigrationDialog.none);
   const [numExistingRelations, setNumExistingRelations] = useState<number>(0);
   const [isOngoing, setIsOngoing] = useState<boolean>(false);
+  const [isLeftSidebarAlertOpen, setIsLeftSidebarAlertOpen] = useState(false);
   const [storedRelations, setStoredRelationsState] = useState<boolean>(
     getStoredRelationsEnabled(),
   );
+
   const setStoredRelations = (value: boolean) => {
     setSetting<boolean>(USE_STORED_RELATIONS, value)
       .then(() => {
@@ -114,82 +119,22 @@ const HomePersonalSettings = ({
       setActiveRelationMigration(RelationMigrationDialog.none);
     }
   };
+
   return (
     <div className="flex flex-col gap-4 p-1">
-      <Label>
-        Personal node menu trigger
-        <Description
-          description={withDocsLink(
-            "Override the global trigger for the discourse node menu.",
-            ROAM_DOCS.creatingNodes,
-          )}
-        />
-        <NodeMenuTriggerComponent
-          extensionAPI={extensionAPI}
-          initialValue={personalSettings[PERSONAL_KEYS.personalNodeMenuTrigger]}
-        />
-      </Label>
-      <Label>
-        Node search menu trigger
-        <Description description="Set the trigger character for the node search menu." />
-        <NodeSearchMenuTriggerSetting
-          onloadArgs={onloadArgs}
-          initialValue={personalSettings[PERSONAL_KEYS.nodeSearchMenuTrigger]}
-        />
-      </Label>
-      <KeyboardShortcutInput
-        onloadArgs={onloadArgs}
-        settingKey={DISCOURSE_TOOL_SHORTCUT_KEY}
-        blockPropKey={PERSONAL_KEYS.discourseToolShortcut}
-        label="Discourse tool keyboard shortcut"
-        description={withDocsLink(
-          "Set a single key to activate the discourse tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut.",
-          ROAM_DOCS.creatingNodes,
+      <SettingItemRow
+        label="Node search menu trigger"
+        description="Set the trigger character for the node search menu."
+        scope="personal"
+        settingKeys={[PERSONAL_KEYS.nodeSearchMenuTrigger]}
+        control={(controlId) => (
+          <NodeSearchMenuTriggerSetting
+            id={controlId}
+            onloadArgs={onloadArgs}
+            initialValue={personalSettings[PERSONAL_KEYS.nodeSearchMenuTrigger]}
+          />
         )}
-        placeholder="Click to set single key"
-        initialValue={personalSettings[PERSONAL_KEYS.discourseToolShortcut]}
       />
-      <PersonalFlagPanel
-        title="Overlay"
-        description={withDocsLink(
-          "Whether or not to overlay discourse context information over discourse node references.",
-          ROAM_DOCS.discourseContextOverlay,
-        )}
-        settingKeys={[PERSONAL_KEYS.discourseContextOverlay]}
-        initialValue={personalSettings[PERSONAL_KEYS.discourseContextOverlay]}
-        onChange={(checked) => {
-          void setSetting("discourse-context-overlay", checked);
-          onPageRefObserverChange(overlayHandler)(checked);
-          posthog.capture("Personal Settings: Overlay Toggled", {
-            enabled: checked,
-          });
-        }}
-      />
-      <PersonalFlagPanel
-        title="Enable stored relations"
-        description={withDocsLink(
-          "Use stored relations instead of legacy pattern-based relations",
-          ROAM_DOCS.migrationToStoredRelations,
-        )}
-        settingKeys={["Reified relation triples"]}
-        initialValue={personalSettings["Reified relation triples"]}
-        value={storedRelations}
-        onBeforeChange={async (checked) => {
-          if (checked) {
-            const num = await countReifiedRelations();
-            setNumExistingRelations(num);
-            setActiveRelationMigration(
-              num > 0
-                ? RelationMigrationDialog.reactivate
-                : RelationMigrationDialog.activate,
-            );
-          } else {
-            setActiveRelationMigration(RelationMigrationDialog.deactivate);
-          }
-          return false;
-        }}
-      />
-
       <PersonalFlagPanel
         title="Text selection popup"
         description={withDocsLink(
@@ -212,48 +157,27 @@ const HomePersonalSettings = ({
         }}
       />
       <PersonalFlagPanel
-        title="Hide feedback button"
-        description="Hide the 'Send feedback' button at the bottom right of the screen."
-        settingKeys={[PERSONAL_KEYS.hideFeedbackButton]}
-        initialValue={personalSettings[PERSONAL_KEYS.hideFeedbackButton]}
-        onChange={(checked) => {
-          void setSetting("hide-feedback-button", checked);
-          if (checked) {
-            hideDiscourseFloatingMenu();
-          } else {
-            showDiscourseFloatingMenu();
-          }
-        }}
-      />
-      <PersonalFlagPanel
-        title="Auto canvas relations"
+        title="Enable stored relations"
         description={withDocsLink(
-          "Automatically add discourse relations to canvas when a node is added",
-          ROAM_DOCS.storedRelations,
+          "Use stored relations instead of legacy pattern-based relations",
+          ROAM_DOCS.migrationToStoredRelations,
         )}
-        settingKeys={[PERSONAL_KEYS.autoCanvasRelations]}
-        initialValue={personalSettings[PERSONAL_KEYS.autoCanvasRelations]}
-        onChange={(checked) => {
-          void setSetting(AUTO_CANVAS_RELATIONS_KEY, checked);
-        }}
-      />
-
-      <PersonalFlagPanel
-        title="Streamline styling"
-        description="Apply streamlined styling to your personal graph for a cleaner appearance."
-        settingKeys={[PERSONAL_KEYS.streamlineStyling]}
-        initialValue={personalSettings[PERSONAL_KEYS.streamlineStyling]}
-        onChange={(checked) => {
-          void setSetting(STREAMLINE_STYLING_KEY, checked);
-          const existingStyleElement =
-            document.getElementById("streamline-styling");
-
-          if (checked && !existingStyleElement) {
-            const styleElement = addStyle(streamlineStyling);
-            styleElement.id = "streamline-styling";
-          } else if (!checked && existingStyleElement) {
-            existingStyleElement.remove();
+        settingKeys={[PERSONAL_KEYS.reifiedRelationTriples]}
+        initialValue={personalSettings["Reified relation triples"]}
+        value={storedRelations}
+        onBeforeChange={async (checked) => {
+          if (checked) {
+            const num = await countReifiedRelations();
+            setNumExistingRelations(num);
+            setActiveRelationMigration(
+              num > 0
+                ? RelationMigrationDialog.reactivate
+                : RelationMigrationDialog.activate,
+            );
+          } else {
+            setActiveRelationMigration(RelationMigrationDialog.deactivate);
           }
+          return false;
         }}
       />
       <PersonalFlagPanel
@@ -270,6 +194,62 @@ const HomePersonalSettings = ({
           }
         }}
       />
+      <SettingsGroup title="Node trigger">
+        <GlobalTextPanel
+          title="Graph-wide default"
+          description={withDocsLink(
+            "The trigger to create the node menu.",
+            ROAM_DOCS.creatingNodes,
+          )}
+          settingKeys={[GLOBAL_KEYS.trigger]}
+          initialValue={globalSettings[GLOBAL_KEYS.trigger]}
+          {...legacyBlocks.trigger}
+        />
+        <SettingItemRow
+          label="Personal override"
+          description={withDocsLink(
+            "Override the global trigger for the discourse node menu.",
+            ROAM_DOCS.creatingNodes,
+          )}
+          scope="personal"
+          settingKeys={[PERSONAL_KEYS.personalNodeMenuTrigger]}
+          control={(controlId) => (
+            <NodeMenuTriggerComponent
+              id={controlId}
+              extensionAPI={extensionAPI}
+              initialValue={
+                personalSettings[PERSONAL_KEYS.personalNodeMenuTrigger]
+              }
+            />
+          )}
+        />
+      </SettingsGroup>
+      <FeatureFlagPanel
+        title="Enable left sidebar"
+        description="Whether or not to enable the left sidebar."
+        featureKey="Enable left sidebar"
+        initialValue={featureFlags["Enable left sidebar"]}
+        {...legacyBlocks.leftSidebarFlag}
+        onAfterChange={(checked: boolean) => {
+          if (checked && !featureFlags["Use new settings store"]) {
+            setIsLeftSidebarAlertOpen(true);
+          }
+          posthog.capture("General Settings: Left Sidebar Toggled", {
+            enabled: checked,
+          });
+        }}
+      />
+      <Alert
+        isOpen={isLeftSidebarAlertOpen}
+        onConfirm={() => window.location.reload()}
+        onCancel={() => setIsLeftSidebarAlertOpen(false)}
+        confirmButtonText="Reload Graph"
+        cancelButtonText="Later"
+        intent={Intent.PRIMARY}
+      >
+        <p>Enabling the Left Sidebar requires a graph reload to take effect.</p>
+        <p>Would you like to reload now?</p>
+      </Alert>
       <Dialog
         isOpen={
           activeRelationMigration === RelationMigrationDialog.reactivate ||
@@ -387,4 +367,4 @@ const HomePersonalSettings = ({
   );
 };
 
-export default HomePersonalSettings;
+export default PreferencesGeneral;

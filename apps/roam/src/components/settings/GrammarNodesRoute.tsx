@@ -1,0 +1,70 @@
+import React, { useEffect } from "react";
+import { OnloadArgs } from "roamjs-components/types";
+import getDiscourseNodes, {
+  excludeDefaultNodes,
+} from "~/utils/getDiscourseNodes";
+import { nodeConfigSegmentIds } from "./utils/settingsNavigation";
+import { useSettingsNav } from "./navigation/SettingsNavContext";
+import SettingsPageHeader from "./navigation/SettingsPageHeader";
+import DiscourseNodeConfigPanel from "./DiscourseNodeConfigPanel";
+import NodeConfig from "./NodeConfig";
+import NodeIndexPage from "./NodeIndexPage";
+import NodeTemplatePage from "./NodeTemplatePage";
+
+const NODES_ANCESTOR_LABELS = ["Grammar"] as const;
+
+const SUB_PAGE_LABELS: Record<string, string | undefined> = {
+  [nodeConfigSegmentIds.index]: "Index",
+  [nodeConfigSegmentIds.template]: "Template",
+};
+
+const GrammarNodesRoute = ({
+  onloadArgs,
+}: {
+  onloadArgs: OnloadArgs;
+}): JSX.Element => {
+  const { segments, goToDepth } = useSettingsNav();
+  const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
+
+  const [nodeTypeUid, subPage] = segments;
+  const node = nodeTypeUid
+    ? nodes.find((n) => n.type === nodeTypeUid)
+    : undefined;
+
+  // A deleted node type or stale deep link resolves to nothing; return to the list.
+  const isStalePath = Boolean(nodeTypeUid) && !node;
+  useEffect(() => {
+    if (isStalePath) goToDepth(0);
+  }, [isStalePath, goToDepth]);
+
+  const resolveLabel = (segment: string, segmentIndex: number): string =>
+    segmentIndex === 0
+      ? (nodes.find((n) => n.type === segment)?.text ?? segment)
+      : (SUB_PAGE_LABELS[segment] ?? segment);
+
+  return (
+    <div className="flex h-full flex-col">
+      <SettingsPageHeader
+        ancestorLabels={NODES_ANCESTOR_LABELS}
+        rootLabel="Nodes"
+        resolveLabel={resolveLabel}
+      />
+      {/* `-mx-1 px-1` widens the scroll box so the search flash is not clipped; content stays put. */}
+      <div className="-mx-1 min-h-0 flex-auto overflow-y-auto px-1">
+        {!node ? (
+          <div className="p-1">
+            <DiscourseNodeConfigPanel />
+          </div>
+        ) : subPage === nodeConfigSegmentIds.index ? (
+          <NodeIndexPage node={node} onloadArgs={onloadArgs} />
+        ) : subPage === nodeConfigSegmentIds.template ? (
+          <NodeTemplatePage node={node} />
+        ) : (
+          <NodeConfig node={node} />
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default GrammarNodesRoute;

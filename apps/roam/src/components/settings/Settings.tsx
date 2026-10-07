@@ -1,4 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import {
   Classes,
@@ -13,47 +20,39 @@ import renderOverlay from "roamjs-components/util/renderOverlay";
 import DiscourseRelationConfigPanel from "./DiscourseRelationConfigPanel";
 import DEFAULT_RELATION_VALUES from "~/data/defaultDiscourseRelations";
 import discourseConfigRef from "~/utils/discourseConfigRef";
-import DiscourseGraphHome from "./GeneralSettings";
-import DiscourseGraphExport from "./ExportSettings";
 import QuerySettings from "./QuerySettings";
 import AdminPanel from "./AdminPanel";
-import DiscourseNodeConfigPanel from "./DiscourseNodeConfigPanel";
-import getDiscourseNodes, {
-  excludeDefaultNodes,
-} from "~/utils/getDiscourseNodes";
-import NodeConfig from "./NodeConfig";
-import HomePersonalSettings from "./HomePersonalSettings";
-import CanvasShortcutSettings from "./CanvasShortcutSettings";
+import PreferencesGeneral from "./PreferencesGeneral";
+import PreferencesStyling from "./PreferencesStyling";
+import LeftSidebarSettings from "./LeftSidebarSettings";
+import DiscourseContextSettings from "./DiscourseContextSettings";
+import CanvasSettings from "./CanvasSettings";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { FeedbackWidget } from "~/components/BirdEatsBugs";
 import { getVersionWithDate } from "~/utils/getVersion";
-import { LeftSidebarPersonalSections } from "./LeftSidebarPersonalSettings";
-import { LeftSidebarGlobalSections } from "./LeftSidebarGlobalSettings";
 import posthog from "posthog-js";
 import { bulkReadSettings } from "./utils/accessors";
 import { onSettingChange, settingKeys } from "./utils/settingsEmitter";
+import { SETTINGS_TAB_IDS, SETTINGS_TAB_META } from "./utils/settingsTabs";
+import {
+  resolveInitialSettingsPath,
+  settingsNavReducer,
+  tabIdOf,
+} from "./utils/settingsNavigation";
+import { SettingsNavProvider } from "./navigation/SettingsNavContext";
+import SettingsSearchField from "./navigation/SettingsSearchField";
+import { useSettingAnchorScroll } from "./navigation/useSettingAnchorScroll";
+import type { SearchableEntry } from "./utils/settingsCatalog";
+import GrammarNodesRoute from "./GrammarNodesRoute";
 
-const settingsTabIds = {
-  homePersonal: "discourse-graph-home-personal",
-  leftSidebarPersonal: "left-sidebar-personal-settings",
-  leftSidebarGlobal: "left-sidebar-global-settings",
-} as const;
+/** `pr-1` leaves room for the search flash's `-mx-2`, which the scroll box would clip. */
+const TAB_PANEL_CLASS = "overflow-y-auto pr-1";
 
-const ADMIN_TAB_ID = "secret-admin-panel";
-
-type SectionHeaderProps = {
-  children: React.ReactNode;
-  className?: string;
-};
-const SectionHeader = ({ children, className }: SectionHeaderProps) => {
-  return (
-    <div
-      className={`bp3-tab-copy mt-4 cursor-default select-none font-bold ${className}`}
-    >
-      {children}
-    </div>
-  );
-};
+const SectionHeader = ({ children }: { children: React.ReactNode }) => (
+  <div className="bp3-tab-copy mt-4 cursor-default select-none text-lg font-semibold text-neutral-dark">
+    {children}
+  </div>
+);
 
 export const SettingsPanel = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
   return (
@@ -92,11 +91,27 @@ export const SettingsDialog = ({
   const relationsNode = grammarNode?.children.find(
     (node) => node.text === "relations",
   );
-  const nodesNode = grammarNode?.children.find((node) => node.text === "nodes");
-  const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
-  const [activeTabId, setActiveTabId] = useState<TabId>(
-    selectedTabId ?? settingsTabIds.homePersonal,
+  const [path, dispatch] = useReducer(
+    settingsNavReducer,
+    selectedTabId,
+    resolveInitialSettingsPath,
   );
+  const activeTabId = tabIdOf(path);
+  const selectTab = useCallback(
+    (tabId: string) => dispatch({ type: "select-tab", tabId }),
+    [],
+  );
+  // Cleared once settled, so a repeat jump to the same row still scrolls.
+  const [pendingAnchorId, setPendingAnchorId] = useState<string | null>(null);
+  const handleSearchSelect = useCallback((entry: SearchableEntry) => {
+    dispatch({ type: "navigate", path: entry.path });
+    setPendingAnchorId(entry.kind === "setting" ? entry.anchorId : null);
+  }, []);
+  const clearPendingAnchor = useCallback(() => setPendingAnchorId(null), []);
+  useSettingAnchorScroll({
+    anchorId: pendingAnchorId,
+    onSettled: clearPendingAnchor,
+  });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const settings = useMemo(() => bulkReadSettings(), [activeTabId]);
   const [leftSidebarEnabled, setLeftSidebarEnabled] = useState(
@@ -110,18 +125,22 @@ export const SettingsDialog = ({
   const [showAdminPanel, setShowAdminPanel] = useState(
     window.roamAlphaAPI.graph.name === "discourse-graphs" || false,
   );
+  const isLeftSidebarTabHidden =
+    !leftSidebarEnabled && activeTabId === SETTINGS_TAB_IDS.featuresLeftSidebar;
+  const visibleTabId = isLeftSidebarTabHidden
+    ? SETTINGS_TAB_IDS.preferencesGeneral
+    : activeTabId;
   const { versionStamp } = getVersionWithDate();
   const openAdminPanel = (): void => {
     setShowAdminPanel(true);
-    setActiveTabId(ADMIN_TAB_ID);
+    selectTab(SETTINGS_TAB_IDS.admin);
     posthog.capture("Settings: Admin Panel Opened from Footer");
   };
 
+  const initialTabId = useRef(activeTabId).current;
   useEffect(() => {
-    posthog.capture("Settings: Dialog Opened", {
-      initialTabId: String(selectedTabId ?? settingsTabIds.homePersonal),
-    });
-  }, [selectedTabId]);
+    posthog.capture("Settings: Dialog Opened", { initialTabId });
+  }, [initialTabId]);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -129,21 +148,14 @@ export const SettingsDialog = ({
         e.stopPropagation();
         e.preventDefault();
         setShowAdminPanel(true);
-        setActiveTabId(ADMIN_TAB_ID);
+        selectTab(SETTINGS_TAB_IDS.admin);
         posthog.capture("Settings: Admin Panel Opened via Shortcut");
       }
     };
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, []);
-  const leftSidebarTabHidden =
-    !leftSidebarEnabled &&
-    (activeTabId === settingsTabIds.leftSidebarPersonal ||
-      activeTabId === settingsTabIds.leftSidebarGlobal);
-  const visibleTabId = leftSidebarTabHidden
-    ? settingsTabIds.homePersonal
-    : activeTabId;
+  }, [selectTab]);
   return (
     <Dialog
       isOpen={isOpen}
@@ -186,7 +198,7 @@ export const SettingsDialog = ({
         <Tabs
           className="dg-settings-tabs flex h-full"
           onChange={(id) => {
-            setActiveTabId(id);
+            selectTab(String(id));
             posthog.capture("Settings: Tab Opened", {
               tabId: String(id),
             });
@@ -195,91 +207,86 @@ export const SettingsDialog = ({
           vertical={true}
           renderActiveTabPanelOnly={true}
         >
-          <SectionHeader className="text-lg font-semibold text-neutral-dark">
-            Personal Settings
-          </SectionHeader>
+          <SettingsSearchField onSelect={handleSearchSelect} />
+          <SectionHeader>Preferences</SectionHeader>
           <Tab
-            id={settingsTabIds.homePersonal}
-            title="Home"
-            className="overflow-y-auto"
+            id={SETTINGS_TAB_IDS.preferencesGeneral}
+            title={SETTINGS_TAB_META[SETTINGS_TAB_IDS.preferencesGeneral].label}
+            className={TAB_PANEL_CLASS}
             panel={
-              <HomePersonalSettings
+              <PreferencesGeneral
+                onloadArgs={onloadArgs}
+                globalSettings={settings.globalSettings}
+                personalSettings={settings.personalSettings}
+                featureFlags={settings.featureFlags}
+              />
+            }
+          />
+          <Tab
+            id={SETTINGS_TAB_IDS.preferencesStyling}
+            title={SETTINGS_TAB_META[SETTINGS_TAB_IDS.preferencesStyling].label}
+            className={TAB_PANEL_CLASS}
+            panel={
+              <PreferencesStyling
+                personalSettings={settings.personalSettings}
+              />
+            }
+          />
+          <SectionHeader>Features</SectionHeader>
+          <Tab
+            id={SETTINGS_TAB_IDS.featuresDiscourseContext}
+            title={
+              SETTINGS_TAB_META[SETTINGS_TAB_IDS.featuresDiscourseContext].label
+            }
+            className={TAB_PANEL_CLASS}
+            panel={
+              <DiscourseContextSettings
                 onloadArgs={onloadArgs}
                 personalSettings={settings.personalSettings}
               />
             }
           />
           <Tab
-            id="query-settings"
-            title="Queries"
-            className="overflow-y-auto"
+            id={SETTINGS_TAB_IDS.featuresCanvas}
+            title={SETTINGS_TAB_META[SETTINGS_TAB_IDS.featuresCanvas].label}
+            className={TAB_PANEL_CLASS}
             panel={
-              <QuerySettings
-                extensionAPI={extensionAPI}
+              <CanvasSettings
+                onloadArgs={onloadArgs}
+                globalSettings={settings.globalSettings}
                 personalSettings={settings.personalSettings}
               />
             }
           />
           <Tab
-            id="canvas-shortcuts-personal-settings"
-            title="Canvas"
-            className="overflow-y-auto"
-            panel={
-              <CanvasShortcutSettings
-                personalSettings={settings.personalSettings}
-              />
+            id={SETTINGS_TAB_IDS.featuresLeftSidebar}
+            title={
+              SETTINGS_TAB_META[SETTINGS_TAB_IDS.featuresLeftSidebar].label
             }
-          />
-          <Tab
-            id={settingsTabIds.leftSidebarPersonal}
+            className={TAB_PANEL_CLASS}
             hidden={!leftSidebarEnabled}
-            title="Left sidebar"
-            className="overflow-y-auto"
             panel={
-              <LeftSidebarPersonalSections
+              <LeftSidebarSettings
+                globalSettings={settings.globalSettings}
                 personalSettings={settings.personalSettings}
                 expandedSectionUid={expandedSectionUid}
               />
             }
           />
-          <SectionHeader className="text-lg font-semibold text-neutral-dark">
-            Global Settings
-          </SectionHeader>
-          <Tab
-            id="discourse-graph-home"
-            title="Home"
-            className="overflow-y-auto"
-            panel={
-              <DiscourseGraphHome
-                globalSettings={settings.globalSettings}
-                featureFlags={settings.featureFlags}
-              />
-            }
-          />
-          <Tab
-            id="discourse-graph-export"
-            title="Export"
-            className="overflow-y-auto"
-            panel={
-              <DiscourseGraphExport globalSettings={settings.globalSettings} />
-            }
-          />
-          <Tab
-            id={settingsTabIds.leftSidebarGlobal}
-            hidden={!leftSidebarEnabled}
-            title="Left sidebar"
-            className="overflow-y-auto"
-            panel={
-              <LeftSidebarGlobalSections
-                globalSettings={settings.globalSettings}
-              />
-            }
-          />
           <SectionHeader>Grammar</SectionHeader>
           <Tab
-            id="discourse-relations"
-            title="Relations"
-            className="overflow-y-auto"
+            id={SETTINGS_TAB_IDS.grammarNodes}
+            title={SETTINGS_TAB_META[SETTINGS_TAB_IDS.grammarNodes].label}
+            panel={
+              <SettingsNavProvider path={path} dispatch={dispatch}>
+                <GrammarNodesRoute onloadArgs={onloadArgs} />
+              </SettingsNavProvider>
+            }
+          />
+          <Tab
+            id={SETTINGS_TAB_IDS.grammarRelations}
+            title={SETTINGS_TAB_META[SETTINGS_TAB_IDS.grammarRelations].label}
+            className={TAB_PANEL_CLASS}
             panel={
               <DiscourseRelationConfigPanel
                 defaultValue={DEFAULT_RELATION_VALUES}
@@ -289,38 +296,25 @@ export const SettingsDialog = ({
               />
             }
           />
+          <SectionHeader>Advanced</SectionHeader>
           <Tab
-            id="discourse-nodes"
-            title="Nodes"
-            className="overflow-y-auto"
+            id={SETTINGS_TAB_IDS.advancedQueries}
+            title={SETTINGS_TAB_META[SETTINGS_TAB_IDS.advancedQueries].label}
+            className={TAB_PANEL_CLASS}
             panel={
-              <DiscourseNodeConfigPanel
-                title="Nodes"
-                uid={nodesNode?.uid || ""}
-                parentUid={grammarNode?.uid || ""}
-                defaultValue={[]}
-                setSelectedTabId={setActiveTabId}
-                isPopup={true}
+              <QuerySettings
+                extensionAPI={extensionAPI}
+                personalSettings={settings.personalSettings}
               />
             }
           />
-          <SectionHeader>Nodes</SectionHeader>
-          {nodes.map((n) => (
-            <Tab
-              key={n.type}
-              id={n.type}
-              title={n.text}
-              className="overflow-y-auto"
-              panel={<NodeConfig node={n} onloadArgs={onloadArgs} />}
-            />
-          ))}
           <Tabs.Expander />
           {/* Secret Admin Panel */}
           <Tab
             hidden={true}
-            id={ADMIN_TAB_ID}
+            id={SETTINGS_TAB_IDS.admin}
             title="Admin"
-            className="overflow-y-auto"
+            className={TAB_PANEL_CLASS}
             panel={<AdminPanel globalSettings={settings.globalSettings} />}
           />
         </Tabs>
