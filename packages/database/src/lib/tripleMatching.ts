@@ -11,7 +11,8 @@ export type NodeTypeIdentity = {
 
 const normalizeName = (name: string): string => name.trim().toLowerCase();
 
-// The same in every Roam graph; keep in sync with `type` in Roam's `defaultDiscourseNodes`.
+// The same in every Roam graph; keep in sync with `type` in
+// apps/roam/src/data/defaultDiscourseNodes.ts.
 // Check the exact list: a user-created type's id may also start with `_`.
 export const ROAM_DEFAULT_NODE_TYPE_IDS: ReadonlySet<string> = new Set([
   "_CLM-node",
