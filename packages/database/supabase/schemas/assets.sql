@@ -37,11 +37,15 @@ SELECT
     last_modified,
     source_path
 FROM public."FileReference"
-    LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
-WHERE (
-    space_id = any(public.my_space_ids('reader'))
-    OR (space_id = any(public.my_space_ids('partial')) AND ra.space_id IS NOT NULL)
-);
+WHERE
+    space_id = any((SELECT public.my_space_ids('reader'))::bigint [])
+    OR (
+        space_id = any((SELECT public.my_space_ids('partial'))::bigint [])
+        AND (space_id, source_local_id) IN (SELECT space_id, source_local_id FROM public.my_accessible_resources())
+    );
+
+-- Single-table views are writable, and writes run as the view owner, bypassing FileReference's RLS.
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.my_file_references FROM anon, authenticated;
 
 GRANT ALL ON TABLE public."FileReference" TO authenticated;
 GRANT ALL ON TABLE public."FileReference" TO service_role;
