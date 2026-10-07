@@ -19,6 +19,7 @@ import getRoamUrl from "roamjs-components/dom/getRoamUrl";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import createOverlayRender from "roamjs-components/util/createOverlayRender";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
+import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { SharedNode } from "@repo/database/lib/sharedNodes";
 import { discoverSharedNodes } from "~/utils/discoverSharedNodes";
 import { getErrorMessage } from "~/utils/getErrorMessage";
@@ -150,10 +151,16 @@ const ImportedNodeLink = ({
 
 const ImportResultsSummary = ({
   results,
+  relationsFailed,
+  retryingRelations,
   onOpenInMainWindow,
+  onRetryRelations,
 }: {
   results: SharedNodeImportItem[];
+  relationsFailed: boolean;
+  retryingRelations: boolean;
   onOpenInMainWindow: () => void;
+  onRetryRelations: () => void;
 }) => {
   const importedCount = results.filter(
     (item) => item.status === "imported",
@@ -170,7 +177,7 @@ const ImportResultsSummary = ({
     <Callout
       className="flex-none"
       intent={
-        failedImports.length > 0 || warningCount > 0
+        failedImports.length > 0 || warningCount > 0 || relationsFailed
           ? Intent.WARNING
           : Intent.SUCCESS
       }
@@ -196,6 +203,17 @@ const ImportResultsSummary = ({
           </li>
         ))}
       </ul>
+      {relationsFailed && (
+        <div className="mt-2 flex items-center gap-2">
+          <span>The relations were not imported.</span>
+          <Button
+            loading={retryingRelations}
+            onClick={onRetryRelations}
+            small
+            text="Retry relations"
+          />
+        </div>
+      )}
     </Callout>
   );
 };
@@ -216,6 +234,8 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
   const [importResults, setImportResults] = useState<
     SharedNodeImportItem[] | null
   >(null);
+  const [relationsFailed, setRelationsFailed] = useState(false);
+  const [retryingRelations, setRetryingRelations] = useState(false);
   const importing = importProgress !== null;
 
   const loadNodes = useCallback(async (): Promise<void> => {
@@ -302,10 +322,46 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
     setSort((currentSort) => getNextSharedNodeSort({ currentSort, column }));
   };
 
+  const importRelations = async (client: DGSupabaseClient): Promise<void> => {
+    try {
+      await importSharedRelations(client, spaceId, [...importedRids]);
+      setRelationsFailed(false);
+    } catch (relationsError) {
+      setRelationsFailed(true);
+      internalError({
+        error: relationsError,
+        type: IMPORT_ERROR_TYPE,
+        context: { operation: IMPORT_ERROR_OPERATION },
+        sendEmail: false,
+        userMessage: `The nodes were imported, but their relations were not: ${getErrorMessage(relationsError)}`,
+      });
+    }
+  };
+
+  const retryRelations = async (): Promise<void> => {
+    setRetryingRelations(true);
+    try {
+      const client = await getLoggedInClient();
+      if (!client) throw new Error("Could not connect to shared persistence.");
+      await importRelations(client);
+    } catch (retryError) {
+      internalError({
+        error: retryError,
+        type: IMPORT_ERROR_TYPE,
+        context: { operation: IMPORT_ERROR_OPERATION },
+        sendEmail: false,
+        userMessage: getErrorMessage(retryError),
+      });
+    } finally {
+      setRetryingRelations(false);
+    }
+  };
+
   const importSelectedNodes = async (): Promise<void> => {
     const selectedNodes = nodes.filter((node) => selectedRids.has(node.rid));
 
     setImportResults(null);
+    setRelationsFailed(false);
     setImportProgress({ current: 0, total: selectedNodes.length });
     try {
       const client = await getLoggedInClient();
@@ -342,16 +398,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
           sendEmail: false,
         });
       }
-      await importSharedRelations(client, spaceId, [...importedRids]).catch(
-        (relationsError: unknown) =>
-          internalError({
-            error: relationsError,
-            type: IMPORT_ERROR_TYPE,
-            context: { operation: IMPORT_ERROR_OPERATION },
-            sendEmail: false,
-            userMessage: `The nodes were imported, but their relations were not: ${getErrorMessage(relationsError)}`,
-          }),
-      );
+      await importRelations(client);
     } catch (importError) {
       internalError({
         error: importError,
@@ -389,7 +436,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
           "flex min-h-0 flex-col gap-3 overflow-auto",
         ].join(" ")}
       >
-        <StoredRelationsWarning />
+        <StoredRelationsWarning className="flex-none" />
         <div className="flex flex-none items-center gap-2">
           <InputGroup
             className="min-w-0 flex-1"
@@ -425,7 +472,10 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
           importResults && (
             <ImportResultsSummary
               onOpenInMainWindow={onClose}
+              onRetryRelations={() => void retryRelations()}
+              relationsFailed={relationsFailed}
               results={importResults}
+              retryingRelations={retryingRelations}
             />
           )
         )}
@@ -517,7 +567,9 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
               Close
             </Button>
             <Button
-              disabled={importing || selectedRids.size === 0}
+              disabled={
+                importing || retryingRelations || selectedRids.size === 0
+              }
               intent={Intent.PRIMARY}
               onClick={() => void importSelectedNodes()}
             >
