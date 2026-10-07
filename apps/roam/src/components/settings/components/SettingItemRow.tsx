@@ -1,5 +1,12 @@
 import React, { useId } from "react";
-import { Icon, type IconName, Position, Tooltip } from "@blueprintjs/core";
+import {
+  Icon,
+  type IconName,
+  Label,
+  Position,
+  Tooltip,
+} from "@blueprintjs/core";
+import Description from "~/components/settings/SettingsDescription";
 import { settingAnchor } from "~/components/settings/utils/settingAnchor";
 import { describedSetting } from "~/components/settings/utils/settingsCatalog";
 import { withDocsLink } from "~/components/settings/utils/docs";
@@ -44,8 +51,8 @@ type SettingItemRowProps = {
   controlPlacement?: "trailing" | "below";
   settingKeys?: string[];
   error?: string;
-  /** Tighter row for narrow hosts such as the Export dialog: no scope badge, control below. */
-  compact?: boolean;
+  /** Pre-overhaul label, description and control stack, kept for the Export dialog's options. */
+  inline?: boolean;
 };
 
 const SettingItemRow = ({
@@ -56,7 +63,7 @@ const SettingItemRow = ({
   controlPlacement = "trailing",
   settingKeys,
   error,
-  compact = false,
+  inline = false,
 }: SettingItemRowProps): React.ReactElement => {
   const controlId = useId();
   const isAssociated = typeof control === "function";
@@ -70,14 +77,28 @@ const SettingItemRow = ({
         ? withDocsLink(authored.description, authored.docsLink)
         : authored.description
       : undefined);
+  if (inline) {
+    return (
+      <Label {...(settingKeys ? settingAnchor(settingKeys) : {})}>
+        {label}
+        {resolvedDescription ? (
+          <Description description={resolvedDescription} />
+        ) : null}
+        {error ? (
+          <div className="text-sm font-medium text-red-700">{error}</div>
+        ) : null}
+        {isAssociated ? control(controlId) : control}
+      </Label>
+    );
+  }
   // Description is a sibling of the label: nested, its doc links would toggle the control (ENG-2080).
   const LabelTag = isAssociated ? "label" : "div";
 
   return (
     <div
       {...(settingKeys ? settingAnchor(settingKeys) : {})}
-      className={`dg-setting-row ${compact ? "py-2" : "py-3"} ${
-        controlPlacement === "trailing" && !compact
+      className={`dg-setting-row py-3 ${
+        controlPlacement === "trailing"
           ? "flex items-center justify-between gap-4"
           : "flex flex-col gap-2"
       }`}
@@ -89,7 +110,7 @@ const SettingItemRow = ({
             isAssociated ? "cursor-pointer" : ""
           }`}
         >
-          {scope && !compact ? <SettingScopeIndicator scope={scope} /> : null}
+          {scope ? <SettingScopeIndicator scope={scope} /> : null}
           <span>{label}</span>
         </LabelTag>
         {resolvedDescription ? (
@@ -102,11 +123,7 @@ const SettingItemRow = ({
         ) : null}
       </div>
       <div
-        className={
-          controlPlacement === "trailing" && !compact
-            ? "flex-shrink-0"
-            : "w-full"
-        }
+        className={controlPlacement === "trailing" ? "flex-shrink-0" : "w-full"}
       >
         {isAssociated ? control(controlId) : control}
       </div>
