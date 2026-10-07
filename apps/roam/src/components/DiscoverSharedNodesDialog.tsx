@@ -154,12 +154,14 @@ const ImportedNodeLink = ({
 const ImportResultsSummary = ({
   results,
   relationsFailed,
+  hasRelationFailures,
   retryingRelations,
   onOpenInMainWindow,
   onRetryRelations,
 }: {
   results: SharedNodeImportItem[];
   relationsFailed: boolean;
+  hasRelationFailures: boolean;
   retryingRelations: boolean;
   onOpenInMainWindow: () => void;
   onRetryRelations: () => void;
@@ -179,7 +181,10 @@ const ImportResultsSummary = ({
     <Callout
       className="flex-none"
       intent={
-        failedImports.length > 0 || warningCount > 0 || relationsFailed
+        failedImports.length > 0 ||
+        warningCount > 0 ||
+        relationsFailed ||
+        hasRelationFailures
           ? Intent.WARNING
           : Intent.SUCCESS
       }
@@ -220,6 +225,21 @@ const ImportResultsSummary = ({
   );
 };
 
+const RelationFailuresSummary = ({ failures }: { failures: string[] }) => (
+  <Callout
+    className="flex-none"
+    intent={Intent.WARNING}
+    title={`${failures.length} shared relation${failures.length === 1 ? "" : "s"} not imported`}
+  >
+    <div>These relations are retried on the next import.</div>
+    <ul className="mb-0 mt-2 list-disc pl-5">
+      {failures.map((failure) => (
+        <li key={failure}>{failure}</li>
+      ))}
+    </ul>
+  </Callout>
+);
+
 const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
   const [nodes, setNodes] = useState<SharedNode[]>([]);
   const [importedRids, setImportedRids] = useState<Set<string>>(new Set());
@@ -238,6 +258,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
   >(null);
   const [relationsFailed, setRelationsFailed] = useState(false);
   const [retryingRelations, setRetryingRelations] = useState(false);
+  const [relationFailures, setRelationFailures] = useState<string[]>([]);
   const importing = importProgress !== null;
 
   const loadNodes = useCallback(async (): Promise<void> => {
@@ -245,6 +266,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
     setError("");
     setSelectedRids(new Set());
     setImportResults(null);
+    setRelationFailures([]);
     try {
       const context = await getSupabaseContext();
       if (!context) throw new Error(CONNECTION_ERROR_MESSAGE);
@@ -326,7 +348,11 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
 
   const importRelations = async (client: DGSupabaseClient): Promise<void> => {
     try {
-      await importSharedRelations(client, spaceId);
+      const { failures, skipped } = await importSharedRelations(
+        client,
+        spaceId,
+      );
+      setRelationFailures([...skipped, ...failures]);
       setRelationsFailed(false);
     } catch (relationsError) {
       setRelationsFailed(true);
@@ -363,6 +389,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
     const selectedNodes = nodes.filter((node) => selectedRids.has(node.rid));
 
     setImportResults(null);
+    setRelationFailures([]);
     setImportProgress({ current: 0, total: selectedNodes.length });
     try {
       const client = await getLoggedInClient();
@@ -381,6 +408,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
         newlyImportedRids.forEach((rid) => next.add(rid));
         return next;
       });
+      // Shown before importing relations, so a relation import error keeps the node summary.
       setImportResults(results);
       const failedImports = results.filter(isFailedSharedNodeImport);
       setSelectedRids(
@@ -472,6 +500,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
         ) : (
           importResults && (
             <ImportResultsSummary
+              hasRelationFailures={relationFailures.length > 0}
               onOpenInMainWindow={onClose}
               onRetryRelations={() => void retryRelations()}
               relationsFailed={relationsFailed}
@@ -479,6 +508,9 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
               retryingRelations={retryingRelations}
             />
           )
+        )}
+        {relationFailures.length > 0 && (
+          <RelationFailuresSummary failures={relationFailures} />
         )}
 
         {loading ? (
