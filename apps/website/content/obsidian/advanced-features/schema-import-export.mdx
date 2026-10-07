@@ -34,7 +34,7 @@ A schema file never contains your notes or discourse nodes. To share nodes, see 
      ![Schema commands in the command palette](/docs/obsidian/schema-commands.png)
 2. Choose what to include. Everything is selected by default, except templates that no node type uses.
    ![Export discourse graph schema window](/docs/obsidian/schema-export-modal.png)
-3. Click **Export schema** and choose where to save the file. It is named `dg-schema-<vault name>.json` by default.
+3. Click **Export schema** and choose where to save the file. It is named after your vault by default, for example `dg-schema-lab-notebook.json`.
 
 ![Exporting a schema](/docs/obsidian/schema-export.gif)
 
@@ -63,7 +63,7 @@ When the import finishes, a notice lists what was created and updated.
 
 ## Choose what to keep
 
-When a selected item already exists in your vault with different settings, you decide field by field which value to keep. A node type or relation type counts as existing when it has the same name or label, ignoring capitalization, or was originally imported from the same type. A template counts as existing when a template file with exactly the same name is already in your vault.
+When a selected item already exists in your vault with different settings, you decide field by field which value to keep. A node type or relation type counts as existing when it has the same name or label, ignoring capitalization, or one was originally imported from the other. A template counts as existing when a template file with exactly the same name is already in your vault.
 
 - Every field starts on your current value, so nothing changes unless you choose it.
 - Click **Keep all mine** or **Use all from &lt;vault name&gt;** to switch every field of an item at once, or pick each field on its own.
@@ -79,7 +79,7 @@ Importing never overwrites one of your template files. If you choose the file's 
 
 ## Troubleshooting
 
-- **"Schema file is incompatible with this version of the plugin"**: the file is not a schema export, or it came from an incompatible plugin version. Export it again with an up-to-date plugin.
+- **"Schema file is incompatible with this version of the plugin"**: the file is not a schema export, or it came from an incompatible plugin version. Make sure both vaults use the latest plugin version, then export again.
 - **Templates are skipped**: enable the core **Templates** plugin and set its template folder location, then export or import again.
 - **"Relation … skipped: it references a type that is not in this vault"**: select the node types and relation type that the triple uses, then import again.
 - **Fewer types than expected**: if one file has two types whose names differ only in capitalization, such as "claim" and "Claim", they are imported as one type.
