@@ -3,7 +3,7 @@
   "checkpoint_id": "01M4CAAX0F9TTKNYESB9D1RY3N",
   "strategy": "manual-commit",
   "branch": "eng-2364-investigate-beta-build-having-wrong-versioning",
-  "checkpoints_count": 2,
+  "checkpoints_count": 8,
   "files_touched": null,
   "sessions": [
     {
@@ -12,13 +12,27 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": "/0/prompt.txt"
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 80,
-    "cache_creation_tokens": 57693,
-    "cache_read_tokens": 6680002,
-    "output_tokens": 26147,
-    "api_call_count": 40
+    "input_tokens": 142,
+    "cache_creation_tokens": 1678811,
+    "cache_read_tokens": 16343822,
+    "output_tokens": 44251,
+    "api_call_count": 71,
+    "subagent_tokens": {
+      "input_tokens": 0,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 0,
+      "api_call_count": 0
+    }
   }
 }
