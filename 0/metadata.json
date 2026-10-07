@@ -50,6 +50,37 @@
         "label": "Skill: proof-kit",
         "default_collapsed": true
       }
+    },
+    {
+      "id": "claude-skill-toolu_014DRZLM73LFSjagdktQkjTo",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-engineering-writing-style"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "b2df0102cb65",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 455,
+        "end": 456,
+        "entry_ids": [
+          "dc9103ed-7768-4db3-a84a-f414adb98cbd"
+        ],
+        "tool_use_id": "toolu_014DRZLM73LFSjagdktQkjTo"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_014DRZLM73LFSjagdktQkjTo"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-engineering-writing-style",
+        "default_collapsed": true
+      }
     }
   ],
   "session_metrics": {
