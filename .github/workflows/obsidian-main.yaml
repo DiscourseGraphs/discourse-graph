@@ -64,7 +64,9 @@ jobs:
             echo "::error::Unexpected stable version in $PUBLISH_REPO manifest.json: '$STABLE_VERSION'"
             exit 1
           fi
-          LATEST_N=$(gh release list --repo "$PUBLISH_REPO" --limit 100 --json tagName --jq '.[].tagName' \
+          # Separate command so bash -e (no pipefail) fails here instead of restarting at beta.1.
+          TAGS=$(gh release list --repo "$PUBLISH_REPO" --limit 100 --json tagName --jq '.[].tagName')
+          LATEST_N=$(echo "$TAGS" \
             | grep "^${STABLE_VERSION}-beta\." \
             | sed "s/^${STABLE_VERSION}-beta\.//" \
             | sort -n | tail -1)
