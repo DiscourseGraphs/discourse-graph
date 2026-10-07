@@ -60,3 +60,4 @@ Here are some common relationship types:
 - [Create your first relationship](/docs/obsidian/core-features/creating-discourse-relationships)
 - [Learn about the discourse context](/docs/obsidian/core-features/discourse-context)
 - [Explore your graph](/docs/obsidian/core-features/canvas)
+- [Share your schema with collaborators](/docs/obsidian/advanced-features/schema-import-export)
