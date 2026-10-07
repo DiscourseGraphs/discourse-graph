@@ -350,7 +350,8 @@ export const importRelationsForImportedNodes = async ({
       .from("my_concepts")
       .select("id, source_local_id")
       .in("id", schemaIds);
-    // Without their schemas no relation can import; count them so the user is told.
+    // Without their schemas no relation can import. Count them rather than throw:
+    // the caller only logs a thrown error, so the user would not be told.
     if (error) {
       console.warn("Could not look up the relations' schemas:", error);
       return { imported: 0, failed: importable.length };
