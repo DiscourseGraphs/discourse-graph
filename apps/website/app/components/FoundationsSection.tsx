@@ -38,8 +38,10 @@ const FoundationCard = ({
 }): ReactElement => (
   <div className="overflow-hidden rounded-2xl bg-[#f1f1f1] leading-[normal]">
     <div className="px-6 pb-3 pt-6" style={{ minHeight: headerHeight }}>
-      <h3 className="text-[24px] font-semibold text-black">{title}</h3>
-      <p className="mt-3 max-w-[520px] text-[18px] text-black">{description}</p>
+      <h3 className="text-2xl font-semibold text-black">{title}</h3>
+      <p className="mt-3 max-w-[520px] text-base leading-7 text-black">
+        {description}
+      </p>
     </div>
     {children}
   </div>
@@ -47,7 +49,7 @@ const FoundationCard = ({
 
 const NodePill = ({ kind }: { kind: NodeKind }): ReactElement => (
   <span
-    className="rounded-full p-2.5 text-[12px] font-semibold"
+    className="rounded-full p-2.5 text-xs font-semibold leading-[normal]"
     style={{
       backgroundColor: `color-mix(in srgb, ${NODE_STYLES[kind].color} 25%, white)`,
       color: `color-mix(in srgb, ${NODE_STYLES[kind].color} 50%, black)`,
@@ -116,11 +118,13 @@ const NodesCard = (): ReactElement => (
         >
           <div className="flex items-start gap-2.5 p-2.5">
             <NodePill kind={sample.kind} />
-            <p className="flex-1 text-[16px] font-semibold text-black">
+            <p className="flex-1 text-base font-semibold leading-[normal] text-black">
               {sample.title}
             </p>
           </div>
-          <p className="p-2.5 text-[16px] text-black">{sample.body}</p>
+          <p className="p-2.5 text-base leading-[normal] text-black">
+            {sample.body}
+          </p>
         </div>
       ))}
     </ScaledStage>
@@ -211,7 +215,7 @@ const RelationsCard = (): ReactElement => (
       {RELATION_PILLS.map((pill) => (
         <span
           key={`${pill.kind}-${pill.left}-${pill.top}`}
-          className="whitespace-nowrap rounded-full border border-black p-2.5 text-[16px] font-semibold"
+          className="whitespace-nowrap rounded-full border border-black p-2.5 text-base font-semibold leading-[normal]"
           style={{
             ...abs(pill.left, pill.top),
             backgroundColor: RELATION_COLORS[pill.kind]?.bg,
@@ -222,13 +226,13 @@ const RelationsCard = (): ReactElement => (
         </span>
       ))}
       <span
-        className="bg-white p-1 text-[12px] font-medium text-black"
+        className="bg-white p-1 text-xs font-medium leading-[normal] text-black"
         style={abs(263, 41)}
       >
         opposes
       </span>
       <span
-        className="bg-white p-1 text-[12px] font-medium text-black"
+        className="bg-white p-1 text-xs font-medium leading-[normal] text-black"
         style={abs(262, 91)}
       >
         supports
@@ -256,12 +260,12 @@ const SharingCard = (): ReactElement => (
       >
         <div className="flex items-start gap-2.5 p-2.5">
           <NodePill kind="result" />
-          <p className="flex-1 text-[16px] font-semibold text-black">
+          <p className="flex-1 text-base font-semibold leading-[normal] text-black">
             With the help of the lab’s discourse graph, undergraduates produced
             original results within four months of joining the lab
           </p>
         </div>
-        <div className="flex items-center gap-3 px-2.5 text-[14px] text-black">
+        <div className="flex items-center gap-3 px-2.5 text-sm leading-[normal] text-black">
           <MetaItem icon="user">Matt Akamatsu</MetaItem>
           <MetaItem icon="earth">MATSU Lab</MetaItem>
           <MetaItem icon="calendar">Jan 31, 2026</MetaItem>
@@ -269,7 +273,7 @@ const SharingCard = (): ReactElement => (
             <MetaItem icon="share">Share</MetaItem>
           </span>
         </div>
-        <p className="p-2.5 text-[16px] text-black">
+        <p className="p-2.5 text-base leading-[normal] text-black">
           Three undergraduate researchers in the MATSUlab produced their first
           formal result (RES node) within 36–125 days of joining the lab (mean:
           69 days), with students assigned to entry projects or existing
