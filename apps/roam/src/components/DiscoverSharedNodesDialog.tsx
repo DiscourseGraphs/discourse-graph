@@ -3,6 +3,7 @@ import {
   Callout,
   Checkbox,
   Classes,
+  Colors,
   Dialog,
   HTMLTable,
   Icon,
@@ -14,6 +15,7 @@ import {
   Tooltip,
 } from "@blueprintjs/core";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import getRoamUrl from "roamjs-components/dom/getRoamUrl";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import createOverlayRender from "roamjs-components/util/createOverlayRender";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
@@ -128,7 +130,9 @@ const ImportedNodeLink = ({
 }): React.ReactElement => (
   <a
     className="font-medium"
+    href={getRoamUrl(pageUid)}
     onClick={(event) => {
+      event.preventDefault();
       if (event.shiftKey) {
         void openBlockInSidebar(pageUid);
         return;
@@ -163,6 +167,7 @@ const ImportResultsSummary = ({
   const warningCount = completedImports.filter((item) => item.warning).length;
   return (
     <Callout
+      className="flex-none"
       intent={
         failedImports.length > 0 || warningCount > 0
           ? Intent.WARNING
@@ -383,7 +388,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
           "flex min-h-0 flex-col gap-3 overflow-auto",
         ].join(" ")}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex flex-none items-center gap-2">
           <InputGroup
             className="min-w-0 flex-1"
             leftIcon="search"
@@ -406,6 +411,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
 
         {importProgress ? (
           <Callout
+            className="flex-none"
             title={`Importing ${importProgress.current} of ${importProgress.total}…`}
           >
             <ProgressBar
@@ -445,9 +451,12 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
             />
           </div>
         ) : (
-          <div className="min-h-0 overflow-auto">
+          <div className="min-h-0 flex-1 overflow-auto">
             <HTMLTable striped className="w-full">
-              <thead>
+              <thead
+                className="sticky top-0 z-10"
+                style={{ backgroundColor: Colors.LIGHT_GRAY4 }}
+              >
                 <tr>
                   <th>
                     <Checkbox
@@ -501,7 +510,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
               ? ""
               : `${visibleNodes.length} of ${availableNodes.length} nodes`}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-none items-center gap-2">
             <Button disabled={importing} onClick={onClose}>
               Close
             </Button>
