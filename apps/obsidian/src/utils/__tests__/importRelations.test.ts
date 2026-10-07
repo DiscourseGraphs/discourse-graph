@@ -56,12 +56,24 @@ const createClient = (respond: (calls: QueryCall) => unknown) => {
     const calls: QueryCall = [];
     queries.push(calls);
     const builder: Record<string, unknown> = {};
-    for (const method of ["select", "eq", "neq", "in", "overlaps"]) {
+    for (const method of [
+      "select",
+      "eq",
+      "neq",
+      "in",
+      "overlaps",
+      "order",
+      "range",
+    ]) {
       builder[method] = (...args: unknown[]) => {
         calls.push({ method, args });
         return builder;
       };
     }
+    // getAllPages refuses a query whose URL has no order clause.
+    Object.defineProperty(builder, "url", {
+      get: () => ({ search: hasCall(calls, "order", "id") ? "?order=id" : "" }),
+    });
     builder.maybeSingle = () => Promise.resolve(respond(calls));
     builder.then = (resolve: (value: unknown) => unknown) =>
       resolve(respond(calls));
@@ -232,6 +244,31 @@ describe("fetchRelationInstancesForImport", () => {
 
     expect(relations.map((rel) => rel.id).sort()).toEqual([100, 101]);
     expect(queries).toHaveLength(2);
+  });
+
+  it("reads past the first page of each query", async () => {
+    const pageSize = 1000;
+    const { client } = createClient((calls) => {
+      const offset = calls.filter((call) => call.method === "range").at(-1)
+        ?.args[0] as number;
+      const base = hasCall(calls, "overlaps", "refs", [50]) ? 10_000 : 0;
+      const count = offset === 0 ? pageSize : 1;
+      return {
+        data: Array.from({ length: count }, (_, i) =>
+          relation(base + offset + i),
+        ),
+        error: null,
+      };
+    });
+
+    const relations = await fetchRelationInstancesForImport({
+      client,
+      localSpaceId: C,
+      spaceIds: [A],
+      nodeConceptIds: [50],
+    });
+
+    expect(relations).toHaveLength(2 * (pageSize + 1));
   });
 
   it("leaves out the local space's own relations", async () => {

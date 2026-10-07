@@ -1,6 +1,7 @@
 import type { TFile } from "obsidian";
 import type { Json } from "@repo/database/dbTypes";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
+import { getAllPages } from "@repo/database/lib/pagination";
 import { uuidv7 } from "uuidv7";
 import type DiscourseGraphPlugin from "~/index";
 import type { DiscourseRelationType, DiscourseRelation } from "~/types";
@@ -175,6 +176,9 @@ const findOrCreateTriple = async ({
 const RELATION_INSTANCE_COLUMNS =
   "id, space_id, source_local_id, schema_id, reference_content, refs, created, last_modified, author_id, concepts_of_relation!inner(id, space_id, source_local_id, schema_id)";
 
+// The database's max_rows: a larger page would be cut short and end the paging early.
+const PAGE_SIZE = 1000;
+
 /**
  * Fetch relation instances from a remote space, or only those with the given local ids.
  * Relation instances are concepts with is_schema=false and schema_id pointing to a relation
@@ -196,10 +200,10 @@ export const fetchRelationInstancesFromSpace = async ({
     .eq("is_schema", false)
     .eq("is_relation", true);
   if (sourceLocalIds) query = query.in("source_local_id", sourceLocalIds);
-  const { data: instances, error } = await query;
+  const instances = await getAllPages(query.order("id"), PAGE_SIZE);
 
-  if (error || !instances) {
-    console.warn("Error fetching relation instances:", error);
+  if (!Array.isArray(instances)) {
+    console.warn("Error fetching relation instances:", instances);
     return [];
   }
 
@@ -229,15 +233,19 @@ export const fetchRelationInstancesForImport = async ({
   );
   let referencing: RemoteRelationInstance[] = [];
   if (nodeConceptIds.length > 0) {
-    const { data, error } = await client
-      .from("my_concepts")
-      .select(RELATION_INSTANCE_COLUMNS)
-      .eq("is_schema", false)
-      .eq("is_relation", true)
-      .neq("space_id", localSpaceId)
-      .overlaps("refs", nodeConceptIds);
-    if (error || !data) {
-      console.warn("Error fetching relation instances by node:", error);
+    const data = await getAllPages(
+      client
+        .from("my_concepts")
+        .select(RELATION_INSTANCE_COLUMNS)
+        .eq("is_schema", false)
+        .eq("is_relation", true)
+        .neq("space_id", localSpaceId)
+        .overlaps("refs", nodeConceptIds)
+        .order("id"),
+      PAGE_SIZE,
+    );
+    if (!Array.isArray(data)) {
+      console.warn("Error fetching relation instances by node:", data);
     } else {
       referencing = data as unknown as RemoteRelationInstance[];
     }
