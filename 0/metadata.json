@@ -1,0 +1,112 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M4B2Q26AC355PQWBH5810Z8K",
+  "session_id": "0fb1e522-e96b-4ca1-b56e-c9527ef8a0f8",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-07T11:41:56.129391166Z",
+  "branch": "eng-2296-simplify-the-roam-import-dialog-and-import-feedback",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "apps/roam/src/components/DiscoverSharedNodesDialog.tsx"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "6c79a4d3042c",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 132,
+    "cache_creation_tokens": 176873,
+    "cache_read_tokens": 8570845,
+    "output_tokens": 54067,
+    "api_call_count": 66
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_01FVuK2EvFP4rA8u4ZzJpuey",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "proof-kit"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "6c79a4d3042c",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 210,
+        "end": 211,
+        "entry_ids": [
+          "5e863540-cf64-4bf4-b2f2-0bd459dbcdd3"
+        ],
+        "tool_use_id": "toolu_01FVuK2EvFP4rA8u4ZzJpuey"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01FVuK2EvFP4rA8u4ZzJpuey"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: proof-kit",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01Jd3tpqdhaM7kuaEvgUv9y3",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "roam-global-tailwind"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "6c79a4d3042c",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 274,
+        "end": 275,
+        "entry_ids": [
+          "2ef27d0c-2576-461c-9b7a-912cc708d87c"
+        ],
+        "tool_use_id": "toolu_01Jd3tpqdhaM7kuaEvgUv9y3"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01Jd3tpqdhaM7kuaEvgUv9y3"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: roam-global-tailwind",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-07T11:41:56.064621986Z",
+    "agent_lines": 186,
+    "agent_removed": 79,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 186,
+    "total_lines_changed": 265,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
