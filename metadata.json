@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M4BNVQ06H4MD5E3KS4N07RKM",
+  "strategy": "manual-commit",
+  "branch": "eng-2329-restore-the-source-reference-when-a-source-is-published",
+  "checkpoints_count": 10,
+  "files_touched": [
+    "apps/roam/src/utils/publishNodesToGroups.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 340,
+    "cache_creation_tokens": 1114716,
+    "cache_read_tokens": 32987296,
+    "output_tokens": 113331,
+    "api_call_count": 164
+  }
+}
