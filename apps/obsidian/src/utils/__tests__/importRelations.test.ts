@@ -225,6 +225,26 @@ describe("importRelationsForImportedNodes", () => {
     expect(result).toEqual({ imported: 1, failed: 1 });
     expect(addRelationNoCheck).toHaveBeenCalledTimes(1);
   });
+
+  it("counts every relation as failed when the schema lookup fails", async () => {
+    const { plugin, keyToRelationEndpointId, importedFiles } = setup();
+    const { client } = createClient((calls) =>
+      hasCall(calls, "in", "id", [RELATION_TYPE_SCHEMA_ID])
+        ? { data: null, error: { message: "timeout" } }
+        : { data: [] },
+    );
+
+    const result = await importRelationsForImportedNodes({
+      plugin,
+      client,
+      relationInstances: [relation(100), relation(101)],
+      keyToRelationEndpointId,
+      importedFiles,
+    });
+
+    expect(result).toEqual({ imported: 0, failed: 2 });
+    expect(addRelationNoCheck).not.toHaveBeenCalled();
+  });
 });
 
 describe("fetchRelationInstancesForImport", () => {

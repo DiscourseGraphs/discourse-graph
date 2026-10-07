@@ -346,10 +346,15 @@ export const importRelationsForImportedNodes = async ({
   ];
   const schemaMap = new Map<number, string>();
   if (schemaIds.length > 0) {
-    const { data: schemaConcepts } = await client
+    const { data: schemaConcepts, error } = await client
       .from("my_concepts")
       .select("id, source_local_id")
       .in("id", schemaIds);
+    // Without their schemas no relation can import; count them so the user is told.
+    if (error) {
+      console.warn("Could not look up the relations' schemas:", error);
+      return { imported: 0, failed: importable.length };
+    }
     for (const row of schemaConcepts ?? []) {
       if (row?.id != null && typeof row.source_local_id === "string") {
         schemaMap.set(row.id, row.source_local_id);
