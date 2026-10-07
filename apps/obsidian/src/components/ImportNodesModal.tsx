@@ -217,7 +217,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
               nodeKeys: previewData.nodeKeys,
               keyToRid: previewData.keyToRid,
               keyToRelationEndpointId: previewData.keyToRelationEndpointId,
-              relationInstancesBySpace: previewData.relationInstancesBySpace,
+              relationInstances: previewData.relationInstances,
             }
           : undefined,
       });

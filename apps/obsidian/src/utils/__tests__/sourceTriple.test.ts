@@ -52,6 +52,7 @@ const triple = (id: number, localId: string, refs: Record<string, number>) =>
 // X is A's own claim; Y is B's evidence node, which A imported.
 const relation = (schemaId: number): RemoteRelationInstance => ({
   id: 100,
+  space_id: A,
   source_local_id: "rel-1",
   schema_id: schemaId,
   reference_content: { source: 50, destination: 60 },

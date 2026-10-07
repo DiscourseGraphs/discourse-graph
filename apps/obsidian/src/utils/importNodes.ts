@@ -25,6 +25,7 @@ import type { PostgrestResponse } from "@supabase/supabase-js";
 import type { Enums, Tables } from "@repo/database/dbTypes";
 import { getSpaceNameIdFromRid } from "./spaceFromRid";
 import {
+  fetchRelationInstancesForImport,
   importRelationsForImportedNodes,
   type RemoteRelationInstance,
 } from "./importRelations";
@@ -288,6 +289,7 @@ type NodeTypeSchemaForInstance = {
 };
 
 type NodeInstanceImportInfo = {
+  conceptId?: number;
   schema?: NodeTypeSchemaForInstance;
   coreTitle?: string;
   sourceDocumentId?: number;
@@ -307,7 +309,7 @@ export const fetchNodeImportInfoForInstances = async ({
   const { data: instanceRows, error: instanceError } = await client
     .from("my_concepts")
     .select(
-      "source_local_id, schema_id, core_title:literal_content->>core_title, sourceDocument:reference_content->sourceDocument",
+      "id, source_local_id, schema_id, core_title:literal_content->>core_title, sourceDocument:reference_content->sourceDocument",
     )
     .eq("space_id", spaceId)
     .eq("is_schema", false)
@@ -358,6 +360,7 @@ export const fetchNodeImportInfoForInstances = async ({
   for (const row of instanceRows) {
     if (row.source_local_id === null) continue;
     result.set(row.source_local_id, {
+      conceptId: row.id ?? undefined,
       schema:
         row.schema_id === null ? undefined : schemasById.get(row.schema_id),
       coreTitle: row.core_title ?? undefined,
@@ -1173,7 +1176,7 @@ type ParsedFrontmatter = {
   [key: string]: unknown;
 };
 
-const parseFrontmatter = (
+export const parseFrontmatter = (
   content: string,
 ): { frontmatter: ParsedFrontmatter; body: string } => {
   const { data, content: body } = matter(content);
@@ -1636,7 +1639,7 @@ type ImportSelectedNodesOptions = {
     nodeKeys: Set<string>;
     keyToRid: Map<string, string>;
     keyToRelationEndpointId: Map<string, string>;
-    relationInstancesBySpace: Map<number, RemoteRelationInstance[]>;
+    relationInstances: RemoteRelationInstance[];
   };
 };
 
@@ -1684,6 +1687,9 @@ const importNodes = async ({
     ...nodesBySpace.keys(),
   ]);
 
+  const importedSpaceIds: number[] = [];
+  const importedNodeConceptIds: number[] = [];
+
   // Process each space
   for (const [spaceId, nodes] of nodesBySpace.entries()) {
     const spaceUri = spaceInfoById.get(spaceId)?.url;
@@ -1708,6 +1714,10 @@ const importNodes = async ({
       spaceId,
       nodeInstanceIds: nodes.map((n) => n.nodeInstanceId),
     });
+    importedSpaceIds.push(spaceId);
+    for (const { conceptId } of nodeImportInfoByInstance.values()) {
+      if (conceptId !== undefined) importedNodeConceptIds.push(conceptId);
+    }
 
     // Process each node in this space
     for (const node of nodes) {
@@ -1917,40 +1927,49 @@ const importNodes = async ({
         "Nodes imported, but their source relations could not be imported.",
       );
     }
+  }
 
-    // Import relations where both endpoints resolve in this vault (imported or local)
-    try {
-      let keyToRelationEndpointId: Map<string, string>;
-      if (precomputedData?.keyToRelationEndpointId) {
-        keyToRelationEndpointId = precomputedData.keyToRelationEndpointId;
-      } else {
-        const { keyToRid } = precomputedData
-          ? { keyToRid: precomputedData.keyToRid }
-          : await getImportedNodesInfo({
-              queryEngine,
-              plugin,
-              client,
-            });
-        const localMap = getLocalNodeKeyToEndpointId(plugin, context.spaceId);
-        keyToRelationEndpointId = new Map([...keyToRid, ...localMap]);
-      }
-      const precomputedRelationInstances =
-        precomputedData?.relationInstancesBySpace.get(spaceId);
-      const { imported } = await importRelationsForImportedNodes({
-        plugin,
-        client,
-        spaceId,
-        spaceUri,
-        spaceName,
-        keyToRelationEndpointId,
-        precomputedRelationInstances,
-      });
-      if (imported > 0) {
-        console.debug(`Imported ${imported} relation(s) for space ${spaceId}`);
-      }
-    } catch (error) {
-      console.warn("Failed to import relations for imported nodes:", error);
+  // Import relations where both endpoints resolve in this vault (imported or local)
+  try {
+    let keyToRelationEndpointId: Map<string, string>;
+    if (precomputedData?.keyToRelationEndpointId) {
+      keyToRelationEndpointId = precomputedData.keyToRelationEndpointId;
+    } else {
+      const { keyToRid } = precomputedData
+        ? { keyToRid: precomputedData.keyToRid }
+        : await getImportedNodesInfo({
+            queryEngine,
+            plugin,
+            client,
+          });
+      const localMap = getLocalNodeKeyToEndpointId(plugin, context.spaceId);
+      keyToRelationEndpointId = new Map([...keyToRid, ...localMap]);
     }
+    const relationInstances =
+      precomputedData?.relationInstances ??
+      (await fetchRelationInstancesForImport({
+        client,
+        localSpaceId: context.spaceId,
+        spaceIds: importedSpaceIds,
+        nodeConceptIds: importedNodeConceptIds,
+      }));
+    const { imported, failed } = await importRelationsForImportedNodes({
+      plugin,
+      client,
+      relationInstances,
+      keyToRelationEndpointId,
+      importedFiles,
+    });
+    if (imported > 0) {
+      console.debug(`Imported ${imported} relation(s)`);
+    }
+    if (failed > 0) {
+      new Notice(
+        `Nodes imported, but ${failed} relation(s) could not be imported.`,
+      );
+    }
+  } catch (error) {
+    console.warn("Failed to import relations for imported nodes:", error);
   }
 
   return { success: successCount, failed: failedCount };
