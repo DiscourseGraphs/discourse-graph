@@ -10,11 +10,13 @@ import {
   NumericInput,
   HTMLSelect,
   Button,
+  Checkbox,
   Switch,
   Tag,
   TextArea,
 } from "@blueprintjs/core";
 import Description from "~/components/settings/SettingsDescription";
+import { settingAnchor } from "~/components/settings/utils/settingAnchor";
 import useSingleChildValue from "roamjs-components/components/ConfigPanels/useSingleChildValue";
 import SettingItemRow, {
   type SettingScope,
@@ -51,8 +53,8 @@ type MultiTextSetter = (keys: string[], value: string[]) => void;
 
 type RowPresentationProps = {
   scope?: SettingScope;
-  /** Tighter row for narrow hosts such as the Export dialog. */
-  compact?: boolean;
+  /** Pre-overhaul look for the Export dialog: flags render as a checkbox, as "Discourse context" does. */
+  inline?: boolean;
 };
 
 type BaseTextPanelProps = {
@@ -132,7 +134,7 @@ const BaseTextPanel = ({
   order,
   blockKey,
   scope,
-  compact,
+  inline,
 }: BaseTextPanelProps) => {
   const [value, setValue] = useState(() => initialValue ?? "");
   const errorRef = useRef(error);
@@ -178,7 +180,7 @@ const BaseTextPanel = ({
       label={title}
       description={description}
       scope={scope}
-      compact={compact}
+      inline={inline}
       settingKeys={settingKeys}
       error={error}
       controlPlacement={multiline ? "below" : "trailing"}
@@ -223,7 +225,7 @@ const BaseFlagPanel = ({
   order,
   blockKey,
   scope,
-  compact,
+  inline,
 }: BaseFlagPanelProps) => {
   const [internalValue, setInternalValue] = useState(
     () => initialValue ?? false,
@@ -266,12 +268,28 @@ const BaseFlagPanel = ({
     setTimeout(() => onChange?.(checked), 100);
   };
 
+  if (inline) {
+    return (
+      <div {...settingAnchor(settingKeys)}>
+        <Checkbox
+          checked={value ?? internalValue}
+          onChange={(e) => void handleChange(e)}
+          disabled={disabled}
+          labelElement={
+            <>
+              {title}
+              <Description description={description} />
+            </>
+          }
+        />
+      </div>
+    );
+  }
   return (
     <SettingItemRow
       label={title}
       description={description}
       scope={scope}
-      compact={compact}
       settingKeys={settingKeys}
       control={(controlId) => (
         <Switch
@@ -300,7 +318,7 @@ const BaseNumberPanel = ({
   order,
   blockKey,
   scope,
-  compact,
+  inline,
 }: BaseNumberPanelProps) => {
   const [value, setValue] = useState(() => initialValue ?? 0);
   const hasBlockSync = parentUid !== undefined && order !== undefined;
@@ -337,7 +355,7 @@ const BaseNumberPanel = ({
       label={title}
       description={description}
       scope={scope}
-      compact={compact}
+      inline={inline}
       settingKeys={settingKeys}
       control={(controlId) => (
         <div className="w-24">
@@ -367,7 +385,7 @@ const BaseSelectPanel = ({
   order,
   blockKey,
   scope,
-  compact,
+  inline,
 }: BaseSelectPanelProps) => {
   const [value, setValue] = useState(() => initialValue ?? options[0]);
   const hasBlockSync = parentUid !== undefined && order !== undefined;
@@ -403,7 +421,7 @@ const BaseSelectPanel = ({
       label={title}
       description={description}
       scope={scope}
-      compact={compact}
+      inline={inline}
       settingKeys={settingKeys}
       control={(controlId) => (
         <HTMLSelect
@@ -429,7 +447,7 @@ const BaseMultiTextPanel = ({
   order,
   blockKey,
   scope,
-  compact,
+  inline,
 }: BaseMultiTextPanelProps) => {
   const [values, setValues] = useState<string[]>(() => initialValue ?? []);
   const [inputValue, setInputValue] = useState("");
@@ -510,7 +528,7 @@ const BaseMultiTextPanel = ({
       label={title}
       description={description}
       scope={scope}
-      compact={compact}
+      inline={inline}
       settingKeys={settingKeys}
       controlPlacement="below"
       control={(controlId) => (

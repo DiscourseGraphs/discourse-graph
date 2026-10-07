@@ -40,7 +40,7 @@ const ExportOptions = ({
           order={1}
           uid={exportSettings.removeSpecialCharacters.uid}
           parentUid={parentUid}
-          compact
+          inline
         />
 
         <GlobalFlagPanel
@@ -54,7 +54,7 @@ const ExportOptions = ({
           order={3}
           uid={exportSettings.optsRefs.uid}
           parentUid={parentUid}
-          compact
+          inline
         />
         <GlobalFlagPanel
           title="resolve block embeds"
@@ -67,7 +67,7 @@ const ExportOptions = ({
           order={4}
           uid={exportSettings.optsEmbeds.uid}
           parentUid={parentUid}
-          compact
+          inline
         />
 
         <GlobalFlagPanel
@@ -81,7 +81,7 @@ const ExportOptions = ({
           order={6}
           uid={exportSettings.appendRefNodeContext.uid}
           parentUid={parentUid}
-          compact
+          inline
         />
       </div>
       <div className="link-type-select-wrapper">
@@ -97,7 +97,7 @@ const ExportOptions = ({
           options={["alias", "wikilinks", "roam url"]}
           uid={exportSettings.linkType.uid}
           parentUid={parentUid}
-          compact
+          inline
         />
       </div>
       <GlobalNumberPanel
@@ -111,7 +111,7 @@ const ExportOptions = ({
         order={0}
         uid={exportSettings.maxFilenameLength.uid}
         parentUid={parentUid}
-        compact
+        inline
       />
       <GlobalMultiTextPanel
         title="frontmatter"
@@ -124,7 +124,7 @@ const ExportOptions = ({
         order={2}
         uid={exportSettings.frontmatter.uid}
         parentUid={parentUid}
-        compact
+        inline
       />
     </div>
   );
