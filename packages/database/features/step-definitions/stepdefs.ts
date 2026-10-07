@@ -380,33 +380,94 @@ Then(
     }),
 );
 
+type ViewWrites = Record<
+  "insert" | "update" | "delete",
+  () => PromiseLike<PostgrestSingleResponse<null>>
+>;
+
+// Each update and delete filter matches visible rows, so a granted write would succeed.
+const expectWriteRejected = async (
+  operation: string,
+  writes: ViewWrites,
+): Promise<void> => {
+  if (!Object.hasOwn(writes, operation))
+    assert.fail(`unknown operation ${operation}`);
+  const response = await writes[operation as keyof ViewWrites]();
+  assert.equal(response.error?.code, INSUFFICIENT_PRIVILEGE);
+};
+
+const getSpaceClient = async (
+  spaceName: string,
+): Promise<{
+  spaceId: number;
+  client: Awaited<ReturnType<typeof getLoggedinDatabase>>;
+}> => {
+  const localRefs = (world.localRefs || {}) as LocalRefsType;
+  const spaceId = localRefs[spaceName];
+  if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+  return { spaceId, client: await getLoggedinDatabase(spaceId) };
+};
+
 Then(
   "a user logged in space {word} cannot {word} concepts through my_concepts",
   async (spaceName: string, operation: string) => {
-    const localRefs = (world.localRefs || {}) as LocalRefsType;
-    const spaceId = localRefs[spaceName];
-    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
-    const client = await getLoggedinDatabase(spaceId);
+    const { spaceId, client } = await getSpaceClient(spaceName);
     const view = client.from("my_concepts");
-    let response: PostgrestSingleResponse<null>;
-    if (operation === "insert") {
-      const now = new Date().toISOString();
-      response = await view.insert({
-        name: "written through my_concepts",
-        space_id: spaceId,
-        created: now,
-        last_modified: now,
-      });
-    } else if (operation === "update") {
-      response = await view
-        .update({ name: "written through my_concepts" })
-        .eq("space_id", spaceId);
-    } else if (operation === "delete") {
-      response = await view.delete().eq("space_id", spaceId);
-    } else {
-      assert.fail(`unknown operation ${operation}`);
-    }
-    assert.equal(response.error?.code, INSUFFICIENT_PRIVILEGE);
+    const now = new Date().toISOString();
+    await expectWriteRejected(operation, {
+      insert: () =>
+        view.insert({
+          name: "written through my_concepts",
+          space_id: spaceId,
+          created: now,
+          last_modified: now,
+        }),
+      update: () =>
+        view
+          .update({ name: "written through my_concepts" })
+          .eq("space_id", spaceId),
+      delete: () => view.delete().eq("space_id", spaceId),
+    });
+  },
+);
+
+Then(
+  "a user logged in space {word} cannot {word} spaces through my_spaces",
+  async (spaceName: string, operation: string) => {
+    const { spaceId, client } = await getSpaceClient(spaceName);
+    const view = client.from("my_spaces");
+    await expectWriteRejected(operation, {
+      insert: () =>
+        view.insert({
+          name: "written through my_spaces",
+          url: "https://example.com/written-through-my-spaces",
+          platform: "Roam",
+        }),
+      update: () =>
+        view.update({ name: "written through my_spaces" }).eq("id", spaceId),
+      delete: () => view.delete().eq("id", spaceId),
+    });
+  },
+);
+
+Then(
+  "a user logged in space {word} cannot {word} accounts through my_accounts",
+  async (spaceName: string, operation: string) => {
+    const { client } = await getSpaceClient(spaceName);
+    const view = client.from("my_accounts");
+    await expectWriteRejected(operation, {
+      insert: () =>
+        view.insert({
+          name: "written through my_accounts",
+          account_local_id: "written-through-my-accounts",
+          platform: "Roam",
+        }),
+      update: () =>
+        view
+          .update({ name: "written through my_accounts" })
+          .eq("platform", "Roam"),
+      delete: () => view.delete().eq("platform", "Roam"),
+    });
   },
 );
 
