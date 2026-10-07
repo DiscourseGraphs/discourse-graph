@@ -15,7 +15,6 @@ import {
   TextArea,
 } from "@blueprintjs/core";
 import Description from "~/components/settings/SettingsDescription";
-import { settingAnchor } from "~/components/settings/utils/settingAnchor";
 import useSingleChildValue from "roamjs-components/components/ConfigPanels/useSingleChildValue";
 import SettingItemRow, {
   type SettingScope,
