@@ -78,6 +78,14 @@
     "test:unit": {
       "outputs": []
     },
+    "@discourse-graphs/obsidian#test:unit": {
+      "dependsOn": [
+        "roam#test:unit",
+        "@repo/database#test:unit",
+        "@repo/content-model#test:unit"
+      ],
+      "outputs": []
+    },
     "//#test:unit": {
       "inputs": [
         "package.json",
