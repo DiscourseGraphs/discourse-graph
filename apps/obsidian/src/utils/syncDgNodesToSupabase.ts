@@ -36,6 +36,7 @@ import {
   collectDiscourseNodesFromVault,
 } from "./getDiscourseNodes";
 import { isAcceptedSchema } from "./typeUtils";
+import { repairImportedTripleRids } from "./repairTripleRids";
 import { diffSchemaIds, findIdsMissingSchema } from "./schemaReconciliation";
 import { getTemplatePluginInfo } from "./templates";
 import { difference } from "@repo/utils/setOperations";
@@ -1268,6 +1269,11 @@ export const initializeSupabaseSync = async (
       "Failed to initialize Supabase sync: could not create context",
     );
   }
+
+  // Before the sync, so it uploads the repaired triples.
+  await repairImportedTripleRids(plugin).catch((error) => {
+    console.error("Failed to repair imported triple RIDs:", error);
+  });
 
   await syncAllNodesAndRelations(plugin, context).catch((error) => {
     new Notice(`Initial sync failed: ${error}`);
