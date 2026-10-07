@@ -24,7 +24,7 @@ import { isIgnorableUpsertError } from "@repo/database/lib/contextFunctions";
 import { getAllPages } from "@repo/database/lib/pagination";
 import { isRid, ridToSpaceUriAndLocalId } from "@repo/database/lib/rid";
 import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
-import findDiscourseNode from "./findDiscourseNode";
+import matchDiscourseNode from "./matchDiscourseNode";
 import { difference, intersection } from "@repo/utils/setOperations";
 import internalError from "./internalError";
 import { readImportedSourceIdentity } from "./importedSourceIdentity";
@@ -249,6 +249,9 @@ type PublishedSource = { uid: string; title: string; conceptId: number };
 // Re-upserting the node would either publish its unpublished edits or stamp its current
 // edit time on the older stored body, so importers would skip its next publish. Node
 // concepts hold no other slot, so the whole reference_content is replaced.
+// The node type and Source are read from the live title (a rename doesn't clear
+// findDiscourseNode's uid cache), and a node renamed since its publish is skipped: its
+// stored title may name another Source, or none.
 const restoreSourceReferences = async ({
   client,
   spaceId,
@@ -274,19 +277,39 @@ const restoreSourceReferences = async ({
     sources.map(({ title }) => title),
   );
   for (const [uid, title] of titlesByUid) {
-    const nodeType = findDiscourseNode({ uid, title, nodes: discourseNodes });
-    if (!nodeType) continue;
+    const nodeType = discourseNodes.find((node) =>
+      matchDiscourseNode({ ...node, title }),
+    );
     const sourceId = sourceIdOfNode(title, nodeType, discourseNodes);
     if (sourceId !== undefined)
       dependentsBySourceUid.get(sourceId)?.dependentUids.push(uid);
   }
+  const candidateUids = [...dependentsBySourceUid.values()].flatMap(
+    ({ dependentUids }) => dependentUids,
+  );
+  if (candidateUids.length === 0) return;
+  const { data: storedCandidates, error: readError } = await client
+    .from("Concept")
+    .select("source_local_id, name")
+    .eq("space_id", spaceId)
+    .in("source_local_id", candidateUids)
+    .is(`reference_content->>${SOURCE_SLOT}`, null);
+  if (readError) throw readError;
+  const unrenamedUids = new Set(
+    storedCandidates.flatMap(({ source_local_id: uid, name }) =>
+      uid !== null && name === titlesByUid.get(uid) ? [uid] : [],
+    ),
+  );
   for (const { conceptId, dependentUids } of dependentsBySourceUid.values()) {
-    if (dependentUids.length === 0) continue;
+    const restorableUids = dependentUids.filter((uid) =>
+      unrenamedUids.has(uid),
+    );
+    if (restorableUids.length === 0) continue;
     const { error } = await client
       .from("Concept")
       .update({ reference_content: { [SOURCE_SLOT]: conceptId } })
       .eq("space_id", spaceId)
-      .in("source_local_id", dependentUids)
+      .in("source_local_id", restorableUids)
       .is(`reference_content->>${SOURCE_SLOT}`, null);
     if (error) throw error;
   }

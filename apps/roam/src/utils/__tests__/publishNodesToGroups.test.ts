@@ -6,7 +6,6 @@ import { contentTypes } from "@repo/content-model";
 
 const mocks = vi.hoisted(() => ({
   getDiscourseNodes: vi.fn(),
-  findDiscourseNode: vi.fn(),
   getAvailableGroupIds: vi.fn(),
   ensurePartialSpaceAccess: vi.fn(),
   internalError: vi.fn(),
@@ -19,10 +18,6 @@ vi.mock("roamjs-components/components/Toast", () => ({
 
 vi.mock("~/utils/getDiscourseNodes", () => ({
   default: mocks.getDiscourseNodes,
-}));
-
-vi.mock("~/utils/findDiscourseNode", () => ({
-  default: mocks.findDiscourseNode,
 }));
 
 vi.mock("~/utils/getDiscourseRelations", () => ({
@@ -125,7 +120,7 @@ const makeCrossAppNode = ({
 type RpcArgs = { v_space_id: number; data: Record<string, unknown>[] };
 
 type SelectResponse = {
-  data: { source_local_id: string }[];
+  data: { source_local_id: string; name?: string }[];
   error: null;
 };
 
@@ -133,16 +128,19 @@ type FakeSelectBuilder = PromiseLike<SelectResponse> & {
   url: { search: string };
   eq: () => FakeSelectBuilder;
   in: (column: string, values: string[]) => FakeSelectBuilder;
+  is: () => FakeSelectBuilder;
   order: (column: string) => FakeSelectBuilder;
   range: () => Promise<SelectResponse>;
 };
 
 const makeFakeClient = ({
   syncedUids = [],
+  storedConcepts = [],
   rpcResponse,
   updateError,
 }: {
   syncedUids?: string[];
+  storedConcepts?: { source_local_id: string; name: string }[];
   rpcResponse?: { data: number[] | null; error: { message: string } | null };
   updateError?: { message: string };
 }) => {
@@ -163,7 +161,9 @@ const makeFakeClient = ({
       data:
         table === "my_concepts"
           ? syncedUids.map((uid) => ({ source_local_id: uid }))
-          : [],
+          : table === "Concept"
+            ? storedConcepts
+            : [],
       error: null,
     });
   // Main's builder already answers what the asset stage asks of `select`: `eq` chains and
@@ -177,6 +177,7 @@ const makeFakeClient = ({
         if (table === "my_concepts") conceptLookups.push(values);
         return builder;
       },
+      is: () => builder,
       order: (column) => {
         builder.url.search += `&order=${column}`;
         return builder;
@@ -649,14 +650,6 @@ describe("publishNodesToGroups", () => {
           evidenceSchema,
           sourceSchema,
         ]);
-        mocks.findDiscourseNode.mockImplementation(
-          ({ uid }: { uid: string }) =>
-            ({
-              [SOURCE_UID]: sourceSchema,
-              "node-1": evidenceSchema,
-              "claim-1": claimSchema,
-            })[uid] ?? false,
-        );
       });
 
       afterEach(() => {
@@ -671,6 +664,7 @@ describe("publishNodesToGroups", () => {
         ]);
         const { client, rpcCalls, upsertCalls, updateCalls } = makeFakeClient({
           syncedUids: [SCHEMA_UID],
+          storedConcepts: [{ source_local_id: "node-1", name: evidenceTitle }],
         });
 
         await publish(client);
@@ -719,11 +713,33 @@ describe("publishNodesToGroups", () => {
         expect(mocks.internalError).not.toHaveBeenCalled();
       });
 
+      it("skips a node renamed since it was published", async () => {
+        stubTitleSearch([
+          [SOURCE_UID, SOURCE_TITLE],
+          ["node-1", evidenceTitle],
+        ]);
+        const { client, updateCalls } = makeFakeClient({
+          syncedUids: [SCHEMA_UID],
+          storedConcepts: [
+            {
+              source_local_id: "node-1",
+              name: "[[EVD]] - finding - [[@another2020]]",
+            },
+          ],
+        });
+
+        await publish(client, [sourceNode]);
+
+        expect(updateCalls).toEqual([]);
+        expect(mocks.internalError).not.toHaveBeenCalled();
+      });
+
       it("still publishes the source when the restore fails", async () => {
         stubTitleSearch([["node-1", evidenceTitle]]);
         const updateError = { message: "boom" };
         const { client, upsertCalls } = makeFakeClient({
           syncedUids: [SCHEMA_UID],
+          storedConcepts: [{ source_local_id: "node-1", name: evidenceTitle }],
           updateError,
         });
 
