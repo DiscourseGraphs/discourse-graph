@@ -1,0 +1,51 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M4BYD6AHYXM6NDCEWHK8T3R7",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/website/app/providers.tsx",
+    "apps/website/content/obsidian/configuration/relationship-types.md",
+    "apps/website/content/obsidian/core-features/canvas.mdx",
+    "apps/website/public/docs/obsidian/add-relation-type-dialog.png",
+    "apps/website/public/docs/obsidian/create-discourse-node.gif",
+    "apps/website/public/docs/obsidian/create-relation-type-from-canvas.gif",
+    "apps/website/public/docs/obsidian/create-relations.gif",
+    "apps/website/public/docs/obsidian/discourse-relations-add.png",
+    "apps/website/public/docs/obsidian/discourse-relations-settings.png",
+    "apps/website/public/docs/obsidian/drag-relation.gif",
+    "apps/website/public/docs/obsidian/editor-drag-node.gif",
+    "apps/website/public/docs/obsidian/export-options.png",
+    "apps/website/public/docs/obsidian/file-explorer-drag.gif",
+    "apps/website/public/docs/obsidian/key-figure-example.png",
+    "apps/website/public/docs/obsidian/key-figure.png",
+    "apps/website/public/docs/obsidian/open-canvas-command.png",
+    "apps/website/public/docs/obsidian/relation-type-add-existing.gif",
+    "apps/website/public/docs/obsidian/relation-type-add-existing.png",
+    "apps/website/public/docs/obsidian/relation-type-created.png",
+    "apps/website/public/docs/obsidian/relation-type-menu-add.gif",
+    "apps/website/public/docs/obsidian/relation-type-menu-add.png",
+    "apps/website/public/docs/obsidian/relation-type-menu-empty.gif",
+    "apps/website/public/docs/obsidian/relation-type-menu-empty.png",
+    "apps/website/public/docs/obsidian/relation-types-add.png",
+    "apps/website/public/docs/obsidian/relation-types-settings.png",
+    "apps/website/public/docs/roam/dg-schema02.PNG"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  }
+}
