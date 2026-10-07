@@ -488,11 +488,13 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   if (isSyncEnabled()) {
     void addCommand("DG: Import shared nodes", discoverSharedNodes);
   }
-  if (isNodeSharingEnabled()) {
+  if (isSyncEnabled() || isNodeSharingEnabled()) {
     void addCommand(
       "DG: Refresh all imported nodes",
       () => void refreshAllImportedNodesFromCommand(),
     );
+  }
+  if (isNodeSharingEnabled()) {
     void addCommand("DG: Share current node", shareCurrentNode);
   }
   if (getFeatureFlag("Advanced node search enabled")) {
