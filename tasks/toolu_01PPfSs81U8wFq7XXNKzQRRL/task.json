@@ -1,0 +1,8 @@
+{
+  "tool_use_id": "toolu_01PPfSs81U8wFq7XXNKzQRRL",
+  "agent_id": "a2d40aa3c2018c042",
+  "subagent_type": "general-purpose",
+  "task_description": "Review PR 1431 head 560357b6",
+  "started_at": "2026-10-05T17:24:58.218626-04:00",
+  "completed_at": "2026-10-05T17:46:38.000885-04:00"
+}
