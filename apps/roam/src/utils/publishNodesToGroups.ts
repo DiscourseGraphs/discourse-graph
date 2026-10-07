@@ -201,14 +201,16 @@ const pagesWithTitleContaining = async (
 
 type PublishedSource = { uid: string; title: string; conceptId: number };
 
+const SOURCE_REFERENCE_PATH = `reference_content->>${SOURCE_SLOT}`;
+
 // A node published before its Source was in this space was stored without its source
 // reference (see omitMissingSource). Publishing the Source sets only that reference.
 // Re-upserting the node would either publish its unpublished edits or stamp its current
 // edit time on the older stored body, so importers would skip its next publish. Node
 // concepts hold no other slot, so the whole reference_content is replaced.
-// The node type and Source are read from the live title (a rename doesn't clear
-// findDiscourseNode's uid cache), and a node renamed since its publish is skipped: its
-// stored title may name another Source, or none.
+// Nodes are classified with matchDiscourseNode, not findDiscourseNode, whose uid cache
+// survives a rename. A node renamed since its publish is skipped: its stored title may
+// name another Source, or none.
 const restoreSourceReferences = async ({
   client,
   spaceId,
@@ -220,7 +222,6 @@ const restoreSourceReferences = async ({
   sources: PublishedSource[];
   discourseNodes: DiscourseNode[];
 }): Promise<void> => {
-  if (sources.length === 0) return;
   const dependentsBySourceUid = new Map<
     string,
     { conceptId: number; dependentUids: string[] }
@@ -241,19 +242,19 @@ const restoreSourceReferences = async ({
     if (sourceId !== undefined)
       dependentsBySourceUid.get(sourceId)?.dependentUids.push(uid);
   }
-  const candidateUids = [...dependentsBySourceUid.values()].flatMap(
+  const allDependentUids = [...dependentsBySourceUid.values()].flatMap(
     ({ dependentUids }) => dependentUids,
   );
-  if (candidateUids.length === 0) return;
-  const { data: storedCandidates, error: readError } = await client
+  if (allDependentUids.length === 0) return;
+  const { data: storedDependents, error: readError } = await client
     .from("Concept")
     .select("source_local_id, name")
     .eq("space_id", spaceId)
-    .in("source_local_id", candidateUids)
-    .is(`reference_content->>${SOURCE_SLOT}`, null);
+    .in("source_local_id", allDependentUids)
+    .is(SOURCE_REFERENCE_PATH, null);
   if (readError) throw readError;
   const unrenamedUids = new Set(
-    storedCandidates.flatMap(({ source_local_id: uid, name }) =>
+    storedDependents.flatMap(({ source_local_id: uid, name }) =>
       uid !== null && name === titlesByUid.get(uid) ? [uid] : [],
     ),
   );
@@ -267,7 +268,7 @@ const restoreSourceReferences = async ({
       .update({ reference_content: { [SOURCE_SLOT]: conceptId } })
       .eq("space_id", spaceId)
       .in("source_local_id", restorableUids)
-      .is(`reference_content->>${SOURCE_SLOT}`, null);
+      .is(SOURCE_REFERENCE_PATH, null);
     if (error) throw error;
   }
 };
