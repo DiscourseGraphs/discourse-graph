@@ -42,6 +42,8 @@ import StoredRelationsWarning from "~/components/StoredRelationsWarning";
 
 const IMPORT_ERROR_TYPE = "Shared node import failed";
 const IMPORT_ERROR_OPERATION = "import-shared-nodes";
+const RELATIONS_IMPORT_ERROR_OPERATION = "import-shared-relations";
+const CONNECTION_ERROR_MESSAGE = "Could not connect to shared persistence.";
 
 const formatModifiedAt = (modifiedAt: string): string =>
   new Date(modifiedAt).toLocaleString();
@@ -181,7 +183,7 @@ const ImportResultsSummary = ({
           ? Intent.WARNING
           : Intent.SUCCESS
       }
-      title={`${importedCount} imported, ${skippedCount} skipped, ${failedImports.length} failed${warningCount > 0 ? `, ${warningCount} with warnings` : ""}`}
+      title={`${importedCount} imported${skippedCount > 0 ? `, ${skippedCount} skipped` : ""}, ${failedImports.length} failed${warningCount > 0 ? `, ${warningCount} with warnings` : ""}`}
     >
       {skippedCount > 0 && (
         <div>Skipped nodes were already up to date in this graph.</div>
@@ -245,10 +247,10 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
     setImportResults(null);
     try {
       const context = await getSupabaseContext();
-      if (!context) throw new Error("Could not connect to shared persistence.");
+      if (!context) throw new Error(CONNECTION_ERROR_MESSAGE);
       setSpaceId(context.spaceId);
       const client = await getLoggedInClient();
-      if (!client) throw new Error("Could not connect to shared persistence.");
+      if (!client) throw new Error(CONNECTION_ERROR_MESSAGE);
       const { sharedNodes, importedSourceRids } = await discoverSharedNodes({
         client,
         currentSpaceId: context.spaceId,
@@ -324,16 +326,16 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
 
   const importRelations = async (client: DGSupabaseClient): Promise<void> => {
     try {
-      await importSharedRelations(client, spaceId, [...importedRids]);
+      await importSharedRelations(client, spaceId);
       setRelationsFailed(false);
     } catch (relationsError) {
       setRelationsFailed(true);
       internalError({
         error: relationsError,
         type: IMPORT_ERROR_TYPE,
-        context: { operation: IMPORT_ERROR_OPERATION },
+        context: { operation: RELATIONS_IMPORT_ERROR_OPERATION },
         sendEmail: false,
-        userMessage: `The nodes were imported, but their relations were not: ${getErrorMessage(relationsError)}`,
+        userMessage: `The relations were not imported: ${getErrorMessage(relationsError)}`,
       });
     }
   };
@@ -342,13 +344,13 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
     setRetryingRelations(true);
     try {
       const client = await getLoggedInClient();
-      if (!client) throw new Error("Could not connect to shared persistence.");
+      if (!client) throw new Error(CONNECTION_ERROR_MESSAGE);
       await importRelations(client);
     } catch (retryError) {
       internalError({
         error: retryError,
         type: IMPORT_ERROR_TYPE,
-        context: { operation: IMPORT_ERROR_OPERATION },
+        context: { operation: RELATIONS_IMPORT_ERROR_OPERATION },
         sendEmail: false,
         userMessage: getErrorMessage(retryError),
       });
@@ -361,11 +363,10 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
     const selectedNodes = nodes.filter((node) => selectedRids.has(node.rid));
 
     setImportResults(null);
-    setRelationsFailed(false);
     setImportProgress({ current: 0, total: selectedNodes.length });
     try {
       const client = await getLoggedInClient();
-      if (!client) throw new Error("Could not connect to shared persistence.");
+      if (!client) throw new Error(CONNECTION_ERROR_MESSAGE);
       const results = await importSharedNodes({
         client,
         sharedNodes: selectedNodes,

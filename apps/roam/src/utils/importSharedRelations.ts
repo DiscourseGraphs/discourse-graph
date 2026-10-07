@@ -244,10 +244,9 @@ const importRelations = async (
 export const importSharedRelations = async (
   client: DGSupabaseClient,
   spaceId: number,
-  futureImportRids?: string[],
 ) => {
   const { relations, relTripleSchemas, relTypeSchemas, nodeSchemas } =
-    await discoverSharedRelations(client, spaceId, futureImportRids);
+    await discoverSharedRelations(client, spaceId);
   let ridToLocalId = await matchImportedNodeSchemas(nodeSchemas);
   const relationSchemaMap = await matchImportedRelationSchemas(
     ridToLocalId,
