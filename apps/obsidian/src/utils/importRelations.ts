@@ -16,11 +16,13 @@ import {
   findExistingTriple,
   findLocalRelationTypeMatch,
 } from "./schemaMatching";
+import { fetchSourceTripleRids } from "./sourceTriple";
 
 type ConceptInRelation = {
   id: number;
   space_id: number;
   source_local_id: string;
+  schema_id: number | null;
 };
 
 export type RemoteRelationInstance = {
@@ -168,24 +170,29 @@ const findOrCreateTriple = async ({
 };
 
 /**
- * Fetch relation instances from a remote space. Relation instances are concepts with
- * is_schema=false and schema_id pointing to a relation type
+ * Fetch relation instances from a remote space, or only those with the given local ids.
+ * Relation instances are concepts with is_schema=false and schema_id pointing to a relation
+ * type (Obsidian) or a triple (Roam).
  */
 export const fetchRelationInstancesFromSpace = async ({
   client,
   spaceId,
+  sourceLocalIds,
 }: {
   client: DGSupabaseClient;
   spaceId: number;
+  sourceLocalIds?: string[];
 }): Promise<RemoteRelationInstance[]> => {
-  const { data: instances, error } = await client
+  let query = client
     .from("my_concepts")
     .select(
-      "id, source_local_id, schema_id, reference_content, refs, created, last_modified, author_id, concepts_of_relation!inner(id, space_id, source_local_id)",
+      "id, source_local_id, schema_id, reference_content, refs, created, last_modified, author_id, concepts_of_relation!inner(id, space_id, source_local_id, schema_id)",
     )
     .eq("space_id", spaceId)
     .eq("is_schema", false)
     .eq("is_relation", true);
+  if (sourceLocalIds) query = query.in("source_local_id", sourceLocalIds);
+  const { data: instances, error } = await query;
 
   if (error || !instances) {
     console.warn("Error fetching relation instances:", error);
@@ -193,6 +200,36 @@ export const fetchRelationInstancesFromSpace = async ({
   }
 
   return instances as unknown as RemoteRelationInstance[];
+};
+
+const resolveRelationEnds = (
+  rel: RemoteRelationInstance,
+  keyToRelationEndpointId: Map<string, string>,
+):
+  | {
+      sourceData: ConceptInRelation;
+      destData: ConceptInRelation;
+      sourceEndpointId: string;
+      destEndpointId: string;
+    }
+  | undefined => {
+  const refs = rel.reference_content as Record<string, number | number[]>;
+  const sourceData = rel.concepts_of_relation.find(
+    (cor) => cor.id === refs.source,
+  );
+  const destData = rel.concepts_of_relation.find(
+    (cor) => cor.id === refs.destination,
+  );
+  if (!sourceData || !destData) return undefined;
+
+  const sourceEndpointId = keyToRelationEndpointId.get(
+    `${sourceData.space_id}:${sourceData.source_local_id}`,
+  );
+  const destEndpointId = keyToRelationEndpointId.get(
+    `${destData.space_id}:${destData.source_local_id}`,
+  );
+  if (!sourceEndpointId || !destEndpointId) return undefined;
+  return { sourceData, destData, sourceEndpointId, destEndpointId };
 };
 
 /**
@@ -248,27 +285,28 @@ export const importRelationsForImportedNodes = async ({
     }
   }
 
-  for (const rel of relationInstances) {
-    const sourceData = rel.concepts_of_relation.find(
-      (cor) =>
-        cor.id ===
-        (rel.reference_content as Record<string, number | number[]>).source,
-    );
-    const destData = rel.concepts_of_relation.find(
-      (cor) =>
-        cor.id ===
-        (rel.reference_content as Record<string, number | number[]>)
-          .destination,
-    );
-    if (!sourceData || !destData) continue;
+  const importable = relationInstances.flatMap((rel) => {
+    const ends = resolveRelationEnds(rel, keyToRelationEndpointId);
+    return ends ? [{ rel, ...ends }] : [];
+  });
 
-    const sourceKey = `${sourceData.space_id}:${sourceData.source_local_id}`;
-    const destKey = `${destData.space_id}:${destData.source_local_id}`;
+  let sourceTripleRids = new Map<number, string>();
+  try {
+    sourceTripleRids = await fetchSourceTripleRids({
+      client,
+      relations: importable.map(({ rel }) => rel),
+    });
+  } catch (error) {
+    console.warn("Could not look up the source triples of relations:", error);
+  }
 
-    const sourceEndpointId = keyToRelationEndpointId.get(sourceKey);
-    const destEndpointId = keyToRelationEndpointId.get(destKey);
-    if (!sourceEndpointId || !destEndpointId) continue;
-
+  for (const {
+    rel,
+    sourceData,
+    destData,
+    sourceEndpointId,
+    destEndpointId,
+  } of importable) {
     if (!rel.schema_id) continue;
 
     const sourceRelationTypeId = schemaMap.get(rel.schema_id);
@@ -360,7 +398,10 @@ export const importRelationsForImportedNodes = async ({
         relationTypeId: mappedTypeId,
         importedCreatedAt,
         importedModifiedAt,
-        importedFromRid: relationImportedFromRid,
+        // Without a unique source triple, keep the relation's RID: an imported triple
+        // needs some importedFromRid, or isAcceptedSchema treats it as a local one.
+        importedFromRid:
+          sourceTripleRids.get(rel.id) ?? relationImportedFromRid,
         authorId,
       });
     }
