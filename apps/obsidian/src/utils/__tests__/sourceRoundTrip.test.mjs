@@ -15,6 +15,7 @@ import {
   createHarness,
   LOCAL_URI,
   REMOTE_URI,
+  SOURCE_UNAVAILABLE_NOTICE,
   SUPABASE_CONTEXT,
   evidenceRid,
   sourceRid,
@@ -23,7 +24,7 @@ import { nodeUidsWithTypeToCrossApp } from "../../../../roam/src/utils/roamToCro
 import getDiscourseNodeFormatExpression from "../../../../roam/src/utils/getDiscourseNodeFormatExpression";
 import { materializeSharedNode } from "../../../../roam/src/utils/materializeSharedNode";
 
-// Both adapters run here. Only platform I/O and the SQL storage boundary are doubled.
+// Both adapters run here. Platform I/O and SQL storage are doubled, and the Source the Roam push references is a harness fixture.
 const io = vi.hoisted(() => ({
   pages: new Map(),
   identities: new Map(),
@@ -86,7 +87,9 @@ vi.mock("../../../../roam/src/utils/importedSourceIdentity", () => ({
 const CREATED = "2026-09-01T00:00:00";
 const MODIFIED = "2026-09-02T00:00:00";
 const CORE_TITLE = "Evidence title";
+const NO_SOURCE_TITLE = `[[EVD]] - ${CORE_TITLE}`;
 const SOURCE_TITLE = "@Source title";
+const SOURCE_CONCEPT_ID = 21;
 const PLACEHOLDER_PAGE = "@placeholder";
 const PLACEHOLDER_TITLE = `[[EVD]] - ${CORE_TITLE} - [[${PLACEHOLDER_PAGE}]]`;
 const ROAM_TITLE = `[[EVD]] - ${CORE_TITLE} - [[${SOURCE_TITLE}]]`;
@@ -145,7 +148,7 @@ const installRoam = () => {
 };
 
 // Mirrors the storage boundary's local-reference resolution using fixed concept IDs.
-// No adapter output is hand-written: the actual push result supplies the reference.
+// The push result supplies the reference value; only the concept IDs are fixed.
 const storedSource = (input, references) => {
   const value = input.local_reference_content?.sourceDocument;
   if (value === undefined) return undefined;
@@ -161,7 +164,12 @@ const storedSource = (input, references) => {
 
 const sharedFromObsidian = ({ input, visible = true }) => {
   const stored = storedSource(input, [
-    { id: 21, space_id: 1, source_local_id: "source", spaceUri: LOCAL_URI },
+    {
+      id: SOURCE_CONCEPT_ID,
+      space_id: 1,
+      source_local_id: "source",
+      spaceUri: LOCAL_URI,
+    },
   ]);
   const [shared] = buildSharedNodes({
     spaces: [
@@ -232,7 +240,7 @@ const obsidianPush = async ({
     sourceSlotByNodeId: candidates,
     client: {
       rpc: async (_name, { rid }) => ({
-        data: availableSources.has(rid) ? 21 : null,
+        data: availableSources.has(rid) ? SOURCE_CONCEPT_ID : null,
         error: null,
       }),
     },
@@ -297,7 +305,7 @@ beforeEach(() => {
 
 describe("Roam push → database → Obsidian pull", () => {
   const push = async ({ withSource = true, importedSource = false } = {}) => {
-    const title = withSource ? ROAM_TITLE : `[[EVD]] - ${CORE_TITLE}`;
+    const title = withSource ? ROAM_TITLE : NO_SOURCE_TITLE;
     io.schemas[0].format = withSource
       ? EVIDENCE_FORMAT.format
       : NO_SOURCE_FORMAT.format;
@@ -316,7 +324,12 @@ describe("Roam push → database → Obsidian pull", () => {
   const publishIntoHarness = (h, input) => {
     const row = h.concepts.find((row) => row.source_local_id === "evidence");
     const stored = storedSource(input, [
-      { id: 21, space_id: 2, source_local_id: "source", spaceUri: REMOTE_URI },
+      {
+        id: SOURCE_CONCEPT_ID,
+        space_id: 2,
+        source_local_id: "source",
+        spaceUri: REMOTE_URI,
+      },
     ]);
     row.core_title = input.literal_content.core_title;
     row.sourceDocument = stored?.id ?? null;
@@ -383,7 +396,7 @@ describe("Roam push → database → Obsidian pull", () => {
       publishIntoHarness(h, await push());
       if (reason === "not-shared")
         h.concepts.splice(
-          h.concepts.findIndex((row) => row.id === 21),
+          h.concepts.findIndex((row) => row.id === SOURCE_CONCEPT_ID),
           1,
         );
       else h.contentRows.splice(2);
@@ -392,9 +405,7 @@ describe("Roam push → database → Obsidian pull", () => {
         "import/Research/EVD - Evidence title.md",
       ]);
       expect((await loadRelations(h.plugin)).relations).toEqual({});
-      expect(Notice).toHaveBeenCalledWith(
-        "Imported EVD - Evidence title, but its Source is unavailable. No source relation was created.",
-      );
+      expect(Notice).toHaveBeenCalledWith(SOURCE_UNAVAILABLE_NOTICE);
     },
   );
 
@@ -527,20 +538,19 @@ describe("Obsidian push → database → Roam pull", () => {
   });
 
   it.each([
-    ["absent", NO_SOURCE_WARNING],
-    ["unavailable", NO_SOURCE_WARNING],
-    ["not-imported", NOT_IMPORTED_WARNING],
+    ["absent", undefined, NO_SOURCE_WARNING],
+    ["unavailable", { sourceDocument: "source" }, NO_SOURCE_WARNING],
+    ["not-imported", { sourceDocument: "source" }, NOT_IMPORTED_WARNING],
   ])(
     "keeps the Roam node format with a placeholder when the Source is %s",
-    async (state, warning) => {
+    async (state, reference, warning) => {
       const h = createHarness();
       await localNodes(h);
       const { input } = await obsidianPush({
         h,
         relations: state === "absent" ? [] : [sourceRelation],
       });
-      if (state === "absent")
-        expect(input.local_reference_content).toBeUndefined();
+      expect(input.local_reference_content).toEqual(reference);
       const shared = sharedFromObsidian({
         input,
         visible: state !== "unavailable",
@@ -591,7 +601,7 @@ describe("Obsidian push → database → Roam pull", () => {
     });
     expect(result).toMatchObject({ success: true });
     expect(result.warning).toBeUndefined();
-    expect(io.pages.get(result.pageUid).title).toBe(`[[EVD]] - ${CORE_TITLE}`);
+    expect(io.pages.get(result.pageUid).title).toBe(NO_SOURCE_TITLE);
   });
 
   it("repeated push, pull and forced refresh do not create pages or rename unchanged titles", async () => {

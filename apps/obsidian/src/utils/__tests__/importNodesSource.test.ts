@@ -8,8 +8,10 @@ import { loadRelations, saveRelations } from "~/utils/relationsStore";
 import {
   createHarness,
   evidenceRid,
+  required,
   sourceRid,
   selectedNode,
+  SOURCE_UNAVAILABLE_NOTICE,
 } from "./importNodesHarness";
 
 vi.mock("obsidian", async (importOriginal) => ({
@@ -68,7 +70,7 @@ describe("source document import", () => {
     "reuses an existing Source (local=%s)",
     async (local) => {
       const h = createHarness();
-      if (local) h.concepts.find((row) => row.id === 21)!.space_id = 1;
+      if (local) h.concept(21).space_id = 1;
       const sourceFile = await h.seedSource(local);
       const original = h.contents.get(sourceFile.path);
       await h.pull();
@@ -109,8 +111,8 @@ describe("source document import", () => {
       const h = createHarness();
       const schema =
         provisional === "triple"
-          ? h.plugin.settings.discourseRelations[0]!
-          : h.plugin.settings.relationTypes[0]!;
+          ? required(h.plugin.settings.discourseRelations[0], "relation triple")
+          : required(h.plugin.settings.relationTypes[0], "relation type");
       schema.importedFromRid = "orn:obsidian.schema:remote/relation-type";
       schema.status = "provisional";
       expect(await h.pull()).toEqual({ success: 1, failed: 0 });
@@ -128,7 +130,7 @@ describe("source document import", () => {
 
   it("does nothing when the current node has no source value", async () => {
     const h = createHarness();
-    h.concepts.find((row) => row.id === 20)!.sourceDocument = null;
+    h.concept(20).sourceDocument = null;
     expect(await h.pull()).toEqual({ success: 1, failed: 0 });
     expect(h.files.size).toBe(1);
     expect(
@@ -139,9 +141,20 @@ describe("source document import", () => {
     expect(Notice).not.toHaveBeenCalled();
   });
 
-  it.each(["not-shared", "no-content", "query-error"])(
+  it.each<[string, string, unknown[]]>([
+    ["not-shared", SOURCE_UNAVAILABLE_NOTICE, [SOURCE_UNAVAILABLE_NOTICE]],
+    ["no-content", SOURCE_UNAVAILABLE_NOTICE, [SOURCE_UNAVAILABLE_NOTICE]],
+    [
+      "query-error",
+      "Nodes imported, but their source relations could not be imported.",
+      [
+        "Could not import source documents:",
+        expect.objectContaining({ message: "Source lookup failed" }),
+      ],
+    ],
+  ])(
     "keeps the current node when the Source is unavailable: %s",
-    async (reason) => {
+    async (reason, notice, warning) => {
       const h = createHarness();
       if (reason === "not-shared")
         h.concepts.splice(
@@ -155,8 +168,8 @@ describe("source document import", () => {
         "import/Research/EVD - Evidence title.md",
       ]);
       expect((await loadRelations(h.plugin)).relations).toEqual({});
-      expect(Notice).toHaveBeenCalledWith(expect.stringMatching(/source/i));
-      expect(console.warn).toHaveBeenCalled();
+      expect(Notice).toHaveBeenCalledWith(notice);
+      expect(console.warn).toHaveBeenCalledWith(...warning);
     },
   );
 
@@ -166,7 +179,7 @@ describe("source document import", () => {
     const firstRelations = await loadRelations(h.plugin);
     const paths = [...h.files.keys()];
     await h.pull();
-    const file = h.files.get("import/Research/EVD - Evidence title.md")!;
+    const file = h.file("import/Research/EVD - Evidence title.md");
     expect(await refreshImportedFile({ plugin: h.plugin, file })).toEqual({
       success: true,
       error: undefined,
@@ -207,7 +220,7 @@ describe("source document import", () => {
   it("shares one Source across a batch even while the metadata cache is empty", async () => {
     const h = createHarness();
     h.getFileCache.mockReturnValue({ frontmatter: {} });
-    const evidence = h.concepts.find((row) => row.id === 20)!;
+    const evidence = h.concept(20);
     h.concepts.push({
       ...evidence,
       id: 22,
@@ -243,14 +256,14 @@ describe("source document import", () => {
     const h = createHarness();
     h.concepts.push(
       {
-        ...h.concepts.find((row) => row.id === 20)!,
+        ...h.concept(20),
         id: 22,
         source_local_id: "second-evidence",
         core_title: "Second evidence",
         sourceDocument: 23,
       },
       {
-        ...h.concepts.find((row) => row.id === 21)!,
+        ...h.concept(21),
         id: 23,
         source_local_id: "second-source",
       },
@@ -273,10 +286,10 @@ describe("source document import", () => {
     expect(await pull()).toEqual({ success: 2, failed: 0 });
     const sources = [...h.files.values()].filter(
       (file) =>
-        matter(h.contents.get(file.path)!).data.nodeTypeId === "source-type",
+        matter(h.readContent(file.path)).data.nodeTypeId === "source-type",
     );
     expect(sources).toHaveLength(2);
-    const sourceContents = sources.map((file) => h.contents.get(file.path)!);
+    const sourceContents = sources.map((file) => h.readContent(file.path));
     expect(
       sourceContents.some(
         (content) => matter(content).content.trim() === "source body",
@@ -298,7 +311,10 @@ describe("source document import", () => {
     );
     const paths = [...h.files.keys()];
     await pull();
-    await refreshImportedFile({ plugin: h.plugin, file: sources[1]! });
+    await refreshImportedFile({
+      plugin: h.plugin,
+      file: required(sources[1], "second Source"),
+    });
     await pull();
     expect([...h.files.keys()]).toEqual(paths);
     expect(Object.values((await loadRelations(h.plugin)).relations)).toEqual(
@@ -311,7 +327,7 @@ describe("source document import", () => {
     "resolves a local Source despite a same-ID import (Datacore=%s)",
     async (datacore) => {
       const h = createHarness();
-      h.concepts.find((row) => row.id === 21)!.space_id = 1;
+      h.concept(21).space_id = 1;
       await h.seedSource();
       const localSource = await h.create(
         "Local source.md",
@@ -330,7 +346,7 @@ describe("source document import", () => {
                     [...h.files.values()]
                       .filter((file) => {
                         const frontmatter = matter(
-                          h.contents.get(file.path)!,
+                          h.readContent(file.path),
                         ).data;
                         return (
                           file.extension === "md" &&
@@ -339,7 +355,8 @@ describe("source document import", () => {
                               /(nodeInstanceId|importedFromRid) = "([^"]+)"/g,
                             ),
                           ].every(
-                            ([, key, value]) => frontmatter[key!] === value,
+                            ([, key, value]) =>
+                              key !== undefined && frontmatter[key] === value,
                           )
                         );
                       })

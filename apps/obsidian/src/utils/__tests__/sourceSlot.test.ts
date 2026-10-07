@@ -35,9 +35,14 @@ describe("filterAvailableSourceSlotValues", () => {
       spaceId: 42,
       pendingNodeIds: new Set(),
     });
+    const respond = (rid: string, lookup: LookupResult): void => {
+      const resolve = responses.get(rid);
+      if (!resolve) throw new Error(`No lookup started for ${rid}`);
+      resolve(lookup);
+    };
     expect(rpc).toHaveBeenCalledTimes(2);
-    responses.get("missing-source")?.({ data: null, error: null });
-    responses.get("available-source")?.({ data: 21, error: null });
+    respond("missing-source", { data: null, error: null });
+    respond("available-source", { data: 21, error: null });
     expect(await result).toEqual({ first: "available-source" });
     expect(console.warn).toHaveBeenCalledTimes(1);
     expect(console.warn).toHaveBeenCalledWith(

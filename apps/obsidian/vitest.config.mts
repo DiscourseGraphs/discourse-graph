@@ -6,12 +6,19 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 const obsidianSrc = path.resolve(dirname, "src");
 const roamSrc = path.resolve(dirname, "../roam/src");
 
+const isInRoamSrc = (file: string): boolean => {
+  const relative = path.relative(roamSrc, file);
+  return (
+    relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative)
+  );
+};
+
 const resolveAppAlias = (): Plugin => ({
   name: "resolve-app-alias",
   enforce: "pre",
   resolveId(source, importer) {
     if (!source.startsWith("~/")) return null;
-    const appSrc = importer?.startsWith(`${roamSrc}/`) ? roamSrc : obsidianSrc;
+    const appSrc = importer && isInRoamSrc(importer) ? roamSrc : obsidianSrc;
     return this.resolve(path.join(appSrc, source.slice(2)), importer, {
       skipSelf: true,
     });

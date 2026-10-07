@@ -5,17 +5,23 @@ import type DiscourseGraphPlugin from "~/index";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { ImportableNode } from "~/types";
 import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
-import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
+import {
+  getLoggedInClient,
+  getSupabaseContext,
+  type SupabaseContext,
+} from "~/utils/supabaseContext";
 import { importSelectedNodes } from "~/utils/importNodes";
 
 export const LOCAL_URI = "obsidian:local-vault";
 export const REMOTE_URI = "https://roamresearch.com/#/app/research";
-export const SUPABASE_CONTEXT = {
+export const SUPABASE_CONTEXT: SupabaseContext = {
   spaceId: 1,
-  platform: "Obsidian" as const,
+  platform: "Obsidian",
   userId: 1,
   spacePassword: "test",
 };
+export const SOURCE_UNAVAILABLE_NOTICE =
+  "Imported EVD - Evidence title, but its Source is unavailable. No source relation was created.";
 export const evidenceRid = spaceUriAndLocalIdToRid(
   REMOTE_URI,
   "evidence",
@@ -33,6 +39,11 @@ export const selectedNode: ImportableNode = {
 
 type Row = Record<string, unknown>;
 
+export const required = <T>(value: T | undefined, label: string): T => {
+  if (value === undefined) throw new Error(`Missing ${label}`);
+  return value;
+};
+
 const setFilePath = (file: TFile, path: string): void => {
   const name = path.slice(path.lastIndexOf("/") + 1);
   const dot = name.lastIndexOf(".");
@@ -45,11 +56,8 @@ const setFilePath = (file: TFile, path: string): void => {
 export const createHarness = () => {
   const files = new Map<string, TFile>();
   const contents = new Map<string, string>();
-  const readContent = (path: string): string => {
-    const content = contents.get(path);
-    if (content === undefined) throw new Error(`No file at ${path}`);
-    return content;
-  };
+  const readContent = (path: string): string =>
+    required(contents.get(path), `file at ${path}`);
   const schemas: Row[] = [
     {
       id: 10,
@@ -290,10 +298,17 @@ export const createHarness = () => {
     plugin,
     saveSettings,
     concepts,
+    concept: (id: number): Row =>
+      required(
+        concepts.find((row) => row.id === id),
+        `concept ${id}`,
+      ),
     contentRows,
     requests,
     files,
+    file: (path: string): TFile => required(files.get(path), `file at ${path}`),
     contents,
+    readContent,
     create,
     renameFile,
     getFileCache,
