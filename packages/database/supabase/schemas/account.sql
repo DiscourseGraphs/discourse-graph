@@ -208,7 +208,7 @@ STABLE SECURITY DEFINER
 SET search_path = ''
 LANGUAGE sql
 AS $$
-    SELECT account_uid = auth.uid() OR account_uid = '00000000-0000-0000-0000-000000000000'::uuid OR EXISTS (
+    SELECT account_uid = auth.uid() OR EXISTS (
         SELECT 1 FROM public.group_membership
         WHERE member_id = auth.uid() AND group_id=account_uid
         LIMIT 1
