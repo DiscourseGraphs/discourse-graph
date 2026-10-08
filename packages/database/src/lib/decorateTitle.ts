@@ -1,10 +1,11 @@
-// Inverse of the apps' extractContentFromTitle: rebuild a local title from a
+// Inverse of extractContentFromTitle: rebuild a local title from a
 // node type format and the core_title stored in Concept.literal_content.
 // Returns null when the format cannot be rebuilt from the core title alone:
 // it is empty, has no {content} placeholder, or carries other placeholders
 // such as {Source} whose values the database does not hold yet. Callers fall
 // back to the incoming title in that case.
 export const FORMAT_PLACEHOLDER = /{[a-zA-Z]+}/g;
+export const CONTENT_PLACEHOLDER = "{content}";
 
 export const decorateTitle = (
   format: string,
@@ -14,7 +15,7 @@ export const decorateTitle = (
   if (
     placeholders.length === 0 ||
     placeholders.some(
-      (placeholder) => placeholder.toLowerCase() !== "{content}",
+      (placeholder) => placeholder.toLowerCase() !== CONTENT_PLACEHOLDER,
     )
   )
     return null;

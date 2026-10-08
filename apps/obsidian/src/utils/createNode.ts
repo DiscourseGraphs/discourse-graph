@@ -1,6 +1,6 @@
 import { Editor, Notice, TFile } from "obsidian";
 import { DiscourseNode } from "~/types";
-import { getDiscourseNodeFormatExpression } from "./getDiscourseNodeFormatExpression";
+import { getDiscourseNodeFormatExpression } from "@repo/database/lib/getDiscourseNodeFormatExpression";
 import { checkInvalidChars } from "./validateNodeType";
 import { applyTemplate } from "./templates";
 import type DiscourseGraphPlugin from "~/index";
