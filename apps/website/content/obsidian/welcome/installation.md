@@ -27,3 +27,13 @@ Once Datacore is installed and enabled, add the Discourse Graphs plugin from the
 3. Search for "Discourse Graphs", then install and enable it
 
 Or install directly from the [community plugin page](https://community.obsidian.md/plugins/discourse-graphs).
+
+## Mobile support
+
+The plugin installs and runs on Obsidian mobile, but support there is limited. Prefer the desktop app for day-to-day work.
+
+On mobile:
+
+- Run features from the command palette. Several actions are only reachable by hover, right-click, drag, or a keyboard shortcut on desktop, and have no touch equivalent yet.
+- Exporting and importing a discourse graph schema is unavailable, because it needs a desktop file dialog.
+- The help menu is unavailable, because mobile has no status bar.
