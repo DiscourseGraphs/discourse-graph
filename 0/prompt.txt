@@ -1,0 +1,16 @@
+should keep eng-2370 in mind as well. at this point i'd research more the latest agentic coding practices (maybe on twitter/ eng blogs?!)
+basically for each feature, we want to understand not just what that new feature is -> have deterministic pathway to test, but also see how the changed codes might have affected existing feature so that we dont introduce any regression
+criteria:
+
+* dev can read through the tests, decide whether to execute the tests or not. or they can also introduce a new edge case for the agent to spin up
+   * agent can comes up with their own cdp driver (or equivalent) to test, but if it's unsure on the pathway to test the feature it can ask the dev. don't just assume
+* there's a clear way to see the tests being done. i remember storybook made this very easy. can play the entire interaction or click through step by step. 
+
+my colleague Sid made smt along this line already. but he creates a video for each test and stitch them together in chapter: https://discoursegraphs.com/releases/prototypes/previews/proof-runner/proof-runner/. i think this is a valid approach, but i hate watching AI-generated video for 2-3m. it's boring and i can't concentrate like that. i kinda prefer the storybook-like interface to go through each case and click. but i'm open for other interfaces as well. i don't know all interfaces after all.
+
+ideally, the very very ambitious goal is smt like story book, but if the reviewer decides to change certian steps of the tests they can to see how the actual branch build would react to the edge case input/ interaction
+
+smt i want to start looking into: https://github.com/cursor/plugins/tree/main/pstack/skills/create-verification-skill/references/feature-map-example
+the idea of feature map seems to match with storybook? overall the cursor eng team talks about QA process automated seems interesting and relevant to look into.
+
+change to this ticket: don't just look specifically into Obsidian. make the general process as generalizable as we can. but notify when/if there're Obsidian-specific things
