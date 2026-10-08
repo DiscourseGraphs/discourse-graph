@@ -705,7 +705,7 @@ const updateMarkdownAssetLinks = ({
     // A rest parameter keeps this within the arrow-function parameter limit.
     (match, ...groups: string[]) => {
       const [imagePrefix, linkText, rawLinkPath] = groups;
-      // An `!` prefix makes this an image embed, handled by the pass above.
+      // An `!` prefix makes this an image embed, handled by the image pass below.
       if (imagePrefix) return match;
       if (!rawLinkPath) return match;
       let linkPath = rawLinkPath;
