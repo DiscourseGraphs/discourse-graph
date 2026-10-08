@@ -38,7 +38,7 @@ type TextLinkDialogProps = { onClose: () => void };
 
 type UrlValidity = { isValid: boolean; hasProtocol: boolean };
 
-// One validator for every shape type now that tldraw's own accepts obsidian://.
+// Every shape type uses tldraw's linkUrl, patched to accept obsidian://open links.
 const validateUrl = (url: string): UrlValidity => {
   if (isAllowedTextLinkUrl(url)) return { isValid: true, hasProtocol: true };
   if (isAllowedTextLinkUrl(`https://${url}`))
