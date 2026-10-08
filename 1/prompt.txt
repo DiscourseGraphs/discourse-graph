@@ -535,3 +535,12 @@ you can verify with live Obsidian CDP driver
 ---
 
 yes, keep 3.9KB and continue with gray-matter
+
+---
+
+* rebase to main
+* explain to me what's `execContext.ts` is? do we have to output it in the bundle with publish.ts or no?
+   * the resolve NODE_ENV as well
+   * to test:
+      * create a branch in `discourse-graph-obsidian` with flipped isDesktopOnly so i can see if it pass
+      * create a beta release via publish.ts script for me to test on a device
