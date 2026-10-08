@@ -21,7 +21,7 @@ import {
   syncAllNodesAndRelations,
   syncPublishedNodeAssets,
 } from "./syncDgNodesToSupabase";
-import { isProvisionalSchema } from "./typeUtils";
+import { isAcceptedSchema, isProvisionalSchema } from "./typeUtils";
 import { intersection, difference } from "@repo/utils/setOperations";
 
 import type { DiscourseNodeInVault } from "./getDiscourseNodes";
@@ -406,6 +406,19 @@ export const ensurePublishedRelationsAccuracy = async ({
     console.error("Could not get the groups of imported nodes", error);
     return;
   }
+  const relationTriples = (plugin.settings.discourseRelations ?? []).filter(
+    isAcceptedSchema,
+  );
+  // A group needs the relation's type and triple to read the relation.
+  const schemaIdsOf = (relation: RelationInstance): string[] => {
+    const triple = relationTriples.find(
+      (triple) =>
+        triple.relationshipTypeId === relation.type &&
+        triple.sourceId === allNodesById[relation.source]?.nodeTypeId &&
+        triple.destinationId === allNodesById[relation.destination]?.nodeTypeId,
+    );
+    return triple ? [relation.type, triple.id] : [relation.type];
+  };
   let changed = false;
   const missingPublishRecords: TablesInsert<"ResourceAccess">[] = [];
   for (const group of myGroups) {
@@ -426,13 +439,19 @@ export const ensurePublishedRelationsAccuracy = async ({
       console.error("Could not get synced relation ids", publishedIds.error);
       continue;
     }
+    const publishedLocalIds = new Set(
+      (publishedIds.data || []).map((x) => x.source_local_id),
+    );
     const publishedRelationIds = intersection(
       syncedRelationIds,
-      new Set((publishedIds.data || []).map((x) => x.source_local_id)),
+      publishedLocalIds,
     );
     const missingPublishableIds = difference(
-      publishableRelationIds,
-      publishedRelationIds,
+      new Set([
+        ...publishableRelationIds,
+        ...publishableRelations.flatMap(schemaIdsOf),
+      ]),
+      publishedLocalIds,
     );
     if (missingPublishableIds.size > 0) {
       missingPublishRecords.push(

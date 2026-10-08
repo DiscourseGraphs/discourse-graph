@@ -221,6 +221,13 @@ const node = (
     file: { basename: nodeInstanceId },
   }) as unknown as DiscourseNodeInVault;
 
+const TRIPLE = {
+  id: "claim-supports-claim",
+  relationshipTypeId: "supports",
+  sourceId: "claim",
+  destinationId: "claim",
+};
+
 const relation = (
   id: string,
   source: string,
@@ -257,7 +264,9 @@ const runAccuracyCheck = async ({
   await ensurePublishedRelationsAccuracy({
     client: fake.client,
     context: { spaceId: SPACE_ID } as SupabaseContext,
-    plugin: {} as DiscourseGraphPlugin,
+    plugin: {
+      settings: { discourseRelations: [TRIPLE] },
+    } as unknown as DiscourseGraphPlugin,
     allNodesById,
     relationInstancesData: {
       version: 1,
@@ -273,6 +282,13 @@ const upsertedRows = (calls: Call[]): unknown =>
     .filter((c) => c.table === "ResourceAccess" && c.operation === "upsert")
     .flatMap((c) => c.args[0] as unknown[]);
 
+const accuracyRows = (group: string, relationIds: string[]): unknown[] =>
+  [...relationIds, "supports", TRIPLE.id].map((source_local_id) => ({
+    source_local_id,
+    space_id: SPACE_ID,
+    account_uid: group,
+  }));
+
 describe("ensurePublishedRelationsAccuracy", () => {
   beforeEach(() => {
     vi.mocked(getPublishedGroupIdsByRid).mockResolvedValue({
@@ -286,9 +302,16 @@ describe("ensurePublishedRelationsAccuracy", () => {
       relations: [relation("rel", "localG1", "imported")],
     });
 
-    expect(upsertedRows(calls)).toEqual([
-      { source_local_id: "rel", space_id: SPACE_ID, account_uid: "g1" },
-    ]);
+    expect(upsertedRows(calls)).toEqual(accuracyRows("g1", ["rel"]));
+  });
+
+  it("publishes the type and triple of an already published relation", async () => {
+    const calls = await runAccuracyCheck({
+      relations: [relation("rel", "localG1", "imported")],
+      grantedLocalIdsByGroup: { g1: ["rel"] },
+    });
+
+    expect(upsertedRows(calls)).toEqual(accuracyRows("g1", []));
   });
 
   it("publishes a relation between two imported nodes to their shared group", async () => {
@@ -296,9 +319,7 @@ describe("ensurePublishedRelationsAccuracy", () => {
       relations: [relation("rel", "imported", "otherImported")],
     });
 
-    expect(upsertedRows(calls)).toEqual([
-      { source_local_id: "rel", space_id: SPACE_ID, account_uid: "g1" },
-    ]);
+    expect(upsertedRows(calls)).toEqual(accuracyRows("g1", ["rel"]));
     expect(ensurePartialSpaceAccess).toHaveBeenCalledWith(
       expect.objectContaining({ groupIds: ["g1"], spaceId: SPACE_ID }),
     );
@@ -361,13 +382,6 @@ describe("ensurePublishedRelationsAccuracy", () => {
     ).toEqual([]);
   });
 });
-
-const TRIPLE = {
-  id: "claim-supports-claim",
-  relationshipTypeId: "supports",
-  sourceId: "claim",
-  destinationId: "claim",
-};
 
 const pluginWithNodes = (
   nodes: Record<string, DiscourseNodeInVault>,
