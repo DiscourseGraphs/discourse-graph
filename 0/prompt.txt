@@ -1,0 +1,9 @@
+I notice that, publishing relations from Obsidian, it's possible that the relation type is not being published. Can you check that?
+
+---
+
+Please add a ticketr.
+
+---
+
+Marked it as todo, switched to a branch, go ahead.
