@@ -1,0 +1,554 @@
+fetch via other means
+
+---
+
+Problem
+
+* The user requested mobile support: https://github.com/DiscourseGraphs/discourse-graph-obsidian/issues/10
+* We can allow this with little to no change to our Desktop version too
+
+Solution
+
+* starting point: [DiscourseGraphs/discourse-graph#1391](https://linear.app/discourse-graphs/review/make-the-obsidian-plugin-loadable-on-mobile-02152951f404)
+* modify with our current state of plugin
+* create a release with it
+
+Done When
+
+* Plugin is accessible from mobile as well as desktop
+* Functionalities on desktop is unaffected
+* Notify that one user about mobile support is out
+* add to documentation that mobile support is limited. Prefer to use Desktop
+
+Out of Scope
+
+* Any major fix to the functionalities that might affect desktop version
+* 
+
+Notes
+
+---
+
+<task-notification>
+<task-id>a6a4f5f821de90f63</task-id>
+<tool-use-id>toolu_01CDpwrz6RtT8DYMxDNRYz39</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/604450a8-86e6-4aaa-b481-66c39546c65a/tasks/a6a4f5f821de90f63.output</output-file>
+<status>completed</status>
+<summary>Agent "Research mobile PR 1391" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>Everything checked. Full report:
+
+## 1. PR #1391 status
+
+- **URL:** https://github.com/DiscourseGraphs/discourse-graph/pull/1391
+- **State: OPEN** (never merged, never closed). `mergedAt: null`, `closedAt: null`.
+- **Author:** `trangdoan982` (Trang Doan). Created 2026-09-03, last updated 2026-09-03T16:51Z — untouched since.
+- **Branch: `eng-mobile-support` — still exists**, same-repo (not a fork), head SHA `2289875403059ba307c3a046ceb96c768ffc96e9`.
+- **Divergence from `main`: 3 ahead, 54 behind** (`status: diverged`), merge base `56dc42c923dda0b6a5911439b7b0acea4557d777`.
+- Commits: `c195ed797` Make the Obsidian plugin loadable on mobile · `83e173a1c` Use a rest parameter in the markdown link replacer · `228987540` Surface the manifest a publish is about to ship
+- **All CI checks pass** (validate, eslint, lint-changed-files, format-changed-files, Graphite AI review). So it was not blocked by CI.
+
+## 2. Full diff, file by file
+
+15 files, ~326 additions / ~172 deletions (plus `pnpm-lock.yaml`, +42/−23, mechanical).
+
+### `apps/obsidian/manifest.json` (the actual unblocker)
+```diff
+-  "isDesktopOnly": true
++  "isDesktopOnly": false
+```
+
+### `apps/obsidian/AGENTS.md` (+2, under "### Mobile compatibility")
+```md
+- The plugin ships with `isDesktopOnly: false`, so it must load on mobile
+- Node builtins and `electron` are deliberately not listed in the esbuild `external` array in `scripts/compile.ts`. Adding them back would let a dependency's `require("fs")` survive into the bundle and throw at runtime on mobile; leaving them out makes the build fail instead. Replace the dependency rather than re-adding the external
+```
+
+### `apps/obsidian/scripts/compile.ts` (the durable change)
+```diff
+-import builtins from "builtin-modules";
+@@
++  // Node builtins and "electron" are deliberately NOT external. Marking them
++  // external lets a dependency's `require("fs")` survive into the bundle, which
++  // throws at runtime on Obsidian mobile. Leaving them out makes esbuild fail
++  // the build instead, so a mobile-breaking dependency cannot land unnoticed.
+   external: [
+     "obsidian",
+-    "electron",
+     "@codemirror/autocomplete",
+     ... (codemirror/lezer entries unchanged) ...
+     "tslib=window.TSLib",
+-    ...builtins,
+   ],
+@@ in compile():
+       bundle: true,
+       format,
++      platform: "browser",
+```
+
+### `apps/obsidian/package.json`
+- Removed deps: `gray-matter`, `mime-types`, devDeps `@types/mime-types`, `builtin-modules`.
+- Added devDep `"vitest": "catalog:"`.
+- Added scripts:
+```json
+"test": "pnpm test:unit",
+"test:unit": "vitest run --config vitest.config.mts"
+```
+
+### `apps/obsidian/src/utils/splitFrontmatter.ts` (NEW, 20 lines — replaces `gray-matter`)
+```ts
+// Replaces the frontmatter splitting `gray-matter` did. That package requires
+// Node's `fs` at module load, so it cannot run on Obsidian mobile. Kept free of
+// any `obsidian` import so it stays a pure, directly testable function; callers
+// pass the returned YAML to Obsidian's own `parseYaml`.
+const FRONTMATTER_BLOCK =
+  /^---[ \t]*\r?\n([\s\S]*?)\r?\n?^---[ \t]*(?:\r?\n|$)/m;
+
+export type SplitFrontmatter = {
+  /** Raw YAML source, or null when the content has no frontmatter block. */
+  yaml: string | null;
+  body: string;
+};
+
+export const splitFrontmatter = (content: string): SplitFrontmatter =&gt; {
+  const match = FRONTMATTER_BLOCK.exec(content);
+  // The block only counts as frontmatter at the very start of the file;
+  // a `---` further down is a horizontal rule.
+  if (!match || match.index !== 0) return { yaml: null, body: content };
+  return { yaml: match[1] ?? "", body: content.slice(match[0].length) };
+};
+```
+
+### `apps/obsidian/src/utils/mimeType.ts` (NEW, 59 lines — replaces `mime-types`)
+```ts
+// Replaces the `mime-types` package, which requires Node's `path` module and so
+// cannot load on Obsidian mobile. Only covers extensions Obsidian accepts as
+// vault attachments; anything else falls back to a generic binary type.
+const MIME_TYPES_BY_EXTENSION: Record&lt;string, string&gt; = { ... };
+
+export const DEFAULT_MIME_TYPE = "application/octet-stream";
+
+export const getMimeTypeForPath = (filePath: string): string =&gt; {
+  const fileName = filePath.split("/").pop() ?? "";
+  const lastDotIndex = fileName.lastIndexOf(".");
+  if (lastDotIndex &lt;= 0) return DEFAULT_MIME_TYPE;
+  const extension = fileName.slice(lastDotIndex + 1).toLowerCase();
+  return MIME_TYPES_BY_EXTENSION[extension] ?? DEFAULT_MIME_TYPE;
+};
+```
+Table contents (verbatim keys): images `avif, bmp, gif, ico(image/vnd.microsoft.icon), jpeg, jpg, png, svg(image/svg+xml), tif, tiff, webp`; audio `aac, flac, m4a(audio/mp4), mp3(audio/mpeg), oga, ogg, wav, webm→video/webm`; video `mkv(video/x-matroska), mov(video/quicktime), mp4, ogv(video/ogg)`; docs `pdf`; text `canvas→application/json, css, csv, html, js(text/javascript), json(application/json), md(text/markdown), txt, xml(text/xml), yaml/yml(text/yaml)`.
+
+### `apps/obsidian/src/utils/syncDgNodesToSupabase.ts`
+```diff
+-import mime from "mime-types";
++import { getMimeTypeForPath } from "~/utils/mimeType";
+@@ in syncPublishedNodeAssets
+-    const mimetype = mime.lookup(attachment.path) || "application/octet-stream";
++    const mimetype = getMimeTypeForPath(attachment.path);
+     if (mimetype.startsWith("text/")) continue;
+```
+
+### `apps/obsidian/src/utils/importNodes.ts` (2 hunks)
+Imports:
+```diff
+-import matter from "gray-matter";
+-import { App, Notice, TFile } from "obsidian";
++import { App, Notice, TFile, parseYaml } from "obsidian";
++import { splitFrontmatter } from "~/utils/splitFrontmatter";
+```
+Lookbehind removal in `updateMarkdownAssetLinks`:
+```diff
+-  // Match markdown links (non-image): [text](path) — internal paths resolved like wikilinks, href kept URL-encoded
+-  const markdownLinkRegex = /(?&lt;!!)\[([^\]]*)\]\(([^)]+)\)/g;
++  // Match markdown links (non-image): [text](path) — internal paths resolved like wikilinks, href kept URL-encoded.
++  // The leading `!` is captured rather than excluded with a lookbehind, which
++  // older mobile WebViews do not support.
++  const markdownLinkRegex = /(!?)\[([^\]]*)\]\(([^)]+)\)/g;
+   updatedContent = updatedContent.replace(
+     markdownLinkRegex,
+-    (match, linkText: string, linkPath: string) =&gt; {
+-      if (!linkPath) return match;
+-      linkPath = linkPath
++    (match, ...groups: string[]) =&gt; {
++      const [imagePrefix, linkText, rawLinkPath] = groups;
++      // An `!` prefix makes this an image embed, handled by the next pass
++      if (imagePrefix) return match;
++      if (!rawLinkPath) return match;
++      const linkPath = rawLinkPath
+         .split("/")
+```
+Frontmatter parsing:
+```diff
++// Unparseable frontmatter is treated as absent rather than thrown, matching how
++// Obsidian itself tolerates bad YAML. `gray-matter` threw here instead.
+ const parseFrontmatter = (content: string): { frontmatter: ParsedFrontmatter; body: string } =&gt; {
+-  const { data, content: body } = matter(content);
+-  return { frontmatter: (data ?? {}) as ParsedFrontmatter, body: body ?? "" };
++  const { yaml, body } = splitFrontmatter(content);
++  if (yaml === null) return { frontmatter: {}, body };
++  try {
++    const data = parseYaml(yaml) as ParsedFrontmatter | null;
++    return { frontmatter: data ?? {}, body };
++  } catch {
++    return { frontmatter: {}, body: content };   // &lt;- see review comment below
++  }
+ };
+```
+
+### `apps/obsidian/src/utils/nativeJsonFileDialogs.ts` — DELETED (121 lines)
+Removed the whole Electron shim: `saveJsonToUserLocation`, `openJsonFromUserLocation`, `NativeFileDialogCancelledError`, `getElectronWindow` / `getFsPromises` / `getElectronDialog` using `window.require("fs/promises")` and `window.require("electron")`.
+
+**Critical re-application note:** at this PR's merge base that file had no importers, so deleting it was free. On today's `main` (and in this worktree) it is imported by:
+- `apps/obsidian/src/utils/specExport.ts:13` → `import { saveJsonToUserLocation } from "~/utils/nativeJsonFileDialogs";` (used at line 92)
+- `apps/obsidian/src/components/ExportSpecsModal.tsx:6` → `import { NativeFileDialogCancelledError } ...`
+
+Those two call sites must be rewritten (browser download/file-input, or Obsidian vault I/O) before the deletion + non-external `electron` build will compile.
+
+### `apps/obsidian/src/components/NodeSearchModal.tsx` (responsive modal)
+```diff
+-      &lt;div className="border-modifier-border mt-3 flex flex-1 overflow-hidden rounded border"&gt;
+-        &lt;div className="border-modifier-border flex w-2/5 flex-col border-r"&gt;
++      &lt;div className="border-modifier-border mt-3 flex flex-1 flex-col overflow-hidden rounded border sm:flex-row"&gt;
++        &lt;div className="border-modifier-border flex min-h-0 flex-1 flex-col border-b sm:w-2/5 sm:flex-none sm:border-b-0 sm:border-r"&gt;
+```
+and in `onOpen()`:
+```diff
+     // The default modal is too narrow for a result list beside a preview pane.
+-    // Responsive layout is an explicit non-goal, so this is a desktop-only size.
++    // Below `sm` the two panes stack instead, so the width is only claimed once
++    // there is room for the side-by-side layout.
+     modalEl.addClasses([
+       "dg-node-search-modal", "h-[600px]", "max-h-[80vh]",
+-      "w-[900px]",
++      "w-full", "sm:w-[900px]",
+       "max-w-[90vw]",
+     ]);
+```
+
+### `apps/obsidian/scripts/publish.ts` (+51, release-safety, independent of mobile loading)
+- In `updateManifest`: added `log(\`  isDesktopOnly: ${manifest.isDesktopOnly}\`);`
+- New `logReleaseProvenance(obsidianDir)` — reads manifest, `git rev-parse --abbrev-ref HEAD` (tolerating failure), logs directory / branch / isDesktopOnly / minAppVersion.
+- New `assertBuiltManifestMatchesSource(obsidianDir)` — throws if `dist/manifest.json` missing or differs from source `manifest.json` ("The build is stale, so the mirrored repo and the release assets would ship different manifests. Rebuild before publishing.").
+- Wired into `publish()`:
+```diff
+     await buildPlugin(obsidianDir);
++    assertBuiltManifestMatchesSource(obsidianDir);
++    await logReleaseProvenance(obsidianDir);
+```
+
+### `apps/obsidian/vitest.config.mts` (NEW, 17 lines)
+```ts
+export default defineConfig({
+  test: { environment: "node", include: ["src/**/__tests__/**/*.test.ts"] },
+  resolve: { alias: { "~": path.resolve(dirname, "src") } },
+});
+```
+(Your current worktree already has a superset of this — it additionally includes `test/**/*.test.ts` and aliases `obsidian` → `test/obsidianStub.ts`. So this file no longer needs re-applying; only ensure the new test files land in `src/utils/__tests__/`.)
+
+### New tests
+- `src/utils/__tests__/splitFrontmatter.test.ts` (8 cases): standard block, CRLF, empty block (`yaml: ""`), no leading fence → `yaml: null`, horizontal rule in body left alone, frontmatter-only file → `body: ""`, no fence at all, multi-line YAML values.
+- `src/utils/__tests__/mimeType.test.ts` (7 cases): common types, case insensitivity, `text/` prefix for md/csv, last extension of multi-dot name (`archive.tar.png` → `image/png`), unknown/extensionless fallback, dotfile not an extension, dots in parent directories ignored.
+
+## 3. Why it wasn't merged / blockers raised
+
+No human review at all — no human comments, no approvals, no change requests. Only bot activity:
+
+1. **Graphite AI review (the one substantive finding)** on `importNodes.ts:1047`, the `catch` in `parseFrontmatter`:
+   &gt; When YAML parsing fails, the function returns `body: content` (the original full content), but this is inconsistent with the successful parse path. When `splitFrontmatter` succeeds but `parseYaml` throws, the frontmatter block markers (`---`) are already stripped from `body`, so returning the original `content` re-introduces them.
+   &gt; **Impact**: A file with malformed YAML frontmatter will have the raw frontmatter block (including `---` delimiters) left in the body text, which will render as markdown content instead of being hidden.
+   &gt; **Fix**: `catch { return { frontmatter: {}, body }; }`
+
+   This is a real bug in the PR and was never addressed. **Apply the suggested fix when re-applying.**
+
+2. **Graphite PR size/scope bot:** over the review-size guideline (recommended ~200 lines, limit 400, prefer &lt;5 files); asked to split or justify. No justification comment was ever added.
+
+3. Supabase bot (no DB changes) and Vercel (skipped deploy) — noise.
+
+Author's own unchecked items in the PR body: `$scope-check` not run, delegated full review not run, Loom video `&lt;!-- TODO --&gt;`. And the stated risk: verified statically and by unit test, **not on a physical device**.
+
+Known-unaddressed touch gaps the author listed (still true, useful for scoping the newer attempt):
+- "Create &amp;lt;NodeType&amp;gt;" button lives in a hover-only tooltip (`tagNodeHandler.ts`) — unreachable on touch.
+- Canvas context menu (`TldrawViewComponent.tsx`) driven by tldraw `right_click`; long-press doesn't trigger it, so "Convert to discourse node" is unreachable.
+- Wikilink drag-to-canvas (`wikilinkDragHandler.ts`) uses HTML5 drag events — no touch firing.
+- Single-character node-tag hotkey has no non-keyboard trigger.
+- Mitigation: the 17 `addCommand` registrations all appear in the mobile command palette.
+
+Verification claims from the body: production bundle ends up with `require()` for only `obsidian` and `@codemirror/view` (previously also `fs` via gray-matter, `path` via mime-types, `buffer` via js-yaml), 2.2MB; zero regex lookbehind in the bundle; remaining `process.env`/`Buffer` refs guarded.
+
+## 4. Issue 10 (DiscourseGraphs/discourse-graph-obsidian)
+
+- **Requester: `codey-badger`** (association: none, i.e. external community user).
+- Responder: **`jsmorabito`** (John, member).
+- The ask: mobile support for the **Obsidian plugin itself**, not a separate app. Verbatim from `codey-badger`: *"I want to test it on mobile. Currently, it says 'desktop only' in https://community.obsidian.md/plugins/discourse-graphs. Can't install."*
+- John's replies: asked whether they wanted a more optimized Obsidian plugin or a dedicated mobile app/site; after the clarification, said he'd taken a note for the team, *"I don't think it will be too much of a lift to implement"*, and would share an update, plus invited other desktop feedback.
+- Issue is still open, no other participants.
+
+## Delta against your current worktree (`eng-2312-release-mobile-supported-dg-obsidian`, at `7c9c4827a`)
+
+Nothing from this PR has landed. Still present and needing the same treatment: `manifest.json` has `"isDesktopOnly": true`; `package.json` still lists `gray-matter`, `mime-types`, `@types/mime-types`, `builtin-modules`; `compile.ts` still imports `builtin-modules` and keeps `"electron"` + `...builtins` external with no `platform: "browser"`; `importNodes.ts:2` still `import matter from "gray-matter"`, line 734 still has the `(?&lt;!!)` lookbehind, line 1215 still `matter(content)`; `syncDgNodesToSupabase.ts:4,812` still uses `mime.lookup`. Already ahead of the PR: vitest is set up (`vitest.config.mts` with an `obsidian` stub alias + `test:watch`), and `test`/`test:unit` scripts exist. New obstacle not in the PR: the two `nativeJsonFileDialogs` importers noted above.</result>
+<usage><subagent_tokens>60986</subagent_tokens><tool_uses>11</tool_uses><duration_ms>131112</duration_ms></usage>
+</task-notification>
+
+---
+
+what if i need nativeJsonFileDialogs.ts?? will keeping this file there affect anything? can we have a file picker that works for both mobile and desktop?
+
+---
+
+<task-notification>
+<task-id>aaa1252bc8f1378db</task-id>
+<tool-use-id>toolu_014GBbidF1n86LHtWKA11LFw</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/604450a8-86e6-4aaa-b481-66c39546c65a/tasks/aaa1252bc8f1378db.output</output-file>
+<status>completed</status>
+<summary>Agent "Audit obsidian desktop-only APIs" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>## Audit: `apps/obsidian` mobile readiness
+
+Paths are absolute under `/Users/trang.doan/Desktop/code/discourse-graph/.claude/worktrees/eng-2312-release-mobile-supported-dg-obsidian`.
+
+---
+
+### 1. Manifest
+
+`apps/obsidian/manifest.json` (whole file, 9 lines):
+
+```json
+{
+  "id": "@discourse-graph/obsidian",
+  "name": "Discourse Graph",
+  "version": "1.5.2",
+  "minAppVersion": "1.7.0",
+  "description": "Add semantic structure to your notes with the Discourse Graph protocol.",
+  "author": "Discourse Graphs",
+  "authorUrl": "https://discoursegraphs.com",
+  "isDesktopOnly": true
+}
+```
+
+- `isDesktopOnly: true` — mobile Obsidian will not even list the plugin.
+- `id` in the repo is `@discourse-graph/obsidian`, but the publish script **rewrites it** to `discourse-graphs` on release: `apps/obsidian/scripts/publish.ts:~"updateManifest"` — `manifest.id = "discourse-graphs";`. So the shipped id differs from the repo id.
+- **No `versions.json` exists anywhere in the repo** (`find . -name versions.json` → empty). The community store uses it to map plugin version → `minAppVersion`; absent, Obsidian falls back to manifest `minAppVersion` only.
+
+---
+
+### 2. Node-only / Electron-only APIs
+
+#### 2a. Shipped plugin code — hard offender
+
+`apps/obsidian/src/utils/nativeJsonFileDialogs.ts` is the only first-party file that touches Electron/Node. It is **defensive** (it throws a readable error rather than crashing at load):
+
+`nativeJsonFileDialogs.ts:47-54`
+```ts
+const getElectronWindow = (): ElectronWindow =&gt; {
+  if (typeof window === "undefined" || !("require" in window)) {
+    throw new Error(
+      "Schema export/import requires Obsidian desktop (Electron).",
+    );
+  }
+  return window as ElectronWindow;
+};
+```
+`nativeJsonFileDialogs.ts:57` — `const fsPromises = electronWindow.require("fs/promises");`
+`nativeJsonFileDialogs.ts:70` — `const electron = electronWindow.require("electron") as ElectronLike;`
+
+These run only inside `saveJsonToUserLocation` / `openJsonFromUserLocation` (lines 78-120), i.e. **call time, not load time**. Consumers:
+- `apps/obsidian/src/utils/specExport.ts:13` — `import { saveJsonToUserLocation } from "~/utils/nativeJsonFileDialogs";`
+- `apps/obsidian/src/components/ExportSpecsModal.tsx:6` — imports only the error class.
+- `openJsonFromUserLocation` (line 102) is **dead code** — no call sites in `src/`.
+
+So: schema export breaks on mobile with a clear Notice; it does not block load. Replace with `vault.adapter.write` + Obsidian's share sheet to fix.
+
+#### 2b. Shipped bundle — the actual load-time blockers
+
+`apps/obsidian/dist/main.js` (current build) contains these top-level `require()`s of Node builtins, from **third-party deps**:
+
+| dist/main.js line | code | source module |
+|---|---|---|
+| `27965` | `var fs = require("fs");` | `gray-matter@4.0.3/index.js` |
+| `37482` | `var extname = require("path").extname;` | `mime-types@3.0.2/index.js` |
+| `25587` | `NodeBuffer = _require("buffer").Buffer;` | `js-yaml@3.14.1/type/binary.js` — **inside try/catch, safe** |
+| `25901` | `esprima = _require("esprima");` | `js-yaml@3.14.1/type/js/function.js` — **inside try/catch, safe** |
+
+The two unguarded ones are instantiated at **module scope**, which means they execute during `onload`:
+
+```js
+dist/main.js:70593  var import_gray_matter = __toESM(require_gray_matter());
+dist/main.js:71773  var import_mime_types  = __toESM(require_mime_types());
+```
+
+Reached from:
+- `apps/obsidian/src/utils/importNodes.ts:2` — `import matter from "gray-matter";` (used at `:1215`, `const { data, content: body } = matter(content);`)
+- `apps/obsidian/src/utils/syncDgNodesToSupabase.ts:4` — `import mime from "mime-types";`
+
+Both modules are in the import graph of `src/index.ts` (`importFolderMetadata` → `importNodes`; `initializeSupabaseSync` at `index.ts:48`). **These two will throw at plugin load on mobile.** Fixes: swap `gray-matter` for Obsidian's `metadataCache.getFileCache().frontmatter` or a browser YAML lib; replace `mime-types` with a small extension→MIME map (only `extname` is needed at import time, but the `require("path")` is unconditional).
+
+#### 2c. Everything else is clean
+
+- `process.` in shipped code: **one** hit — `apps/obsidian/src/components/canvas/utils/relationUtils.tsx:1504` `if (process.env.NODE_ENV === "test")`. esbuild does not `define` `NODE_ENV` (see §4), so this is a **runtime `ReferenceError: process is not defined`** if that branch is reached on mobile. Desktop happens to have `process` from Electron, which is why it's gone unnoticed.
+- `@repo/utils/execContext` (`packages/utils/src/execContext.ts:1,5,6,8,14,15,17`) reads `process.env.NODE_ENV` and `process.env.NEXT_API_ROOT`. `NEXT_API_ROOT` **is** `define`d by compile.ts, but `NODE_ENV` is **not** — line 1 `const IS_DEV = process.env.NODE_ENV !== "production";` is top-level module init, imported by `AdminPanelSettings.tsx` and `FeedbackModal.tsx`. **This is a third load-time throw on mobile.**
+- `@repo/database`: no Node builtin imports in `packages/database/lib` or `src` except `packages/database/src/dbDotEnv.mjs:1-2` (`node:fs`, `node:path`) — build-time only, consumed by `scripts/compile.ts`, never bundled.
+- No `Buffer`, `__dirname`, `__filename`, `child_process`, `net`, `http`, `worker_threads` in `src/`.
+- `crypto` usage is **WebCrypto, mobile-safe**: `importNodes.ts:834` (`crypto.subtle.digest`), `supabaseContext.ts:37`, `canvas/stores/assetStore.ts:39,167,238`, `canvas/TldrawView.tsx:112`, `canvas/utils/tldraw.ts:102,157` (all `crypto.randomUUID`).
+- Build/test-only Node usage (fine): `scripts/compile.ts`, `scripts/build.ts`, `scripts/dev.ts`, `scripts/publish.ts` (imports `fs`, `path`, `os`, `child_process`, `crypto`, `util`, plus `const { Octokit } = require("@octokit/core");`), `scripts/setup-test-data.ts`, `scripts/generate-test-data.ts`.
+
+---
+
+### 3. `vault.adapter` usage
+
+**Good news: no `FileSystemAdapter`, no `getBasePath`, no `getFullPath`, no `instanceof` adapter checks anywhere.** All adapter calls use the `DataAdapter` interface, which `CapacitorAdapter` implements on mobile:
+
+- `apps/obsidian/src/utils/file.ts:10` — `await vault.adapter.exists(normalizedPath, false)`
+- `apps/obsidian/src/utils/importFolderMetadata.ts:192` — `const adapter = plugin.app.vault.adapter;` then `adapter.exists` / `adapter.read` / `adapter.write` / `adapter.list(IMPORT_ROOT)` (lines 20-55, 194-197). Note it types the param as `DataAdapter` from `obsidian` — correct.
+- `apps/obsidian/src/utils/importNodes.ts:1063, 1069, 1682, 1808, 1861` — `adapter.exists` only.
+- `getResourcePath` at `apps/obsidian/src/components/canvas/shapes/discourseNodeShapeUtils.ts:59,73` and `canvas/utils/convertToDiscourseNode.ts:194` — `Vault.getResourcePath` is supported on mobile (returns `capacitor://` URL). Fine.
+
+One thing to verify: `importNodes.ts:1389` passes a `stat` (ctime/mtime) to `vault.create` / `vault.process`:
+```ts
+file = await plugin.app.vault.create(filePath, rawContent, stat);
+```
+`DataWriteOptions` ctime/mtime is honored by `CapacitorAdapter` too, so this should be OK, but worth smoke-testing — iOS file attribute writes are the flakiest part of that adapter.
+
+**Verdict on (3): nothing here blocks mobile.**
+
+---
+
+### 4. Build setup
+
+- **Bundler: esbuild `0.17.3`** (`apps/obsidian/package.json` devDeps). Entry: `src/index.ts`, out `dist/main.js`.
+- Config lives in `apps/obsidian/scripts/compile.ts`; `scripts/build.ts` and `scripts/dev.ts` are thin wrappers (`dev.ts` uses `esbuild.context(...).watch()`).
+- **`platform` is NEVER set** → esbuild defaults to `platform: "browser"`. That's the right default, but it's implicit and nothing enforces it. `format` is `"cjs"` (`compile.ts` `args.format`), which is correct for Obsidian.
+- **Externals** (`scripts/compile.ts`, the `args` object):
+```ts
+external: [
+  "obsidian",
+  "electron",
+  "@codemirror/autocomplete", /* ... */ "@lezer/lr",
+  "tslib=window.TSLib",
+  ...builtins,
+],
+```
+  `...builtins` comes from `builtin-modules@3.3.0` — **this is the root cause of §2b**. Marking every Node builtin external means `fs`/`path` imports from `gray-matter`/`mime-types` silently survive as `require("fs")` in the output instead of failing the build. On desktop Electron they resolve; on mobile they throw. Removing `...builtins` (or at minimum `fs`, `path`, `buffer`) would turn these into **build-time errors**, which is what you want as a mobile guardrail.
+
+  Also note `"tslib=window.TSLib"` is not valid esbuild external syntax (esbuild externals don't support `=` aliasing) — it's a no-op leftover, harmless.
+- **`define`** (`compile.ts`) only covers three keys:
+```ts
+define: {
+  "process.env.SUPABASE_URL": ...,
+  "process.env.SUPABASE_PUBLISHABLE_KEY": ...,
+  "process.env.NEXT_API_ROOT": `"${dbEnv.NEXT_API_ROOT || ""}"`,
+},
+```
+  `process.env.NODE_ENV` is **not** defined → the `execContext.ts:1` and `relationUtils.tsx:1504` references survive into the bundle. Add `"process.env.NODE_ENV"` to `define` (and ideally `"process": "undefined"` guards) before shipping to mobile.
+- `isProd` gates `minify` and swaps `sourcemap: "inline"` for none. Build env comes from `dotenv` + `require("@repo/database/dbDotEnv")` — build-time only.
+- Plugins in `compile.ts`: `log`, `combineStyles` (postcss + tailwind → `dist/styles.css`), `copyDefaultFiles` (copies `manifest.json`), `mirrorFiles` (copies `dist/` into `OBSIDIAN_PLUGIN_PATH` for local dev).
+- **Bundle size**: current `dist/main.js` is **23.6 MB** (dev build w/ inline sourcemap; prod minified will be far smaller but still large — `tldraw@3.14.2` dominates). On iOS this is a real cold-start and memory concern even once it loads.
+
+---
+
+### 5. Desktop-assumption UI
+
+**Hover-only affordances (no touch equivalent):**
+- `apps/obsidian/src/utils/tagNodeHandler.ts:445-446, 528-536` — the discourse-tag tooltip is driven entirely by `mouseover`/`mouseout`/`mouseenter`/`mouseleave` via `EditorView.domEventHandlers({ mouseover, mouseout })`. **No tap path.** This is the biggest UX hole.
+- `apps/obsidian/src/utils/imageEmbedHoverIcon.ts` — the "convert to discourse node" icon is revealed by CSS only: `apps/obsidian/src/styles/style.css:3891` `.internal-embed.image-embed:hover &gt; .dg-image-convert-icon { ... }` (and `:3897`). On touch this icon is permanently invisible.
+- `apps/obsidian/src/components/NodeTagSuggestModal.tsx`, `src/components/InlineNodeTypePicker.ts`, `src/components/NodeSearchModal.tsx`, `src/components/ModifyNodeModal.tsx` — hover-highlight based selection.
+- `src/styles/style.css` has 34 `:hover` rules (plus the bundled tldraw CSS block, lines ~1129-2607, which has many more).
+
+**Right-click / context-menu-only:**
+- `src/index.ts`, `src/utils/editorMenuUtils.ts`, `src/utils/registerCommands.ts` — `editor-menu` / `file-menu` registrations. Obsidian mobile maps long-press to these, so mostly OK.
+- `src/components/canvas/TldrawViewComponent.tsx:363` synthesizes a raw mouse event:
+```ts
+const contextMenuEvent = new MouseEvent("contextmenu", {
+```
+  plus `CustomContextMenu` (`:490`) and `NodeCardContextMenu` (`:494`). `NodeCardContextMenu.tsx:37,76,81` does already thread an `isMobile` prop through to tldraw's `DefaultStylePanelComponent`, so tldraw itself is partly mobile-aware.
+
+**Drag-and-drop-only:**
+- `apps/obsidian/src/utils/wikilinkDragHandler.ts:71` `handle.draggable = true;` and `:75` `handle.addEventListener("dragstart", ...)`. HTML5 drag events **do not fire on iOS Safari/WKWebView** — this grip is inert on mobile with no fallback.
+- `src/components/canvas/utils/externalContentHandlers.ts`, `src/components/canvas/shapes/DiscourseNodeShape.tsx`, `src/components/NodeTypeChipsSearchInput.tsx` also use drag events.
+
+**Keyboard-only affordances:**
+- `src/index.ts:325-330` `setupNodeTagHotkey()` — `EditorView.domEventHandlers({ keydown })` driven by `settings.nodeTagHotkey`. No touch/toolbar equivalent for triggering node tagging.
+- `src/utils/keyboardHints.ts:1,35` uses `Platform.isMacOS` — the only `Platform` import in the codebase. Nothing branches on `Platform.isMobile` anywhere.
+
+**Fixed pixel widths that will overflow a 375px viewport:**
+- `src/components/NodeSearchModal.tsx:574` — `w-[900px]` (worst offender)
+- `src/components/NodeTagSuggestModal.tsx:78` and `src/components/InlineNodeTypePicker.ts:59` — `min-w-[200px] max-w-[400px]`
+- `src/styles/style.css:1535, 1649, 2330` — `width: 600px`; `:1633` `width: 400px`; `:3291` `min-width: 300px`; `:3195` `width: 280px`; `:3615` `width: 220px`; `:2550` `width: 260px`; `:3168`/`:3817` `min-width: 200px`
+
+**Dead on mobile (not a crash):**
+- `src/index.ts:302-322` `setHelpMenuStatusBarItemVisibility()` uses `this.addStatusBarItem()`. Mobile Obsidian has no status bar — the element is created but never shown, so the help menu is unreachable on mobile. The setting `showHelpMenuStatusBarIcon` also becomes meaningless.
+
+---
+
+### 6. Release process
+
+- **`.github/workflows/obsidian-release.yaml`** — `workflow_dispatch` with a `version` input, validates `^[0-9]+\.[0-9]+\.[0-9]+$`, then `cd apps/obsidian &amp;&amp; npx tsx scripts/publish.ts --version "$VERSION"`, then two `linear/linear-release-action@v0` steps (sync + complete).
+- **`.github/workflows/obsidian-main.yaml`** — on push to `main` touching `apps/obsidian/**`, `packages/database/**`, `packages/utils/**`: computes the next beta by reading `require('./apps/obsidian/manifest.json').version` and listing `${STABLE}-beta.N` tags in the publish repo, then publishes `X.Y.Z-beta.N+1`.
+- **Version bump is manual.** From `obsidian-release.yaml`:
+  &gt; "There is deliberately no version-bump commit here. The default-branch ruleset requires a pull request and grants github-actions[bot] no bypass… Bump apps/obsidian/manifest.json and package.json in the release PR before dispatching."
+  
+  `scripts/publish.ts` does have `updateLocalVersion(obsidianDir, version)` which writes both `package.json` and `manifest.json` locally, but in CI that write is discarded (never committed back).
+- `scripts/publish.ts` mirrors the whole `apps/obsidian` tree (minus `EXCLUDE_PATTERNS`) to `DiscourseGraphs/discourse-graph-obsidian` main branch via the GitHub git-trees API, rewrites `manifest.id` to `discourse-graphs`, and uploads `main.js`, `manifest.json`, `styles.css` as release assets (`REQUIRED_BUILD_FILES`).
+- `isExternalRelease()` returns true only for bare `x.y.z`; anything else is a GitHub **pre-release** and does **not** touch the publish repo's `main`.
+- **Nothing anywhere writes `versions.json`.** If you flip `isDesktopOnly` and want the community store to gate old app versions correctly, you'll need to add `versions.json` generation to `publish.ts` alongside `updateManifest`.
+
+---
+
+### 7. Other load-time throw risks, ranked
+
+1. **`require("fs")` from `gray-matter`** — `dist/main.js:27965`, instantiated at `dist/main.js:70593`. Source: `src/utils/importNodes.ts:2`. **Throws at `onload`.**
+2. **`require("path")` from `mime-types`** — `dist/main.js:37482`, instantiated at `dist/main.js:71773`. Source: `src/utils/syncDgNodesToSupabase.ts:4`. **Throws at `onload`.**
+3. **`process.env.NODE_ENV` at module scope** — `packages/utils/src/execContext.ts:1`, not covered by esbuild `define`. Imported transitively from `src/components/AdminPanelSettings.tsx` and `src/components/FeedbackModal.tsx`. **`ReferenceError: process is not defined`.**
+4. **`process.env.NODE_ENV` in a code path** — `src/components/canvas/utils/relationUtils.tsx:1504`. Throws on reach, not on load.
+5. `tldraw@3.14.2` + a ~23 MB unminified bundle — WKWebView memory pressure / slow cold start. Also tldraw's canvas gestures, `DiscourseNodeTool.ts` / `DiscourseRelationTool.ts` pointer handling, and the `new MouseEvent("contextmenu")` synthesis at `TldrawViewComponent.tsx:363` are all untested on touch.
+6. `src/utils/helpMenu.ts:47-48` and `src/utils/registerCommands.ts:235-236` use the unofficial `app.setting.open()` / `openTabById` API (typed in `src/types/obsidian-unofficial.d.ts`). Present on mobile, but undocumented — plus the Obsidian review team flags this.
+7. `src/utils/templates.ts:54` reaches into `(app as AppWithUnofficialApis).internalPlugins` for the Templates plugin. Also unofficial; behaves differently on mobile.
+
+---
+
+### Minimal path to "it loads on mobile"
+
+Fix in this order — items 1-3 are non-negotiable, everything else is UX:
+
+1. Drop `gray-matter` (use `metadataCache` frontmatter or a browser YAML parser) — `src/utils/importNodes.ts:2`.
+2. Drop `mime-types` for a small extension map — `src/utils/syncDgNodesToSupabase.ts:4`.
+3. Add `"process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV)` to `define` in `scripts/compile.ts`, **and** remove `...builtins` from `external` so any future Node import fails the build instead of shipping.
+4. Add `platform: "browser"` explicitly to the esbuild options in `scripts/compile.ts` — it's the current default, but make it a stated contract.
+5. Guard `saveJsonToUserLocation` call sites with `Platform.isDesktopApp` and offer a vault-write fallback; delete the dead `openJsonFromUserLocation`.
+6. Flip `isDesktopOnly` to `false` and add `versions.json` generation to `scripts/publish.ts`.</result>
+<usage><subagent_tokens>86347</subagent_tokens><tool_uses>30</tool_uses><duration_ms>210463</duration_ms></usage>
+</task-notification>
+
+---
+
+for these changes, you have to verify that even with these changes, the affected functionalities would still work on desktop:
+	Replace gray-matter → new src/utils/splitFrontmatter.ts + Obsidian's parseYaml	gray-matter requires fs at module load
+3	Replace mime-types → new src/utils/mimeType.ts	mime-types requires path
+4	importNodes.ts:734: replace the (?<!!) lookbehind with a captured (!?) group	Older mobile WebViews don't support lookbehind
+5	Drop deps: gray-matter, mime-types, @types/mime-types, builtin-modules	Dead after 1–3. Edit package.json + plain pnpm install to keep lockfile churn down
+
+eg: mime-types.ts i think is used for Obsidian sync to upload assets. so we need to make sure asset upload still works as expected
+
+---
+
+you can verify with live Obsidian CDP driver
+
+---
+
+yes, keep 3.9KB and continue with gray-matter
+
+---
+
+* rebase to main
+* explain to me what's `execContext.ts` is? do we have to output it in the bundle with publish.ts or no?
+   * the resolve NODE_ENV as well
+   * to test:
+      * create a branch in `discourse-graph-obsidian` with flipped isDesktopOnly so i can see if it pass
+      * create a beta release via publish.ts script for me to test on a device
+
+---
+
+it loads on mobile, open the PR
+
+---
+
+what are all the surface areas (functionalities) that we should map to test for this feature, given the changed code? both on mobile and desktop
