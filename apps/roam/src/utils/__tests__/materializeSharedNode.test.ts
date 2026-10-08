@@ -630,6 +630,7 @@ describe("materializeSharedNode", () => {
   it("does not look up the source of an import that is up to date", async () => {
     const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
     mockedFindImportedNodeUidBySourceRid.mockResolvedValue(EXISTING_PAGE_UID);
+    mockedGetPageTitleByPageUid.mockReturnValue(SOURCED_TITLE);
     mockedReadImportedSourceIdentity.mockReturnValue({
       sourceModifiedAt: sharedNode.lastModified,
       sourceNodeRid: sharedNode.rid,
@@ -646,7 +647,8 @@ describe("materializeSharedNode", () => {
 
     expect(result).toMatchObject({ success: true, action: "skipped" });
     expect(mockedFindImportedNodeUidBySourceRid).toHaveBeenCalledTimes(1);
-    expect(mockedGetPageTitleByPageUid).not.toHaveBeenCalled();
+    expect(mockedGetPageTitleByPageUid).toHaveBeenCalledTimes(1);
+    expect(mockedGetPageTitleByPageUid).toHaveBeenCalledWith(EXISTING_PAGE_UID);
   });
 
   it("keeps distinct incoming titles when same-core imports have unresolved Sources", async () => {
@@ -825,6 +827,40 @@ describe("materializeSharedNode", () => {
       },
       nodeType: SOURCED_NODE_TYPE,
       force: true,
+    });
+
+    expect(result).toMatchObject({ success: true, action: "updated" });
+    expect(updatePage).toHaveBeenCalledWith({
+      page: { uid: EXISTING_PAGE_UID, title: SOURCED_TITLE },
+    });
+  });
+
+  it("re-imports an up-to-date placeholder copy once its node names a source", async () => {
+    const { client } = clientWithFullContent({ text: FULL_MARKDOWN });
+    mockedFindImportedNodeUidBySourceRid.mockImplementation((rid) =>
+      Promise.resolve(
+        rid === IMPORTED_SOURCE_RID
+          ? SOURCE_PAGE_UID
+          : rid === sharedNode.rid
+            ? EXISTING_PAGE_UID
+            : null,
+      ),
+    );
+    mockedGetPageTitleByPageUid.mockImplementation((uid) =>
+      uid === SOURCE_PAGE_UID ? SOURCE_TITLE : PLACEHOLDER_TITLE,
+    );
+    mockedReadImportedSourceIdentity.mockReturnValue({
+      sourceModifiedAt: sharedNode.lastModified,
+      sourceNodeRid: sharedNode.rid,
+    });
+
+    const result = await materializeSharedNode({
+      client,
+      sharedNode: {
+        ...decoratedSharedNode,
+        slots: { sourceDocument: IMPORTED_SOURCE_RID },
+      },
+      nodeType: SOURCED_NODE_TYPE,
     });
 
     expect(result).toMatchObject({ success: true, action: "updated" });
