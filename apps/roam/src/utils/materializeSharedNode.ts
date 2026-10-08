@@ -99,6 +99,18 @@ const isImportUpToDate = ({
   );
 };
 
+// A copy imported before its Source was published holds the placeholder. Publishing the
+// Source restores the node's reference without changing its modified time, so the copy
+// would otherwise stay up to date with the placeholder.
+const awaitsPublishedSource = (
+  sharedNode: SharedNode,
+  importedPageUid: string,
+): boolean =>
+  Boolean(sharedNode.slots?.[SOURCE_SLOT]) &&
+  getPageTitleByPageUid(importedPageUid).includes(
+    `[[${MISSING_SOURCE_PLACEHOLDER}]]`,
+  );
+
 const failure = ({
   error,
   identity,
@@ -435,7 +447,8 @@ export const materializeSharedNode = async ({
     isImportUpToDate({
       sourceModifiedAt: identity.sourceModifiedAt,
       storedModifiedAt: storedIdentity.sourceModifiedAt,
-    })
+    }) &&
+    !awaitsPublishedSource(sharedNode, importedPageUid)
   )
     return {
       ...identity,

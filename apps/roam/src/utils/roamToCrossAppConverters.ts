@@ -16,7 +16,7 @@ import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParen
 import getPageViewType from "roamjs-components/queries/getPageViewType";
 import { contentTypes } from "@repo/content-model";
 import getDiscourseNodes from "./getDiscourseNodes";
-import extractContentFromTitle from "./extractContentFromTitle";
+import { extractContentFromTitle } from "@repo/database/lib/extractContentFromTitle";
 import { nodeTemplateContent } from "./nodeTemplateContent";
 import {
   SOURCE_SLOT,
@@ -24,6 +24,7 @@ import {
   sourceSlotSchemaId,
   sourceIdOfNode,
 } from "./sourceSlot";
+import { readImportedSourceIdentity } from "./importedSourceIdentity";
 
 const FULL_MARKDOWN_OPTS = {
   refs: true,
@@ -81,7 +82,7 @@ export const fullContentNodeToCrossApp = (
     createdAt: new Date(node.created || Date.now()),
     modifiedAt: new Date(node.last_modified || Date.now()),
     nodeType: node.node_type_id,
-    coreTitle: extractContentFromTitle(title, { format: node.format }),
+    coreTitle: extractContentFromTitle(node.format, title),
     content: {
       direct: {
         localId: node.source_local_id,
@@ -136,9 +137,10 @@ export const nodeUidsWithTypeToCrossApp = async (
       authorId: userUid,
       createdAt: new Date(createdTime),
       modifiedAt: new Date(Math.max(editTime, pageEditTime)),
-      coreTitle: extractContentFromTitle(title, {
-        format: schemasById[nodeType]?.format ?? "",
-      }),
+      coreTitle: extractContentFromTitle(
+        schemasById[nodeType]?.format ?? "",
+        title,
+      ),
       content: {
         direct: {
           localId: uid,
@@ -151,6 +153,11 @@ export const nodeUidsWithTypeToCrossApp = async (
   });
   return results;
 };
+
+// Roam's sync and publish button skip imported nodes, so the database knows an
+// imported end only by its RID.
+const relationEndId = (uid: string): string =>
+  readImportedSourceIdentity(uid)?.sourceNodeRid ?? uid;
 
 export const reifiedRelationToCrossApp = (
   r: ReifiedRelationDataWithRelId,
@@ -167,8 +174,8 @@ export const reifiedRelationToCrossApp = (
   return {
     localId: r.relationId,
     relationType: r.hasSchema,
-    source: r.sourceUid,
-    destination: r.destinationUid,
+    source: relationEndId(r.sourceUid),
+    destination: relationEndId(r.destinationUid),
     authorId: userUid,
     createdAt: new Date(relData[":create/time"] as number),
     modifiedAt: new Date(relData[":edit/time"] as number),

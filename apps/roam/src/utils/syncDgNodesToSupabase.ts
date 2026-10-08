@@ -3,7 +3,7 @@ import {
   getAllDiscourseNodesSince,
   nodeTypeSince,
 } from "./getAllDiscourseNodesSince";
-import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
+import { getDiscourseNodeFormatExpression } from "@repo/database/lib/getDiscourseNodeFormatExpression";
 import { getImportedNodeUids } from "./importedSourceIdentity";
 import { cleanupOrphanedNodes } from "./cleanupOrphanedNodes";
 import {

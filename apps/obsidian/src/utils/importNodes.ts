@@ -25,12 +25,14 @@ import type { PostgrestResponse } from "@supabase/supabase-js";
 import type { Enums, Tables } from "@repo/database/dbTypes";
 import { getSpaceNameIdFromRid } from "./spaceFromRid";
 import {
+  fetchRelationInstancesForImport,
   importRelationsForImportedNodes,
   type RemoteRelationInstance,
 } from "./importRelations";
-import { createTemplateFile } from "./templates";
+import { createTemplateFile, getImportedTemplateFileName } from "./templates";
 import { resolveFolderForSpaceUri } from "./importFolderMetadata";
 import { getNodeTypeById, isAcceptedSchema } from "./typeUtils";
+import { normalizeImportedNodeFormat } from "./validateNodeType";
 import {
   type ImportedNodeContent,
   resolveImportedNodeContent,
@@ -287,6 +289,7 @@ type NodeTypeSchemaForInstance = {
 };
 
 type NodeInstanceImportInfo = {
+  conceptId?: number;
   schema?: NodeTypeSchemaForInstance;
   coreTitle?: string;
   sourceDocumentId?: number;
@@ -306,7 +309,7 @@ export const fetchNodeImportInfoForInstances = async ({
   const { data: instanceRows, error: instanceError } = await client
     .from("my_concepts")
     .select(
-      "source_local_id, schema_id, core_title:literal_content->>core_title, sourceDocument:reference_content->sourceDocument",
+      "id, source_local_id, schema_id, core_title:literal_content->>core_title, sourceDocument:reference_content->sourceDocument",
     )
     .eq("space_id", spaceId)
     .eq("is_schema", false)
@@ -357,6 +360,7 @@ export const fetchNodeImportInfoForInstances = async ({
   for (const row of instanceRows) {
     if (row.source_local_id === null) continue;
     result.set(row.source_local_id, {
+      conceptId: row.id ?? undefined,
       schema:
         row.schema_id === null ? undefined : schemasById.get(row.schema_id),
       coreTitle: row.core_title ?? undefined,
@@ -1172,7 +1176,7 @@ type ParsedFrontmatter = {
   [key: string]: unknown;
 };
 
-const parseFrontmatter = (
+export const parseFrontmatter = (
   content: string,
 ): { frontmatter: ParsedFrontmatter; body: string } => {
   const { data, content: body } = matter(content);
@@ -1200,10 +1204,14 @@ const parseSchemaLiteralContent = (
       : (literalContent as Record<string, unknown>) || {};
   const src = (obj.source_data as Record<string, unknown>) || obj;
   const name = (obj.name as string) || (obj.label as string) || fallbackName;
-  const formatFromSchema =
-    (src.format as string) || (obj.format as string) || "";
+  const formatFromSchema = normalizeImportedNodeFormat(
+    (src.format as string) || (obj.format as string) || "",
+  );
   const format =
-    formatFromSchema || `${name.slice(0, 3).toUpperCase()} - {content}`;
+    formatFromSchema ||
+    normalizeImportedNodeFormat(
+      `${name.slice(0, 3).toUpperCase()} - {content}`,
+    );
   return {
     name,
     format,
@@ -1216,17 +1224,63 @@ const parseSchemaLiteralContent = (
   };
 };
 
+/** File systems cap a file name at 255 bytes or UTF-16 units; 200 UTF-8 bytes leaves room for `.md` under either. */
+const MAX_TEMPLATE_FILE_NAME_BYTES = 200;
+
+const getUtf8ByteLength = (text: string): number =>
+  new TextEncoder().encode(text).length;
+
+const truncateToUtf8Bytes = (text: string, maxBytes: number): string => {
+  let truncated = "";
+  let byteLength = 0;
+  for (const character of text) {
+    byteLength += getUtf8ByteLength(character);
+    if (byteLength > maxBytes) break;
+    truncated += character;
+  }
+  return truncated;
+};
+
+/** Includes the source space name because `mapNodeTypeIdToLocal` assigns any file already at this name as the template, and a bare node type name would assign an unrelated local template. */
+export const getUntitledTemplateFileName = ({
+  nodeTypeName,
+  sourceSpaceName,
+}: {
+  nodeTypeName: string;
+  sourceSpaceName: string;
+}): string | undefined => {
+  const templateName = sanitizeFileName(nodeTypeName);
+  const sourceName = sanitizeFileName(sourceSpaceName);
+  const fileName = getImportedTemplateFileName({ templateName, sourceName });
+  const overflowBytes =
+    getUtf8ByteLength(fileName) - MAX_TEMPLATE_FILE_NAME_BYTES;
+  if (overflowBytes <= 0) return fileName;
+
+  const truncatedFileName = getImportedTemplateFileName({
+    templateName: truncateToUtf8Bytes(
+      templateName,
+      getUtf8ByteLength(templateName) - overflowBytes,
+    ),
+    sourceName,
+  });
+  return getUtf8ByteLength(truncatedFileName) <= MAX_TEMPLATE_FILE_NAME_BYTES
+    ? truncatedFileName
+    : undefined;
+};
+
 export const mapNodeTypeIdToLocal = async ({
   plugin,
   client,
   sourceSpaceId,
   sourceSpaceUri,
+  sourceSpaceName,
   sourceNodeTypeId,
 }: {
   plugin: DiscourseGraphPlugin;
   client: DGSupabaseClient;
   sourceSpaceId: number;
   sourceSpaceUri: string;
+  sourceSpaceName: string;
   sourceNodeTypeId: string;
 }): Promise<string> => {
   // Find the schema in the source space with this nodeTypeId (my_concepts applies RLS)
@@ -1279,15 +1333,28 @@ export const mapNodeTypeIdToLocal = async ({
     importedFromRid,
   };
 
-  if (parsed.templateContent && parsed.template) {
+  if (parsed.templateContent) {
+    newNodeType.template ??= getUntitledTemplateFileName({
+      nodeTypeName: parsed.name,
+      sourceSpaceName,
+    });
+    if (!newNodeType.template) {
+      new Notice(
+        `Node type "${parsed.name}" imported without template: the template file name would be too long.`,
+        6000,
+      );
+    }
+  }
+
+  if (parsed.templateContent && newNodeType.template) {
     const result = await createTemplateFile({
       app: plugin.app,
-      templateName: parsed.template,
+      templateName: newNodeType.template,
       content: parsed.templateContent,
     });
     if (result.created) {
       new Notice(
-        `Template "${parsed.template}" created for imported node type "${parsed.name}".`,
+        `Template "${newNodeType.template}" created for imported node type "${parsed.name}".`,
         4000,
       );
     } else if (
@@ -1572,7 +1639,7 @@ type ImportSelectedNodesOptions = {
     nodeKeys: Set<string>;
     keyToRid: Map<string, string>;
     keyToRelationEndpointId: Map<string, string>;
-    relationInstancesBySpace: Map<number, RemoteRelationInstance[]>;
+    relationInstances: RemoteRelationInstance[];
   };
 };
 
@@ -1620,6 +1687,9 @@ const importNodes = async ({
     ...nodesBySpace.keys(),
   ]);
 
+  const importedSpaceIds: number[] = [];
+  const importedNodeConceptIds: number[] = [];
+
   // Process each space
   for (const [spaceId, nodes] of nodesBySpace.entries()) {
     const spaceUri = spaceInfoById.get(spaceId)?.url;
@@ -1644,6 +1714,10 @@ const importNodes = async ({
       spaceId,
       nodeInstanceIds: nodes.map((n) => n.nodeInstanceId),
     });
+    importedSpaceIds.push(spaceId);
+    for (const { conceptId } of nodeImportInfoByInstance.values()) {
+      if (conceptId !== undefined) importedNodeConceptIds.push(conceptId);
+    }
 
     // Process each node in this space
     for (const node of nodes) {
@@ -1716,6 +1790,7 @@ const importNodes = async ({
           client,
           sourceSpaceId: spaceId,
           sourceSpaceUri: spaceUri,
+          sourceSpaceName: spaceName,
           sourceNodeTypeId,
         });
 
@@ -1852,39 +1927,49 @@ const importNodes = async ({
         "Nodes imported, but their source relations could not be imported.",
       );
     }
+  }
 
-    // Import relations where both endpoints resolve in this vault (imported or local)
-    try {
-      let keyToRelationEndpointId: Map<string, string>;
-      if (precomputedData?.keyToRelationEndpointId) {
-        keyToRelationEndpointId = precomputedData.keyToRelationEndpointId;
-      } else {
-        const { keyToRid } = precomputedData
-          ? { keyToRid: precomputedData.keyToRid }
-          : await getImportedNodesInfo({
-              queryEngine,
-              plugin,
-              client,
-            });
-        const localMap = getLocalNodeKeyToEndpointId(plugin, context.spaceId);
-        keyToRelationEndpointId = new Map([...keyToRid, ...localMap]);
-      }
-      const precomputedRelationInstances =
-        precomputedData?.relationInstancesBySpace.get(spaceId);
-      const { imported } = await importRelationsForImportedNodes({
-        plugin,
-        client,
-        spaceId,
-        spaceUri,
-        keyToRelationEndpointId,
-        precomputedRelationInstances,
-      });
-      if (imported > 0) {
-        console.debug(`Imported ${imported} relation(s) for space ${spaceId}`);
-      }
-    } catch (error) {
-      console.warn("Failed to import relations for imported nodes:", error);
+  // Import relations where both endpoints resolve in this vault (imported or local)
+  try {
+    let keyToRelationEndpointId: Map<string, string>;
+    if (precomputedData?.keyToRelationEndpointId) {
+      keyToRelationEndpointId = precomputedData.keyToRelationEndpointId;
+    } else {
+      const { keyToRid } = precomputedData
+        ? { keyToRid: precomputedData.keyToRid }
+        : await getImportedNodesInfo({
+            queryEngine,
+            plugin,
+            client,
+          });
+      const localMap = getLocalNodeKeyToEndpointId(plugin, context.spaceId);
+      keyToRelationEndpointId = new Map([...keyToRid, ...localMap]);
     }
+    const relationInstances =
+      precomputedData?.relationInstances ??
+      (await fetchRelationInstancesForImport({
+        client,
+        localSpaceId: context.spaceId,
+        spaceIds: importedSpaceIds,
+        nodeConceptIds: importedNodeConceptIds,
+      }));
+    const { imported, failed } = await importRelationsForImportedNodes({
+      plugin,
+      client,
+      relationInstances,
+      keyToRelationEndpointId,
+      importedFiles,
+    });
+    if (imported > 0) {
+      console.debug(`Imported ${imported} relation(s)`);
+    }
+    if (failed > 0) {
+      new Notice(
+        `Nodes imported, but ${failed} relation(s) could not be imported.`,
+      );
+    }
+  } catch (error) {
+    console.warn("Failed to import relations for imported nodes:", error);
   }
 
   return { success: successCount, failed: failedCount };

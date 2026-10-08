@@ -19,7 +19,8 @@ const { mockedGetPageUidByPageTitle, mockedReadImportedSourceIdentity } =
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     mockedGetPageUidByPageTitle: vi.fn((_title: string) => ""),
     mockedReadImportedSourceIdentity: vi.fn(
-      (): ImportedSourceIdentity | undefined => undefined,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      (_uid: string): ImportedSourceIdentity | undefined => undefined,
     ),
   }));
 vi.mock("roamjs-components/queries/getPageUidByPageTitle", () => ({
@@ -40,6 +41,7 @@ import {
   fullContentNodeToCrossApp,
   nodeSchemaToCrossApp,
   nodeUidsWithTypeToCrossApp,
+  reifiedRelationToCrossApp,
 } from "~/utils/roamToCrossAppConverters";
 import getDiscourseNodes, {
   type DiscourseNode,
@@ -152,6 +154,15 @@ describe("fullContentNodeToCrossApp coreTitle", () => {
       text: "unrelated title",
     });
     expect(node.coreTitle).toBe("unrelated title");
+  });
+
+  it("extracts the content from a format with regex metacharacters", () => {
+    const node = fullContentNodeToCrossApp({
+      ...baseNode,
+      format: "Claim (draft) - {content}",
+      text: "Claim (draft) - sleep improves memory",
+    });
+    expect(node.coreTitle).toBe("sleep improves memory");
   });
 });
 
@@ -386,5 +397,44 @@ describe("nodeUidsWithTypeToCrossApp source slot", () => {
       ":node/title": "[[CLM]] - REM sleep aids recall",
     });
     expect(node.slots).toBeUndefined();
+  });
+});
+
+describe("reifiedRelationToCrossApp ends", () => {
+  const IMPORTED_RID = "orn:obsidian.note:vault-a/node-9";
+  const relation = {
+    relationId: "rel-1",
+    hasSchema: "triple-1",
+    sourceUid: "local-1",
+    destinationUid: "imported-1",
+  };
+
+  beforeEach(() => {
+    (globalThis as { window: unknown }).window = {
+      roamAlphaAPI: {
+        pull: () => ({
+          ":create/time": 1000,
+          ":edit/time": 2000,
+          ":create/user": { ":user/uid": "user-1" },
+        }),
+      },
+    };
+    mockedReadImportedSourceIdentity.mockReset();
+    mockedReadImportedSourceIdentity.mockImplementation((uid) =>
+      uid === "imported-1"
+        ? {
+            sourceModifiedAt: "2026-06-14T15:00:00.000Z",
+            sourceNodeRid: IMPORTED_RID,
+          }
+        : undefined,
+    );
+  });
+
+  it("writes an imported end as its RID and a local end as its uid", () => {
+    expect(reifiedRelationToCrossApp(relation)).toMatchObject({
+      localId: "rel-1",
+      source: "local-1",
+      destination: IMPORTED_RID,
+    });
   });
 });

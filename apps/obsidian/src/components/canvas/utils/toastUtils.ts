@@ -1,5 +1,6 @@
 import { TLUiToast } from "tldraw";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
+import generateUid from "~/utils/generateUid";
 
 export const showToast = ({
   severity,
@@ -13,7 +14,8 @@ export const showToast = ({
   targetCanvasId?: string;
 }) => {
   const toast: TLUiToast = {
-    id: `${severity}-${Date.now()}`,
+    // tldraw replaces a toast with the same id, so toasts shown together need unique ids
+    id: generateUid(severity),
     title,
     description,
     severity,

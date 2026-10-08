@@ -14,6 +14,7 @@ import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { addRelationIfRequested } from "~/components/canvas/utils/relationJsonUtils";
 import { getNodeTagColors } from "./colorUtils";
 import { createDiscourseNodeFile, formatNodeName } from "./createNode";
+import { extractListPrefix, titleFromTaggedLine } from "./taggedLine";
 
 const HOVER_DELAY = 200;
 const HIDE_DELAY = 100;
@@ -21,22 +22,7 @@ const TOOLTIP_OFFSET = 40;
 const DISCOURSE_TAG_CLASS = "dg-discourse-tag";
 const NODE_ID_ATTR = "data-dg-discourse-tag-node";
 
-const LIST_INDICATOR_REGEX = /^(\s*)(\d+[.)]\s+|[-*+]\s+(?:\[[ xX]\]\s+)?)/;
-
 const TAG_SEGMENT_PREFIX = "tag-";
-
-const sanitizeTitle = (title: string): string =>
-  title
-    .replace(LIST_INDICATOR_REGEX, "")
-    .replace(/[\\/:]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-
-const extractListPrefix = (line: string): string =>
-  line.match(LIST_INDICATOR_REGEX)?.[0] ?? "";
-
-const titleFromTaggedLine = (lineText: string): string =>
-  sanitizeTitle(lineText.replace(/#[^\s]+/g, ""));
 
 // Nodes are named like `hashtag_hashtag-end_meta_tag-clm-candidate`; reading the tag
 // from the tree inherits Obsidian's rules for code blocks, URLs and headings.
