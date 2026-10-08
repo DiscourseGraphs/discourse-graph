@@ -26,12 +26,13 @@ import { ensurePartialSpaceAccess } from "@repo/database/lib/groups";
 import { isIgnorableUpsertError } from "@repo/database/lib/contextFunctions";
 import { getAllPages } from "@repo/database/lib/pagination";
 import { isRid } from "@repo/database/lib/rid";
-import getDiscourseNodes from "./getDiscourseNodes";
+import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
+import matchDiscourseNode from "./matchDiscourseNode";
 import { difference, intersection } from "@repo/utils/setOperations";
 import internalError from "./internalError";
 import { readImportedSourceIdentity } from "./importedSourceIdentity";
 import { orderConceptsByDependency } from "./conceptConversion";
-import { SOURCE_SLOT } from "./sourceSlot";
+import { SOURCE_SLOT, sourceIdOfNode, sourceSlotSchemaId } from "./sourceSlot";
 import renderToast from "roamjs-components/components/Toast";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { publishNodeAssets, type NodeAssetResult } from "./publishNodeAssets";
@@ -178,6 +179,100 @@ export const gatherCorrespondingRelations = async ({
 const onlyStrings = (values: (string | null)[]): string[] =>
   values.filter((value): value is string => typeof value === "string");
 
+const pagesWithTitleContaining = async (
+  texts: string[],
+): Promise<Map<string, string>> => {
+  const matches = await Promise.all(
+    texts.map(
+      async (text) =>
+        (await window.roamAlphaAPI.data.async.q(
+          `[:find ?uid ?title
+            :in $ ?text
+            :where
+              [?page :node/title ?title]
+              [(clojure.string/includes? ?title ?text)]
+              [?page :block/uid ?uid]]`,
+          text,
+        )) as [string, string][],
+    ),
+  );
+  return new Map(matches.flat());
+};
+
+type PublishedSource = { uid: string; title: string; conceptId: number };
+
+const SOURCE_REFERENCE_PATH = `reference_content->>${SOURCE_SLOT}`;
+
+// A node published before its Source was in this space was stored without its source
+// reference (see omitMissingSource). Publishing the Source sets only that reference.
+// Re-upserting the node would either publish its unpublished edits or stamp its current
+// edit time on the older stored body, so importers would skip its next publish. Node
+// concepts hold no other slot, so the whole reference_content is replaced.
+// Nodes are classified with matchDiscourseNode, not findDiscourseNode, whose uid cache
+// survives a rename. A node renamed since its publish is skipped: its stored title may
+// name another Source, or none.
+const restoreSourceReferences = async ({
+  client,
+  spaceId,
+  sources,
+  discourseNodes,
+}: {
+  client: DGSupabaseClient;
+  spaceId: number;
+  sources: PublishedSource[];
+  discourseNodes: DiscourseNode[];
+}): Promise<void> => {
+  const dependentsBySourceUid = new Map<
+    string,
+    { conceptId: number; dependentUids: string[] }
+  >(
+    sources.map(({ uid, conceptId }) => [
+      uid,
+      { conceptId, dependentUids: [] },
+    ]),
+  );
+  const titlesByUid = await pagesWithTitleContaining(
+    sources.map(({ title }) => title),
+  );
+  for (const [uid, title] of titlesByUid) {
+    const nodeType = discourseNodes.find((node) =>
+      matchDiscourseNode({ ...node, title }),
+    );
+    const sourceId = sourceIdOfNode(title, nodeType, discourseNodes);
+    if (sourceId !== undefined)
+      dependentsBySourceUid.get(sourceId)?.dependentUids.push(uid);
+  }
+  const allDependentUids = [...dependentsBySourceUid.values()].flatMap(
+    ({ dependentUids }) => dependentUids,
+  );
+  if (allDependentUids.length === 0) return;
+  const { data: storedDependents, error: readError } = await client
+    .from("Concept")
+    .select("source_local_id, name")
+    .eq("space_id", spaceId)
+    .in("source_local_id", allDependentUids)
+    .is(SOURCE_REFERENCE_PATH, null);
+  if (readError) throw readError;
+  const unrenamedUids = new Set(
+    storedDependents.flatMap(({ source_local_id: uid, name }) =>
+      uid !== null && name === titlesByUid.get(uid) ? [uid] : [],
+    ),
+  );
+  for (const { conceptId, dependentUids } of dependentsBySourceUid.values()) {
+    const restorableUids = dependentUids.filter((uid) =>
+      unrenamedUids.has(uid),
+    );
+    if (restorableUids.length === 0) continue;
+    const { error } = await client
+      .from("Concept")
+      .update({ reference_content: { [SOURCE_SLOT]: conceptId } })
+      .eq("space_id", spaceId)
+      .in("source_local_id", restorableUids)
+      .is(SOURCE_REFERENCE_PATH, null);
+    if (error) throw error;
+  }
+};
+
 type PublishNodesResult = {
   publishedNodeSchemaUids: string[];
   publishedNodeUids: string[];
@@ -268,7 +363,8 @@ export const publishNodesToGroups = async ({
       rs3.destinationType,
     ]),
   );
-  const nodeSchemas = getDiscourseNodes()
+  const discourseNodes = getDiscourseNodes();
+  const nodeSchemas = discourseNodes
     .filter(
       (s) => nodeSchemaUids.has(s.type) || relationEndTypeUids.has(s.type),
     )
@@ -392,6 +488,33 @@ export const publishNodesToGroups = async ({
   result.syncedRelationUids = [...syncedRelationUids];
   nodeUids = [...upsertedNodeUids];
   const failedUpsertIds = new Set(result.failedUpsertUids);
+
+  // Only Source nodes trigger the title scan, so an ordinary publish costs no query. A
+  // node naming another type as its source still needs publishing again.
+  const sourceNodeType = sourceSlotSchemaId(discourseNodes);
+  const conceptIdByUid = new Map(
+    upsertConcepts.map((concept, i) => [
+      concept.source_local_id,
+      response.data[i],
+    ]),
+  );
+  try {
+    await restoreSourceReferences({
+      client,
+      spaceId,
+      discourseNodes,
+      sources: [...nodesByUid.values()].flatMap((node): PublishedSource[] => {
+        const conceptId = conceptIdByUid.get(node.localId);
+        return node.nodeType === sourceNodeType &&
+          upsertedNodeUids.has(node.localId) &&
+          conceptId !== undefined
+          ? [{ uid: node.localId, title: node.content.direct.value, conceptId }]
+          : [];
+      }),
+    });
+  } catch (error) {
+    internalError({ error, type: "Restore Source References Failed" });
+  }
 
   // After the content upsert, because FileReference has a foreign key to Content, and
   // before the access grants, so a node becomes visible with its assets already recorded.
