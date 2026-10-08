@@ -5,8 +5,7 @@
   "branch": "eng-2376-grant-the-relation-type-and-triple-when-the-obsidian-sync",
   "checkpoints_count": 3,
   "files_touched": [
-    "apps/obsidian/src/utils/__tests__/publishNode.test.ts",
-    "apps/obsidian/src/utils/publishNode.ts"
+    "apps/obsidian/src/utils/__tests__/publishNode.test.ts"
   ],
   "sessions": [
     {
@@ -18,10 +17,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 48,
-    "cache_creation_tokens": 92460,
-    "cache_read_tokens": 1990129,
-    "output_tokens": 13229,
-    "api_call_count": 24
+    "input_tokens": 18,
+    "cache_creation_tokens": 5834,
+    "cache_read_tokens": 1083314,
+    "output_tokens": 2467,
+    "api_call_count": 9
   }
 }

@@ -1,9 +1,9 @@
-I notice that, publishing relations from Obsidian, it's possible that the relation type is not being published. Can you check that?
+/scope-check
 
 ---
 
-Please add a ticketr.
+Could you check comments against the terse house style?
 
 ---
 
-Marked it as todo, switched to a branch, go ahead.
+yes.
