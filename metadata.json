@@ -3,8 +3,17 @@
   "checkpoint_id": "01M4E8D4VYPYHG3FRYDTXXG58A",
   "strategy": "manual-commit",
   "branch": "eng-2312-release-mobile-supported-dg-obsidian",
-  "checkpoints_count": 3,
-  "files_touched": null,
+  "checkpoints_count": 4,
+  "files_touched": [
+    "apps/obsidian/package.json",
+    "apps/obsidian/scripts/compile.ts",
+    "apps/obsidian/src/utils/__tests__/mimeType.test.ts",
+    "apps/obsidian/src/utils/__tests__/splitFrontmatter.test.ts",
+    "apps/obsidian/src/utils/importNodes.ts",
+    "apps/obsidian/src/utils/splitFrontmatter.ts",
+    "apps/obsidian/src/utils/syncDgNodesToSupabase.ts",
+    "pnpm-lock.yaml"
+  ],
   "sessions": [
     {
       "metadata": "/0/metadata.json",
@@ -12,20 +21,27 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": "/0/prompt.txt"
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 38,
-    "cache_creation_tokens": 28898,
-    "cache_read_tokens": 4758374,
-    "output_tokens": 10553,
-    "api_call_count": 19,
+    "input_tokens": 366,
+    "cache_creation_tokens": 661529,
+    "cache_read_tokens": 31186521,
+    "output_tokens": 105483,
+    "api_call_count": 183,
     "subagent_tokens": {
-      "input_tokens": 192,
-      "cache_creation_tokens": 400995,
-      "cache_read_tokens": 7250153,
-      "output_tokens": 6471,
-      "api_call_count": 96
+      "input_tokens": 246,
+      "cache_creation_tokens": 523727,
+      "cache_read_tokens": 8638140,
+      "output_tokens": 33269,
+      "api_call_count": 123
     }
   }
 }

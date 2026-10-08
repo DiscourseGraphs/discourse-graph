@@ -1,0 +1,69 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M4E8D4VYPYHG3FRYDTXXG58A",
+  "session_id": "604450a8-86e6-4aaa-b481-66c39546c65a",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-08T17:19:06.78481Z",
+  "branch": "eng-2312-release-mobile-supported-dg-obsidian",
+  "checkpoints_count": 1,
+  "save_step_count": 1,
+  "files_touched": [
+    "apps/obsidian/package.json",
+    "apps/obsidian/scripts/compile.ts",
+    "apps/obsidian/src/utils/__tests__/mimeType.test.ts",
+    "apps/obsidian/src/utils/__tests__/splitFrontmatter.test.ts",
+    "apps/obsidian/src/utils/importNodes.ts",
+    "apps/obsidian/src/utils/splitFrontmatter.ts",
+    "apps/obsidian/src/utils/syncDgNodesToSupabase.ts",
+    "pnpm-lock.yaml"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5",
+  "turn_id": "f3667874ec72",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 328,
+    "cache_creation_tokens": 632631,
+    "cache_read_tokens": 26428147,
+    "output_tokens": 94930,
+    "api_call_count": 164,
+    "subagent_tokens": {
+      "input_tokens": 54,
+      "cache_creation_tokens": 122732,
+      "cache_read_tokens": 1387987,
+      "output_tokens": 26798,
+      "api_call_count": 27
+    }
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-08T17:19:06.687335Z",
+    "agent_lines": 219,
+    "agent_removed": 196,
+    "human_added": 148,
+    "human_modified": 1,
+    "human_removed": 0,
+    "total_committed": 368,
+    "total_lines_changed": 564,
+    "agent_percentage": 73.58156028368793,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 297,
+      "agent_lines_removed": 43
+    }
+  ]
+}
