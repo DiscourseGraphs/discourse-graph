@@ -1,5 +1,7 @@
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 
+// Keep the `type` ids in sync with ROAM_DEFAULT_NODE_TYPE_IDS in
+// packages/database/src/lib/tripleMatching.ts.
 const INITIAL_NODE_VALUES: Partial<DiscourseNode>[] = [
   {
     type: "_CLM-node",

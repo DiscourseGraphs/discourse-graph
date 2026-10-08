@@ -24,6 +24,7 @@ import {
   sourceSlotSchemaId,
   sourceIdOfNode,
 } from "./sourceSlot";
+import { readImportedSourceIdentity } from "./importedSourceIdentity";
 
 const FULL_MARKDOWN_OPTS = {
   refs: true,
@@ -152,6 +153,11 @@ export const nodeUidsWithTypeToCrossApp = async (
   return results;
 };
 
+// Roam's sync and publish button skip imported nodes, so the database knows an
+// imported end only by its RID.
+const relationEndId = (uid: string): string =>
+  readImportedSourceIdentity(uid)?.sourceNodeRid ?? uid;
+
 export const reifiedRelationToCrossApp = (
   r: ReifiedRelationDataWithRelId,
 ): CrossAppRelation | null => {
@@ -167,8 +173,8 @@ export const reifiedRelationToCrossApp = (
   return {
     localId: r.relationId,
     relationType: r.hasSchema,
-    source: r.sourceUid,
-    destination: r.destinationUid,
+    source: relationEndId(r.sourceUid),
+    destination: relationEndId(r.destinationUid),
     authorId: userUid,
     createdAt: new Date(relData[":create/time"] as number),
     modifiedAt: new Date(relData[":edit/time"] as number),

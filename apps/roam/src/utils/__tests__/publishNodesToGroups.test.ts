@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrossAppNode } from "@repo/database/crossAppContracts";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
+import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
+import type { ReifiedRelationDataWithRelId } from "~/utils/createReifiedBlock";
 import { contentTypes } from "@repo/content-model";
 
 const mocks = vi.hoisted(() => ({
@@ -10,6 +12,10 @@ const mocks = vi.hoisted(() => ({
   ensurePartialSpaceAccess: vi.fn(),
   internalError: vi.fn(),
   renderToast: vi.fn(),
+  getDiscourseRelations: vi.fn(),
+  getReifiedRelations: vi.fn(),
+  readImportedSourceIdentity: vi.fn(),
+  getPublishedGroupIdsByRid: vi.fn(),
 }));
 
 vi.mock("roamjs-components/components/Toast", () => ({
@@ -21,11 +27,15 @@ vi.mock("~/utils/getDiscourseNodes", () => ({
 }));
 
 vi.mock("~/utils/getDiscourseRelations", () => ({
-  default: () => [],
+  default: mocks.getDiscourseRelations,
 }));
 
 vi.mock("~/utils/createReifiedBlock", () => ({
-  getReifiedRelations: () => Promise.resolve([]),
+  getReifiedRelations: mocks.getReifiedRelations,
+}));
+
+vi.mock("~/utils/relationSchemaAcceptance", () => ({
+  excludeProvisionalRelationSchemas: <T>(relations: T[]) => relations,
 }));
 
 vi.mock("~/utils/internalError", () => ({
@@ -33,7 +43,7 @@ vi.mock("~/utils/internalError", () => ({
 }));
 
 vi.mock("~/utils/importedSourceIdentity", () => ({
-  readImportedSourceIdentity: () => undefined,
+  readImportedSourceIdentity: mocks.readImportedSourceIdentity,
 }));
 
 vi.mock("roamjs-components/queries/getPageTitleByPageUid", () => ({
@@ -49,13 +59,27 @@ vi.mock("~/utils/roamToCrossAppConverters", () => ({
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     format: s.format,
   }),
-  reifiedRelationToCrossApp: vi.fn(),
-  relationTripleSchemaToCrossApp: vi.fn(),
+  reifiedRelationToCrossApp: (r: ReifiedRelationDataWithRelId) => ({
+    localId: r.relationId,
+    relationType: r.hasSchema,
+    source: r.sourceUid,
+    destination: r.destinationUid,
+    authorId: "author-1",
+  }),
+  relationTripleSchemaToCrossApp: (r: DiscourseRelation) => ({
+    localId: r.id,
+    sourceType: r.source,
+    destinationType: r.destination,
+    label: r.label,
+    complement: r.complement,
+    authorId: "author-1",
+  }),
 }));
 
 vi.mock("@repo/database/lib/groups", () => ({
   getAvailableGroupIds: mocks.getAvailableGroupIds,
   ensurePartialSpaceAccess: mocks.ensurePartialSpaceAccess,
+  getPublishedGroupIdsByRid: mocks.getPublishedGroupIdsByRid,
 }));
 
 vi.mock("@repo/database/lib/contextFunctions", () => ({
@@ -129,9 +153,11 @@ type FakeSelectBuilder = PromiseLike<SelectResponse> & {
 const makeFakeClient = ({
   syncedUids = [],
   rpcResponse,
+  failedUpsertUids = [],
 }: {
   syncedUids?: string[];
   rpcResponse?: { data: number[] | null; error: { message: string } | null };
+  failedUpsertUids?: string[];
 }) => {
   const rpcCalls: { fn: string; args: RpcArgs }[] = [];
   const conceptLookups: string[][] = [];
@@ -190,7 +216,14 @@ const makeFakeClient = ({
     rpc: (fn: string, args: RpcArgs) => {
       rpcCalls.push({ fn, args });
       return Promise.resolve(
-        rpcResponse ?? { data: args.data.map((_, i) => i + 1), error: null },
+        rpcResponse ?? {
+          data: args.data.map((concept, i) =>
+            failedUpsertUids.includes(concept.source_local_id as string)
+              ? -2
+              : i + 1,
+          ),
+          error: null,
+        },
       );
     },
   } as unknown as DGSupabaseClient;
@@ -202,6 +235,13 @@ describe("publishNodesToGroups", () => {
     vi.clearAllMocks();
     mocks.getDiscourseNodes.mockReturnValue([claimSchema]);
     mocks.getAvailableGroupIds.mockResolvedValue([GROUP_ID]);
+    mocks.getDiscourseRelations.mockReturnValue([]);
+    mocks.getReifiedRelations.mockResolvedValue([]);
+    mocks.readImportedSourceIdentity.mockReturnValue(undefined);
+    mocks.getPublishedGroupIdsByRid.mockImplementation(
+      ({ rids }: { rids: string[] }) =>
+        Promise.resolve(Object.fromEntries(rids.map((rid) => [rid, []]))),
+    );
     mocks.ensurePartialSpaceAccess.mockImplementation(
       ({ groupIds }: { groupIds: string[] }) =>
         Promise.resolve({
@@ -425,6 +465,136 @@ describe("publishNodesToGroups", () => {
     expect(result.publishedNodeUids).toEqual([]);
     expect(result.publishedNodeSchemaUids).toEqual([]);
     expect(upsertCalls[0].rows).toEqual([]);
+  });
+
+  describe("relation with an imported end", () => {
+    const OTHER_GROUP_ID = "group-2";
+    const TRIPLE_UID = "triple-1";
+    const IMPORTED_TYPE_UID = "imported-type-1";
+    const IMPORTED_UID = "imported-1";
+    const IMPORTED_RID = "orn:obsidian.note:vault-a/node-9";
+
+    beforeEach(() => {
+      mocks.getAvailableGroupIds.mockResolvedValue([GROUP_ID, OTHER_GROUP_ID]);
+      mocks.getDiscourseNodes.mockReturnValue([
+        claimSchema,
+        { ...claimSchema, type: IMPORTED_TYPE_UID, text: "Result" },
+      ]);
+      mocks.getDiscourseRelations.mockReturnValue([
+        {
+          id: TRIPLE_UID,
+          label: "supports",
+          complement: "supported by",
+          source: SCHEMA_UID,
+          destination: IMPORTED_TYPE_UID,
+          triples: [],
+        },
+      ]);
+      mocks.getReifiedRelations.mockResolvedValue([
+        {
+          relationId: "rel-1",
+          hasSchema: TRIPLE_UID,
+          sourceUid: "node-1",
+          destinationUid: IMPORTED_UID,
+        },
+      ]);
+      mocks.readImportedSourceIdentity.mockImplementation((uid: string) =>
+        uid === IMPORTED_UID
+          ? {
+              sourceModifiedAt: "2026-06-14T15:00:00.000Z",
+              sourceNodeRid: IMPORTED_RID,
+            }
+          : undefined,
+      );
+    });
+
+    const publish = (client: DGSupabaseClient) =>
+      publishNodesToGroups({
+        client,
+        spaceId: SPACE_ID,
+        groupIds: [GROUP_ID, OTHER_GROUP_ID],
+        nodes: [makeCrossAppNode({ uid: "node-1", title: "[[CLM]] - claim" })],
+      });
+
+    const grantedGroupIds = (
+      upsertCalls: { table: string; rows: Record<string, unknown>[] }[],
+      sourceLocalId: string,
+    ) =>
+      upsertCalls
+        .filter(({ table }) => table === "ResourceAccess")
+        .flatMap(({ rows }) => rows)
+        .filter((row) => row.source_local_id === sourceLocalId)
+        .map((row) => row.account_uid);
+
+    it("grants the relation only to the groups the imported end is published to", async () => {
+      mocks.getPublishedGroupIdsByRid.mockResolvedValue({
+        [IMPORTED_RID]: [GROUP_ID],
+      });
+      const { client, rpcCalls, upsertCalls } = makeFakeClient({});
+
+      await publish(client);
+
+      expect(mocks.getPublishedGroupIdsByRid).toHaveBeenCalledWith({
+        client,
+        rids: [IMPORTED_RID],
+      });
+      expect(
+        rpcCalls[0].args.data.map((concept) => concept.source_local_id),
+      ).toContain("rel-1");
+      expect(grantedGroupIds(upsertCalls, "rel-1")).toEqual([GROUP_ID]);
+      expect(grantedGroupIds(upsertCalls, "node-1")).toEqual([
+        GROUP_ID,
+        OTHER_GROUP_ID,
+      ]);
+    });
+
+    it("uploads the imported end's node type before the triple, and grants it with the relation", async () => {
+      mocks.getPublishedGroupIdsByRid.mockResolvedValue({
+        [IMPORTED_RID]: [GROUP_ID],
+      });
+      const { client, rpcCalls, upsertCalls } = makeFakeClient({
+        syncedUids: [SCHEMA_UID],
+      });
+
+      await publish(client);
+
+      const upserted = rpcCalls[0].args.data.map(
+        (concept) => concept.source_local_id,
+      );
+      expect(upserted).toContain(IMPORTED_TYPE_UID);
+      expect(upserted.indexOf(IMPORTED_TYPE_UID)).toBeLessThan(
+        upserted.indexOf(TRIPLE_UID),
+      );
+      expect(grantedGroupIds(upsertCalls, IMPORTED_TYPE_UID)).toEqual([
+        GROUP_ID,
+      ]);
+    });
+
+    it("withholds the relation's grant when its triple fails to upsert", async () => {
+      mocks.getPublishedGroupIdsByRid.mockResolvedValue({
+        [IMPORTED_RID]: [GROUP_ID],
+      });
+      const { client, upsertCalls } = makeFakeClient({
+        failedUpsertUids: [TRIPLE_UID],
+      });
+
+      const result = await publish(client);
+
+      expect(result.failedUpsertUids).toContain(TRIPLE_UID);
+      expect(grantedGroupIds(upsertCalls, "rel-1")).toEqual([]);
+      expect(grantedGroupIds(upsertCalls, TRIPLE_UID)).toEqual([]);
+    });
+
+    it("neither syncs nor grants the relation when the imported end is published to no group", async () => {
+      const { client, rpcCalls, upsertCalls } = makeFakeClient({});
+
+      await publish(client);
+
+      expect(
+        rpcCalls[0].args.data.map((concept) => concept.source_local_id),
+      ).not.toContain("rel-1");
+      expect(grantedGroupIds(upsertCalls, "rel-1")).toEqual([]);
+    });
   });
 
   describe("source slot", () => {
