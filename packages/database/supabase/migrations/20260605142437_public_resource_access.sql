@@ -10,17 +10,12 @@ AS $$
 $$;
 
 
-CREATE OR REPLACE FUNCTION public.can_access_account(account_uid UUID) RETURNS boolean
-STABLE SECURITY DEFINER
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT account_uid = auth.uid() OR account_uid = '00000000-0000-0000-0000-000000000000'::uuid OR EXISTS (
-        SELECT 1 FROM public.group_membership
-        WHERE member_id = auth.uid() AND group_id=account_uid
-        LIMIT 1
-    );
-$$;
+DROP POLICY IF EXISTS resource_access_select_policy ON public."ResourceAccess";
+CREATE POLICY resource_access_select_policy ON public."ResourceAccess" FOR SELECT USING (
+    account_uid = '00000000-0000-0000-0000-000000000000'::uuid
+    OR public.in_space(space_id)
+    OR public.can_access_account(account_uid)
+);
 
 GRANT SELECT ON TABLE public."ResourceAccess" TO anon;
 GRANT SELECT ON TABLE public."Document" TO anon;

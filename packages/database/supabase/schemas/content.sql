@@ -745,7 +745,11 @@ ALTER TABLE public."ResourceAccess" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS resource_access_policy ON public."ResourceAccess";
 DROP POLICY IF EXISTS resource_access_select_policy ON public."ResourceAccess";
-CREATE POLICY resource_access_select_policy ON public."ResourceAccess" FOR SELECT USING (public.in_space(space_id) OR public.can_access_account(account_uid));
+CREATE POLICY resource_access_select_policy ON public."ResourceAccess" FOR SELECT USING (
+    account_uid = '00000000-0000-0000-0000-000000000000'::uuid
+    OR public.in_space(space_id)
+    OR public.can_access_account(account_uid)
+);
 DROP POLICY IF EXISTS resource_access_delete_policy ON public."ResourceAccess";
 CREATE POLICY resource_access_delete_policy ON public."ResourceAccess" FOR DELETE USING (public.in_space(space_id, 'editor') OR public.can_access_account(account_uid));
 DROP POLICY IF EXISTS resource_access_insert_policy ON public."ResourceAccess";
