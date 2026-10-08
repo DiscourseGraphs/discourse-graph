@@ -1,0 +1,42 @@
+Two comments by Devin on this PR: 
+src/utils/publishNodesToGroups.ts:423
+
+
+<pasted_content id="8ebb">
+Failed end types leave published relations incomplete
+
+When an end type fails to upsert, groupRelationEndTypeIds still grants it alongside the relation. The triple stores a null reference for that type, so importers cannot map the published relation's ends.
+
+Learn more
+A relation triple schema references both endpoint node types. crossAppRelationTripleSchemaToDbConcept writes their IDs into local_reference_content; the concept upsert resolves nonexistent IDs to null rather than failing. The new grant construction does not exclude failed end types, so a successful triple and relation can become visible with a missing endpoint type. The triple is not retried once it exists in my_concepts, even if its end type uploads later.
+
+Example: A relation uses claim-type and result-type. Uploading result-type returns -2, but the triple and relation return positive IDs. The group receives access to all three; the triple's destination type reference is null.
+
+Recommended fix: Check both endpoint schema IDs against failedUpsertIds and confirmed existing schemas before granting their triple or relation. Ensure triples whose endpoint type was missing are upserted again after the type becomes available.
+
+</pasted_content id="8ebb">
+
+
+apps/roam/src/utils/publishNodesToGroups.ts:411
+
+
+<pasted_content id="8ebb">
+🔴 Failed triple leaves a schemaless relation
+
+When a triple upsert fails but its relation succeeds, groupRelations withholds access only for that attempt. A later publish uploads the triple but skips the existing relation, then grants a relation whose schema remains null.
+
+Learn more
+The concept upsert resolves schema_represented_by_local_id to an existing concept ID. If the triple upsert returns -2, the later relation upsert still inserts its concept with a null schema ID. The new check withholds a grant in that invocation, but missingRelations excludes that relation on a retry because its concept already exists. After the triple succeeds on retry, the relation is granted without being updated to point to it.
+
+Example: The first publish returns -2 for triple-1 and success for rel-1. The second publish successfully uploads triple-1, skips rel-1, and grants rel-1 with no schema.
+
+Recommended fix: Avoid uploading a relation when its triple failed, or re-upsert existing relations once their missing triple schema is created before granting access.
+</pasted_content id="8ebb">
+
+---
+
+Did we not consider a two-phase upsert recently? What was the decision?
+
+---
+
+yes
