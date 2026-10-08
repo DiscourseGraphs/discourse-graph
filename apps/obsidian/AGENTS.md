@@ -105,7 +105,6 @@ Vitest runs the plugin's pure logic in a Node environment: `pnpm test:unit` (or 
 
 - Put tests in `src/**/__tests__/<module>.test.ts`, next to the code they cover. Tests covering the test scaffolding itself live in `test/`; those two globs are the whole of `include` in `vitest.config.mts`.
 - Import the module under test through the `~` alias, as the source does.
-- A test that also loads Roam source, such as `sourceRoundTrip.test.mjs`, is `.test.mjs` because Obsidian's `tsc` cannot type-check Roam files. `vitest.config.mts` resolves `~` to `apps/roam/src` for files under that folder.
 - `obsidian` ships type declarations with no runtime entry point, so `vitest.config.mts` aliases it to `test/obsidianStub.ts`. Add to that stub whatever a new test needs to load its module; use `vi.mock("obsidian")` in the test itself when the test needs to assert on a call.
 - Obsidian's own objects are large. Build the slice the code path reads and cast it (`{ metadataCache: … } as unknown as App`) rather than constructing a whole `App` or `TFile`.
 - Logic that needs a live vault, editor, or workspace is not covered here — extract the decision into a util and test that.
