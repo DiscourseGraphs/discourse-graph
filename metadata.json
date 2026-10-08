@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M4E9K4YHPJN4VGMN8T50B39H",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/roam/src/data/defaultDiscourseNodes.ts",
+    "apps/website/public/docs/roam/dg-schema02.PNG",
+    "packages/database/src/lib/tripleMatching.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 18,
+    "cache_creation_tokens": 39585,
+    "cache_read_tokens": 505609,
+    "output_tokens": 2928,
+    "api_call_count": 9
+  }
+}

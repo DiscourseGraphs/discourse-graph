@@ -1,0 +1,16 @@
+Now looking at ENG-2373. Comment from Micheal here: https://linear.app/discourse-graphs/review/eng-2373-share-the-relation-triple-matching-rule-in-packagesdatabase-1615fed78893/changes#comment-359aa2d6 
+
+
+<pasted_content id="ef05">
+We're now defining these IDs in two places, so changes to Roam's defaults could leave this list out of sync. Could we use a single source of truth? If you decide to go this route, please request review again.
+
+If we keep them separate, can we at least add a note in defaultDiscourseNodes.ts pointing here so it's clear both need updating?  If we do that, let's also add the full path.
+
+</pasted_content id="ef05">
+
+
+I think it's worth having these as exported constants in database (or maybe some sibling package? Nothing obvious.)
+
+---
+
+actually we have a test, so the note is enough.
