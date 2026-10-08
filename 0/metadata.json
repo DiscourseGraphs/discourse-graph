@@ -1,0 +1,172 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M4DTHXD8CKN8P4VJDDFBCD77",
+  "session_id": "a32aaff2-ac57-4cf1-9e14-41bb2e759992",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-08T13:17:00.932873033Z",
+  "branch": "eng-2143-add-roam-and-obsidian-round-trip-tests-v2",
+  "checkpoints_count": 5,
+  "save_step_count": 4,
+  "files_touched": [
+    "apps/obsidian/src/utils/__tests__/importNodesSource.test.ts",
+    "apps/obsidian/src/utils/__tests__/sourceSlot.test.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-5-5",
+  "turn_id": "e25245a5c683",
+  "checkpoint_transcript_start": 389,
+  "transcript_lines_at_start": 389,
+  "compact_transcript_start": 48,
+  "token_usage": {
+    "input_tokens": 102,
+    "cache_creation_tokens": 78903,
+    "cache_read_tokens": 10311140,
+    "output_tokens": 36551,
+    "api_call_count": 49,
+    "subagent_tokens": {
+      "input_tokens": 142,
+      "cache_creation_tokens": 213064,
+      "cache_read_tokens": 9549840,
+      "output_tokens": 634,
+      "api_call_count": 71
+    }
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_01Nb68fsj5oMjN1LDFPR2StJ",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "scope-check"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "e25245a5c683",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 415,
+        "end": 416,
+        "entry_ids": [
+          "db57b93a-bd09-4255-8774-c66d075ac9c9"
+        ],
+        "tool_use_id": "toolu_01Nb68fsj5oMjN1LDFPR2StJ"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01Nb68fsj5oMjN1LDFPR2StJ"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: scope-check",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01MYXamqNbCSJANDvuTyzztA",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-engineering-writing-style"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "e25245a5c683",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 560,
+        "end": 561,
+        "entry_ids": [
+          "e0c138ee-8092-4f29-9d2e-42e27b463df9"
+        ],
+        "tool_use_id": "toolu_01MYXamqNbCSJANDvuTyzztA"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01MYXamqNbCSJANDvuTyzztA"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-engineering-writing-style",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 7
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-08T13:17:00.860285912Z",
+    "agent_lines": 124,
+    "agent_removed": 0,
+    "human_added": 321,
+    "human_modified": 46,
+    "human_removed": 0,
+    "total_committed": 491,
+    "total_lines_changed": 491,
+    "agent_percentage": 25.254582484725052,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 208,
+      "user_lines_removed": 688,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "apps/obsidian/src/utils/__tests__/conceptConversion.test.ts": 64,
+        "apps/obsidian/src/utils/__tests__/sourceSlot.test.ts": 141,
+        "apps/obsidian/vitest.config.mts": 3
+      },
+      "user_removed_per_file": {
+        "apps/obsidian/AGENTS.md": 1,
+        "apps/obsidian/src/utils/__tests__/sourceRoundTrip.test.mjs": 650,
+        "apps/obsidian/src/utils/__tests__/sourceSlot.test.ts": 1,
+        "apps/obsidian/vitest.config.mts": 28,
+        "turbo.json": 8
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 367,
+      "user_lines_removed": 366,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "apps/obsidian/src/utils/__tests__/importNodesSource.test.ts": 333,
+        "apps/obsidian/src/utils/__tests__/sourceSlot.test.ts": 34
+      },
+      "user_removed_per_file": {
+        "apps/obsidian/src/utils/__tests__/importNodesHarness.ts": 321,
+        "apps/obsidian/src/utils/__tests__/importNodesSource.test.ts": 22,
+        "apps/obsidian/src/utils/__tests__/sourceSlot.test.ts": 23
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 35,
+      "agent_lines_removed": 23
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 35,
+      "agent_lines_removed": 23
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 35,
+      "agent_lines_removed": 23
+    }
+  ]
+}

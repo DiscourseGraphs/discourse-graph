@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M4DTHXD8CKN8P4VJDDFBCD77",
+  "strategy": "manual-commit",
+  "branch": "eng-2143-add-roam-and-obsidian-round-trip-tests-v2",
+  "checkpoints_count": 5,
+  "files_touched": [
+    "apps/obsidian/src/utils/__tests__/importNodesSource.test.ts",
+    "apps/obsidian/src/utils/__tests__/sourceSlot.test.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 102,
+    "cache_creation_tokens": 78903,
+    "cache_read_tokens": 10311140,
+    "output_tokens": 36551,
+    "api_call_count": 49,
+    "subagent_tokens": {
+      "input_tokens": 142,
+      "cache_creation_tokens": 213064,
+      "cache_read_tokens": 9549840,
+      "output_tokens": 634,
+      "api_call_count": 71
+    }
+  }
+}
