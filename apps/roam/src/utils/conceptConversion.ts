@@ -6,7 +6,7 @@ import {
   sourceSlotSchemaId,
   sourceIdOfNode,
 } from "./sourceSlot";
-import extractContentFromTitle from "./extractContentFromTitle";
+import { extractContentFromTitle } from "@repo/database/lib/extractContentFromTitle";
 import { nodeTemplateContent } from "./nodeTemplateContent";
 import getDiscourseRelations from "./getDiscourseRelations";
 import type { DiscourseRelation } from "./getDiscourseRelations";
@@ -114,9 +114,7 @@ export const discourseNodeBlockToLocalConcept = (
     schema_represented_by_local_id: schemaUid,
     is_schema: false,
     literal_content: {
-      core_title: extractContentFromTitle(title ?? "", {
-        format: schema?.format ?? "",
-      }),
+      core_title: extractContentFromTitle(schema?.format ?? "", title ?? ""),
     },
     ...(sourceId
       ? { local_reference_content: { [SOURCE_SLOT]: sourceId } }

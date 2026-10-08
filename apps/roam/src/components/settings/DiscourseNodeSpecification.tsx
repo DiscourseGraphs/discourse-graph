@@ -5,7 +5,7 @@ import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByPar
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
-import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
+import { getDiscourseNodeFormatExpression } from "@repo/database/lib/getDiscourseNodeFormatExpression";
 import QueryEditor from "~/components/QueryEditor";
 import internalError from "~/utils/internalError";
 import {
