@@ -77,6 +77,7 @@ const clientWith = (
 ): DGSupabaseClient => ({ rpc }) as unknown as DGSupabaseClient;
 
 beforeEach(() => {
+  vi.clearAllMocks();
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
 });
 
@@ -99,29 +100,39 @@ describe("indexSourceSlotValues", () => {
     ).toEqual({ evidence: "source" });
   });
 
-  it("uses the origin RID of an imported Source", () => {
-    expect(
-      indexSourceSlotValues({
-        relations: [
-          sourceRelation({
-            id: "imported",
-            destination: SOURCE_RID,
-            created: 1,
-          }),
-        ],
-        nodes: [
-          EVIDENCE,
-          vaultNode({
-            nodeInstanceId: "imported-source",
-            nodeTypeId: "source-type",
-            importedFromRid: SOURCE_RID,
-          }),
-        ],
-        localSpaceUri: LOCAL_URI,
-        nodeTypesById: NODE_TYPES_BY_ID,
-      }),
-    ).toEqual({ evidence: SOURCE_RID });
-  });
+  it.each([
+    ["its id", "imported-source"],
+    [
+      "this vault's RID",
+      spaceUriAndLocalIdToRid(LOCAL_URI, "imported-source", "note"),
+    ],
+    ["its origin RID", SOURCE_RID],
+  ])(
+    "uses the origin RID of an imported Source stored by %s",
+    (_endpoint, destination) => {
+      expect(
+        indexSourceSlotValues({
+          relations: [
+            sourceRelation({
+              id: "imported",
+              destination,
+              created: 1,
+            }),
+          ],
+          nodes: [
+            EVIDENCE,
+            vaultNode({
+              nodeInstanceId: "imported-source",
+              nodeTypeId: "source-type",
+              importedFromRid: SOURCE_RID,
+            }),
+          ],
+          localSpaceUri: LOCAL_URI,
+          nodeTypesById: NODE_TYPES_BY_ID,
+        }),
+      ).toEqual({ evidence: SOURCE_RID });
+    },
+  );
 });
 
 describe("filterAvailableSourceSlotValues", () => {

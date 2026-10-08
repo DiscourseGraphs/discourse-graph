@@ -32,6 +32,7 @@ vi.mock("~/utils/importFolderMetadata", () => ({
   resolveFolderForSpaceUri: vi.fn().mockResolvedValue("import/Research"),
 }));
 vi.mock("~/utils/importRelations", () => ({
+  fetchRelationInstancesForImport: vi.fn().mockResolvedValue([]),
   importRelationsForImportedNodes: vi.fn().mockResolvedValue({ imported: 0 }),
 }));
 
