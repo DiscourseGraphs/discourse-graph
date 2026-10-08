@@ -1,64 +1,88 @@
+import { TFile } from "obsidian";
 import { describe, expect, it } from "vitest";
-import type { TFile } from "obsidian";
-import type { DiscourseNode } from "~/types";
-import type { SupabaseContext } from "~/utils/supabaseContext";
-import type { ObsidianDiscourseNodeData } from "~/utils/syncDgNodesToSupabase";
+import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 import { discourseNodeInstanceToLocalConcept } from "~/utils/conceptConversion";
+import type { SupabaseContext } from "~/utils/supabaseContext";
 
 const CONTEXT: SupabaseContext = {
-  spaceId: 1,
   platform: "Obsidian",
-  userId: 1,
-  spacePassword: "test",
+  spaceId: 1,
+  userId: 2,
+  spacePassword: "",
 };
 
-const NODE_TYPES_BY_ID: Record<string, DiscourseNode> = {
-  "evidence-type": {
-    id: "evidence-type",
-    name: "Evidence",
-    format: "EVD - {content}",
-    created: 0,
-    modified: 0,
-  },
-};
-
-const evidenceNode = (sourceDocument?: string): ObsidianDiscourseNodeData => ({
-  file: {
-    basename: "EVD - Evidence title",
-    path: "EVD - Evidence title.md",
-    stat: { ctime: 0, mtime: 0 },
-  } as unknown as TFile,
-  frontmatter: { nodeInstanceId: "evidence", nodeTypeId: "evidence-type" },
-  nodeTypeId: "evidence-type",
-  nodeInstanceId: "evidence",
-  created: "1970-01-01T00:00:00.000Z",
-  last_modified: "1970-01-01T00:00:00.000Z",
-  changeTypes: [],
+const conceptFor = ({
+  format,
+  basename,
   sourceDocument,
+}: {
+  format: string;
+  basename: string;
+  sourceDocument?: string;
+}): LocalConceptDataInput => {
+  const file = new TFile();
+  file.basename = basename;
+  file.path = `${basename}.md`;
+  return discourseNodeInstanceToLocalConcept({
+    context: CONTEXT,
+    nodeData: {
+      file,
+      frontmatter: { nodeInstanceId: "node-1", nodeTypeId: "type-1" },
+      nodeTypeId: "type-1",
+      nodeInstanceId: "node-1",
+      created: "",
+      last_modified: "",
+      changeTypes: [],
+      sourceDocument,
+    },
+    nodeTypesById: {
+      "type-1": {
+        id: "type-1",
+        name: "Claim",
+        format,
+        created: 0,
+        modified: 0,
+      },
+    },
+  });
+};
+
+describe("discourseNodeInstanceToLocalConcept core_title", () => {
+  it("extracts the content from a title matching the node type's format", () => {
+    expect(
+      conceptFor({ format: "CLM - {content}", basename: "CLM - sleep" }),
+    ).toMatchObject({ literal_content: { core_title: "sleep" } });
+  });
+
+  it("extracts the content from a format with regex metacharacters", () => {
+    expect(
+      conceptFor({
+        format: "Claim (draft) - {content}",
+        basename: "Claim (draft) - sleep improves memory",
+      }),
+    ).toMatchObject({
+      literal_content: { core_title: "sleep improves memory" },
+    });
+  });
 });
 
-describe("discourseNodeInstanceToLocalConcept", () => {
-  it("publishes the Source with the core title", () => {
-    const concept = discourseNodeInstanceToLocalConcept({
-      context: CONTEXT,
-      nodeData: evidenceNode("source"),
-      nodeTypesById: NODE_TYPES_BY_ID,
-    });
-    expect(concept.literal_content).toMatchObject({
-      label: "EVD - Evidence title",
-      core_title: "Evidence title",
-    });
-    expect(concept.local_reference_content).toEqual({
-      sourceDocument: "source",
-    });
+describe("discourseNodeInstanceToLocalConcept source", () => {
+  it("publishes the Source as local reference content", () => {
+    expect(
+      conceptFor({
+        format: "EVD - {content}",
+        basename: "EVD - Evidence title",
+        sourceDocument: "source",
+      }),
+    ).toMatchObject({ local_reference_content: { sourceDocument: "source" } });
   });
 
   it("omits reference content when the node has no Source", () => {
-    const concept = discourseNodeInstanceToLocalConcept({
-      context: CONTEXT,
-      nodeData: evidenceNode(),
-      nodeTypesById: NODE_TYPES_BY_ID,
-    });
-    expect(concept).not.toHaveProperty("local_reference_content");
+    expect(
+      conceptFor({
+        format: "EVD - {content}",
+        basename: "EVD - Evidence title",
+      }),
+    ).not.toHaveProperty("local_reference_content");
   });
 });

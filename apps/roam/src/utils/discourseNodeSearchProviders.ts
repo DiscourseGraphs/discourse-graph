@@ -3,7 +3,7 @@ import fuzzy from "fuzzy";
 import { nextApiRoot } from "@repo/utils/execContext";
 import { getLoggedInClient } from "~/utils/supabaseContext";
 import type { Result } from "~/utils/types";
-import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
+import { getDiscourseNodeFormatExpression } from "@repo/database/lib/getDiscourseNodeFormatExpression";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { getAllDiscourseNodesSince } from "~/utils/getAllDiscourseNodesSince";
 import {

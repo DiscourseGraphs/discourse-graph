@@ -1,5 +1,5 @@
 import { type DiscourseNode } from "./getDiscourseNodes";
-import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
+import { getDiscourseNodeFormatExpression } from "@repo/database/lib/getDiscourseNodeFormatExpression";
 import extractRef from "roamjs-components/util/extractRef";
 
 const DEFAULT_TIME = new Date("1970-01-01").getTime();
