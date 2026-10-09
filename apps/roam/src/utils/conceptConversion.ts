@@ -1,12 +1,13 @@
-import { InputTextNode } from "roamjs-components/types";
 import getBlockProps from "./getBlockProps";
 import { DiscourseNode } from "./getDiscourseNodes";
 import {
   SOURCE_SLOT,
   schemaHasSourceSlot,
   sourceSlotSchemaId,
-  sourceUidOfNode,
+  sourceIdOfNode,
 } from "./sourceSlot";
+import { extractContentFromTitle } from "@repo/database/lib/extractContentFromTitle";
+import { nodeTemplateContent } from "./nodeTemplateContent";
 import getDiscourseRelations from "./getDiscourseRelations";
 import type { DiscourseRelation } from "./getDiscourseRelations";
 import type { SupabaseContext } from "~/utils/supabaseContext";
@@ -19,7 +20,7 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 const getNodeExtraData = (
   node_uid: string,
 ): {
-  author_uid: string;
+  author_local_id: string;
   created: string;
   last_modified: string;
   page_uid: string;
@@ -56,7 +57,7 @@ const getNodeExtraData = (
   const created = new Date(created_t).toISOString();
   const last_modified = new Date(last_modified_t).toISOString();
   return {
-    author_uid,
+    author_local_id: author_uid,
     created,
     last_modified,
     page_uid,
@@ -64,30 +65,17 @@ const getNodeExtraData = (
   /* eslint-enable @typescript-eslint/naming-convention */
 };
 
-const indent = (s: string): string =>
-  s
-    .split("\n")
-    .map((l) => "   " + l)
-    .join("\n") + "\n";
-
-const templateToText = (template: InputTextNode[]): string =>
-  template
-    .filter((itn) => !itn.text.startsWith("{{"))
-    .map(
-      (itn) =>
-        `* ${itn.text}\n${itn.children?.length ? indent(templateToText(itn.children)) : ""}`,
-    )
-    .join("");
-
 export const discourseNodeSchemaToLocalConcept = (
   context: SupabaseContext,
   node: DiscourseNode,
 ): LocalConceptDataInput => {
-  const titleParts = node.text.split("/");
-  const label = titleParts[titleParts.length - 1] ?? node.text;
-  const literalContent: Record<string, Json> = { label };
-  if (node.template !== undefined)
-    literalContent.template = templateToText(node.template);
+  const literalContent: Record<string, Json> = {
+    label: node.text,
+    format: node.format,
+  };
+  const templateContent = nodeTemplateContent(node.template);
+  if (templateContent !== undefined)
+    literalContent.template_content = templateContent;
   const hasSourceSlot = schemaHasSourceSlot(node);
   if (hasSourceSlot) literalContent.roles = [SOURCE_SLOT];
   return {
@@ -118,15 +106,18 @@ export const discourseNodeBlockToLocalConcept = (
     schema?: DiscourseNode;
   },
 ): LocalConceptDataInput => {
-  const sourceUid = title ? sourceUidOfNode(title, schema) : undefined;
+  const sourceId = title ? sourceIdOfNode(title, schema) : undefined;
   return {
     space_id: context.spaceId,
     name: title,
     source_local_id: nodeUid,
     schema_represented_by_local_id: schemaUid,
     is_schema: false,
-    ...(sourceUid
-      ? { local_reference_content: { [SOURCE_SLOT]: sourceUid } }
+    literal_content: {
+      core_title: extractContentFromTitle(schema?.format ?? "", title ?? ""),
+    },
+    ...(sourceId
+      ? { local_reference_content: { [SOURCE_SLOT]: sourceId } }
       : {}),
     /* eslint-enable @typescript-eslint/naming-convention */
     ...getNodeExtraData(nodeUid),
@@ -209,7 +200,7 @@ export const discourseRelationDataToLocalConcept = (
   const created = new Date(
     Math.max(...nodeData.map((nd) => new Date(nd.created).getTime())),
   ).toISOString();
-  const author_local_id: string = nodeData[0].author_uid; // take any one; again until I get the relation object
+  const author_local_id: string = nodeData[0].author_local_id; // take any one; again until I get the relation object
   return {
     space_id: context.spaceId,
     source_local_id: relationUid,

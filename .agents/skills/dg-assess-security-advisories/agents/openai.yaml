@@ -1,0 +1,4 @@
+interface:
+  display_name: "Assess DG security advisories"
+  short_description: "Assess actual exposure and record approved decisions"
+  default_prompt: "Use $dg-assess-security-advisories to assess the selected Dependabot alerts and recommend actions based on our actual usage."

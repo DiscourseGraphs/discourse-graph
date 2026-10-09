@@ -5,6 +5,7 @@ import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { BulkIdentifyDiscourseNodesModal } from "~/components/BulkIdentifyDiscourseNodesModal";
 import { NodeSearchModal } from "~/components/NodeSearchModal";
 import { ImportNodesModal } from "~/components/ImportNodesModal";
+import { openExportSpecsModal } from "~/components/ExportSpecsModal";
 import { FeedbackModal } from "~/components/FeedbackModal";
 import { convertPageToDiscourseNode, createDiscourseNode } from "./createNode";
 import { refreshAllImportedFiles } from "./importNodes";
@@ -16,6 +17,7 @@ import { addRelationIfRequested } from "~/components/canvas/utils/relationJsonUt
 import type { DiscourseNode } from "~/types";
 import { TldrawView } from "~/components/canvas/TldrawView";
 import { createBaseForNodeType } from "./baseForNodeType";
+import { openImportSpecsModal } from "~/components/ImportSpecsModal";
 
 type ModifyNodeSubmitParams = {
   nodeType: DiscourseNode;
@@ -202,6 +204,20 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
           });
       }
       return true;
+    },
+  });
+
+  plugin.addCommand({
+    id: "export-dg-schema",
+    name: "Export discourse graph schema",
+    callback: () => openExportSpecsModal(plugin),
+  });
+
+  plugin.addCommand({
+    id: "import-dg-schema",
+    name: "Import discourse graph schema",
+    callback: () => {
+      openImportSpecsModal(plugin);
     },
   });
 

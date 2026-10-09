@@ -58,6 +58,7 @@ export type ModifyNodeDialogProps = {
     text: string;
     uid: string;
     action: string;
+    nodeType?: string;
   }) => Promise<void>;
   onClose: () => void;
 };
@@ -371,6 +372,7 @@ const ModifyNodeDialog = ({
             text: content.text,
             uid: content.uid,
             action: "create",
+            nodeType: selectedNodeType?.type,
           });
 
           onClose();
@@ -480,6 +482,7 @@ const ModifyNodeDialog = ({
           text: formattedTitle,
           uid: newPageUid,
           action: "create",
+          nodeType: selectedNodeType?.type,
         });
       } else {
         // Edit mode: update the existing block
@@ -515,6 +518,7 @@ const ModifyNodeDialog = ({
           text: updatedContent,
           uid: sourceBlockUid || content.uid,
           action: "edit",
+          nodeType: selectedNodeType?.type,
         });
       }
       onClose();
@@ -592,6 +596,17 @@ const ModifyNodeDialog = ({
             </Label>
           </div>
 
+          {imageUrl && (
+            <Label className="w-full">
+              Image
+              <img
+                src={imageUrl}
+                alt=""
+                className="mt-1 block max-h-40 max-w-full rounded"
+              />
+            </Label>
+          )}
+
           {/* Referenced Node Input */}
           {referencedNode && !isContentLocked && mode === "create" && (
             <Label className="w-full">
@@ -628,7 +643,7 @@ const ModifyNodeDialog = ({
               disabled={loading}
               className="flex-shrink-0"
             />
-            <span className="flex-grow text-red-800">{error}</span>
+            <span className="flex-grow text-red-700">{error}</span>
             {loading && <Spinner size={SpinnerSize.SMALL} />}
           </div>
         </div>

@@ -1,7 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrossAppNode } from "@repo/database/crossAppContracts";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
+import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
+import type { ReifiedRelationDataWithRelId } from "~/utils/createReifiedBlock";
 import { contentTypes } from "@repo/content-model";
 
 const mocks = vi.hoisted(() => ({
@@ -9,6 +11,15 @@ const mocks = vi.hoisted(() => ({
   getAvailableGroupIds: vi.fn(),
   ensurePartialSpaceAccess: vi.fn(),
   internalError: vi.fn(),
+  renderToast: vi.fn(),
+  getDiscourseRelations: vi.fn(),
+  getReifiedRelations: vi.fn(),
+  readImportedSourceIdentity: vi.fn(),
+  getPublishedGroupIdsByRid: vi.fn(),
+}));
+
+vi.mock("roamjs-components/components/Toast", () => ({
+  default: mocks.renderToast,
 }));
 
 vi.mock("~/utils/getDiscourseNodes", () => ({
@@ -16,11 +27,15 @@ vi.mock("~/utils/getDiscourseNodes", () => ({
 }));
 
 vi.mock("~/utils/getDiscourseRelations", () => ({
-  default: () => [],
+  default: mocks.getDiscourseRelations,
 }));
 
 vi.mock("~/utils/createReifiedBlock", () => ({
-  getReifiedRelations: () => Promise.resolve([]),
+  getReifiedRelations: mocks.getReifiedRelations,
+}));
+
+vi.mock("~/utils/relationSchemaAcceptance", () => ({
+  excludeProvisionalRelationSchemas: <T>(relations: T[]) => relations,
 }));
 
 vi.mock("~/utils/internalError", () => ({
@@ -28,7 +43,15 @@ vi.mock("~/utils/internalError", () => ({
 }));
 
 vi.mock("~/utils/importedSourceIdentity", () => ({
-  readImportedSourceIdentity: () => undefined,
+  readImportedSourceIdentity: mocks.readImportedSourceIdentity,
+}));
+
+vi.mock("roamjs-components/queries/getPageTitleByPageUid", () => ({
+  default: (uid: string) => (uid === SOURCE_UID ? SOURCE_TITLE : ""),
+}));
+
+vi.mock("roamjs-components/queries/getPageUidByPageTitle", () => ({
+  default: (title: string) => (title === SOURCE_TITLE ? SOURCE_UID : ""),
 }));
 
 vi.mock("~/utils/roamToCrossAppConverters", () => ({
@@ -38,14 +61,29 @@ vi.mock("~/utils/roamToCrossAppConverters", () => ({
     label: s.text,
     authorId: "author-1",
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    format: s.format,
   }),
-  reifiedRelationToCrossApp: vi.fn(),
-  relationTripleSchemaToCrossApp: vi.fn(),
+  reifiedRelationToCrossApp: (r: ReifiedRelationDataWithRelId) => ({
+    localId: r.relationId,
+    relationType: r.hasSchema,
+    source: r.sourceUid,
+    destination: r.destinationUid,
+    authorId: "author-1",
+  }),
+  relationTripleSchemaToCrossApp: (r: DiscourseRelation) => ({
+    localId: r.id,
+    sourceType: r.source,
+    destinationType: r.destination,
+    label: r.label,
+    complement: r.complement,
+    authorId: "author-1",
+  }),
 }));
 
 vi.mock("@repo/database/lib/groups", () => ({
   getAvailableGroupIds: mocks.getAvailableGroupIds,
   ensurePartialSpaceAccess: mocks.ensurePartialSpaceAccess,
+  getPublishedGroupIdsByRid: mocks.getPublishedGroupIdsByRid,
 }));
 
 vi.mock("@repo/database/lib/contextFunctions", () => ({
@@ -58,6 +96,9 @@ import { publishNodesToGroups } from "~/utils/publishNodesToGroups";
 const SPACE_ID = 42;
 const GROUP_ID = "group-1";
 const SCHEMA_UID = "schema-1";
+const SOURCE_UID = "source-1";
+const SOURCE_TITLE = "@sun2019direct";
+const SOURCE_RID = "orn:obsidian.note:vault-a/node-1";
 
 const claimSchema: DiscourseNode = {
   type: SCHEMA_UID,
@@ -72,12 +113,19 @@ const claimSchema: DiscourseNode = {
 const makeCrossAppNode = ({
   uid,
   title,
+  coreTitle = title,
+  nodeType = SCHEMA_UID,
+  slots,
 }: {
   uid: string;
   title: string;
+  coreTitle?: string;
+  nodeType?: string;
+  slots?: CrossAppNode["slots"];
 }): CrossAppNode => ({
   localId: uid,
-  nodeType: SCHEMA_UID,
+  nodeType,
+  coreTitle,
   authorId: "user-1",
   createdAt: new Date("2026-01-02T00:00:00.000Z"),
   modifiedAt: new Date("2026-01-03T00:00:00.000Z"),
@@ -85,42 +133,123 @@ const makeCrossAppNode = ({
     direct: { localId: uid, value: title },
     full: {
       localId: uid,
-      value: `# ${title}\n\nBody\n`,
+      value: `Body\n`,
       contentType: contentTypes.roamMarkdown,
       scale: "document",
     },
   },
+  ...(slots ? { slots } : {}),
 });
 
 type RpcArgs = { v_space_id: number; data: Record<string, unknown>[] };
 
+type SelectResponse = {
+  data: { source_local_id: string; name?: string }[];
+  error: null;
+};
+
+type FakeSelectBuilder = PromiseLike<SelectResponse> & {
+  url: { search: string };
+  eq: () => FakeSelectBuilder;
+  in: (column: string, values: string[]) => FakeSelectBuilder;
+  is: () => FakeSelectBuilder;
+  order: (column: string) => FakeSelectBuilder;
+  range: () => Promise<SelectResponse>;
+};
+
 const makeFakeClient = ({
   syncedUids = [],
+  storedConcepts = [],
   rpcResponse,
+  updateError,
+  failedUpsertUids = [],
 }: {
   syncedUids?: string[];
+  storedConcepts?: { source_local_id: string; name: string }[];
   rpcResponse?: { data: number[] | null; error: { message: string } | null };
+  updateError?: { message: string };
+  failedUpsertUids?: string[];
 }) => {
   const rpcCalls: { fn: string; args: RpcArgs }[] = [];
+  const conceptLookups: string[][] = [];
   const upsertCalls: {
     table: string;
     rows: Record<string, unknown>[];
     options: Record<string, unknown>;
   }[] = [];
-  const selectResult = (table: string) =>
+  const updateCalls: {
+    table: string;
+    values: Record<string, unknown>;
+    filters: unknown[][];
+  }[] = [];
+  const selectResult = (table: string): Promise<SelectResponse> =>
     Promise.resolve({
       data:
         table === "my_concepts"
           ? syncedUids.map((uid) => ({ source_local_id: uid }))
-          : [],
+          : table === "Concept"
+            ? storedConcepts
+            : [],
       error: null,
     });
+  // Main's builder already answers what the asset stage asks of `select`: `eq` chains and
+  // the builder is awaitable on its own, which is the shape `publishNodeAssets` uses when
+  // it reads a node's existing references with two `eq`s and no `in`.
+  const makeSelectBuilder = (table: string): FakeSelectBuilder => {
+    const builder: FakeSelectBuilder = {
+      url: { search: "" },
+      eq: () => builder,
+      in: (_column, values) => {
+        if (table === "my_concepts") conceptLookups.push(values);
+        return builder;
+      },
+      is: () => builder,
+      order: (column) => {
+        builder.url.search += `&order=${column}`;
+        return builder;
+      },
+      range: () => selectResult(table),
+      then: (onfulfilled, onrejected) =>
+        selectResult(table).then(onfulfilled, onrejected),
+    };
+    return builder;
+  };
+  const deleteFilter = (): Record<string, unknown> => ({
+    eq: () => deleteFilter(),
+    notIn: () => deleteFilter(),
+    then: (resolve: (value: unknown) => unknown) =>
+      Promise.resolve({ error: null }).then(resolve),
+  });
+  const updateFilter = (
+    filters: unknown[][],
+  ): Record<string, unknown> &
+    PromiseLike<{ error: { message: string } | null }> => {
+    const filter =
+      (op: string) =>
+      (...args: unknown[]) => {
+        filters.push([op, ...args]);
+        return updateFilter(filters);
+      };
+    return {
+      eq: filter("eq"),
+      in: filter("in"),
+      is: filter("is"),
+      then: (onfulfilled, onrejected) =>
+        Promise.resolve({ error: updateError ?? null }).then(
+          onfulfilled,
+          onrejected,
+        ),
+    };
+  };
   const client = {
     from: (table: string) => ({
-      select: () => ({
-        eq: () => ({ in: () => selectResult(table) }),
-        in: () => selectResult(table),
-      }),
+      select: () => makeSelectBuilder(table),
+      delete: () => deleteFilter(),
+      update: (values: Record<string, unknown>) => {
+        const filters: unknown[][] = [];
+        updateCalls.push({ table, values, filters });
+        return updateFilter(filters);
+      },
       upsert: (
         rows: Record<string, unknown>[],
         options: Record<string, unknown>,
@@ -132,11 +261,18 @@ const makeFakeClient = ({
     rpc: (fn: string, args: RpcArgs) => {
       rpcCalls.push({ fn, args });
       return Promise.resolve(
-        rpcResponse ?? { data: args.data.map((_, i) => i + 1), error: null },
+        rpcResponse ?? {
+          data: args.data.map((concept, i) =>
+            failedUpsertUids.includes(concept.source_local_id as string)
+              ? -2
+              : i + 1,
+          ),
+          error: null,
+        },
       );
     },
   } as unknown as DGSupabaseClient;
-  return { client, rpcCalls, upsertCalls };
+  return { client, rpcCalls, conceptLookups, upsertCalls, updateCalls };
 };
 
 describe("publishNodesToGroups", () => {
@@ -144,6 +280,13 @@ describe("publishNodesToGroups", () => {
     vi.clearAllMocks();
     mocks.getDiscourseNodes.mockReturnValue([claimSchema]);
     mocks.getAvailableGroupIds.mockResolvedValue([GROUP_ID]);
+    mocks.getDiscourseRelations.mockReturnValue([]);
+    mocks.getReifiedRelations.mockResolvedValue([]);
+    mocks.readImportedSourceIdentity.mockReturnValue(undefined);
+    mocks.getPublishedGroupIdsByRid.mockImplementation(
+      ({ rids }: { rids: string[] }) =>
+        Promise.resolve(Object.fromEntries(rids.map((rid) => [rid, []]))),
+    );
     mocks.ensurePartialSpaceAccess.mockImplementation(
       ({ groupIds }: { groupIds: string[] }) =>
         Promise.resolve({
@@ -160,7 +303,13 @@ describe("publishNodesToGroups", () => {
       client,
       spaceId: SPACE_ID,
       groupIds: [GROUP_ID],
-      nodes: [makeCrossAppNode({ uid: "node-1", title: "CLM - new claim" })],
+      nodes: [
+        makeCrossAppNode({
+          uid: "node-1",
+          title: "CLM - new claim",
+          coreTitle: "new claim",
+        }),
+      ],
     });
 
     expect(rpcCalls).toHaveLength(1);
@@ -172,11 +321,13 @@ describe("publishNodesToGroups", () => {
       source_local_id: SCHEMA_UID,
       is_schema: true,
       name: "Claim",
+      literal_content: { format: "[[CLM]] - {content}" },
     });
     expect(data[1]).toMatchObject({
       source_local_id: "node-1",
       name: "CLM - new claim",
       schema_represented_by_local_id: SCHEMA_UID,
+      literal_content: { core_title: "new claim" },
     });
     expect(data[1].contents_inline).toEqual([
       expect.objectContaining({
@@ -187,7 +338,7 @@ describe("publishNodesToGroups", () => {
       expect.objectContaining({
         source_local_id: "node-1",
         variant: "full",
-        text: "# CLM - new claim\n\nBody\n",
+        text: "Body\n",
         content_type: contentTypes.roamMarkdown,
       }),
     ]);
@@ -238,7 +389,7 @@ describe("publishNodesToGroups", () => {
       }),
       expect.objectContaining({
         variant: "full",
-        text: "# CLM - updated title\n\nBody\n",
+        text: "Body\n",
       }),
     ]);
     expect(result.syncedNodeSchemaUids).toEqual([]);
@@ -293,6 +444,53 @@ describe("publishNodesToGroups", () => {
     },
   );
 
+  it("publishes a node whose asset cannot be fetched, with its content intact and the failure reported", async () => {
+    const assetUrl =
+      "https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FMAPLab%2FlqP2ioVNC3.png?alt=media&token=9f1c07a4";
+    const node = makeCrossAppNode({ uid: "node-1", title: "Claim one" });
+    const markdown = `# Claim one\n\n![](${assetUrl})\n`;
+    node.content.full = { ...node.content.full!, value: markdown };
+    // `findAssetReferences` reads the graph name to recognise this graph's own assets.
+    vi.stubGlobal("window", {
+      roamAlphaAPI: { graph: { name: "MAPLab" } },
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve({ ok: false, status: 500 } as unknown as Response),
+      ),
+    );
+    const { client, rpcCalls } = makeFakeClient({});
+
+    const result = await publishNodesToGroups({
+      client,
+      spaceId: SPACE_ID,
+      groupIds: [GROUP_ID],
+      nodes: [node],
+    });
+
+    expect(result.publishedNodeUids).toContain("node-1");
+    expect(result.failedUpsertUids).toEqual([]);
+    expect(result.assetResults).toEqual([
+      {
+        status: "failed",
+        sourceRef: assetUrl,
+        sourceLocalId: "node-1",
+        error: expect.stringContaining(
+          "Could not read asset descriptor",
+        ) as unknown,
+      },
+    ]);
+    // The content that was upserted still carries the asset link.
+    const upserted = rpcCalls
+      .flatMap(({ args }) => args.data)
+      .find((row) => row.source_local_id === "node-1");
+    expect(JSON.stringify(upserted)).toContain(assetUrl);
+    expect(node.content.full?.value).toBe(markdown);
+
+    vi.unstubAllGlobals();
+  });
+
   it("withholds dependent nodes when their schema upsert fails", async () => {
     const { client, upsertCalls } = makeFakeClient({
       rpcResponse: { data: [-1, 2, 3], error: null },
@@ -312,5 +510,420 @@ describe("publishNodesToGroups", () => {
     expect(result.publishedNodeUids).toEqual([]);
     expect(result.publishedNodeSchemaUids).toEqual([]);
     expect(upsertCalls[0].rows).toEqual([]);
+  });
+
+  describe("relation with an imported end", () => {
+    const OTHER_GROUP_ID = "group-2";
+    const TRIPLE_UID = "triple-1";
+    const IMPORTED_TYPE_UID = "imported-type-1";
+    const IMPORTED_UID = "imported-1";
+    const IMPORTED_RID = "orn:obsidian.note:vault-a/node-9";
+
+    beforeEach(() => {
+      mocks.getAvailableGroupIds.mockResolvedValue([GROUP_ID, OTHER_GROUP_ID]);
+      mocks.getDiscourseNodes.mockReturnValue([
+        claimSchema,
+        { ...claimSchema, type: IMPORTED_TYPE_UID, text: "Result" },
+      ]);
+      mocks.getDiscourseRelations.mockReturnValue([
+        {
+          id: TRIPLE_UID,
+          label: "supports",
+          complement: "supported by",
+          source: SCHEMA_UID,
+          destination: IMPORTED_TYPE_UID,
+          triples: [],
+        },
+      ]);
+      mocks.getReifiedRelations.mockResolvedValue([
+        {
+          relationId: "rel-1",
+          hasSchema: TRIPLE_UID,
+          sourceUid: "node-1",
+          destinationUid: IMPORTED_UID,
+        },
+      ]);
+      mocks.readImportedSourceIdentity.mockImplementation((uid: string) =>
+        uid === IMPORTED_UID
+          ? {
+              sourceModifiedAt: "2026-06-14T15:00:00.000Z",
+              sourceNodeRid: IMPORTED_RID,
+            }
+          : undefined,
+      );
+    });
+
+    const publish = (client: DGSupabaseClient) =>
+      publishNodesToGroups({
+        client,
+        spaceId: SPACE_ID,
+        groupIds: [GROUP_ID, OTHER_GROUP_ID],
+        nodes: [makeCrossAppNode({ uid: "node-1", title: "[[CLM]] - claim" })],
+      });
+
+    const grantedGroupIds = (
+      upsertCalls: { table: string; rows: Record<string, unknown>[] }[],
+      sourceLocalId: string,
+    ) =>
+      upsertCalls
+        .filter(({ table }) => table === "ResourceAccess")
+        .flatMap(({ rows }) => rows)
+        .filter((row) => row.source_local_id === sourceLocalId)
+        .map((row) => row.account_uid);
+
+    it("grants the relation only to the groups the imported end is published to", async () => {
+      mocks.getPublishedGroupIdsByRid.mockResolvedValue({
+        [IMPORTED_RID]: [GROUP_ID],
+      });
+      const { client, rpcCalls, upsertCalls } = makeFakeClient({});
+
+      await publish(client);
+
+      expect(mocks.getPublishedGroupIdsByRid).toHaveBeenCalledWith({
+        client,
+        rids: [IMPORTED_RID],
+      });
+      expect(
+        rpcCalls[0].args.data.map((concept) => concept.source_local_id),
+      ).toContain("rel-1");
+      expect(grantedGroupIds(upsertCalls, "rel-1")).toEqual([GROUP_ID]);
+      expect(grantedGroupIds(upsertCalls, "node-1")).toEqual([
+        GROUP_ID,
+        OTHER_GROUP_ID,
+      ]);
+    });
+
+    it("uploads the imported end's node type before the triple, and grants it with the relation", async () => {
+      mocks.getPublishedGroupIdsByRid.mockResolvedValue({
+        [IMPORTED_RID]: [GROUP_ID],
+      });
+      const { client, rpcCalls, upsertCalls } = makeFakeClient({
+        syncedUids: [SCHEMA_UID],
+      });
+
+      await publish(client);
+
+      const upserted = rpcCalls[0].args.data.map(
+        (concept) => concept.source_local_id,
+      );
+      expect(upserted).toContain(IMPORTED_TYPE_UID);
+      expect(upserted.indexOf(IMPORTED_TYPE_UID)).toBeLessThan(
+        upserted.indexOf(TRIPLE_UID),
+      );
+      expect(grantedGroupIds(upsertCalls, IMPORTED_TYPE_UID)).toEqual([
+        GROUP_ID,
+      ]);
+    });
+
+    it("withholds the relation's grant when its triple fails to upsert", async () => {
+      mocks.getPublishedGroupIdsByRid.mockResolvedValue({
+        [IMPORTED_RID]: [GROUP_ID],
+      });
+      const { client, upsertCalls } = makeFakeClient({
+        failedUpsertUids: [TRIPLE_UID],
+      });
+
+      const result = await publish(client);
+
+      expect(result.failedUpsertUids).toContain(TRIPLE_UID);
+      expect(grantedGroupIds(upsertCalls, "rel-1")).toEqual([]);
+      expect(grantedGroupIds(upsertCalls, TRIPLE_UID)).toEqual([]);
+    });
+
+    it("neither syncs nor grants the relation when the imported end is published to no group", async () => {
+      const { client, rpcCalls, upsertCalls } = makeFakeClient({});
+
+      await publish(client);
+
+      expect(
+        rpcCalls[0].args.data.map((concept) => concept.source_local_id),
+      ).not.toContain("rel-1");
+      expect(grantedGroupIds(upsertCalls, "rel-1")).toEqual([]);
+    });
+  });
+
+  describe("source slot", () => {
+    const evidenceNode = (sourceId: string) =>
+      makeCrossAppNode({
+        uid: "node-1",
+        title: `[[EVD]] - finding - [[${SOURCE_TITLE}]]`,
+        slots: { sourceDocument: sourceId },
+      });
+    const publish = (
+      client: DGSupabaseClient,
+      nodes: CrossAppNode[] = [evidenceNode(SOURCE_UID)],
+    ) =>
+      publishNodesToGroups({
+        client,
+        spaceId: SPACE_ID,
+        groupIds: [GROUP_ID],
+        nodes,
+      });
+
+    beforeEach(() => {
+      vi.spyOn(console, "warn").mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("keeps the source slot when the source is already a concept in the space", async () => {
+      const { client, rpcCalls, conceptLookups } = makeFakeClient({
+        syncedUids: [SCHEMA_UID, SOURCE_UID],
+      });
+
+      await publish(client);
+
+      expect(conceptLookups[0]).toContain(SOURCE_UID);
+      expect(rpcCalls[0].args.data).toHaveLength(1);
+      expect(rpcCalls[0].args.data[0]).toMatchObject({
+        source_local_id: "node-1",
+        local_reference_content: { sourceDocument: SOURCE_UID },
+      });
+      expect(mocks.renderToast).not.toHaveBeenCalled();
+    });
+
+    it("looks a source up once however many nodes reference it", async () => {
+      const { client, conceptLookups } = makeFakeClient({
+        syncedUids: [SCHEMA_UID, SOURCE_UID],
+      });
+
+      await publish(client, [
+        evidenceNode(SOURCE_UID),
+        makeCrossAppNode({
+          uid: "node-2",
+          title: `[[EVD]] - another finding - [[${SOURCE_TITLE}]]`,
+          slots: { sourceDocument: SOURCE_UID },
+        }),
+      ]);
+
+      expect(conceptLookups[0].filter((id) => id === SOURCE_UID)).toHaveLength(
+        1,
+      );
+    });
+
+    it("omits the source slot and warns when the source is not a concept in the space", async () => {
+      const { client, rpcCalls, upsertCalls } = makeFakeClient({
+        syncedUids: [SCHEMA_UID],
+      });
+
+      const result = await publish(client);
+
+      expect(rpcCalls[0].args.data).toHaveLength(1);
+      expect(rpcCalls[0].args.data[0]).toMatchObject({
+        source_local_id: "node-1",
+      });
+      expect(rpcCalls[0].args.data[0].local_reference_content).toBeUndefined();
+      expect(mocks.renderToast).toHaveBeenCalledTimes(1);
+      expect(mocks.renderToast).toHaveBeenCalledWith({
+        id: `publish-missing-source-${SOURCE_UID}`,
+        intent: "warning",
+        content: `Source "${SOURCE_TITLE}" is not in this space yet. Publishing without this source reference. Publish the Source separately, then publish the referencing node again.`,
+      });
+      expect(result.publishedNodeUids).toEqual(["node-1"]);
+      expect(result.failedUpsertUids).toEqual([]);
+      expect(upsertCalls[0].rows.map((r) => r.source_local_id)).toContain(
+        "node-1",
+      );
+    });
+
+    it("upserts a source published in the same batch before the node referencing it", async () => {
+      const { client, rpcCalls } = makeFakeClient({
+        syncedUids: [SCHEMA_UID],
+      });
+
+      await publish(client, [
+        evidenceNode(SOURCE_UID),
+        makeCrossAppNode({ uid: SOURCE_UID, title: SOURCE_TITLE }),
+      ]);
+
+      const { data } = rpcCalls[0].args;
+      expect(data.map((row) => row.source_local_id)).toEqual([
+        SOURCE_UID,
+        "node-1",
+      ]);
+      expect(data[1].local_reference_content).toEqual({
+        sourceDocument: SOURCE_UID,
+      });
+      expect(mocks.renderToast).not.toHaveBeenCalled();
+    });
+
+    it("passes an imported source's RID through without looking it up in the space", async () => {
+      const { client, rpcCalls, conceptLookups } = makeFakeClient({
+        syncedUids: [SCHEMA_UID],
+      });
+
+      await publish(client, [evidenceNode(SOURCE_RID)]);
+
+      expect(conceptLookups[0]).not.toContain(SOURCE_RID);
+      expect(rpcCalls[0].args.data[0].local_reference_content).toEqual({
+        sourceDocument: SOURCE_RID,
+      });
+      expect(mocks.renderToast).not.toHaveBeenCalled();
+    });
+
+    it("writes the same sourceDocument value on repeated publishes", async () => {
+      const { client, rpcCalls } = makeFakeClient({
+        syncedUids: [SCHEMA_UID, SOURCE_UID],
+      });
+
+      await publish(client);
+      await publish(client);
+
+      expect(rpcCalls).toHaveLength(2);
+      expect(rpcCalls[1].args.data[0].local_reference_content).toEqual({
+        sourceDocument: SOURCE_UID,
+      });
+      expect(rpcCalls[1].args.data[0].local_reference_content).toEqual(
+        rpcCalls[0].args.data[0].local_reference_content,
+      );
+    });
+
+    describe("when the source is published after a node naming it", () => {
+      const SOURCE_SCHEMA_UID = "source-schema";
+      const EVIDENCE_SCHEMA_UID = "evidence-schema";
+      const evidenceTitle = `[[EVD]] - finding - [[${SOURCE_TITLE}]]`;
+      const claimTitle = `[[CLM]] - about ${SOURCE_TITLE}`;
+      const sourceSchema: DiscourseNode = {
+        ...claimSchema,
+        type: SOURCE_SCHEMA_UID,
+        text: "Source",
+        format: "@{content}",
+      };
+      const evidenceSchema: DiscourseNode = {
+        ...claimSchema,
+        type: EVIDENCE_SCHEMA_UID,
+        text: "Evidence",
+        format: "[[EVD]] - {content} - {Source}",
+      };
+      const sourceNode = makeCrossAppNode({
+        uid: SOURCE_UID,
+        title: SOURCE_TITLE,
+        nodeType: SOURCE_SCHEMA_UID,
+      });
+      const stubTitleSearch = (pages: [string, string][]) =>
+        vi.stubGlobal("window", {
+          roamAlphaAPI: {
+            data: {
+              async: {
+                q: (_query: string, text: string) =>
+                  Promise.resolve(text === SOURCE_TITLE ? pages : []),
+              },
+            },
+          },
+        });
+
+      beforeEach(() => {
+        mocks.getDiscourseNodes.mockReturnValue([
+          claimSchema,
+          evidenceSchema,
+          sourceSchema,
+        ]);
+      });
+
+      afterEach(() => {
+        vi.unstubAllGlobals();
+      });
+
+      it("sets the source reference the node was first published without", async () => {
+        stubTitleSearch([
+          [SOURCE_UID, SOURCE_TITLE],
+          ["node-1", evidenceTitle],
+          ["claim-1", claimTitle],
+        ]);
+        const { client, rpcCalls, upsertCalls, updateCalls } = makeFakeClient({
+          syncedUids: [SCHEMA_UID],
+          storedConcepts: [{ source_local_id: "node-1", name: evidenceTitle }],
+        });
+
+        await publish(client);
+        expect(
+          rpcCalls[0].args.data[0].local_reference_content,
+        ).toBeUndefined();
+        expect(updateCalls).toEqual([]);
+
+        const result = await publish(client, [sourceNode]);
+
+        const sourceConceptId =
+          rpcCalls[1].args.data.findIndex(
+            (row) => row.source_local_id === SOURCE_UID,
+          ) + 1;
+        expect(updateCalls).toEqual([
+          {
+            table: "Concept",
+            values: { reference_content: { sourceDocument: sourceConceptId } },
+            filters: [
+              ["eq", "space_id", SPACE_ID],
+              ["in", "source_local_id", ["node-1"]],
+              ["is", "reference_content->>sourceDocument", null],
+            ],
+          },
+        ]);
+        expect(rpcCalls).toHaveLength(2);
+        expect(result.publishedNodeUids).toEqual([SOURCE_UID]);
+        expect(upsertCalls[1].rows.map((r) => r.source_local_id)).not.toContain(
+          "node-1",
+        );
+        expect(mocks.internalError).not.toHaveBeenCalled();
+      });
+
+      it("updates nothing when no page names the source", async () => {
+        stubTitleSearch([
+          [SOURCE_UID, SOURCE_TITLE],
+          ["claim-1", claimTitle],
+        ]);
+        const { client, updateCalls } = makeFakeClient({
+          syncedUids: [SCHEMA_UID],
+        });
+
+        await publish(client, [sourceNode]);
+
+        expect(updateCalls).toEqual([]);
+        expect(mocks.internalError).not.toHaveBeenCalled();
+      });
+
+      it("skips a node renamed since it was published", async () => {
+        stubTitleSearch([
+          [SOURCE_UID, SOURCE_TITLE],
+          ["node-1", evidenceTitle],
+        ]);
+        const { client, updateCalls } = makeFakeClient({
+          syncedUids: [SCHEMA_UID],
+          storedConcepts: [
+            {
+              source_local_id: "node-1",
+              name: "[[EVD]] - finding - [[@another2020]]",
+            },
+          ],
+        });
+
+        await publish(client, [sourceNode]);
+
+        expect(updateCalls).toEqual([]);
+        expect(mocks.internalError).not.toHaveBeenCalled();
+      });
+
+      it("still publishes the source when the restore fails", async () => {
+        stubTitleSearch([["node-1", evidenceTitle]]);
+        const updateError = { message: "boom" };
+        const { client, upsertCalls } = makeFakeClient({
+          syncedUids: [SCHEMA_UID],
+          storedConcepts: [{ source_local_id: "node-1", name: evidenceTitle }],
+          updateError,
+        });
+
+        const result = await publish(client, [sourceNode]);
+
+        expect(mocks.internalError).toHaveBeenCalledWith({
+          error: updateError,
+          type: "Restore Source References Failed",
+        });
+        expect(result.publishedNodeUids).toEqual([SOURCE_UID]);
+        expect(upsertCalls[0].rows.map((r) => r.source_local_id)).toContain(
+          SOURCE_UID,
+        );
+      });
+    });
   });
 });

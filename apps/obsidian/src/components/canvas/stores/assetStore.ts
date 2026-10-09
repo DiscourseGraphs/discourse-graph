@@ -112,10 +112,10 @@ export const resolveLinkedTFileByBlockRef = async ({
 };
 
 /**
- * Ensure there is a block reference in the canvas file that links to the given file.
- * Return the blockRef id; create it if it doesn't exist yet.
+ * Find an existing block reference in the canvas file that links to the given file.
+ * Read-only: returns the blockRef id, or null if none exists.
  */
-export const ensureBlockRefForFile = async ({
+export const findBlockRefForFile = async ({
   app,
   canvasFile,
   targetFile,
@@ -123,10 +123,9 @@ export const ensureBlockRefForFile = async ({
   app: App;
   canvasFile: TFile;
   targetFile: TFile;
-}): Promise<string> => {
-  // First, scan existing blocks to see if any link to the target file
+}): Promise<string | null> => {
   const fileCache = app.metadataCache.getFileCache(canvasFile);
-  if (!fileCache) return "";
+  if (!fileCache) return null;
   const blocks = fileCache.blocks ?? {};
   for (const [blockId] of Object.entries(blocks)) {
     const linked = await resolveLinkedTFileByBlockRef({
@@ -139,6 +138,30 @@ export const ensureBlockRefForFile = async ({
       return blockId;
     }
   }
+  return null;
+};
+
+/**
+ * Ensure there is a block reference in the canvas file that links to the given file.
+ * Return the blockRef id; create it if it doesn't exist yet.
+ */
+export const ensureBlockRefForFile = async ({
+  app,
+  canvasFile,
+  targetFile,
+}: {
+  app: App;
+  canvasFile: TFile;
+  targetFile: TFile;
+}): Promise<string> => {
+  const fileCache = app.metadataCache.getFileCache(canvasFile);
+  if (!fileCache) return "";
+  const existingBlockRef = await findBlockRefForFile({
+    app,
+    canvasFile,
+    targetFile,
+  });
+  if (existingBlockRef) return existingBlockRef;
 
   // Create a new block ref at the top that links to the target file
   const blockRefId = crypto.randomUUID();

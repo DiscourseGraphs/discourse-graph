@@ -7,6 +7,7 @@ Prefer existing dependencies from package.json.
 ## Roam Style Guide
 
 Platform-native UI - use BlueprintJS 3 components and Tailwind CSS.
+Use `text-red-700` for error message text so errors have a consistent visual treatment. Keep danger buttons, borders, backgrounds, and diagram colors separate from this text convention. Obsidian keeps `text-error`; website and shared UI keep `text-destructive`.
 Do not introduce arbitrary visual styling, new shading colors, background palettes, gradients, accent colors, border colors, or text colors unless the user explicitly asks for them.
 When styling Roam UI, use this priority order:
 

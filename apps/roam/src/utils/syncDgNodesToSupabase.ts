@@ -3,7 +3,8 @@ import {
   getAllDiscourseNodesSince,
   nodeTypeSince,
 } from "./getAllDiscourseNodesSince";
-import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
+import { getDiscourseNodeFormatExpression } from "@repo/database/lib/getDiscourseNodeFormatExpression";
+import { getImportedNodeUids } from "./importedSourceIdentity";
 import { cleanupOrphanedNodes } from "./cleanupOrphanedNodes";
 import {
   getLoggedInClient,
@@ -23,8 +24,25 @@ import {
   convertRoamNodeToFullContent,
   type RoamFullContentNode,
 } from "./convertRoamNodeToFullContent";
+import {
+  publishNodeAssets,
+  summarizeAssetResults,
+  type NodeAssetResult,
+} from "./publishNodeAssets";
+import { requestAssetRetries } from "./requestAssetRetry";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { intersection } from "@repo/utils/setOperations";
+import { CORE_TITLE_PROBE_SELECT } from "@repo/database/lib/coreTitleBackfill";
+import {
+  buildCoreTitleBackfill,
+  mergeNodesBySourceLocalId,
+  type CoreTitleBackfill,
+} from "./coreTitleBackfill";
+import {
+  buildSchemaFormatBackfill,
+  SCHEMA_FORMAT_PROBE_SELECT,
+  type SchemaFormatBackfill,
+} from "./schemaFormatBackfill";
 import type { Json, Enums } from "@repo/database/dbTypes";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import internalError from "~/utils/internalError";
@@ -634,6 +652,7 @@ export const convertDgToSupabaseConcepts = async ({
   since,
   allNodeTypes,
   sharedNodeTypeIds = new Set<string>(),
+  backfillNodeTypeIds = new Set<string>(),
   supabaseClient,
   context,
 }: {
@@ -641,6 +660,7 @@ export const convertDgToSupabaseConcepts = async ({
   since: number | undefined;
   allNodeTypes: DiscourseNode[];
   sharedNodeTypeIds?: ReadonlySet<string>;
+  backfillNodeTypeIds?: ReadonlySet<string>;
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
 }) => {
@@ -650,7 +670,10 @@ export const convertDgToSupabaseConcepts = async ({
   );
 
   allNodeTypes.forEach((nodeType) => {
-    if (sharedNodeTypeIds.has(nodeType.type)) {
+    if (
+      sharedNodeTypeIds.has(nodeType.type) ||
+      backfillNodeTypeIds.has(nodeType.type)
+    ) {
       nodeTypesByUid.set(nodeType.type, nodeType);
     }
   });
@@ -787,24 +810,44 @@ const upsertNodesToSupabaseAsContent = async (
   await uploadContentBatches({ content, supabaseClient, context });
 };
 
-const upsertRoamNodesToSupabaseAsFullContent = async ({
+/** The asset stage runs here too, so an asset added after sharing still gets a row. */
+export const upsertSharedNodesFullContentWithAssets = async ({
   nodes,
   supabaseClient,
   context,
+  phases,
 }: {
   nodes: RoamFullContentNode[];
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
-}): Promise<void> => {
-  if (nodes.length === 0) {
-    return;
-  }
-
-  const fullContent = convertRoamNodeToFullContent({ nodes });
-  await uploadContentBatches({
-    content: fullContent,
-    supabaseClient,
-    context,
+  phases: SyncPhaseDurations;
+}): Promise<NodeAssetResult[]> => {
+  // Building the markdown is the expensive half of the upload, so it stays inside the
+  // phase it has always been timed under.
+  const converted = await measureSyncPhase({
+    phase: "upsertFullContent",
+    phases,
+    operation: async () => {
+      const converted = convertRoamNodeToFullContent({ nodes });
+      await uploadContentBatches({
+        content: converted.map(({ content }) => content),
+        supabaseClient,
+        context,
+      });
+      return converted;
+    },
+  });
+  // A failed upload throws above, so every converted node now has the Content row
+  // that publishNodeAssets requires.
+  return measureSyncPhase({
+    phase: "publishSharedNodeAssets",
+    phases,
+    operation: () =>
+      publishNodeAssets({
+        client: supabaseClient,
+        spaceId: context.spaceId,
+        nodes: converted.map(({ node }) => node),
+      }),
   });
 };
 
@@ -868,6 +911,71 @@ export const setSyncActivity = (active: boolean) => {
   }
 };
 
+const reportCoreTitleBackfill = ({
+  backfilled,
+  deferred,
+  skipped,
+  orphaned,
+}: {
+  backfilled: number;
+  deferred: number;
+  skipped: number;
+  orphaned: number;
+}): void => {
+  posthog.capture("Sync core_title backfill", {
+    backfilled,
+    deferred,
+    skipped,
+    orphaned,
+  });
+};
+
+/**
+ * A Roam asset URL's query string carries a download token that grants access to the
+ * file, so it must not reach analytics. The path still identifies the asset.
+ */
+const withoutUrlQueries = (text: string): string =>
+  text.replace(/(https?:\/\/[^\s?]+)\?[^\s)]*/g, "$1");
+
+/**
+ * Retries are unbounded, so the per-asset events are how a node that keeps failing is
+ * found.
+ */
+export const reportSharedNodeAssets = ({
+  results,
+  retried,
+}: {
+  results: NodeAssetResult[];
+  retried: ReadonlySet<string>;
+}): void => {
+  if (results.length === 0) return;
+  const { copied, unchanged, distinctBlobs, tooLarge, failed } =
+    summarizeAssetResults(results);
+  posthog.capture("Sync shared node assets", {
+    copied,
+    unchanged,
+    distinctBlobs,
+    tooLarge: tooLarge.length,
+    failed: failed.length,
+  });
+  // Per node, unlike the summary: the same file failing in two nodes is two retries.
+  for (const result of results) {
+    if (result.status !== "failed") continue;
+    posthog.capture("Sync shared node asset failed", {
+      sourceLocalId: result.sourceLocalId,
+      sourceRef: withoutUrlQueries(result.sourceRef),
+      error: withoutUrlQueries(result.error),
+      retryScheduled: retried.has(result.sourceLocalId),
+    });
+  }
+  if (failed.length > 0) {
+    console.warn(
+      `Sync could not copy ${failed.length} shared node assets`,
+      failed,
+    );
+  }
+};
+
 const getAllMissingOrNewDiscourseNodes = async ({
   supabaseClient,
   spaceId,
@@ -878,9 +986,12 @@ const getAllMissingOrNewDiscourseNodes = async ({
   spaceId: number;
   since: number | undefined;
   nodeTypes: DiscourseNode[];
-}): Promise<RoamDiscourseNodeData[]> => {
+}): Promise<{
+  nodes: RoamDiscourseNodeData[];
+  coreTitleBackfill: CoreTitleBackfill | null;
+}> => {
   const allNodes = await getAllDiscourseNodesSince(undefined, nodeTypes);
-  if (since === undefined) return allNodes;
+  if (since === undefined) return { nodes: allNodes, coreTitleBackfill: null };
   const newNodes = await getAllDiscourseNodesSince(since, nodeTypes);
   const existingContentIdsReq = await getAllPages(
     supabaseClient
@@ -894,7 +1005,7 @@ const getAllMissingOrNewDiscourseNodes = async ({
   const existingConceptIdsReq = await getAllPages(
     supabaseClient
       .from("my_concepts")
-      .select("source_local_id")
+      .select(CORE_TITLE_PROBE_SELECT)
       .eq("space_id", spaceId)
       .eq("is_relation", false)
       .eq("is_schema", false)
@@ -909,10 +1020,16 @@ const getAllMissingOrNewDiscourseNodes = async ({
     ),
     ...newNodes.map((n) => n.source_local_id),
   ]);
-  return [
-    ...newNodes,
-    ...allNodes.filter((n) => !existingIds.has(n.source_local_id)),
-  ];
+  return {
+    nodes: [
+      ...newNodes,
+      ...allNodes.filter((n) => !existingIds.has(n.source_local_id)),
+    ],
+    coreTitleBackfill: buildCoreTitleBackfill({
+      conceptRows: existingConceptIdsReq,
+      localNodes: allNodes,
+    }),
+  };
 };
 
 const getSharedNodeInstanceSourceLocalIds = async ({
@@ -1067,10 +1184,67 @@ const getSharedRoamNodesWithFullContentUpdatesSince = async ({
           last_modified: Math.max(row.node_edit_time, row.page_edit_time),
           text: row.text,
           node_type_id: matchingNodeType.type,
+          format: matchingNodeType.format,
         },
         nodeTypeId: matchingNodeType.type,
       },
     ];
+  });
+};
+
+const probeSchemaFormatBackfill = async ({
+  supabaseClient,
+  spaceId,
+  nodeTypes,
+}: {
+  supabaseClient: DGSupabaseClient;
+  spaceId: number;
+  nodeTypes: DiscourseNode[];
+}): Promise<SchemaFormatBackfill> => {
+  const probeRows = await getAllPages(
+    supabaseClient
+      .from("my_concepts")
+      .select(SCHEMA_FORMAT_PROBE_SELECT)
+      .eq("space_id", spaceId)
+      .eq("is_schema", true)
+      .eq("is_relation", false)
+      .order("id"),
+    1000,
+  );
+  if (!Array.isArray(probeRows)) throw probeRows;
+  return buildSchemaFormatBackfill({
+    conceptRows: probeRows,
+    nodeTypes,
+  });
+};
+
+const reportSchemaFormatBackfill = ({
+  backfilled,
+  skipped,
+  orphaned,
+}: {
+  backfilled: number;
+  skipped: number;
+  orphaned: number;
+}): void => {
+  posthog.capture("Sync schema format backfill", {
+    backfilled,
+    skipped,
+    orphaned,
+  });
+  if (backfilled === 0 && orphaned === 0) return;
+  const messages = [
+    `Backfilled format for ${backfilled} node type${backfilled === 1 ? "" : "s"}.`,
+    `${skipped} already had one.`,
+  ];
+  if (orphaned > 0) {
+    messages.push(`${orphaned} no longer match a node type in this graph.`);
+  }
+  renderToast({
+    id: "schema-format-backfill",
+    intent: orphaned > 0 ? "warning" : "success",
+    content: messages.join(" "),
+    timeout: 5000,
   });
 };
 
@@ -1198,6 +1372,15 @@ export const createOrUpdateDiscourseEmbedding = async (
     claimed = true;
     const activeClaimedAt = new Date();
     claimedAt = activeClaimedAt;
+    // Must run before the upserts: a deleted schema still in the database
+    // holds its name, so upsert_concepts refuses a recreated schema with that
+    // name and the sync fails before reaching a later cleanup.
+    await measureSyncPhase({
+      phase: "cleanupOrphanedNodes",
+      phases,
+      operation: () =>
+        cleanupOrphanedNodes(activeSupabaseClient, activeContext),
+    });
     const allUsers = await measureSyncPhase({
       phase: "getAllUsers",
       phases,
@@ -1211,21 +1394,41 @@ export const createOrUpdateDiscourseEmbedding = async (
       (n) => n.backedBy === "user",
     );
 
-    const changedNodeInstances = await measureSyncPhase({
-      phase: isInitialSync
-        ? "getAllMissingOrNewDiscourseNodes"
-        : "getAllDiscourseNodesSince",
-      phases,
-      operation: () =>
-        isInitialSync
-          ? getAllMissingOrNewDiscourseNodes({
+    const schemaFormatBackfill = isInitialSync
+      ? await measureSyncPhase({
+          phase: "probeSchemaFormatBackfill",
+          phases,
+          operation: () =>
+            probeSchemaFormatBackfill({
               supabaseClient: activeSupabaseClient,
               spaceId: activeContext.spaceId,
-              since: sinceTime,
               nodeTypes: allDgNodeTypes,
-            })
-          : getAllDiscourseNodesSince(sinceTime, allDgNodeTypes),
-    });
+            }),
+        })
+      : null;
+
+    const { nodes: changedNodeInstances, coreTitleBackfill } =
+      await measureSyncPhase({
+        phase: isInitialSync
+          ? "getAllMissingOrNewDiscourseNodes"
+          : "getAllDiscourseNodesSince",
+        phases,
+        operation: async () =>
+          isInitialSync
+            ? getAllMissingOrNewDiscourseNodes({
+                supabaseClient: activeSupabaseClient,
+                spaceId: activeContext.spaceId,
+                since: sinceTime,
+                nodeTypes: allDgNodeTypes,
+              })
+            : {
+                nodes: await getAllDiscourseNodesSince(
+                  sinceTime,
+                  allDgNodeTypes,
+                ),
+                coreTitleBackfill: null,
+              },
+      });
     const sharedSourceLocalIds = await measureSyncPhase({
       phase: "getSharedNodeInstanceSourceLocalIds",
       phases,
@@ -1235,11 +1438,31 @@ export const createOrUpdateDiscourseEmbedding = async (
           spaceId: activeContext.spaceId,
         }),
     });
+    const importedNodeUids = await measureSyncPhase({
+      phase: "getImportedNodeUids",
+      phases,
+      operation: () => getImportedNodeUids(),
+    });
+    const nonImportedNodeInstances = changedNodeInstances.filter(
+      (node) => !importedNodeUids.has(node.source_local_id),
+    );
     const nodeInstancesToSync = sharedNodesOnlySync
-      ? changedNodeInstances.filter((node) =>
+      ? nonImportedNodeInstances.filter((node) =>
           sharedSourceLocalIds.has(node.source_local_id),
         )
-      : changedNodeInstances;
+      : nonImportedNodeInstances;
+    const nodesToBackfillCoreTitle = (
+      coreTitleBackfill?.nodesToBackfill ?? []
+    ).filter(
+      (node) =>
+        !importedNodeUids.has(node.source_local_id) &&
+        (!sharedNodesOnlySync ||
+          sharedSourceLocalIds.has(node.source_local_id)),
+    );
+    const conceptNodesToSync = mergeNodesBySourceLocalId(
+      nodeInstancesToSync,
+      nodesToBackfillCoreTitle,
+    );
     const sharedSourceLocalIdsToBackfill = await measureSyncPhase({
       phase: "getSharedSourceLocalIdsMissingFullContent",
       phases,
@@ -1303,35 +1526,49 @@ export const createOrUpdateDiscourseEmbedding = async (
               activeContext,
             ),
     });
-    await measureSyncPhase({
-      phase: "upsertFullContent",
-      phases,
-      operation: () =>
-        upsertRoamNodesToSupabaseAsFullContent({
-          nodes: sharedFullContentNodes,
-          supabaseClient: activeSupabaseClient,
-          context: activeContext,
-        }),
+    const sharedNodeAssetResults = await upsertSharedNodesFullContentWithAssets(
+      {
+        nodes: sharedFullContentNodes,
+        supabaseClient: activeSupabaseClient,
+        context: activeContext,
+        phases,
+      },
+    );
+    reportSharedNodeAssets({
+      results: sharedNodeAssetResults,
+      retried: await requestAssetRetries(sharedNodeAssetResults),
     });
     await measureSyncPhase({
       phase: "convertConcepts",
       phases,
       operation: () =>
         convertDgToSupabaseConcepts({
-          nodesSince: nodeInstancesToSync,
+          nodesSince: conceptNodesToSync,
           since: sinceTime,
           allNodeTypes: allDgNodeTypes,
           sharedNodeTypeIds,
+          backfillNodeTypeIds: schemaFormatBackfill?.nodeTypeIdsToBackfill,
           supabaseClient: activeSupabaseClient,
           context: activeContext,
         }),
     });
-    await measureSyncPhase({
-      phase: "cleanupOrphanedNodes",
-      phases,
-      operation: () =>
-        cleanupOrphanedNodes(activeSupabaseClient, activeContext),
-    });
+    if (schemaFormatBackfill !== null) {
+      reportSchemaFormatBackfill({
+        backfilled: schemaFormatBackfill.nodeTypeIdsToBackfill.size,
+        skipped: schemaFormatBackfill.withFormatCount,
+        orphaned: schemaFormatBackfill.orphanedCount,
+      });
+    }
+    if (coreTitleBackfill !== null) {
+      reportCoreTitleBackfill({
+        backfilled: nodesToBackfillCoreTitle.length,
+        deferred:
+          coreTitleBackfill.nodesToBackfill.length -
+          nodesToBackfillCoreTitle.length,
+        skipped: coreTitleBackfill.withCoreTitleCount,
+        orphaned: coreTitleBackfill.orphanedCount,
+      });
+    }
     const completeEndResult = await measureSyncPhase({
       phase: "endSyncTask",
       phases,

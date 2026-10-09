@@ -16,12 +16,15 @@ import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParen
 import getPageViewType from "roamjs-components/queries/getPageViewType";
 import { contentTypes } from "@repo/content-model";
 import getDiscourseNodes from "./getDiscourseNodes";
+import { extractContentFromTitle } from "@repo/database/lib/extractContentFromTitle";
+import { nodeTemplateContent } from "./nodeTemplateContent";
 import {
   SOURCE_SLOT,
   schemaHasSourceSlot,
   sourceSlotSchemaId,
-  sourceUidOfNode,
+  sourceIdOfNode,
 } from "./sourceSlot";
+import { readImportedSourceIdentity } from "./importedSourceIdentity";
 
 const FULL_MARKDOWN_OPTS = {
   refs: true,
@@ -33,12 +36,11 @@ const FULL_MARKDOWN_OPTS = {
   allNodes: [] as DiscourseNode[],
 };
 
+// `full` carries the page body alone; the title lives in the `direct` variant.
 export const buildFullMarkdown = ({
-  title,
   blocks,
   viewType = "bullet",
 }: {
-  title: string;
   blocks: TreeNode[];
   viewType?: ViewType;
 }): string => {
@@ -49,7 +51,7 @@ export const buildFullMarkdown = ({
     )
     .join("\n")
     .trim();
-  return body ? `# ${title}\n\n${body}\n` : `# ${title}\n`;
+  return body ? `${body}\n` : "";
 };
 
 const buildFullInlineContent = ({
@@ -63,7 +65,7 @@ const buildFullInlineContent = ({
   const viewType = getPageViewType(title) || "bullet";
   return {
     localId: uid,
-    value: buildFullMarkdown({ title, blocks, viewType }),
+    value: buildFullMarkdown({ blocks, viewType }),
     contentType: contentTypes.roamMarkdown,
     scale: "document",
   };
@@ -80,6 +82,7 @@ export const fullContentNodeToCrossApp = (
     createdAt: new Date(node.created || Date.now()),
     modifiedAt: new Date(node.last_modified || Date.now()),
     nodeType: node.node_type_id,
+    coreTitle: extractContentFromTitle(node.format, title),
     content: {
       direct: {
         localId: node.source_local_id,
@@ -126,7 +129,7 @@ export const nodeUidsWithTypeToCrossApp = async (
     const pageEditTime =
       (row[":page/edit-time"] as number | undefined) ?? editTime;
     const nodeType = typesByUid[uid];
-    const sourceUid = sourceUidOfNode(title, schemasById[nodeType]);
+    const sourceId = sourceIdOfNode(title, schemasById[nodeType]);
 
     return {
       localId: uid,
@@ -134,6 +137,10 @@ export const nodeUidsWithTypeToCrossApp = async (
       authorId: userUid,
       createdAt: new Date(createdTime),
       modifiedAt: new Date(Math.max(editTime, pageEditTime)),
+      coreTitle: extractContentFromTitle(
+        schemasById[nodeType]?.format ?? "",
+        title,
+      ),
       content: {
         direct: {
           localId: uid,
@@ -141,11 +148,16 @@ export const nodeUidsWithTypeToCrossApp = async (
         },
         full: buildFullInlineContent({ uid, title }),
       },
-      ...(sourceUid ? { slots: { [SOURCE_SLOT]: sourceUid } } : {}),
+      ...(sourceId ? { slots: { [SOURCE_SLOT]: sourceId } } : {}),
     };
   });
   return results;
 };
+
+// Roam's sync and publish button skip imported nodes, so the database knows an
+// imported end only by its RID.
+const relationEndId = (uid: string): string =>
+  readImportedSourceIdentity(uid)?.sourceNodeRid ?? uid;
 
 export const reifiedRelationToCrossApp = (
   r: ReifiedRelationDataWithRelId,
@@ -162,8 +174,8 @@ export const reifiedRelationToCrossApp = (
   return {
     localId: r.relationId,
     relationType: r.hasSchema,
-    source: r.sourceUid,
-    destination: r.destinationUid,
+    source: relationEndId(r.sourceUid),
+    destination: relationEndId(r.destinationUid),
     authorId: userUid,
     createdAt: new Date(relData[":create/time"] as number),
     modifiedAt: new Date(relData[":edit/time"] as number),
@@ -220,6 +232,8 @@ export const nodeSchemaToCrossApp = (
     authorId: userUid,
     createdAt: new Date(createdTime),
     modifiedAt: new Date(Math.max(pageEditTime, createdTime)),
+    format: s.format,
+    template: nodeTemplateContent(s.template),
     ...(hasSourceSlot
       ? { slotDefinitions: { [SOURCE_SLOT]: sourceSlotSchemaId() } }
       : {}),

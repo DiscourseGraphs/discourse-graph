@@ -3,6 +3,7 @@ import { OnloadArgs } from "roamjs-components/types";
 import { Editor } from "tldraw";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { getOnSelectForShape } from "./uiOverrides";
+import { isConvertibleShape } from "./convertShapeToDiscourseNode";
 import { Dialog, Button, Classes } from "@blueprintjs/core";
 import posthog from "posthog-js";
 
@@ -21,13 +22,13 @@ const ConvertToDialog = ({
 }) => {
   if (!editor) return null;
   const selectedShapes = editor.getSelectedShapes();
-  const isTextSelected = selectedShapes[0]?.type === "text";
   const isImageSelected = selectedShapes[0]?.type === "image";
   const oneShapeSelected = selectedShapes.length === 1;
   const isNodeSelected =
-    (isTextSelected || isImageSelected) && oneShapeSelected;
+    oneShapeSelected && isConvertibleShape(selectedShapes[0]);
 
-  let errorMessage = "Please select a text or image shape";
+  let errorMessage =
+    "Please select an unlocked image, text shape, or a sticky note or shape containing text";
   if (!oneShapeSelected) errorMessage = "Please select only one shape";
 
   return (

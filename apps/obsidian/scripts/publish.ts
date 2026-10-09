@@ -387,16 +387,50 @@ const copyBuildFiles = (buildDir: string, tempDir: string): void => {
   });
 };
 
-const sanitizePackageJsonForMirror = (tempDir: string): void => {
+const installedVersion = (packageDir: string, name: string): string => {
+  const pkgPath = path.join(packageDir, "node_modules", name, "package.json");
+  if (!fs.existsSync(pkgPath)) {
+    throw new Error(`Cannot resolve installed version of ${name}`);
+  }
+  return JSON.parse(fs.readFileSync(pkgPath, "utf8")).version;
+};
+
+// Unpinned, vite's latest optional peers cycle back to a newer vitest and crash npm.
+const vitestViteVersion = (obsidianDir: string): string => {
+  const vitestDir = fs.realpathSync(
+    path.join(obsidianDir, "node_modules", "vitest"),
+  );
+  return installedVersion(path.resolve(vitestDir, "../.."), "vite");
+};
+
+// The community review runs npm install with no lockfile, so pnpm-only specifiers
+// fail and open ranges drift into peer conflicts. Workspace packages are bundled.
+const sanitizePackageJsonForMirror = (
+  tempDir: string,
+  obsidianDir: string,
+): void => {
   const packageJsonPath = path.join(tempDir, "package.json");
   if (!fs.existsSync(packageJsonPath)) return;
 
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
-  if (packageJson?.scripts) {
-    delete packageJson.scripts;
-    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
-    log("Removed package.json scripts for mirrored publish repo");
+  delete packageJson.scripts;
+
+  for (const field of ["dependencies", "devDependencies"]) {
+    const deps: Record<string, string> | undefined = packageJson[field];
+    if (!deps) continue;
+    for (const [name, spec] of Object.entries(deps)) {
+      if (spec.startsWith("workspace:")) {
+        delete deps[name];
+        log(`Removed workspace dependency ${name} from mirrored package.json`);
+      } else {
+        deps[name] = installedVersion(obsidianDir, name);
+      }
+    }
   }
+  packageJson.overrides = { vite: vitestViteVersion(obsidianDir) };
+
+  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+  log("Sanitized package.json for mirrored publish repo");
 };
 
 // updateLocalVersion runs after the publish-repo push, so the release version
@@ -746,7 +780,7 @@ const publish = async (config: PublishConfig): Promise<void> => {
 
     copyDirectory({ src: obsidianDir, dest: tempDir, baseDir: obsidianDir });
     copyBuildFiles(buildDir, tempDir);
-    sanitizePackageJsonForMirror(tempDir);
+    sanitizePackageJsonForMirror(tempDir, obsidianDir);
 
     if (isExternal) {
       updateManifest(tempDir, version);

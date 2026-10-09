@@ -1,7 +1,7 @@
 import { App, TFile } from "obsidian";
 import { useEffect, useState } from "react";
 import type DiscourseGraphPlugin from "~/index";
-import type { DiscourseNodeCandidate } from "~/services/QueryEngine";
+import type { SearchableNode } from "~/services/QueryEngine";
 import { fetchUserNames } from "~/utils/importNodes";
 import { getLoggedInClient } from "~/utils/supabaseContext";
 
@@ -61,7 +61,7 @@ export const useAuthorNames = ({
 }: {
   app: App;
   plugin: DiscourseGraphPlugin;
-  candidates: DiscourseNodeCandidate[] | null;
+  candidates: SearchableNode[] | null;
 }): Record<number, string> => {
   const [userNames, setUserNames] = useState(plugin.settings.userNames ?? {});
 
@@ -69,7 +69,7 @@ export const useAuthorNames = ({
     if (!candidates) return;
     if (!plugin.settings.syncModeEnabled) return;
 
-    const isMissingName = (candidate: DiscourseNodeCandidate): boolean => {
+    const isMissingName = (candidate: SearchableNode): boolean => {
       const authorId = getFrontmatterAuthorId(app, candidate.file);
       return (
         typeof authorId === "number" && !plugin.settings.userNames?.[authorId]

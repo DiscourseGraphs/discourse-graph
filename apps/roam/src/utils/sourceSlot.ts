@@ -1,7 +1,11 @@
+import {
+  CONTENT_PLACEHOLDER,
+  FORMAT_PLACEHOLDER,
+} from "@repo/database/lib/decorateTitle";
 import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
-import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
-import { extractFieldFromTitle } from "./extractContentFromTitle";
+import { getDiscourseNodeFormatExpression } from "@repo/database/lib/getDiscourseNodeFormatExpression";
+import { readImportedSourceIdentity } from "./importedSourceIdentity";
 
 // Temporary hack, until slots are a first-class node type setting: a node type whose
 // format has a {source} placeholder (Evidence, among the default node types) is taken
@@ -10,12 +14,14 @@ import { extractFieldFromTitle } from "./extractContentFromTitle";
 // either of them.
 
 export const SOURCE_SLOT = "sourceDocument";
+export const MISSING_SOURCE_PLACEHOLDER = "@placeholder";
 const DEFAULT_SOURCE_SCHEMA_ID = "_SRC-node";
+const SOURCE_PLACEHOLDER = "{source}";
 
 type NodeFormat = Pick<DiscourseNode, "format">;
 
 export const schemaHasSourceSlot = (schema: NodeFormat): boolean =>
-  (schema?.format ?? "").toLowerCase().includes("{source}");
+  (schema?.format ?? "").toLowerCase().includes(SOURCE_PLACEHOLDER);
 
 const sourceNodeType = (allNodes: DiscourseNode[]): DiscourseNode | undefined =>
   allNodes.find((node) => node.text.toLowerCase() === "source");
@@ -51,21 +57,93 @@ const isDiscourseNodeTitle = (
     .filter((n) => n.format !== "{content}") // exclude page and block
     .some((node) => matcherFor(node.format).test(title));
 
-// The page a node's {source} placeholder resolves to, when there is one. The
+// The two RID shapes the database resolves (see rid_to_space_id_and_local_id). The
+// shared parser is not used here: its fallback splits any string at its last slash, so
+// it accepts values the database will fail to resolve.
+const ORN_RID = /^orn:\w+(\.\w+)?:.+\/[^/]+$/;
+
+const isHttpsRid = (value: string): boolean => {
+  try {
+    const { protocol, host } = new URL(value);
+    const lastSlash = value.lastIndexOf("/");
+    return (
+      protocol === "https:" &&
+      host !== "" &&
+      lastSlash > "https://".length &&
+      lastSlash < value.length - 1
+    );
+  } catch {
+    return false;
+  }
+};
+
+const isWellFormedRid = (value: string): boolean =>
+  ORN_RID.test(value) || isHttpsRid(value);
+
+// The page a node's {source} placeholder resolves to, when there is one: its uid, or
+// the RID it is known by elsewhere when it was imported from another app. The
 // placeholder is usually filled with a page reference, and a title holding a slash is
 // a namespaced page rather than a source, so it is left alone.
-export const sourceUidOfNode = (
+export const sourceIdOfNode = (
   title: string,
   schema: NodeFormat | undefined,
   allNodes?: DiscourseNode[],
 ): string | undefined => {
   if (schema === undefined) return undefined;
   if (!schemaHasSourceSlot(schema)) return undefined;
-  const sourceTitle = extractFieldFromTitle(title, schema, "source")
-    ?.replace(/^\[\[(.*)\]\]$/s, "$1")
+  const sourceIndex = (schema.format.match(FORMAT_PLACEHOLDER) ?? []).findIndex(
+    (placeholder) => placeholder.toLowerCase() === SOURCE_PLACEHOLDER,
+  );
+  const sourceTitle = matcherFor(schema.format)
+    .exec(title)
+    ?.[sourceIndex + 1].trim()
+    .replace(/^\[\[(.*)\]\]$/s, "$1")
     .trim();
-  if (!sourceTitle || sourceTitle.includes("/")) return undefined;
+  // The missing-source placeholder page is never a real Source.
+  if (
+    !sourceTitle ||
+    sourceTitle === MISSING_SOURCE_PLACEHOLDER ||
+    sourceTitle.includes("/")
+  )
+    return undefined;
   if (!isDiscourseNodeTitle(sourceTitle, allNodes ?? getDiscourseNodes()))
     return undefined;
-  return getPageUidByPageTitle(sourceTitle) || undefined;
+  const sourceUid = getPageUidByPageTitle(sourceTitle);
+  if (!sourceUid) return undefined;
+  const sourceRid = readImportedSourceIdentity(sourceUid)?.sourceNodeRid;
+  return sourceRid !== undefined && isWellFormedRid(sourceRid)
+    ? sourceRid
+    : sourceUid;
+};
+
+const FILLABLE_PLACEHOLDERS = new Set([
+  CONTENT_PLACEHOLDER,
+  SOURCE_PLACEHOLDER,
+]);
+
+// Inverse of sourceUidOfNode, for the pull side: the local title of a node whose format
+// names a source, built from its core title and the Source page's title. Null when the
+// format has a placeholder neither fills, so the caller keeps the incoming title.
+export const titleWithSource = ({
+  format,
+  coreTitle,
+  sourceTitle,
+}: {
+  format: string;
+  coreTitle: string;
+  sourceTitle: string;
+}): string | null => {
+  const placeholders = (format.match(FORMAT_PLACEHOLDER) ?? []).map(
+    (placeholder) => placeholder.toLowerCase(),
+  );
+  if (
+    !placeholders.includes(CONTENT_PLACEHOLDER) ||
+    placeholders.some((placeholder) => !FILLABLE_PLACEHOLDERS.has(placeholder))
+  )
+    return null;
+  return format.replace(FORMAT_PLACEHOLDER, (placeholder) =>
+    placeholder.toLowerCase() === CONTENT_PLACEHOLDER
+      ? coreTitle
+      : `[[${sourceTitle}]]`,
+  );
 };

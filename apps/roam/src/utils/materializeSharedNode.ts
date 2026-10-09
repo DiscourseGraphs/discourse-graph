@@ -1,26 +1,39 @@
 import {
   contentTypes,
+  normalizeLineEndings,
   stripFrontmatter,
-  stripTitleHeading,
   trimBlankLines,
 } from "@repo/content-model";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
+import { decorateTitle } from "@repo/database/lib/decorateTitle";
 import { isRid } from "@repo/database/lib/rid";
 import type { SharedNode } from "@repo/database/lib/sharedNodes";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
+import { findTargetUid } from "./findTargetUid";
+import type { DiscourseNode } from "./getDiscourseNodes";
 import {
   findImportedNodeUidBySourceRid,
   readImportedSourceIdentity,
   writeImportedSourceIdentity,
   type ImportedSourceIdentity,
 } from "./importedSourceIdentity";
+import { getErrorMessage } from "./getErrorMessage";
+import { importNodeAssets, type AssetImportReport } from "./importNodeAssets";
+import { protectMediaEmbeds } from "./protectMediaEmbeds";
+import {
+  MISSING_SOURCE_PLACEHOLDER,
+  schemaHasSourceSlot,
+  SOURCE_SLOT,
+  titleWithSource,
+} from "./sourceSlot";
 
 type MaterializationStage =
   | "validate-input"
   | "fetch-content"
+  | "copy-assets"
   | "find-imported-node"
   | "title-collision"
   | "create-page"
@@ -46,6 +59,9 @@ type MaterializationSuccess = SourceIdentity & {
   success: true;
   action: "created" | "updated" | "skipped";
   pageUid: string;
+  warning?: string;
+  /** Absent on a skipped import. Per-asset failures land here and don't fail the node. */
+  assets?: AssetImportReport;
 };
 
 export type MaterializeSharedNodeResult =
@@ -70,9 +86,6 @@ type RoamMarkdownApi = {
 export const getRoamMarkdownApi = (): RoamMarkdownApi =>
   window.roamAlphaAPI.data as unknown as RoamMarkdownApi;
 
-export const getErrorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error);
-
 const isImportUpToDate = ({
   sourceModifiedAt,
   storedModifiedAt,
@@ -85,6 +98,18 @@ const isImportUpToDate = ({
     !Number.isNaN(storedTime) && storedTime >= Date.parse(sourceModifiedAt)
   );
 };
+
+// A copy imported before its Source was published holds the placeholder. Publishing the
+// Source restores the node's reference without changing its modified time, so the copy
+// would otherwise stay up to date with the placeholder.
+const awaitsPublishedSource = (
+  sharedNode: SharedNode,
+  importedPageUid: string,
+): boolean =>
+  Boolean(sharedNode.slots?.[SOURCE_SLOT]) &&
+  getPageTitleByPageUid(importedPageUid).includes(
+    `[[${MISSING_SOURCE_PLACEHOLDER}]]`,
+  );
 
 const failure = ({
   error,
@@ -126,6 +151,62 @@ const validateSharedNode = (
   return { sourceModifiedAt: modifiedAt.toISOString(), title };
 };
 
+// The Source page a node's sourceDocument slot names, when this graph has it.
+const resolveSourceTitle = async (
+  sharedNode: SharedNode,
+): Promise<{ sourceTitle: string } | { warning: string }> => {
+  const slotValue = sharedNode.slots?.[SOURCE_SLOT];
+  if (!slotValue)
+    return {
+      warning: "No source was published with this node.",
+    };
+  const sourceUid = await findTargetUid(slotValue, sharedNode.spaceUri);
+  const sourceTitle = sourceUid ? getPageTitleByPageUid(sourceUid) : "";
+  if (!sourceTitle)
+    return {
+      warning: `Its source (${slotValue}) is not in this graph. Import the source, then refresh this page.`,
+    };
+  return { sourceTitle };
+};
+
+const buildPageTitle = async ({
+  sharedNode,
+  nodeType,
+  incomingTitle,
+  importedPageUid,
+}: {
+  sharedNode: SharedNode;
+  nodeType?: Pick<DiscourseNode, "format">;
+  incomingTitle: string;
+  importedPageUid: string | null;
+}): Promise<{ title: string; warning?: string }> => {
+  const coreTitle = sharedNode.coreTitle;
+  if (!coreTitle || !nodeType) return { title: incomingTitle };
+  if (!schemaHasSourceSlot(nodeType))
+    return {
+      title: decorateTitle(nodeType.format, coreTitle) ?? incomingTitle,
+    };
+  const source = await resolveSourceTitle(sharedNode);
+  const title = titleWithSource({
+    format: nodeType.format,
+    coreTitle,
+    sourceTitle:
+      "sourceTitle" in source ? source.sourceTitle : MISSING_SOURCE_PLACEHOLDER,
+  });
+  if (title !== null && "warning" in source) {
+    const existingPageUid = getPageUidByPageTitle(title);
+    if (existingPageUid && existingPageUid !== importedPageUid)
+      return {
+        title: incomingTitle,
+        warning: `${source.warning} The placeholder title "${title}" already belongs to another page; kept the incoming title "${incomingTitle}".`,
+      };
+  }
+  return {
+    title: title ?? incomingTitle,
+    ...("warning" in source ? { warning: source.warning } : {}),
+  };
+};
+
 const fetchFullMarkdown = async ({
   client,
   sharedNode,
@@ -151,12 +232,42 @@ const fetchFullMarkdown = async ({
     return {
       error: `Unsupported full content type "${data.content_type}" — expected "${expectedContentType}"`,
     };
+  // Obsidian's `full` is the file bytes, so it opens with frontmatter that must
+  // not cross spaces. Roam's is the body alone.
   const withoutPreamble =
-    sharedNode.platform === "Roam"
-      ? stripTitleHeading({ markdown: data.text, title: sharedNode.title })
-      : stripFrontmatter(data.text);
+    data.content_type === contentTypes.obsidianMarkdown
+      ? stripFrontmatter(data.text)
+      : normalizeLineEndings(data.text);
   const markdown = trimBlankLines(withoutPreamble);
   return { markdown: markdown.trim() ? markdown : "" };
+};
+
+const titleCollisionFailure = ({
+  identity,
+  importedPageUid,
+  title,
+}: {
+  identity: SourceIdentity;
+  importedPageUid?: string;
+  title: string;
+}): MaterializationFailure | undefined => {
+  if (!importedPageUid)
+    return getPageUidByPageTitle(title)
+      ? failure({
+          identity,
+          message: `A page titled "${title}" already exists and was not imported from "${identity.sourceNodeRid}". Rename or remove that page, then import again`,
+          stage: "title-collision",
+        })
+      : undefined;
+
+  const localTitle = getPageTitleByPageUid(importedPageUid);
+  if (localTitle === title || !getPageUidByPageTitle(title)) return undefined;
+  return failure({
+    identity,
+    message: `Cannot rename the imported page "${localTitle}" to "${title}": another page already has that title. Rename or remove that page, then import again`,
+    pageUid: importedPageUid,
+    stage: "title-collision",
+  });
 };
 
 const createImportedPage = async ({
@@ -168,19 +279,15 @@ const createImportedPage = async ({
   markdown: string;
   title: string;
 }): Promise<MaterializeSharedNodeResult> => {
-  if (getPageUidByPageTitle(title))
-    return failure({
-      identity,
-      message: `A page titled "${title}" already exists and was not imported from "${identity.sourceNodeRid}". Rename or remove that page, then import again`,
-      stage: "title-collision",
-    });
+  const collision = titleCollisionFailure({ identity, title });
+  if (collision) return collision;
 
   const pageUid = window.roamAlphaAPI.util.generateUID();
   try {
     if (markdown) {
       await getRoamMarkdownApi().page.fromMarkdown({
         page: { title, uid: pageUid },
-        "markdown-string": markdown,
+        "markdown-string": protectMediaEmbeds(markdown),
       });
     } else {
       await window.roamAlphaAPI.data.page.create({
@@ -233,20 +340,19 @@ const updateImportedPage = async ({
 }): Promise<MaterializeSharedNodeResult> => {
   const localTitle = getPageTitleByPageUid(pageUid);
   const needsRename = localTitle !== title;
-  if (needsRename && getPageUidByPageTitle(title))
-    return failure({
-      identity,
-      message: `Cannot rename the imported page "${localTitle}" to "${title}": another page already has that title. Rename or remove that page, then import again`,
-      pageUid,
-      stage: "title-collision",
-    });
+  const collision = titleCollisionFailure({
+    identity,
+    importedPageUid: pageUid,
+    title,
+  });
+  if (collision) return collision;
 
   try {
     const previousChildren = getShallowTreeByParentUid(pageUid);
     if (markdown) {
       await getRoamMarkdownApi().block.fromMarkdown({
         location: { "parent-uid": pageUid, order: "last" },
-        "markdown-string": markdown,
+        "markdown-string": protectMediaEmbeds(markdown),
       });
     }
     await Promise.all(previousChildren.map(({ uid }) => deleteBlock(uid)));
@@ -292,10 +398,12 @@ const updateImportedPage = async ({
 export const materializeSharedNode = async ({
   client,
   sharedNode,
+  nodeType,
   force = false,
 }: {
   client: DGSupabaseClient;
   sharedNode: SharedNode;
+  nodeType?: Pick<DiscourseNode, "format">;
   force?: boolean;
 }): Promise<MaterializeSharedNodeResult> => {
   const rawIdentity: SourceIdentity = {
@@ -339,7 +447,8 @@ export const materializeSharedNode = async ({
     isImportUpToDate({
       sourceModifiedAt: identity.sourceModifiedAt,
       storedModifiedAt: storedIdentity.sourceModifiedAt,
-    })
+    }) &&
+    !awaitsPublishedSource(sharedNode, importedPageUid)
   )
     return {
       ...identity,
@@ -347,6 +456,13 @@ export const materializeSharedNode = async ({
       action: "skipped",
       pageUid: importedPageUid,
     };
+
+  const { title: pageTitle, warning } = await buildPageTitle({
+    sharedNode,
+    nodeType,
+    incomingTitle: validated.title,
+    importedPageUid,
+  });
 
   const content = await fetchFullMarkdown({ client, sharedNode }).catch(
     (error: unknown) => ({ error: getErrorMessage(error) }),
@@ -358,16 +474,42 @@ export const materializeSharedNode = async ({
       stage: "fetch-content",
     });
 
-  return importedPageUid
+  // Checked before uploading because uploads can't be rolled back. The page writers check
+  // again, since a page with this title can appear while assets upload.
+  const collision = titleCollisionFailure({
+    identity,
+    importedPageUid: importedPageUid ?? undefined,
+    title: pageTitle,
+  });
+  if (collision) return collision;
+
+  const assets = await importNodeAssets({
+    client,
+    sharedNode,
+    markdown: content.markdown,
+  }).catch((error: unknown) => ({ error }));
+  if ("error" in assets)
+    return failure({
+      error: assets.error,
+      identity,
+      message: `Failed to copy the assets of "${sharedNode.title}"`,
+      stage: "copy-assets",
+    });
+  const { markdown, report } = assets;
+
+  const result = await (importedPageUid
     ? updateImportedPage({
         identity,
-        markdown: content.markdown,
+        markdown,
         pageUid: importedPageUid,
-        title: validated.title,
+        title: pageTitle,
       })
     : createImportedPage({
         identity,
-        markdown: content.markdown,
-        title: validated.title,
-      });
+        markdown,
+        title: pageTitle,
+      }));
+
+  if (!result.success) return result;
+  return { ...result, assets: report, ...(warning ? { warning } : {}) };
 };

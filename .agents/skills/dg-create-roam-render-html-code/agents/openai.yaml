@@ -1,0 +1,4 @@
+interface:
+  display_name: "DG Create Roam Render HTML Code"
+  short_description: "Wrap HTML in a Roam iframe renderer"
+  default_prompt: "Use $dg-create-roam-render-html-code to save this HTML as Roam render code."

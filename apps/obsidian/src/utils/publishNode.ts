@@ -11,12 +11,17 @@ import {
   type RelationsFile,
 } from "./relationsStore";
 import type { RelationInstance } from "~/types";
-import { getAvailableGroupIds } from "@repo/database/lib/groups";
 import {
+  ensurePartialSpaceAccess,
+  getAvailableGroupIds,
+  getPublishedGroupIdsByRid,
+} from "@repo/database/lib/groups";
+import {
+  findEmbeddedAttachments,
   syncAllNodesAndRelations,
   syncPublishedNodeAssets,
 } from "./syncDgNodesToSupabase";
-import { isProvisionalSchema } from "./typeUtils";
+import { isAcceptedSchema, isProvisionalSchema } from "./typeUtils";
 import { intersection, difference } from "@repo/utils/setOperations";
 
 import type { DiscourseNodeInVault } from "./getDiscourseNodes";
@@ -29,6 +34,66 @@ export const getPublishedToGroups = (
   const publishedToGroups = frontmatter.publishedToGroups as unknown;
   if (!Array.isArray(publishedToGroups)) return [];
   return publishedToGroups.filter((g): g is string => typeof g === "string");
+};
+
+// An imported node's `publishedToGroups` is a stale copy from its source; ask its source space.
+export const getPublishedGroupsByNode = async <K extends string>({
+  client,
+  frontmatterByNode,
+}: {
+  client: DGSupabaseClient;
+  frontmatterByNode: Record<K, FrontMatterCache | Record<string, unknown>>;
+}): Promise<Record<K, Set<string>>> => {
+  const importedRidByNode = Object.fromEntries(
+    Object.entries<FrontMatterCache | Record<string, unknown>>(
+      frontmatterByNode,
+    ).flatMap(([node, fm]) =>
+      typeof fm.importedFromRid === "string"
+        ? [[node, fm.importedFromRid]]
+        : [],
+    ),
+  );
+  const groupIdsByRid = await getPublishedGroupIdsByRid({
+    client,
+    rids: [...new Set(Object.values(importedRidByNode))],
+  });
+  return Object.fromEntries(
+    Object.entries<FrontMatterCache | Record<string, unknown>>(
+      frontmatterByNode,
+    ).map(([node, fm]) => {
+      const importedRid = importedRidByNode[node];
+      return [
+        node,
+        new Set(
+          importedRid === undefined
+            ? getPublishedToGroups(fm)
+            : (groupIdsByRid[importedRid] ?? []),
+        ),
+      ];
+    }),
+  ) as Record<K, Set<string>>;
+};
+
+// Group members cannot see a space without a SpaceAccess row, so a grant
+// without one cannot be imported.
+const getGroupIdsWithSpaceAccess = async ({
+  client,
+  spaceId,
+  groupIds,
+}: {
+  client: DGSupabaseClient;
+  spaceId: number;
+  groupIds: string[];
+}): Promise<Set<string>> => {
+  if (groupIds.length === 0) return new Set();
+  const { existing, missing } = await ensurePartialSpaceAccess({
+    client,
+    groupIds,
+    spaceId,
+  });
+  if (missing)
+    console.error("Could not give these groups access to the space", missing);
+  return new Set(groupIds.filter((groupId) => groupId in existing));
 };
 
 const publishSchema = async ({
@@ -97,12 +162,6 @@ export const publishNewRelation = async (
     plugin.app.metadataCache.getFileCache(destinationFile)?.frontmatter;
   if (!sourceFm || !destinationFm) return false;
 
-  const sourceGroups = sourceFm.publishedToGroups as string[] | undefined;
-  const destinationGroups = destinationFm.publishedToGroups as
-    | string[]
-    | undefined;
-  if (!Array.isArray(sourceGroups) || !Array.isArray(destinationGroups))
-    return false;
   const relationTriples = plugin.settings.discourseRelations ?? [];
   const triple = relationTriples.find(
     (triple) =>
@@ -118,14 +177,23 @@ export const publishNewRelation = async (
   if (relationType && isProvisionalSchema(relationType)) return false;
   if (relation.tentative === false) return false;
   const resourceIds = [relation.id, relation.type, triple.id];
+  const { source: sourceGroups, destination: destinationGroups } =
+    await getPublishedGroupsByNode({
+      client,
+      frontmatterByNode: { source: sourceFm, destination: destinationFm },
+    });
+  if (!sourceGroups.size || !destinationGroups.size) return false;
   const myGroups = await getAvailableGroupIds(client);
-  const targetGroups = intersection(
-    new Set(myGroups),
-    intersection(
-      new Set<string>(sourceGroups),
-      new Set<string>(destinationGroups),
-    ),
-  );
+  const targetGroups = await getGroupIdsWithSpaceAccess({
+    client,
+    spaceId: context.spaceId,
+    groupIds: [
+      ...intersection(
+        new Set(myGroups),
+        intersection(sourceGroups, destinationGroups),
+      ),
+    ],
+  });
   if (!targetGroups.size) return false;
   // in that case, sync all relations (only) before publishing
   await syncAllNodesAndRelations(plugin, context, true);
@@ -166,7 +234,9 @@ export const publishNodeRelations = async ({
   myGroup: string;
   spaceId: number;
 }): Promise<void> => {
-  const relations = await getRelationsForNodeInstanceId(plugin, nodeId);
+  const relations = (
+    await getRelationsForNodeInstanceId(plugin, nodeId)
+  ).filter((relation) => !relation.importedFromRid);
   const resourceIds: Set<string> = new Set();
   const relationTriples = plugin.settings.discourseRelations ?? [];
   const relevantNodeIds: Set<string> = new Set();
@@ -175,18 +245,25 @@ export const publishNodeRelations = async ({
     relevantNodeIds.add(relation.destination);
   });
   const relevantNodeFiles = getFileForNodeInstanceIds(plugin, relevantNodeIds);
-  const relevantNodeTypeById: Record<string, string | undefined> = {};
+  const frontmatterById: Record<string, FrontMatterCache> = {};
   Object.entries(relevantNodeFiles).map(([id, file]: [string, TFile]) => {
     const fm = plugin.app.metadataCache.getFileCache(file)?.frontmatter;
-    if (fm === undefined) return;
-    if (fm.nodeInstanceId !== nodeId) {
-      // check if published to same group.
-      // Note: current node's pub status not in cache yet!
-      if (!Array.isArray(fm.publishedToGroups)) return;
-      const publishedToGroups: string[] =
-        (fm.publishedToGroups as string[]) || [];
-      if (!publishedToGroups.includes(myGroup)) return;
-    }
+    if (fm !== undefined) frontmatterById[id] = fm;
+  });
+  // The current node's frontmatter does not list myGroup yet.
+  const otherNodeFrontmatterById = Object.fromEntries(
+    Object.entries(frontmatterById).filter(
+      ([, fm]) => fm.nodeInstanceId !== nodeId,
+    ),
+  );
+  const groupsByOtherNodeId = await getPublishedGroupsByNode({
+    client,
+    frontmatterByNode: otherNodeFrontmatterById,
+  });
+  const relevantNodeTypeById: Record<string, string | undefined> = {};
+  Object.entries(frontmatterById).map(([id, fm]) => {
+    if (fm.nodeInstanceId !== nodeId && !groupsByOtherNodeId[id]?.has(myGroup))
+      return;
     relevantNodeTypeById[id] = fm.nodeTypeId as string;
   });
   relations.map((relation) => {
@@ -307,23 +384,48 @@ export const ensurePublishedRelationsAccuracy = async ({
       }
     }
   }
+  const ownRelations = relationInstances.filter(
+    (r) => !r.importedFromRid && syncedRelationIds.has(r.id),
+  );
+  let groupsByNodeId: Record<string, Set<string>>;
+  try {
+    groupsByNodeId = await getPublishedGroupsByNode({
+      client,
+      frontmatterByNode: Object.fromEntries(
+        ownRelations
+          .flatMap((r) => [r.source, r.destination])
+          .flatMap((id) => {
+            const frontmatter = allNodesById[id]?.frontmatter;
+            return frontmatter ? [[id, frontmatter]] : [];
+          }),
+      ),
+    });
+  } catch (error) {
+    // Going on without these groups would delete valid grants. Local-only
+    // relations are not reconciled either; the next full sync recovers.
+    console.error("Could not get the groups of imported nodes", error);
+    return;
+  }
+  const relationTriples = (plugin.settings.discourseRelations ?? []).filter(
+    isAcceptedSchema,
+  );
+  // A group needs the relation's type and triple to read the relation.
+  const schemaIdsOf = (relation: RelationInstance): string[] => {
+    const triple = relationTriples.find(
+      (triple) =>
+        triple.relationshipTypeId === relation.type &&
+        triple.sourceId === allNodesById[relation.source]?.nodeTypeId &&
+        triple.destinationId === allNodesById[relation.destination]?.nodeTypeId,
+    );
+    return triple ? [relation.type, triple.id] : [relation.type];
+  };
   let changed = false;
   const missingPublishRecords: TablesInsert<"ResourceAccess">[] = [];
   for (const group of myGroups) {
-    const publishableRelations = relationInstances.filter(
+    const publishableRelations = ownRelations.filter(
       (r) =>
-        !r.importedFromRid &&
-        syncedRelationIds.has(r.id) &&
-        (
-          (allNodesById[r.source]?.frontmatter?.publishedToGroups as
-            | string[]
-            | undefined) || []
-        ).indexOf(group) >= 0 &&
-        (
-          (allNodesById[r.destination]?.frontmatter?.publishedToGroups as
-            | string[]
-            | undefined) || []
-        ).indexOf(group) >= 0,
+        groupsByNodeId[r.source]?.has(group) &&
+        groupsByNodeId[r.destination]?.has(group),
     );
     const publishableRelationIds = new Set(
       publishableRelations.map((x) => x.id),
@@ -337,13 +439,19 @@ export const ensurePublishedRelationsAccuracy = async ({
       console.error("Could not get synced relation ids", publishedIds.error);
       continue;
     }
+    const publishedLocalIds = new Set(
+      (publishedIds.data || []).map((x) => x.source_local_id),
+    );
     const publishedRelationIds = intersection(
       syncedRelationIds,
-      new Set((publishedIds.data || []).map((x) => x.source_local_id)),
+      publishedLocalIds,
     );
     const missingPublishableIds = difference(
-      publishableRelationIds,
-      publishedRelationIds,
+      new Set([
+        ...publishableRelationIds,
+        ...publishableRelations.flatMap(schemaIdsOf),
+      ]),
+      publishedLocalIds,
     );
     if (missingPublishableIds.size > 0) {
       missingPublishRecords.push(
@@ -378,11 +486,27 @@ export const ensurePublishedRelationsAccuracy = async ({
       }
     }
   }
-  if (missingPublishRecords.length > 0) {
-    const r = await client.from("ResourceAccess").upsert(missingPublishRecords);
+  let groupIdsWithSpaceAccess = new Set<string>();
+  try {
+    groupIdsWithSpaceAccess = await getGroupIdsWithSpaceAccess({
+      client,
+      spaceId: context.spaceId,
+      groupIds: [
+        ...new Set(missingPublishRecords.map((record) => record.account_uid)),
+      ],
+    });
+  } catch (error) {
+    // No early return: the deletes above still need saving.
+    console.error("Could not give groups access to the space", error);
+  }
+  const publishRecords = missingPublishRecords.filter((record) =>
+    groupIdsWithSpaceAccess.has(record.account_uid),
+  );
+  if (publishRecords.length > 0) {
+    const r = await client.from("ResourceAccess").upsert(publishRecords);
     if (r.error) console.error(r.error);
     else {
-      for (const record of missingPublishRecords) {
+      for (const record of publishRecords) {
         const rel = relationInstancesData.relations[record.source_local_id];
         const group = record.account_uid;
         const pos = (rel?.publishedToGroupId || []).indexOf(group);
@@ -435,25 +559,10 @@ export const publishNodeToGroup = async ({
   const lastModifiedDb = new Date(
     idResponse.data.last_modified + "Z",
   ).getTime();
-  try {
-    await publishNodeRelations({ plugin, client, nodeId, myGroup, spaceId });
-  } catch (error) {
-    // do not fail to publish node for that reason
-    console.error("Could not publish relations", error);
-  }
-  const embeds = plugin.app.metadataCache.getFileCache(file)?.embeds ?? [];
-  const attachments = embeds
-    .map(({ link }) => {
-      const attachment = plugin.app.metadataCache.getFirstLinkpathDest(
-        link,
-        file.path,
-      );
-      return attachment;
-    })
-    .filter((a) => !!a);
+  const attachments = findEmbeddedAttachments(plugin, file);
   const lastModified = Math.max(
     file.stat.mtime,
-    ...attachments.map((a) => a.stat.mtime),
+    ...attachments.map((a) => a.file.stat.mtime),
   );
 
   const skipPublishAccess =
@@ -494,6 +603,13 @@ export const publishNodeToGroup = async ({
         groupId: myGroup,
       });
     }
+  }
+  // After SpaceAccess: group members cannot import a grant without it.
+  try {
+    await publishNodeRelations({ plugin, client, nodeId, myGroup, spaceId });
+  } catch (error) {
+    // do not fail to publish node for that reason
+    console.error("Could not publish relations", error);
   }
   await syncPublishedNodeAssets({
     plugin,

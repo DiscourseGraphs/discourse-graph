@@ -5,10 +5,13 @@ import {
   getImportedNodesInfo,
   getLocalNodeKeyToEndpointId,
 } from "./relationsStore";
-import { fetchNodeImportInfoForInstances, getSpaceUris } from "./importNodes";
+import {
+  fetchNodeImportInfoForInstances,
+  getSpaceInfoFromIds,
+} from "./importNodes";
 import { QueryEngine } from "~/services/QueryEngine";
 import {
-  fetchRelationInstancesFromSpace,
+  fetchRelationInstancesForImport,
   type RemoteRelationInstance,
 } from "./importRelations";
 import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
@@ -37,8 +40,8 @@ export type ImportPreviewData = {
   keyToRid: Map<string, string>;
   /** Key (spaceId:source_local_id) -> endpoint id (RID) for relation import; includes local nodes */
   keyToRelationEndpointId: Map<string, string>;
-  /** Relation instances per spaceId, for reuse during import */
-  relationInstancesBySpace: Map<number, RemoteRelationInstance[]>;
+  /** Relation instances, for reuse during import */
+  relationInstances: RemoteRelationInstance[];
 };
 
 export const computeImportPreview = async ({
@@ -69,7 +72,7 @@ export const computeImportPreview = async ({
   }
 
   const spaceIds = [...nodesBySpace.keys()];
-  const spaceUris = await getSpaceUris(client, spaceIds);
+  const spaceInfoById = await getSpaceInfoFromIds(client, spaceIds);
 
   const newNodeTypeSchemas: Array<{ id: string; name: string }> = [];
   const seenNodeTypeIds = new Set<string>();
@@ -81,6 +84,8 @@ export const computeImportPreview = async ({
     nodeTypeIdToName.set(nt.id, nt.name);
   }
 
+  const selectedNodeConceptIds: number[] = [];
+
   for (const [spaceId, nodes] of nodesBySpace.entries()) {
     const nodeImportInfoByInstance = await fetchNodeImportInfoForInstances({
       client,
@@ -88,7 +93,8 @@ export const computeImportPreview = async ({
       nodeInstanceIds: nodes.map((n) => n.nodeInstanceId),
     });
 
-    for (const { schema } of nodeImportInfoByInstance.values()) {
+    for (const { conceptId, schema } of nodeImportInfoByInstance.values()) {
+      if (conceptId !== undefined) selectedNodeConceptIds.push(conceptId);
       if (!schema) continue;
       const { nodeTypeId, name } = schema;
 
@@ -126,7 +132,7 @@ export const computeImportPreview = async ({
 
   // Add currently selected nodes to the sets
   for (const [spaceId, nodes] of nodesBySpace.entries()) {
-    const spaceUri = spaceUris.get(spaceId);
+    const spaceUri = spaceInfoById.get(spaceId)?.url;
     if (!spaceUri) continue;
     for (const node of nodes) {
       const key = `${spaceId}:${node.nodeInstanceId}`;
@@ -143,51 +149,45 @@ export const computeImportPreview = async ({
   const localMap = getLocalNodeKeyToEndpointId(plugin, context.spaceId);
   const keyToRelationEndpointId = new Map([...keyToRid, ...localMap]);
 
-  // Fetch relation instances per space and collect matching ones with endpoint concept ids
-  const relationInstancesBySpace = new Map<number, RemoteRelationInstance[]>();
+  // Fetch relation instances and collect matching ones with endpoint concept ids
+  const relationInstances = await fetchRelationInstancesForImport({
+    client,
+    localSpaceId: context.spaceId,
+    spaceIds,
+    nodeConceptIds: selectedNodeConceptIds,
+  });
   const matchingRelations: Array<{
     rel: RemoteRelationInstance;
     sourceConceptId: number;
     destConceptId: number;
-    spaceId: number;
   }> = [];
 
-  for (const spaceId of spaceIds) {
-    const instances = await fetchRelationInstancesFromSpace({
-      client,
-      spaceId,
-    });
-    relationInstancesBySpace.set(spaceId, instances);
+  for (const rel of relationInstances) {
+    const sourceData = rel.concepts_of_relation.find(
+      (cor) =>
+        cor.id ===
+        (rel.reference_content as Record<string, number | number[]>).source,
+    );
+    const destData = rel.concepts_of_relation.find(
+      (cor) =>
+        cor.id ===
+        (rel.reference_content as Record<string, number | number[]>)
+          .destination,
+    );
+    if (!sourceData || !destData) continue;
 
-    // Filter: only relations where both endpoints resolve (imported or local)
-    for (const rel of instances) {
-      const sourceData = rel.concepts_of_relation.find(
-        (cor) =>
-          cor.id ===
-          (rel.reference_content as Record<string, number | number[]>).source,
-      );
-      const destData = rel.concepts_of_relation.find(
-        (cor) =>
-          cor.id ===
-          (rel.reference_content as Record<string, number | number[]>)
-            .destination,
-      );
-      if (!sourceData || !destData) continue;
+    const sourceKey = `${sourceData.space_id}:${sourceData.source_local_id}`;
+    const destKey = `${destData.space_id}:${destData.source_local_id}`;
 
-      const sourceKey = `${sourceData.space_id}:${sourceData.source_local_id}`;
-      const destKey = `${destData.space_id}:${destData.source_local_id}`;
-
-      if (
-        keyToRelationEndpointId.has(sourceKey) &&
-        keyToRelationEndpointId.has(destKey)
-      ) {
-        matchingRelations.push({
-          rel,
-          sourceConceptId: sourceData.id,
-          destConceptId: destData.id,
-          spaceId,
-        });
-      }
+    if (
+      keyToRelationEndpointId.has(sourceKey) &&
+      keyToRelationEndpointId.has(destKey)
+    ) {
+      matchingRelations.push({
+        rel,
+        sourceConceptId: sourceData.id,
+        destConceptId: destData.id,
+      });
     }
   }
 
@@ -438,6 +438,6 @@ export const computeImportPreview = async ({
     nodeKeys,
     keyToRid,
     keyToRelationEndpointId,
-    relationInstancesBySpace,
+    relationInstances,
   };
 };

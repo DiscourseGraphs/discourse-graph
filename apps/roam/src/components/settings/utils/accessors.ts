@@ -12,6 +12,7 @@ import internalError from "~/utils/internalError";
 import { getSetting } from "~/utils/extensionSettings";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import { getRoamMarkdownApi } from "~/utils/materializeSharedNode";
+import { PERSONAL_MIGRATION_MARKER } from "./migrationMarkers";
 
 import type { RoamBasicNode } from "roamjs-components/types";
 import discourseConfigRef from "~/utils/discourseConfigRef";
@@ -20,6 +21,7 @@ import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
 import getDiscourseNodes, {
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
+import getFirstAvailableShortcut from "~/utils/getFirstAvailableShortcut";
 import type { Condition } from "~/utils/types";
 import { z } from "zod";
 import {
@@ -225,10 +227,6 @@ const PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY = new Map<string, string>([
   [pathKey([PERSONAL_KEYS.disableSidebarOpen]), "disable-sidebar-open"],
   [pathKey([PERSONAL_KEYS.hideFeedbackButton]), "hide-feedback-button"],
   [pathKey([PERSONAL_KEYS.autoCanvasRelations]), "auto-canvas-relations"],
-  [
-    pathKey([PERSONAL_KEYS.overlayInCanvas]),
-    "discourse-context-overlay-in-canvas",
-  ],
   [pathKey([PERSONAL_KEYS.streamlineStyling]), "streamline-styling"],
   [pathKey([PERSONAL_KEYS.disableProductDiagnostics]), "disallow-diagnostics"],
   [pathKey([PERSONAL_KEYS.discourseToolShortcut]), "discourse-tool-shortcut"],
@@ -910,7 +908,12 @@ export const bulkReadSettings = (): SettingsSnapshot => {
   return {
     featureFlags,
     globalSettings: GlobalSettingsSchema.parse(globalProps || {}),
-    personalSettings: PersonalSettingsSchema.parse(personalProps || {}),
+    // Another user can enable the graph-wide flag before this user's migration.
+    // Startup reads (including the diagnostics opt-out) must wait for their data.
+    personalSettings:
+      getSetting<boolean>(PERSONAL_MIGRATION_MARKER, false) === true
+        ? PersonalSettingsSchema.parse(personalProps || {})
+        : (readAllLegacyPersonalSettings() as PersonalSettings),
   };
 };
 
@@ -1090,15 +1093,15 @@ const toDiscourseNode = (settings: DiscourseNodeSettings): DiscourseNode => ({
     : undefined,
 });
 
-const getUnusedShortcut = (label: string): string => {
-  const candidateShortcut = label.slice(0, 1).toUpperCase();
-  const existingShortcuts = new Set(
-    getDiscourseNodes()
-      .map((n) => n.shortcut.toUpperCase())
-      .filter(Boolean),
+const getUnusedShortcut = (label: string): string =>
+  getFirstAvailableShortcut(
+    label,
+    new Set(
+      getDiscourseNodes()
+        .map((n) => n.shortcut)
+        .filter(Boolean),
+    ),
   );
-  return existingShortcuts.has(candidateShortcut) ? "" : candidateShortcut;
-};
 
 // getAllDiscourseNodes skips prop-less pages, so invalidate only after the props write settles.
 export const createDiscourseNodeType = async ({
@@ -1106,11 +1109,13 @@ export const createDiscourseNodeType = async ({
   shortcut,
   format,
   template,
+  uid,
 }: {
   label: string;
   shortcut?: string;
   format?: string;
   template?: RoamBasicNode[] | string; // string would be markdown
+  uid?: string;
 }): Promise<DiscourseNode> => {
   if (shortcut === undefined) shortcut = getUnusedShortcut(label);
   format = format ?? `[[${label.slice(0, 3).toUpperCase()}]] - {content}`;
@@ -1137,7 +1142,8 @@ export const createDiscourseNodeType = async ({
     });
   }
   const pageUid = await createPage({
-    title: `discourse-graph/nodes/${label}`,
+    title: `${DISCOURSE_NODE_PAGE_PREFIX}${label}`,
+    uid,
     tree,
   });
   if (typeof template === "string") {

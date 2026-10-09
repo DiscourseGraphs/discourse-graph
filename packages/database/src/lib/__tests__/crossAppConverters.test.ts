@@ -19,10 +19,43 @@ const baseNode: CrossAppNode = {
   createdAt: new Date("2026-06-14T11:00:00Z"),
   authorId: "account-local-1",
   nodeType: "concept-1",
+  coreTitle: "REM sleep and recall",
   content: { direct: { value: "EVD - REM sleep and recall" } },
 };
 
 describe("crossAppNodeSchemaToDbConcept", () => {
+  it("maps format to literal_content.format", () => {
+    const concept = crossAppNodeSchemaToDbConcept({
+      ...baseSchema,
+      format: "[[CLM]] - {content}",
+    });
+    expect(concept.literal_content).toEqual({
+      label: "Some concept",
+      format: "[[CLM]] - {content}",
+    });
+  });
+
+  it("keeps the template keys alongside format", () => {
+    const concept = crossAppNodeSchemaToDbConcept({
+      ...baseSchema,
+      format: "[[CLM]] - {content}",
+      template: "* Evidence\n",
+      templateTitle: "Claim template",
+    });
+    expect(concept.literal_content).toEqual({
+      label: "Some concept",
+      format: "[[CLM]] - {content}",
+      template: "Claim template",
+      template_content: "* Evidence\n",
+    });
+  });
+
+  it("writes the label into literal_content as well as the name", () => {
+    const concept = crossAppNodeSchemaToDbConcept(baseSchema);
+    expect(concept.name).toBe("Some concept");
+    expect(concept.literal_content).toEqual({ label: "Some concept" });
+  });
+
   it("stores slot definitions as roles plus local reference content", () => {
     const result = crossAppNodeSchemaToDbConcept({
       ...baseSchema,
@@ -30,6 +63,7 @@ describe("crossAppNodeSchemaToDbConcept", () => {
       slotDefinitions: { evidence: "evidence-type", claim: "claim-type" },
     });
     expect(result.literal_content).toEqual({
+      label: "Some concept",
       template: "Template Title",
       roles: ["evidence", "claim"],
     });
@@ -44,7 +78,7 @@ describe("crossAppNodeSchemaToDbConcept", () => {
       ...baseSchema,
       slotDefinitions: {},
     });
-    expect(result).not.toHaveProperty("literal_content");
+    expect(result.literal_content).toEqual({ label: "Some concept" });
     expect(result).not.toHaveProperty("local_reference_content");
   });
 });

@@ -16,26 +16,47 @@ import {
 import { Tables } from "@repo/database/dbTypes";
 import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
 import { getImportedSourceRids } from "./importedSourceIdentity";
+import {
+  type NodeTypeIdentity,
+  parseTripleEndNames,
+  pickTripleCandidate,
+} from "@repo/database/lib/tripleMatching";
 
 type Concept = Tables<"Concept">;
+
+// A visible triple of an Obsidian relation's relation type.
+export type TripleCandidate = {
+  rid: string;
+  label?: string;
+  complement?: string;
+  modifiedAt?: Date;
+};
 
 export type DiscoverSharedRelationsResult = {
   relations: CrossAppRelation[];
   relTripleSchemas: CrossAppRelationTripleSchema[];
   relTypeSchemas: CrossAppRelationTypeSchema[];
   nodeSchemas: CrossAppNodeSchema[];
+  // By relation type RID.
+  tripleCandidatesByRelationType: Record<string, TripleCandidate[]>;
+  // By relation RID; set only when exactly one candidate matches.
+  matchedTripleByRelation: Record<string, string>;
+  // One failure message per relation dropped because its schema is not visible.
+  skippedRelations: string[];
 };
 
 export const discoverSharedRelations = async (
   client: DGSupabaseClient,
   spaceId: number,
-  futureImportRids?: string[],
 ): Promise<DiscoverSharedRelationsResult> => {
   const response: DiscoverSharedRelationsResult = {
     relations: [],
     relTripleSchemas: [],
     relTypeSchemas: [],
     nodeSchemas: [],
+    tripleCandidatesByRelationType: {},
+    matchedTripleByRelation: {},
+    skippedRelations: [],
   };
   // TODO: paginate
   const { data: dbAllImportableRelations, error: relError } = await client
@@ -54,6 +75,8 @@ export const discoverSharedRelations = async (
     .map((r) => r.concepts_of_relation)
     .flat();
   const spaceIds = new Set(relatedNodeInfo.map(({ space_id }) => space_id!));
+  // A relation between two imported nodes shares a space with neither end.
+  dbAllImportableRelations.forEach(({ space_id }) => spaceIds.add(space_id!));
   spaceIds.add(spaceId);
   const spaceMap = await getSpaceMap(client, [...spaceIds]);
   const toRid = (spaceId: number, localId: string) =>
@@ -82,10 +105,18 @@ export const discoverSharedRelations = async (
       .map(({ id }) => id),
   );
   const importedNodeRids = await getImportedSourceRids();
-  if (futureImportRids !== undefined) {
-    futureImportRids.forEach((id) => importedNodeRids.add(id));
-  }
-  const dbRelations = dbAllImportableRelations.filter((r) => {
+  const relationRid = (r: {
+    space_id: number | null;
+    source_local_id: string | null;
+  }) =>
+    r.space_id !== null && r.space_id in spaceMap
+      ? spaceUriAndLocalIdToRid(
+          spaceMap[r.space_id],
+          r.source_local_id!,
+          "relation",
+        )
+      : `${r.space_id}/${r.source_local_id}`;
+  const relatedRelations = dbAllImportableRelations.filter((r) => {
     const references = (r.reference_content || {}) as Record<string, number>;
     const sourceId = references["source"];
     const destinationId = references["destination"];
@@ -98,22 +129,35 @@ export const discoverSharedRelations = async (
     );
   });
   const relationSchemaIds = new Set(
-    dbRelations.map((r) => r.schema_id).filter((r) => r !== null),
+    relatedRelations.map((r) => r.schema_id).filter((r) => r !== null),
   );
-  if (relationSchemaIds.size === 0) return response;
-  const { data: dbRelSchemas, error: relSchError } = await client
-    .from("my_concepts")
-    .select()
-    .in("id", [...relationSchemaIds]);
+  const { data: dbRelSchemas, error: relSchError } =
+    relationSchemaIds.size === 0
+      ? { data: [], error: null }
+      : await client
+          .from("my_concepts")
+          .select()
+          .in("id", [...relationSchemaIds]);
   if (relSchError) throw relSchError;
   if (!dbRelSchemas) throw new Error("Missing schemas");
+  // A group can see a relation without its schema, for instance one published before
+  // relation types and triples were granted with it. Such a relation cannot be
+  // converted; it is retried on every import, so it arrives once the schema is granted.
+  const visibleSchemaIds = new Set(dbRelSchemas.map(({ id }) => id));
+  const dbRelations = relatedRelations.filter(
+    (r) => r.schema_id !== null && visibleSchemaIds.has(r.schema_id),
+  );
+  response.skippedRelations = relatedRelations
+    .filter((r) => !dbRelations.includes(r))
+    .map((r) => `${relationRid(r)}: its relation type is not visible`);
+  if (dbRelations.length === 0) return response;
   const dbRelTripleSchemasDirect = dbRelSchemas.filter(
     (r) => r.refs !== null && r.refs.length > 0,
   ) as Concept[];
   const dbRelTypeSchemasDirect = dbRelSchemas.filter(
     (r) => r.refs === null || r.refs.length === 0,
   ) as Concept[];
-  let dbRelTripleSchemas = dbRelTripleSchemasDirect;
+  const dbRelTripleSchemas = dbRelTripleSchemasDirect;
   let dbRelTypeSchemas = dbRelTypeSchemasDirect;
 
   const missingRelationTypeSchemaIds = new Set<number>(
@@ -136,11 +180,9 @@ export const discoverSharedRelations = async (
     if (!data) throw new Error("Missing relation type schemas");
     dbRelTypeSchemas = [...dbRelTypeSchemasDirect, ...(data as Concept[])];
   }
-  // Obsidian relation instances point to the RelationType,
-  // so we need to filter relevant RelationTriples
-  // according to the relation instance's type signatures
+  // Obsidian relations point to a relation type. The importer matches the triple
+  // locally; these candidates only supply provenance.
   if (dbRelTypeSchemasDirect.length) {
-    // Fetch all corresponding triples and filter
     const relTypeIds = dbRelTypeSchemasDirect.map((r) => r.id);
     const { data, error: trsError } = await client
       .from("my_concepts")
@@ -150,52 +192,116 @@ export const discoverSharedRelations = async (
       .overlaps("refs", relTypeIds);
     if (trsError) throw trsError;
     if (!data) throw new Error("Missing relation triple schemas");
-    const triplesBySchemaId: Record<number, Concept[]> = Object.fromEntries(
-      relTypeIds.map((id) => [id, []]),
+    const candidateTriples = data as Concept[];
+    const refsOf = (c: { reference_content: unknown }) =>
+      (c.reference_content ?? {}) as Record<string, number>;
+    const schemaRid = (c: {
+      space_id: number | null;
+      source_local_id: string | null;
+    }) =>
+      c.space_id !== null &&
+      c.space_id in spaceMap &&
+      c.source_local_id !== null
+        ? spaceUriAndLocalIdToRid(
+            spaceMap[c.space_id],
+            c.source_local_id,
+            "schema",
+          )
+        : undefined;
+
+    // Triple end types may be hidden; relation end types are visible with the relation.
+    const endSchemaIds = new Set<number>(
+      [
+        ...candidateTriples.flatMap((t) => [
+          refsOf(t).source,
+          refsOf(t).destination,
+        ]),
+        ...dbRelations.flatMap((r) =>
+          r.concepts_of_relation.map(({ schema_id }) => schema_id),
+        ),
+      ].filter((id): id is number => typeof id === "number"),
     );
-    data.forEach((c) => {
-      const triplesArray =
-        triplesBySchemaId[
-          ((c.reference_content ?? {}) as Record<string, number>)[
-            "relation_type"
-          ]
-        ];
-      if (triplesArray !== undefined) triplesArray.push(c as Concept);
-    });
-    const tripleIds = new Set<number>();
-    for (const relation of dbRelations) {
-      const potentialTriples = triplesBySchemaId[relation.schema_id || 0];
-      if (potentialTriples === undefined) continue;
-      const refs = (relation.reference_content || {}) as Record<string, number>;
-      const sourceContent = relation.concepts_of_relation.filter(
-        (cr) => cr.id === refs["source"],
-      );
-      const destinationContent = relation.concepts_of_relation.filter(
-        (cr) => cr.id === refs["destination"],
-      );
-      if (sourceContent.length !== 1 || destinationContent.length !== 1)
-        continue;
-      const matches = potentialTriples.filter(
-        (triple) =>
-          ((triple.reference_content ?? {}) as Record<string, number>)[
-            "source"
-          ] === sourceContent[0].schema_id &&
-          ((triple.reference_content ?? {}) as Record<string, number>)[
-            "destination"
-          ] === destinationContent[0].schema_id,
-      );
-      if (matches.length === 1) {
-        const relationTripleSchemaId = matches[0].id;
-        tripleIds.add(relationTripleSchemaId);
-        // prentend that the obsidian relation referred to the triple
-        // for when we convert
-        relation.schema_id = relationTripleSchemaId;
-      }
+    const { data: endSchemas, error: esError } = await client
+      .from("my_concepts")
+      .select()
+      .in("id", [...endSchemaIds]);
+    if (esError) throw esError;
+    const identityById: Record<number, NodeTypeIdentity> = {};
+    for (const s of endSchemas ?? []) {
+      if (s.id === null) continue;
+      const literal = (s.literal_content ?? {}) as Record<string, unknown>;
+      identityById[s.id] = {
+        rid: schemaRid(s),
+        localId: s.source_local_id ?? undefined,
+        importedFromRid:
+          typeof literal.importedFromRid === "string"
+            ? literal.importedFromRid
+            : undefined,
+        name: s.name ?? undefined,
+      };
     }
-    dbRelTripleSchemas = [
-      ...dbRelTripleSchemasDirect,
-      ...(data as Concept[]).filter((tr) => tripleIds.has(tr.id || 0)),
-    ];
+
+    const relTypeById = Object.fromEntries(
+      dbRelTypeSchemasDirect.map((r) => [r.id, r]),
+    );
+    const candidatesByRelationTypeId: Record<
+      number,
+      {
+        candidate: TripleCandidate;
+        source: NodeTypeIdentity;
+        destination: NodeTypeIdentity;
+      }[]
+    > = {};
+    for (const triple of candidateTriples) {
+      const refs = refsOf(triple);
+      const relationType = relTypeById[refs.relation_type];
+      const rid = schemaRid(triple);
+      if (relationType === undefined || rid === undefined) continue;
+      const literal = (triple.literal_content ?? {}) as Record<string, unknown>;
+      const label =
+        typeof literal.label === "string" ? literal.label : relationType.name;
+      const complement =
+        typeof literal.complement === "string" ? literal.complement : undefined;
+      const names = parseTripleEndNames(triple.name, label);
+      (candidatesByRelationTypeId[relationType.id] ??= []).push({
+        candidate: {
+          rid,
+          label,
+          complement,
+          modifiedAt: new Date(triple.last_modified + "Z"),
+        },
+        source: identityById[refs.source] ?? { name: names?.source },
+        destination: identityById[refs.destination] ?? {
+          name: names?.destination,
+        },
+      });
+    }
+    for (const [relationTypeId, candidates] of Object.entries(
+      candidatesByRelationTypeId,
+    )) {
+      const relationTypeRid = schemaRid(relTypeById[Number(relationTypeId)]);
+      if (relationTypeRid === undefined) continue;
+      response.tripleCandidatesByRelationType[relationTypeRid] = candidates.map(
+        ({ candidate }) => candidate,
+      );
+    }
+
+    for (const relation of dbRelations) {
+      const candidates = candidatesByRelationTypeId[relation.schema_id ?? 0];
+      if (candidates === undefined) continue;
+      const refs = refsOf(relation);
+      const endIdentity = (id: number): NodeTypeIdentity => {
+        const ends = relation.concepts_of_relation.filter((cr) => cr.id === id);
+        if (ends.length !== 1 || ends[0].schema_id === null) return {};
+        return identityById[ends[0].schema_id] ?? {};
+      };
+      const picked = pickTripleCandidate(candidates, {
+        source: endIdentity(refs.source),
+        destination: endIdentity(refs.destination),
+      });
+      if (picked === undefined) continue;
+      response.matchedTripleByRelation[relationRid(relation)] = picked.rid;
+    }
   }
   const nodeTypeSchemaIds = new Set<number>(
     dbRelTripleSchemas
@@ -250,5 +356,8 @@ export const discoverSharedRelations = async (
     relTripleSchemas,
     relTypeSchemas,
     nodeSchemas,
+    tripleCandidatesByRelationType: response.tripleCandidatesByRelationType,
+    matchedTripleByRelation: response.matchedTripleByRelation,
+    skippedRelations: response.skippedRelations,
   };
 };

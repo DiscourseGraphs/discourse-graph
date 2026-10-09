@@ -1,8 +1,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* tldraw otherwise caps the style panel at 148px; only the context tab needs
+   the extra width, the styling tab keeps tldraw's default proportions. */
+.tlui-style-panel:has(.dg-node-card-menu--context) {
+  width: min(20rem, calc(100vw - 1rem));
+  max-width: min(20rem, calc(100vw - 1rem));
+}
+
 .accent-border-bottom {
   border-bottom: 2px solid var(--interactive-accent) !important;
+}
+
+/* Match core status bar icon items (Sync, editor mode) instead of the
+   default .status-bar-item padding, which makes the bar taller. */
+.status-bar-item.dg-help-menu-status-bar-item {
+  padding: 0 var(--size-2-2);
 }
 
 .dg-h1 {
@@ -60,11 +73,26 @@ body.dg-hide-frontmatter-ids .metadata-property[data-property-key^="rel_" i] {
   display: none !important;
 }
 
-/* Discourse tag styling in editor (colors via --dg-discourse-tag-* on the element) */
-[data-dg-discourse-tag] {
+/* The tag mark sits inside Obsidian's `.cm-hashtag`, which owns the chip's padding
+   and radius; ::before fills that box with the node colour set in tagNodeHandler.ts. */
+.cm-hashtag:has(> .dg-discourse-tag) {
+  position: relative;
+  isolation: isolate;
   cursor: pointer;
-  background-color: var(--dg-discourse-tag-bg);
-  color: var(--dg-discourse-tag-fg);
+}
+
+.dg-discourse-tag {
+  color: var(--dg-tag-fg);
+  border-radius: inherit;
+}
+
+.dg-discourse-tag::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background-color: var(--dg-tag-bg);
 }
 
 /* Off-screen measure container matching DiscourseNodeShape layout */
@@ -99,4 +127,12 @@ body.dg-hide-frontmatter-ids .metadata-property[data-property-key^="rel_" i] {
   color: inherit;
   border: none !important;
   box-shadow: none !important;
+}
+
+/* The reset above outranks utility classes; re-assert the node card menu's active tab styling.
+   border-radius 0 keeps the underline flat instead of bending around the button's rounded corners. */
+.tldraw__editor .dg-node-card-menu button.accent-border-bottom {
+  border-bottom: 2px solid var(--interactive-accent) !important;
+  border-radius: 0;
+  color: var(--interactive-accent);
 }

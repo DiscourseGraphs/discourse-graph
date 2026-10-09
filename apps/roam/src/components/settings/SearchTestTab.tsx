@@ -197,7 +197,7 @@ const ProviderResultCard = ({
 
       <div className="space-y-2 p-3">
         {result.error ? (
-          <div className="rounded border border-red-200 bg-red-50 px-2 py-2 text-sm text-red-800">
+          <div className="rounded border border-red-200 bg-red-50 px-2 py-2 text-sm text-red-700">
             {result.error}
           </div>
         ) : isRawVisible ? (

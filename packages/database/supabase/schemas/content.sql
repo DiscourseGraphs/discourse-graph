@@ -248,13 +248,16 @@ SELECT
     author_id,
     contents,
     content_type
-FROM
-    public."Document"
-    LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
-WHERE (
-    space_id = any(public.my_space_ids('reader'))
-    OR (space_id = any(public.my_space_ids('partial')) AND ra.space_id IS NOT NULL)
-);
+FROM public."Document"
+WHERE
+    space_id = any((SELECT public.my_space_ids('reader'))::bigint [])
+    OR (
+        space_id = any((SELECT public.my_space_ids('partial'))::bigint [])
+        AND (space_id, source_local_id) IN (SELECT space_id, source_local_id FROM public.my_accessible_resources())
+    );
+
+-- Single-table views are writable, and writes run as the view owner, bypassing Document's RLS.
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.my_documents FROM anon, authenticated;
 
 CREATE OR REPLACE VIEW public.my_contents AS
 SELECT
@@ -274,11 +277,15 @@ SELECT
     content_type,
     original
 FROM public."Content"
-    LEFT OUTER JOIN public.my_accessible_resources() AS ra USING (space_id, source_local_id)
-WHERE (
-    space_id = any(public.my_space_ids('reader'))
-    OR (space_id = any(public.my_space_ids('partial')) AND ra.space_id IS NOT NULL)
-);
+WHERE
+    space_id = any((SELECT public.my_space_ids('reader'))::bigint [])
+    OR (
+        space_id = any((SELECT public.my_space_ids('partial'))::bigint [])
+        AND (space_id, source_local_id) IN (SELECT space_id, source_local_id FROM public.my_accessible_resources())
+    );
+
+-- Single-table views are writable, and writes run as the view owner, bypassing Content's RLS.
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.my_contents FROM anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.document_of_content(content public.my_contents)
 RETURNS SETOF public.my_documents STRICT STABLE

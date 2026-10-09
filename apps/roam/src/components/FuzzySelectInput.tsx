@@ -173,7 +173,7 @@ const FuzzySelectInput = <T extends Result = Result>({
           maxLength={MAX_CONTENT_LENGTH}
         />
         {editText.length >= MAX_CONTENT_LENGTH && (
-          <p className="mt-1 text-xs text-red-500">
+          <p className="mt-1 text-xs text-red-700">
             Character limit reached ({MAX_CONTENT_LENGTH})
           </p>
         )}
@@ -257,7 +257,7 @@ const FuzzySelectInput = <T extends Result = Result>({
             }}
           />
           {query.length >= MAX_CONTENT_LENGTH && (
-            <p className="mt-1 text-xs text-red-500">
+            <p className="mt-1 text-xs text-red-700">
               Character limit reached ({MAX_CONTENT_LENGTH})
             </p>
           )}
