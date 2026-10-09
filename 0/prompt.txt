@@ -1,0 +1,11 @@
+make a plan
+
+---
+
+Do this task here: “Remove unused apps/obsidian validateNodeFormat.ts”
+
+---
+
+1. it should be errors: we should block. warning was the wrong language
+
+2. hide warning. since users can't edit imported node types anw
