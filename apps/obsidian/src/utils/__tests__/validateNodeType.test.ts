@@ -66,7 +66,7 @@ describe("validateNodeFormat", () => {
     created: 0,
     modified: 0,
   };
-  const validate = (format: string) =>
+  const validate = (format: string): ReturnType<typeof validateNodeFormat> =>
     validateNodeFormat({ format, currentNode, allNodes: [currentNode] });
 
   it.each([
