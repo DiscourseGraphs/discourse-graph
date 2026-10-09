@@ -14,6 +14,15 @@ type StaticEventSource = {
 
 const STATIC_EVENT_SOURCES: StaticEventSource[] = [
   {
+    // The article only gives "June 2026"; the day is a sort-order placeholder.
+    date: "2026-06-01",
+    dateLabel: "June 2026",
+    href: "https://mira.science/blog/what-we-built-at-the-mira-kickoff/",
+    linkText: "Read article",
+    location: "Ireland",
+    title: "What we built at the MIRA Kickoff",
+  },
+  {
     date: "2026-06-18",
     href: "https://discoursegraphs.github.io/panel-qa-site/",
     linkText: "View panel notes",
