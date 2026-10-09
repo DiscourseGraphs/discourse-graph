@@ -687,3 +687,11 @@ finish the docs note and open the PR
 <status>completed</status>
 <summary>Background command "Wait for CI on new head" completed (exit code 0)</summary>
 </task-notification>
+
+---
+
+add that sync feature or admin panel is also not available on mobile
+
+---
+
+basically advanced features (eg: sync. new beta features etc)
