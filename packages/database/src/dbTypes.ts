@@ -952,9 +952,7 @@ export type Database = {
           account_local_id: string | null
           active: boolean | null
           agent_type: Database["public"]["Enums"]["AgentType"] | null
-          dg_account: string | null
           id: number | null
-          metadata: Json | null
           name: string | null
           platform: Database["public"]["Enums"]["Platform"] | null
           write_permission: boolean | null
@@ -963,9 +961,7 @@ export type Database = {
           account_local_id?: string | null
           active?: boolean | null
           agent_type?: Database["public"]["Enums"]["AgentType"] | null
-          dg_account?: string | null
           id?: number | null
-          metadata?: Json | null
           name?: string | null
           platform?: Database["public"]["Enums"]["Platform"] | null
           write_permission?: boolean | null
@@ -974,22 +970,12 @@ export type Database = {
           account_local_id?: string | null
           active?: boolean | null
           agent_type?: Database["public"]["Enums"]["AgentType"] | null
-          dg_account?: string | null
           id?: number | null
-          metadata?: Json | null
           name?: string | null
           platform?: Database["public"]["Enums"]["Platform"] | null
           write_permission?: boolean | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "PlatformAccount_dg_account_fkey"
-            columns: ["dg_account"]
-            isOneToOne: false
-            referencedRelation: "my_groups"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       my_concepts: {
         Row: {
@@ -1637,9 +1623,7 @@ export type Database = {
           account_local_id: string | null
           active: boolean | null
           agent_type: Database["public"]["Enums"]["AgentType"] | null
-          dg_account: string | null
           id: number | null
-          metadata: Json | null
           name: string | null
           platform: Database["public"]["Enums"]["Platform"] | null
           write_permission: boolean | null
@@ -1657,9 +1641,7 @@ export type Database = {
           account_local_id: string | null
           active: boolean | null
           agent_type: Database["public"]["Enums"]["AgentType"] | null
-          dg_account: string | null
           id: number | null
-          metadata: Json | null
           name: string | null
           platform: Database["public"]["Enums"]["Platform"] | null
           write_permission: boolean | null

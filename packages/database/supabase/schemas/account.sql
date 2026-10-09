@@ -440,6 +440,7 @@ REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.my_spaces FROM anon, authentic
 
 ALTER TABLE public."PlatformAccount" ENABLE ROW LEVEL SECURITY;
 
+-- Leaves out dg_account and metadata: peers have no use for them, and a known auth uid should not be handed out.
 CREATE OR REPLACE VIEW public.my_accounts AS
 SELECT
     id,
@@ -448,9 +449,7 @@ SELECT
     account_local_id,
     write_permission,
     active,
-    agent_type,
-    metadata,
-    dg_account
+    agent_type
 FROM public."PlatformAccount"
 WHERE id IN (
     SELECT "LocalAccess".account_id FROM public."LocalAccess"
