@@ -50,6 +50,7 @@ REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.my_file_references FROM anon, 
 GRANT ALL ON TABLE public."FileReference" TO authenticated;
 GRANT ALL ON TABLE public."FileReference" TO service_role;
 REVOKE ALL ON TABLE public."FileReference" FROM anon;
+GRANT SELECT ON TABLE public."FileReference" TO anon;
 
 ALTER TABLE public."FileReference" ENABLE ROW LEVEL SECURITY;
 
@@ -143,7 +144,7 @@ ON storage.objects FOR INSERT TO authenticated WITH CHECK (
 
 DROP POLICY IF EXISTS "storage_select_assets_access" ON storage.objects;
 CREATE POLICY "storage_select_assets_access"
-ON storage.objects FOR SELECT TO authenticated USING (
+ON storage.objects FOR SELECT TO anon, authenticated USING (
     bucket_id = 'assets' AND file_access(name)
 );
 

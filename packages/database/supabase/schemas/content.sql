@@ -191,12 +191,15 @@ CREATE INDEX resource_access_content_local_id_idx ON public."ResourceAccess" (so
 GRANT ALL ON TABLE public."ResourceAccess" TO authenticated;
 GRANT ALL ON TABLE public."ResourceAccess" TO service_role;
 REVOKE ALL ON TABLE public."ResourceAccess" FROM anon;
+GRANT SELECT ON TABLE public."ResourceAccess" TO anon;
 
 REVOKE ALL ON TABLE public."Document" FROM anon;
+GRANT SELECT ON TABLE public."Document" TO anon;
 GRANT ALL ON TABLE public."Document" TO authenticated;
 GRANT ALL ON TABLE public."Document" TO service_role;
 
 REVOKE ALL ON TABLE public."Content" FROM anon;
+GRANT SELECT ON TABLE public."Content" TO anon;
 GRANT ALL ON TABLE public."Content" TO authenticated;
 GRANT ALL ON TABLE public."Content" TO service_role;
 
@@ -742,7 +745,11 @@ ALTER TABLE public."ResourceAccess" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS resource_access_policy ON public."ResourceAccess";
 DROP POLICY IF EXISTS resource_access_select_policy ON public."ResourceAccess";
-CREATE POLICY resource_access_select_policy ON public."ResourceAccess" FOR SELECT USING (public.in_space(space_id) OR public.can_access_account(account_uid));
+CREATE POLICY resource_access_select_policy ON public."ResourceAccess" FOR SELECT USING (
+    account_uid = public.everyone_uid()
+    OR public.in_space(space_id)
+    OR public.can_access_account(account_uid)
+);
 DROP POLICY IF EXISTS resource_access_delete_policy ON public."ResourceAccess";
 CREATE POLICY resource_access_delete_policy ON public."ResourceAccess" FOR DELETE USING (public.in_space(space_id, 'editor') OR public.can_access_account(account_uid));
 DROP POLICY IF EXISTS resource_access_insert_policy ON public."ResourceAccess";
