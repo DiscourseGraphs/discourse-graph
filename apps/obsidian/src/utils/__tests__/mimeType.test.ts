@@ -33,6 +33,13 @@ describe("getMimeTypeForPath", () => {
     expect(getMimeTypeForPath("folder.v2/asset.png")).toBe("image/png");
   });
 
+  // A plain object literal would return an inherited member here, and the
+  // caller's `.startsWith` on it aborts the node's whole asset sync.
+  it("falls back for an extension that names an Object prototype member", () => {
+    for (const path of ["a.constructor", "a.__proto__", "a.CONSTRUCTOR"])
+      expect(getMimeTypeForPath(path)).toBe(DEFAULT_MIME_TYPE);
+  });
+
   it("falls back for unknown, extensionless and dotfile paths", () => {
     expect(getMimeTypeForPath("a.unknownext")).toBe(DEFAULT_MIME_TYPE);
     expect(getMimeTypeForPath("noextension")).toBe(DEFAULT_MIME_TYPE);
