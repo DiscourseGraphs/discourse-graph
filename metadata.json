@@ -3,7 +3,7 @@
   "checkpoint_id": "01M4H6BVH4WB0P9JDH4MNKJ9F4",
   "strategy": "manual-commit",
   "branch": "eng-2323-warn-about-unsupported-placeholders-in-obsidian-node-formats",
-  "checkpoints_count": 7,
+  "checkpoints_count": 10,
   "files_touched": null,
   "sessions": [
     {
@@ -26,20 +26,27 @@
       "compact_transcript": "/2/transcript.jsonl",
       "content_hash": "/2/content_hash.txt",
       "prompt": "/2/prompt.txt"
+    },
+    {
+      "metadata": "/3/metadata.json",
+      "transcript": "/3/full.jsonl",
+      "compact_transcript": "/3/transcript.jsonl",
+      "content_hash": "/3/content_hash.txt",
+      "prompt": "/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 32,
-    "cache_creation_tokens": 36576,
-    "cache_read_tokens": 4215326,
-    "output_tokens": 10318,
-    "api_call_count": 14,
+    "input_tokens": 54,
+    "cache_creation_tokens": 49079,
+    "cache_read_tokens": 5861069,
+    "output_tokens": 16199,
+    "api_call_count": 23,
     "subagent_tokens": {
-      "input_tokens": 2,
-      "cache_creation_tokens": 3240,
-      "cache_read_tokens": 89574,
-      "output_tokens": 185,
-      "api_call_count": 1
+      "input_tokens": 10,
+      "cache_creation_tokens": 58836,
+      "cache_read_tokens": 261026,
+      "output_tokens": 699,
+      "api_call_count": 5
     }
   }
 }
