@@ -44,9 +44,11 @@ REVOKE ALL ON TABLE public."PlatformAccount" FROM anon;
 GRANT ALL ON TABLE public."PlatformAccount" TO authenticated;
 -- Clients cannot set who owns an account (dg_account) or change what identifies it (agent_type, platform, account_local_id).
 -- Clients create and upsert accounts through upsert_account_in_space, which also adds the account to the space.
--- Updates are granted per column: a new column is not client-writable until it is added to this grant.
-REVOKE INSERT, UPDATE ON TABLE public."PlatformAccount" FROM authenticated;
-GRANT UPDATE (name, active, metadata) ON TABLE public."PlatformAccount" TO authenticated;
+-- Clients cannot read dg_account, which would show which accounts belong to one person, or metadata, which nothing uses yet.
+-- Reads and updates are granted per column: a new column is hidden from clients until it is added to these grants.
+REVOKE SELECT, INSERT, UPDATE ON TABLE public."PlatformAccount" FROM authenticated;
+GRANT SELECT (id, name, platform, account_local_id, write_permission, active, agent_type) ON TABLE public."PlatformAccount" TO authenticated;
+GRANT UPDATE (name, active) ON TABLE public."PlatformAccount" TO authenticated;
 GRANT ALL ON TABLE public."PlatformAccount" TO service_role;
 
 CREATE TABLE public."AgentIdentifier" (
@@ -447,6 +449,7 @@ REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.my_spaces FROM anon, authentic
 
 ALTER TABLE public."PlatformAccount" ENABLE ROW LEVEL SECURITY;
 
+-- Leaves out dg_account, which would show which accounts belong to one person, and metadata, which nothing uses yet.
 CREATE OR REPLACE VIEW public.my_accounts AS
 SELECT
     id,
@@ -455,9 +458,7 @@ SELECT
     account_local_id,
     write_permission,
     active,
-    agent_type,
-    metadata,
-    dg_account
+    agent_type
 FROM public."PlatformAccount"
 WHERE id IN (
     SELECT "LocalAccess".account_id FROM public."LocalAccess"

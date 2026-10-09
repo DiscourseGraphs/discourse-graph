@@ -298,6 +298,10 @@ const getLoggedinDatabaseForUsername = async (userName: string) => {
   return await getLoggedinDatabase(spaceId);
 };
 
+// Clients can't select every column of PlatformAccount.
+const columnsToCount = (tableName: TableName): string =>
+  tableName === "PlatformAccount" ? "id" : "*";
+
 // A test of non-empty object count for the named table, as seen by the user
 Then(
   "a user logged in space {word} should see a {word} in the database",
@@ -308,7 +312,7 @@ Then(
     const client = await getLoggedinDatabase(spaceId);
     const response = await client
       .from(tableName)
-      .select("*", { count: "exact" });
+      .select(columnsToCount(tableName), { count: "exact" });
     assert.notEqual(response.count || 0, 0);
   },
 );
@@ -323,7 +327,7 @@ Then(
     const client = await getLoggedinDatabase(spaceId);
     const response = await client
       .from(tableName)
-      .select("*", { count: "exact" });
+      .select(columnsToCount(tableName), { count: "exact" });
     assert.equal(response.count, expectedCount);
   },
 );
@@ -912,6 +916,80 @@ Given(
   },
 );
 
+const UNDEFINED_COLUMN = "42703";
+
+// A "read" row can name several columns, and an allowed one must return rows.
+// A "filter" row selects id only, so a refusal comes from the filter column.
+Then(
+  "a user logged in space {word} should get these column access results:",
+  async (spaceName: string, table: DataTable): Promise<void> => {
+    const { client } = await getSpaceClient(spaceName);
+    const untypedClient = untyped(client);
+    const mismatches: string[] = [];
+    for (const row of table.hashes()) {
+      const { relation, operation, columns, result } = row;
+      const query = untypedClient.from(relation!);
+      const response =
+        operation === "read"
+          ? await query.select(columns)
+          : await query.select("id").is(columns!, null);
+      const actual =
+        response.error === null
+          ? "allowed"
+          : response.error.code === INSUFFICIENT_PRIVILEGE
+            ? "denied"
+            : response.error.code === UNDEFINED_COLUMN
+              ? "absent"
+              : `error ${response.error.code}`;
+      const emptyRead =
+        actual === "allowed" &&
+        operation === "read" &&
+        (response.data?.length ?? 0) === 0;
+      if (actual !== result || emptyRead)
+        mismatches.push(
+          `${operation} ${columns} of ${relation}: expected ${result}, got ${emptyRead ? "no rows" : actual}`,
+        );
+    }
+    assert.deepEqual(mismatches, []);
+  },
+);
+
+// How queries.ts reads authors, and how Obsidian's fetchUserNames reads user names.
+Then(
+  "a user logged in space {word} should read author {word} of concept {word} through my_accounts",
+  async (spaceName: string, author: string, concept: string): Promise<void> => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const { client } = await getSpaceClient(spaceName);
+    const embed = await client
+      .from("my_concepts")
+      .select("id, author:my_accounts!author_id!inner(account_local_id)")
+      .eq("id", localRefs[concept] as number)
+      .single();
+    assert.equal(embed.error, null);
+    assert.equal(embed.data?.author.account_local_id, author);
+    const names = await client
+      .from("my_accounts")
+      .select("id, name")
+      .eq("agent_type", "person");
+    assert.equal(names.error, null);
+    assert.ok(
+      names.data?.some(({ id }) => id === localRefs[author]),
+      `${author} not among the person accounts`,
+    );
+  },
+);
+
+// Checks the function's privilege: an anonymous client sees no concepts or contents yet.
+Then(
+  "an anonymous client can read {word} through {word}",
+  async (functionName: string, view: string): Promise<void> => {
+    const response = await untyped(getAnonymousClient())
+      .from(view)
+      .select(`id, ${functionName}(account_local_id)`);
+    assert.equal(response.error, null);
+  },
+);
+
 const OWN_LOGIN = "own login";
 
 // Each write runs without RETURNING, and its result is read back as the service role,
@@ -1265,24 +1343,40 @@ Then(
   },
 );
 
+const myAccountsWrites = (
+  client: ReturnType<typeof getAnonymousClient>,
+): ViewWrites => {
+  const view = client.from("my_accounts");
+  return {
+    insert: () =>
+      view.insert({
+        name: "written through my_accounts",
+        account_local_id: "written-through-my-accounts",
+        platform: "Roam",
+      }),
+    update: () =>
+      view
+        .update({ name: "written through my_accounts" })
+        .eq("platform", "Roam"),
+    delete: () => view.delete().eq("platform", "Roam"),
+  };
+};
+
 Then(
   "a user logged in space {word} cannot {word} accounts through my_accounts",
-  async (spaceName: string, operation: string) => {
+  async (spaceName: string, operation: string): Promise<void> => {
     const { client } = await getSpaceClient(spaceName);
-    const view = client.from("my_accounts");
-    await expectWriteRejected(operation, {
-      insert: () =>
-        view.insert({
-          name: "written through my_accounts",
-          account_local_id: "written-through-my-accounts",
-          platform: "Roam",
-        }),
-      update: () =>
-        view
-          .update({ name: "written through my_accounts" })
-          .eq("platform", "Roam"),
-      delete: () => view.delete().eq("platform", "Roam"),
-    });
+    await expectWriteRejected(operation, myAccountsWrites(client));
+  },
+);
+
+Then(
+  "an anonymous client cannot {word} accounts through my_accounts",
+  async (operation: string): Promise<void> => {
+    await expectWriteRejected(
+      operation,
+      myAccountsWrites(getAnonymousClient()),
+    );
   },
 );
 
@@ -1627,13 +1721,9 @@ When(
     if (typeof space2Id !== "number") assert.fail("space2Id not a number");
     if (typeof groupId !== "string") assert.fail("groupId not a string");
     const client2 = await getLoggedinDatabase(space2Id);
-    const r1 = await client2
-      .from("PlatformAccount")
-      .select("dg_account")
-      .eq("account_local_id", spaceAnonUserEmail("Roam", space2Id))
-      .maybeSingle();
+    const r1 = await client2.auth.getUser();
     assert.equal(r1.error, null);
-    const memberId = r1.data?.dg_account;
+    const memberId = r1.data.user?.id;
     assert.ok(memberId, "memberId not found for space2");
     const client1 = await getLoggedinDatabase(space1Id);
     const r2 = await client1.from("group_membership").insert({

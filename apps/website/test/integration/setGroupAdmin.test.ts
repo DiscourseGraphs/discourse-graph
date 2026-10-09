@@ -30,18 +30,10 @@ const signedInClient = async (spaceId: number): Promise<DGSupabaseClient> => {
   return client;
 };
 
-const spaceAccountUuid = async (
-  client: DGSupabaseClient,
-  spaceId: number,
-): Promise<string> => {
-  const accountReq = await client
-    .from("PlatformAccount")
-    .select("id,dg_account")
-    .eq("account_local_id", `roam-${spaceId}-anon@database.discoursegraphs.com`)
-    .maybeSingle();
-  assert(!accountReq.error);
-  assert(accountReq.data?.dg_account);
-  return accountReq.data.dg_account;
+const spaceAccountUuid = async (client: DGSupabaseClient): Promise<string> => {
+  const user = await client.auth.getUser();
+  assert(!user.error);
+  return user.data.user.id;
 };
 
 const adminFlagOf = async (
@@ -79,7 +71,7 @@ describe("set group admin flow", { tags: ["database"] }, () => {
       throw new Error(`Failed to create space 1: ${s1.error?.message}`);
     spaceId1 = s1.data.id;
     client1 = await signedInClient(spaceId1);
-    spaceAccountUuid1 = await spaceAccountUuid(client1, spaceId1);
+    spaceAccountUuid1 = await spaceAccountUuid(client1);
 
     const s2 = await fetchOrCreateSpaceDirect({
       name: "vitest-admin-s2",
@@ -91,7 +83,7 @@ describe("set group admin flow", { tags: ["database"] }, () => {
       throw new Error(`Failed to create space 2: ${s2.error?.message}`);
     spaceId2 = s2.data.id;
     client2 = await signedInClient(spaceId2);
-    spaceAccountUuid2 = await spaceAccountUuid(client2, spaceId2);
+    spaceAccountUuid2 = await spaceAccountUuid(client2);
   });
 
   afterAll(async () => {

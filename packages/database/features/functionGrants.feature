@@ -25,6 +25,8 @@ Feature: Function grants
     And an anonymous client gets a permission error calling in_space with '{"space_id": 1}'
     And an anonymous client can call my_space_ids with '{}'
     And an anonymous client can call get_secret_token with '{"token": "no such token"}'
+    And an anonymous client can read author_of_concept through my_concepts
+    And an anonymous client can read author_of_content through my_contents
 
   Scenario: Clients without a login cannot write to the contributor tables
     Then an anonymous client is refused the insert privilege on concept_contributors with '{"concept_id": 1, "contributor_id": 1}'
