@@ -35,5 +35,6 @@ The plugin installs and runs on Obsidian mobile, but support there is limited. P
 On mobile:
 
 - Run features from the command palette. Several actions are only reachable by hover, right-click, drag, or a keyboard shortcut on desktop, and have no touch equivalent yet.
+- Use the desktop app for advanced features. Sync, the admin panel, and features released as beta are built and tested against desktop, and are not supported on mobile.
 - Exporting and importing a discourse graph schema is unavailable, because it needs a desktop file dialog.
 - The help menu is unavailable, because mobile has no status bar.
