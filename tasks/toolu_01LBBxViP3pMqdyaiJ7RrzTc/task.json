@@ -1,0 +1,7 @@
+{
+  "tool_use_id": "toolu_01LBBxViP3pMqdyaiJ7RrzTc",
+  "agent_id": "aea6fc0a93ac8a6e8",
+  "subagent_type": "general-purpose",
+  "task_description": "Linear history of staged rollouts",
+  "started_at": "2026-10-09T16:30:45.04857-04:00"
+}
