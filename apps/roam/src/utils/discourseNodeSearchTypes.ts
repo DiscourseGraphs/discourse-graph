@@ -12,6 +12,8 @@ export type SearchResult = {
   createdAt: string;
   lastModified: string;
   authorName: string;
+  // Set for a block tagged with a node type's candidate tag, not a node page.
+  candidate?: { nodeTypes: string[]; pageTitle: string };
 };
 
 // score and source are carried for diagnostics and future rank fusion; ordering

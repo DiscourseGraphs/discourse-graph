@@ -116,6 +116,26 @@ describe("searchDiscourseNodes", () => {
     expect(results.map((r) => r.result.uid)).toEqual(["s0", "s1", "m1", "m2"]);
   });
 
+  it("passes candidate uids to the semantic provider", async () => {
+    runRoamSemanticSearch.mockResolvedValue({
+      filteredResults: [],
+      filteredResultCount: 0,
+    });
+    const candidateUids = new Set(["b1"]);
+
+    await searchDiscourseNodes({
+      nodeTypes: [],
+      query: "governance",
+      resultsByUid: new Map<string, SearchResult>(),
+      runMiniSearch: () => [],
+      candidateUids,
+    });
+
+    expect(runRoamSemanticSearch).toHaveBeenCalledWith(
+      expect.objectContaining({ candidateUids }),
+    );
+  });
+
   it("falls back to MiniSearch when the semantic provider throws", async () => {
     runRoamSemanticSearch.mockRejectedValue(new Error("semantic unavailable"));
 

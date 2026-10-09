@@ -3,11 +3,17 @@ import { type DiscourseNode } from "~/utils/getDiscourseNodes";
 import {
   DISCOURSE_NODE_MIN_SEARCH_SCORE,
   DISCOURSE_NODE_MINI_SEARCH_OPTIONS,
+  CANDIDATE_BLOCK_SEARCH_PULL,
   DISCOURSE_NODE_SEARCH_METADATA_PULL,
+  getCandidateTagTitle,
   getPulledDiscourseNodeAuthorName,
   getPulledDiscourseNodeTitle,
   getPulledDiscourseNodeUid,
+  hasCandidateTag,
+  queryCandidateBlocksByTag,
   queryDiscourseNodesByFormat,
+  stripCandidateTags,
+  type PulledDiscourseNode,
 } from "~/utils/discourseNodeSearch";
 import {
   MAX_RESULTS,
@@ -51,6 +57,7 @@ export type DockedSearchState = {
   results: SearchResult[];
   selectedNodeTypeIds: string[];
   sort: SortConfig;
+  showCandidates?: boolean;
   windowId?: string;
   dgSearchId?: string;
 };
@@ -105,6 +112,30 @@ export const splitWithHighlights = (
     }));
 };
 
+const toSearchResult = ({
+  node,
+  pulled,
+  title,
+}: {
+  node: DiscourseNode;
+  pulled: PulledDiscourseNode;
+  title: string;
+}): SearchResult | null => {
+  const uid = getPulledDiscourseNodeUid(pulled);
+  if (!uid || !title) return null;
+
+  return {
+    uid,
+    title,
+    type: node.type,
+    nodeTypeLabel: node.text,
+    excerpt: "",
+    createdAt: String(pulled[":create/time"] || ""),
+    lastModified: String(pulled[":edit/time"] || pulled[":create/time"] || ""),
+    authorName: getPulledDiscourseNodeAuthorName(pulled),
+  };
+};
+
 const queryNodesForType = async (
   node: DiscourseNode,
 ): Promise<SearchResult[]> => {
@@ -115,24 +146,13 @@ const queryNodesForType = async (
     });
 
     return pulledNodes
-      .map((result) => {
-        const uid = getPulledDiscourseNodeUid(result);
-        const title = getPulledDiscourseNodeTitle(result);
-        if (!uid || !title) return null;
-
-        return {
-          uid,
-          title,
-          type: node.type,
-          nodeTypeLabel: node.text,
-          excerpt: "",
-          createdAt: String(result[":create/time"] || ""),
-          lastModified: String(
-            result[":edit/time"] || result[":create/time"] || "",
-          ),
-          authorName: getPulledDiscourseNodeAuthorName(result),
-        };
-      })
+      .map((pulled) =>
+        toSearchResult({
+          node,
+          pulled,
+          title: getPulledDiscourseNodeTitle(pulled),
+        }),
+      )
       .filter((result): result is SearchResult => !!result);
   } catch (error) {
     console.error(`Error querying for node type ${node.type}:`, error);
@@ -140,15 +160,72 @@ const queryNodesForType = async (
   }
 };
 
-export const buildSearchIndex = async (
+const queryCandidatesForType = async ({
+  node,
+  tagTitles,
+}: {
+  node: DiscourseNode & { tag: string };
+  tagTitles: string[];
+}): Promise<SearchResult[]> => {
+  try {
+    const pulledBlocks = await queryCandidateBlocksByTag({
+      node,
+      pullExpression: CANDIDATE_BLOCK_SEARCH_PULL,
+    });
+
+    return pulledBlocks
+      .map((pulled): SearchResult | null => {
+        const result = toSearchResult({
+          node,
+          pulled,
+          title: stripCandidateTags({
+            text: pulled[":block/string"] || "",
+            tagTitles,
+          }),
+        });
+        if (!result) return null;
+        return {
+          ...result,
+          candidate: {
+            nodeTypes: [node.type],
+            pageTitle: pulled[":block/page"]?.[":node/title"] || "",
+          },
+        };
+      })
+      .filter((result): result is SearchResult => !!result);
+  } catch (error) {
+    console.error(
+      `Error querying candidates for node type ${node.type}:`,
+      error,
+    );
+    throw error;
+  }
+};
+
+const queryCandidates = async (
   discourseNodes: DiscourseNode[],
-): Promise<{
+): Promise<PromiseSettledResult<SearchResult[]>[]> => {
+  const taggedNodes = discourseNodes.filter(hasCandidateTag);
+  const tagTitles = taggedNodes.map((node) => getCandidateTagTitle(node.tag));
+  return Promise.allSettled(
+    taggedNodes.map((node) => queryCandidatesForType({ node, tagTitles })),
+  );
+};
+
+export const buildSearchIndex = async ({
+  discourseNodes,
+  includeCandidates = false,
+}: {
+  discourseNodes: DiscourseNode[];
+  includeCandidates?: boolean;
+}): Promise<{
   miniSearch: MiniSearch<MiniSearchDocument>;
   results: SearchResult[];
 }> => {
-  const resultsByType = await Promise.allSettled(
-    discourseNodes.map(queryNodesForType),
-  );
+  const [resultsByType, candidatesByType] = await Promise.all([
+    Promise.allSettled(discourseNodes.map(queryNodesForType)),
+    includeCandidates ? queryCandidates(discourseNodes) : [],
+  ]);
 
   const rejected = resultsByType.filter(
     (result): result is PromiseRejectedResult => result.status === "rejected",
@@ -160,13 +237,21 @@ export const buildSearchIndex = async (
     );
   }
 
+  // Candidates come after nodes. A block tagged with several types is one row
+  // shown as the first configured type, and type filters match any of its tags.
   const results: SearchResult[] = [];
-  const seenUids = new Set<string>();
-  for (const resultByType of resultsByType) {
+  const resultsByUid = new Map<string, SearchResult>();
+  for (const resultByType of [...resultsByType, ...candidatesByType]) {
     if (resultByType.status !== "fulfilled") continue;
     for (const result of resultByType.value) {
-      if (seenUids.has(result.uid)) continue;
-      seenUids.add(result.uid);
+      const existing = resultsByUid.get(result.uid);
+      if (existing) {
+        if (existing.candidate && result.candidate) {
+          existing.candidate.nodeTypes.push(...result.candidate.nodeTypes);
+        }
+        continue;
+      }
+      resultsByUid.set(result.uid, result);
       results.push(result);
     }
   }
@@ -261,6 +346,13 @@ export const sortSearchResults = ({
   return sorted.map((entry) => entry.result);
 };
 
+export const matchesTypeFilter = (
+  result: SearchResult,
+  allowedTypes: Set<string>,
+): boolean =>
+  allowedTypes.has(result.type) ||
+  !!result.candidate?.nodeTypes.some((type) => allowedTypes.has(type));
+
 export const searchDiscourseNodesWithMiniSearch = ({
   miniSearch,
   allResults,
@@ -282,7 +374,12 @@ export const searchDiscourseNodesWithMiniSearch = ({
       fields: ["title", "nodeTypeLabel"],
       ...DISCOURSE_NODE_MINI_SEARCH_OPTIONS,
       filter: allowedTypes
-        ? (result) => allowedTypes.has(String(result.type))
+        ? (result) => {
+            const searchResult = resultsByUid.get(String(result.id));
+            return (
+              !!searchResult && matchesTypeFilter(searchResult, allowedTypes)
+            );
+          }
         : undefined,
     })
     .filter((result) => result.score > DISCOURSE_NODE_MIN_SEARCH_SCORE)

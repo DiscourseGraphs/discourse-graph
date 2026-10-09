@@ -252,13 +252,17 @@ export const searchSemanticNodeTitles = async ({
 export const runRoamSemanticSearch = async ({
   nodeTypes,
   query,
+  candidateUids,
 }: {
   nodeTypes: DiscourseNode[];
   query: string;
+  // Block hits are kept only when listed here, so this also carries the type filter.
+  candidateUids?: Set<string>;
 }): Promise<AdminSearchProviderPayload> => {
   const trimmedQuery = query.trim();
   const matchers = getDiscourseNodeFormatMatchers(nodeTypes);
-  if (!trimmedQuery || !matchers.length) {
+  const includeBlocks = !!candidateUids?.size;
+  if (!trimmedQuery || (!matchers.length && !includeBlocks)) {
     return {
       rawResults: [],
       rawResultCount: 0,
@@ -274,7 +278,7 @@ export const runRoamSemanticSearch = async ({
   const hits = (await window.roamAlphaAPI.data.async.semanticSearch({
     "search-str": trimmedQuery,
     "hide-code-blocks": false,
-    "search-blocks": false,
+    "search-blocks": includeBlocks,
     "search-pages": true,
     k: ROAM_SEMANTIC_SEARCH_RESULT_LIMIT,
   })) as RoamSemanticSearchHit[];
@@ -301,9 +305,29 @@ export const runRoamSemanticSearch = async ({
     });
   });
 
-  const filteredResults = filterResultsToDiscourseNodeTitles({
-    matchers,
-    results: rawResults,
+  const nodeResultsByUid = new Map(
+    filterResultsToDiscourseNodeTitles({ matchers, results: rawResults }).map(
+      (result) => [result.uid, result],
+    ),
+  );
+  const seenUids = new Set<string>();
+  const filteredResults = hits.flatMap((hit): AdminSearchResultItem[] => {
+    const uid = hit.uid || "";
+    if (seenUids.has(uid)) return [];
+    const result =
+      hit.type === "page"
+        ? nodeResultsByUid.get(uid)
+        : candidateUids?.has(uid)
+          ? toResultItem({
+              uid,
+              text: hit.text || hit.string || hit.content || uid,
+              score: hit.score,
+              source: hit.type,
+            })
+          : undefined;
+    if (!result) return [];
+    seenUids.add(uid);
+    return [result];
   });
 
   return {
@@ -313,8 +337,8 @@ export const runRoamSemanticSearch = async ({
     filteredResultCount: filteredResults.length,
     note:
       `.semanticSearch returned ${pageHits.length}/${ROAM_SEMANTIC_SEARCH_RESULT_LIMIT} page hits; ` +
-      `${hits.length - pageHits.length} non-page hits were discarded; ` +
-      `${filteredResults.length} matched discourse node page-title formats.`,
+      `${hits.length - pageHits.length} non-page hits; ` +
+      `${filteredResults.length} matched discourse node page-title formats or candidate blocks.`,
   };
 };
 
