@@ -16,6 +16,7 @@ import {
 import {
   getTextShapeLinkUrl,
   isAllowedTextLinkUrl,
+  isObsidianUrl,
 } from "~/components/canvas/utils/textShapeLink";
 
 type ShapeWithUrl = TLBaseShape<string, { url: string }>;
@@ -38,11 +39,18 @@ type TextLinkDialogProps = { onClose: () => void };
 
 type UrlValidity = { isValid: boolean; hasProtocol: boolean };
 
+// Bookmarks link their title with a raw <a href>, not HyperlinkButton, so a
+// page link there would reach the OS handler and skip the vault check.
+const acceptsPageLinks = (shapeType: string): boolean =>
+  shapeType !== "bookmark";
+
 // Every shape type uses tldraw's linkUrl, patched to accept obsidian://open links.
-const validateUrl = (url: string): UrlValidity => {
-  if (isAllowedTextLinkUrl(url)) return { isValid: true, hasProtocol: true };
-  if (isAllowedTextLinkUrl(`https://${url}`))
-    return { isValid: true, hasProtocol: false };
+const validateUrl = (url: string, shapeType: string): UrlValidity => {
+  const isAllowed = (value: string): boolean =>
+    isAllowedTextLinkUrl(value) &&
+    (acceptsPageLinks(shapeType) || !isObsidianUrl(value));
+  if (isAllowed(url)) return { isValid: true, hasProtocol: true };
+  if (isAllowed(`https://${url}`)) return { isValid: true, hasProtocol: false };
   return { isValid: false, hasProtocol: false };
 };
 
@@ -76,6 +84,7 @@ const TextLinkDialogInner = track(
   }: TextLinkDialogProps & { selectedShape: ShapeWithUrl }) => {
     const editor = useEditor();
     const rInput = useRef<HTMLInputElement | null>(null);
+    const shapeType = selectedShape.type;
 
     useEffect(() => {
       editor.timers.requestAnimationFrame(() => rInput.current?.focus());
@@ -85,7 +94,7 @@ const TextLinkDialogInner = track(
 
     const [urlInputState, setUrlInputState] = useState(() => {
       const initialUrl = readLinkUrl(selectedShape);
-      const result = validateUrl(initialUrl);
+      const result = validateUrl(initialUrl, shapeType);
       const initialValue = result.isValid
         ? result.hasProtocol
           ? initialUrl
@@ -94,25 +103,28 @@ const TextLinkDialogInner = track(
       return { actual: initialValue, safe: initialValue, valid: true };
     });
 
-    const handleChange = useCallback((rawValue: string) => {
-      // Auto-correct a doubled https:// from a bad paste.
-      const fixedRawValue = rawValue.replace(
-        /https?:\/\/(https?:\/\/)/,
-        (_match, arg1: string) => arg1,
-      );
-      const result = validateUrl(fixedRawValue);
-      const safeValue = result.isValid
-        ? result.hasProtocol
-          ? fixedRawValue
-          : `https://${fixedRawValue}`
-        : "https://";
+    const handleChange = useCallback(
+      (rawValue: string) => {
+        // Auto-correct a doubled https:// from a bad paste.
+        const fixedRawValue = rawValue.replace(
+          /https?:\/\/(https?:\/\/)/,
+          (_match, arg1: string) => arg1,
+        );
+        const result = validateUrl(fixedRawValue, shapeType);
+        const safeValue = result.isValid
+          ? result.hasProtocol
+            ? fixedRawValue
+            : `https://${fixedRawValue}`
+          : "https://";
 
-      setUrlInputState({
-        actual: fixedRawValue,
-        safe: safeValue,
-        valid: result.isValid,
-      });
-    }, []);
+        setUrlInputState({
+          actual: fixedRawValue,
+          safe: safeValue,
+          valid: result.isValid,
+        });
+      },
+      [shapeType],
+    );
 
     const handleClear = useCallback(() => {
       const onlySelectedShape = editor.getOnlySelectedShape();
@@ -174,7 +186,9 @@ const TextLinkDialogInner = track(
             <div>
               {!urlInputState.valid
                 ? "Invalid URL"
-                : "Enter a URL, or an obsidian:// link to a page."}
+                : acceptsPageLinks(shapeType)
+                  ? "Enter a URL, or an obsidian:// link to a page."
+                  : "Enter a URL."}
             </div>
           </div>
         </TldrawUiDialogBody>
