@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import Image from "next/image";
 import { ScaledStage } from "~/components/ScaledStage";
+import { SectionHeader } from "~/components/SectionHeader";
 
 // Card size in the Figma frame; positions below use these coordinates.
 const CARD_WIDTH = 570;
@@ -504,10 +505,11 @@ const ProtocolCard = (): ReactElement => (
 
 export const FoundationsSection = (): ReactElement => (
   <section className="bg-white px-5 pb-8 pt-16 sm:px-6 lg:pb-12 lg:pt-24">
-    <div id="foundations" className="mx-auto max-w-6xl scroll-mt-20">
-      <h2 className="text-3xl font-semibold tracking-tight text-primary sm:text-4xl">
-        Foundations
-      </h2>
+    <div id="foundations" className="mx-auto max-w-7xl scroll-mt-20">
+      <SectionHeader
+        eyebrow="Foundations"
+        title="A shared structure for research work in motion"
+      />
       <div className="mt-10 grid gap-8 md:grid-cols-2">
         <NodesCard />
         <RelationsCard />
