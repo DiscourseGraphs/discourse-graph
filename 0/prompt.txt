@@ -1,0 +1,29 @@
+For example, the, our latest release, v1.7.0, here are the errors. There is a mismatch between the Obsidian ESLint errors that are reported here and what are actually the checks. I believe that the latest automated checks come from the same library. Um, it's not human review anymore. Uh, fetch the latest information to respond to me. And if it is not this Obsidian ESLint, then what are the checks that I can put in automatically that will help me run locally to see if something passes or not?
+
+---
+
+Because maybe the problem is the mismatch between the rules that we allow and the rules that are actually checked.
+
+---
+
+what's the current stage of this ticket?
+
+---
+
+how do i make sure the errors on IDE matches what's going through the CI checks? 
+eg: it's showing error for the .style but no errors for my console.log?!?!
+
+---
+
+https://github.com/obsidianmd/obsidian-workflows/blob/main/action.yml can you inspect what would scanner-lint=true do exactly? which file says this?
+
+---
+
+but i don't see provenance how obsidian-scanner.js will mapa to eslint.config.scanner.mjs
+what's the css scanner about? what's the source code? how do we match that?
+
+ok i want 1-1 mapping between our current config and what's the actual scanner doing on obsidian workflow (with reference to code + link). create this table. mention places that are mismatched
+
+---
+
+hm, interesting. IDE shows errors on the first line but not the rest:
