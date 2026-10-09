@@ -217,18 +217,40 @@ $$;
 
 COMMENT ON FUNCTION public.can_access_account IS 'security utility: Is this my account or one of my groups?';
 
+CREATE OR REPLACE FUNCTION public.everyone_uid() RETURNS UUID
+IMMUTABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT '00000000-0000-0000-0000-000000000000'::uuid;
+$$;
+
+COMMENT ON FUNCTION public.everyone_uid IS 'The uid of the everyone pseudo-user. A grant to it applies to every caller, logged in or not.';
+
 CREATE OR REPLACE FUNCTION public.my_user_accounts() RETURNS SETOF UUID
 STABLE SECURITY DEFINER
 SET search_path = ''
 LANGUAGE sql
 AS $$
     SELECT auth.uid() WHERE auth.uid() IS NOT NULL UNION
-    SELECT '00000000-0000-0000-0000-000000000000'::uuid UNION
+    SELECT public.everyone_uid() UNION
     SELECT group_id FROM public.group_membership
     WHERE member_id = auth.uid();
 $$;
 
 COMMENT ON FUNCTION public.my_user_accounts IS 'security utility: The uids which give me access, either as myself or as a group member.';
+
+CREATE OR REPLACE FUNCTION public.my_identity_accounts() RETURNS SETOF UUID
+STABLE SECURITY DEFINER
+SET search_path = ''
+LANGUAGE sql
+AS $$
+    SELECT auth.uid() WHERE auth.uid() IS NOT NULL UNION
+    SELECT group_id FROM public.group_membership
+    WHERE member_id = auth.uid();
+$$;
+
+COMMENT ON FUNCTION public.my_identity_accounts IS 'security utility: The uids I act as, myself or a group I belong to. Excludes the everyone pseudo-user, so a public grant never counts as sharing a space.';
 
 CREATE OR REPLACE FUNCTION public.my_permissions_in_space(
     space_id_ BIGINT
@@ -299,7 +321,7 @@ LANGUAGE sql AS $$
       SELECT 1
       FROM public."LocalAccess" AS la
       JOIN public."SpaceAccess" AS sa USING (space_id)
-      JOIN public.my_user_accounts() ON (sa.account_uid = my_user_accounts)
+      JOIN public.my_identity_accounts() ON (sa.account_uid = my_identity_accounts)
       WHERE la.account_id = p_account_id
       AND sa.permissions >= access_level
     );
@@ -314,7 +336,7 @@ LANGUAGE sql AS $$
     SELECT EXISTS (
         SELECT 1
         FROM public."SpaceAccess" AS sa
-        JOIN public.my_user_accounts() ON (sa.account_uid = my_user_accounts)
+        JOIN public.my_identity_accounts() ON (sa.account_uid = my_identity_accounts)
         JOIN public."LocalAccess" AS la USING (space_id)
         JOIN public."PlatformAccount" AS pa ON (pa.id=la.account_id)
         WHERE la.account_id = p_account_id
@@ -446,10 +468,19 @@ REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.my_spaces FROM anon, authentic
 ALTER TABLE public."PlatformAccount" ENABLE ROW LEVEL SECURITY;
 
 -- Leaves out dg_account and metadata: peers have no use for them, and a known auth uid should not be handed out.
+-- The real name only shows to callers who share a space with the account through their own grants.
+-- An account visible only through a public grant shows as 'anonymous #<id>'.
 CREATE OR REPLACE VIEW public.my_accounts AS
 SELECT
     id,
-    name,
+    CASE WHEN id IN (
+        SELECT "LocalAccess".account_id FROM public."LocalAccess"
+            JOIN public."SpaceAccess" USING (space_id)
+            JOIN public.my_identity_accounts() ON (account_uid = my_identity_accounts)
+        WHERE permissions >= 'partial'
+        UNION
+        SELECT id FROM public."PlatformAccount" WHERE dg_account = auth.uid()
+    ) THEN name ELSE ('anonymous #' || id)::varchar END AS name,
     platform,
     account_local_id,
     write_permission,
