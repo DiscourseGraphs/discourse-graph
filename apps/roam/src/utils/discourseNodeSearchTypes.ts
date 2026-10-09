@@ -13,7 +13,7 @@ export type SearchResult = {
   lastModified: string;
   authorName: string;
   // Set for a block tagged with a node type's candidate tag, not a node page.
-  candidate?: { nodeTypes: string[]; pageTitle: string };
+  candidate?: { nodeTypes: string[]; pageTitle: string; pageUid: string };
 };
 
 // score and source are carried for diagnostics and future rank fusion; ordering

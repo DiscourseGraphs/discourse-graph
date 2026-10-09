@@ -80,6 +80,23 @@ div.roamjs-discourse-drawer div.bp3-drawer {
   background: #ffff00;
 }
 
+/* Matches Obsidian's search preview flash; held at full colour so the fade isn't mostly gone after the scroll. */
+.dg-search-preview-flash {
+  animation: dg-search-preview-flash 3s ease-out;
+  border-radius: 4px;
+}
+
+@keyframes dg-search-preview-flash {
+  0%,
+  35% {
+    /* Roam's own ^^highlight^^ colour. */
+    background-color: #fef09f;
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
 .roamjs-discourse-editor-preview
   > .rm-api-render--block
   > .roam-block-container
