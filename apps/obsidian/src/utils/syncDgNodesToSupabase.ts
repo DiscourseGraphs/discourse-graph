@@ -1,7 +1,7 @@
 import { Notice, TFile } from "obsidian";
 import { addFile } from "@repo/database/lib/files";
 import { isAssetTooLarge } from "@repo/database/lib/assetLimits";
-import mime from "mime-types";
+import { getMimeTypeForPath } from "~/utils/mimeType";
 import { ensureNodeInstanceId } from "~/utils/nodeInstanceId";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { Json } from "@repo/database/dbTypes";
@@ -939,7 +939,7 @@ export const syncPublishedNodeAssets = async ({
 
   for (const { link, file: attachment } of attachments) {
     // The extension comes from the resolved file: a link may be written without one.
-    const mimetype = mime.lookup(attachment.path) || "application/octet-stream";
+    const mimetype = getMimeTypeForPath(attachment.path);
     if (mimetype.startsWith("text/")) continue;
     // Do not use standard upload for large files
     if (isAssetTooLarge(attachment.stat.size)) {

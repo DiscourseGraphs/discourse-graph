@@ -20,6 +20,7 @@ const conformant = {
   Platform: stub.Platform satisfies typeof ObsidianApi.Platform,
   normalizePath: stub.normalizePath satisfies typeof ObsidianApi.normalizePath,
   parseLinktext: stub.parseLinktext satisfies typeof ObsidianApi.parseLinktext,
+  parseYaml: stub.parseYaml satisfies typeof ObsidianApi.parseYaml,
   setIcon: stub.setIcon satisfies typeof ObsidianApi.setIcon,
   setTooltip: stub.setTooltip satisfies typeof ObsidianApi.setTooltip,
   debounce: stub.debounce satisfies typeof ObsidianApi.debounce,

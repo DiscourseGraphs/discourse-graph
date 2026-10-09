@@ -1,5 +1,4 @@
-import matter from "gray-matter";
-import { App, Notice, TFile } from "obsidian";
+import { App, Notice, TFile, parseYaml } from "obsidian";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { listGroupSharedNodes } from "@repo/database/lib/sharedNodes";
 import type DiscourseGraphPlugin from "~/index";
@@ -39,6 +38,7 @@ import {
 } from "./importedNodeContent";
 import { decorateTitle } from "@repo/database/lib/decorateTitle";
 import { buildSchemaRid, findLocalNodeTypeMatch } from "./schemaMatching";
+import { splitFrontmatter } from "~/utils/splitFrontmatter";
 
 type PublishedNode = {
   source_local_id: string;
@@ -697,12 +697,18 @@ const updateMarkdownAssetLinks = ({
     },
   );
 
-  // Match markdown links (non-image): [text](path) — internal paths resolved like wikilinks, href kept URL-encoded
-  const markdownLinkRegex = /(?<!!)\[([^\]]*)\]\(([^)]+)\)/g;
+  // Match markdown links (non-image): [text](path) — internal paths resolved like wikilinks, href kept URL-encoded.
+  // The leading `!` is captured rather than excluded with a lookbehind, which older mobile WebViews do not support.
+  const markdownLinkRegex = /(!?)\[([^\]]*)\]\(([^)]+)\)/g;
   updatedContent = updatedContent.replace(
     markdownLinkRegex,
-    (match, linkText: string, linkPath: string) => {
-      if (!linkPath) return match;
+    // A rest parameter keeps this within the arrow-function parameter limit.
+    (match, ...groups: string[]) => {
+      const [imagePrefix, linkText, rawLinkPath] = groups;
+      // An `!` prefix makes this an image embed, handled by the image pass below.
+      if (imagePrefix) return match;
+      if (!rawLinkPath) return match;
+      let linkPath = rawLinkPath;
       // Resolve by row before looking at the shape of the link: a Roam-origin asset is
       // referenced by its storage URL. Matched on the raw link, because the decoding
       // below would mangle the percent-escaping a storage URL carries.
@@ -1176,14 +1182,19 @@ type ParsedFrontmatter = {
   [key: string]: unknown;
 };
 
+// Unparseable frontmatter is treated as absent rather than thrown, matching how
+// Obsidian itself tolerates bad YAML. `gray-matter` threw here instead.
 export const parseFrontmatter = (
   content: string,
 ): { frontmatter: ParsedFrontmatter; body: string } => {
-  const { data, content: body } = matter(content);
-  return {
-    frontmatter: (data ?? {}) as ParsedFrontmatter,
-    body: body ?? "",
-  };
+  const { yaml, body } = splitFrontmatter(content);
+  if (yaml === null) return { frontmatter: {}, body };
+  try {
+    const data = parseYaml(yaml) as ParsedFrontmatter | null;
+    return { frontmatter: data ?? {}, body };
+  } catch {
+    return { frontmatter: {}, body };
+  }
 };
 
 /**
