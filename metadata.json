@@ -3,7 +3,7 @@
   "checkpoint_id": "01M4H5VZE41NEK55DN1838KCQ5",
   "strategy": "manual-commit",
   "branch": "eng-2367-scroll-to-a-candidate-result-in-context-of-its-page-in-the",
-  "checkpoints_count": 1,
+  "checkpoints_count": 3,
   "files_touched": null,
   "sessions": [
     {
@@ -12,20 +12,27 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 8,
-    "cache_creation_tokens": 3203,
-    "cache_read_tokens": 818736,
-    "output_tokens": 496,
-    "api_call_count": 2,
+    "input_tokens": 36,
+    "cache_creation_tokens": 20131,
+    "cache_read_tokens": 6593398,
+    "output_tokens": 8568,
+    "api_call_count": 15,
     "subagent_tokens": {
-      "input_tokens": 56,
-      "cache_creation_tokens": 99053,
-      "cache_read_tokens": 2301192,
-      "output_tokens": 335,
-      "api_call_count": 28
+      "input_tokens": 112,
+      "cache_creation_tokens": 209783,
+      "cache_read_tokens": 4611059,
+      "output_tokens": 930,
+      "api_call_count": 56
     }
   }
 }
