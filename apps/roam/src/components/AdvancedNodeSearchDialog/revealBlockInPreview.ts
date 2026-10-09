@@ -25,7 +25,7 @@ export const revealBlockInPreview = ({
     container.getBoundingClientRect().top -
     (container.clientHeight - rowRect.height) / 2;
   row.classList.add(PREVIEW_FLASH_CLASS);
-  const clear = () => row.classList.remove(PREVIEW_FLASH_CLASS);
+  const clear = (): void => row.classList.remove(PREVIEW_FLASH_CLASS);
   row.addEventListener("animationend", clear, { once: true });
   return () => {
     row.removeEventListener("animationend", clear);
