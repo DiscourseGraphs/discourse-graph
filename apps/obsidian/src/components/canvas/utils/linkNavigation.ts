@@ -30,15 +30,17 @@ export const registerLinkNavigation = (
   const container = editor.getContainer();
 
   const onNavigate = (event: Event) => {
-    const { url, metaKey, ctrlKey, altKey } = (event as CustomEvent).detail as
-      | NavigateLinkDetail
-      | undefined as NavigateLinkDetail;
+    const { url, metaKey, ctrlKey, altKey } = (
+      event as CustomEvent<NavigateLinkDetail>
+    ).detail;
     if (!isObsidianUrl(url)) return;
     // Cancelling tells tldraw to preventDefault, so the URI never reaches the
     // OS handler and we keep the cross-vault check below.
     event.preventDefault();
 
-    const parsed = parseObsidianOpenUrl(url);
+    // The validator parses with `new URL`, so geo links may be stored as
+    // `Obsidian://…` or with leading spaces; the parser expects the normal form.
+    const parsed = parseObsidianOpenUrl(new URL(url).toString());
     const file = parsed ? resolveObsidianUrlToFile(plugin, parsed) : null;
     if (!file) {
       showToast({

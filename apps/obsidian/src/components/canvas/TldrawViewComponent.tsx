@@ -132,12 +132,12 @@ export const TldrawPreviewComponent = ({
     return () => clearTimeout(timer);
   }, []);
 
-  // Add keyboard event listener for Meta+Alt+Enter when editor is mounted
   useEffect(() => {
     if (!isEditorMounted || !editorRef.current) return;
     return registerLinkNavigation(editorRef.current, plugin);
   }, [isEditorMounted, plugin]);
 
+  // Add keyboard event listener for Meta+Alt+Enter when editor is mounted
   useEffect(() => {
     if (!isEditorMounted || !editorRef.current) return;
 

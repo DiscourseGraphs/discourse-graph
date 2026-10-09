@@ -56,7 +56,7 @@ index 17be37d15741ae5ebdd78d123382129a3c6f4fdb..dd75ac28d29e730388c56e0662ee32e2
      [editor]
    );
 +  const web = isWebUrl(url);
-+  const onClick = useCallback(
++  const onClick = (0, import_react.useCallback)(
 +    (e) => {
 +      const ev = new CustomEvent("tldraw.navigate-link", {
 +        bubbles: true,

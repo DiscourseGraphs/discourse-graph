@@ -92,7 +92,7 @@ patchedDependencies:
     hash: 1dc6e0d5a14876d58a705c3446a937e7811078b17a0918da85f9faa4b096d68a
     path: patches/tldraw@2.4.6.patch
   tldraw@3.14.2:
-    hash: bbc8f62d0f23c0ec7c109cd4ce8b4182670ea4bde02243c3cfee80b94038a37a
+    hash: 89e8db00d251ba3863ff631f54ad49dd5aacb63620fc75c26a31a25e59699949
     path: patches/tldraw@3.14.2.patch
 
 importers:
@@ -165,7 +165,7 @@ importers:
         version: 1.0.7(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@22.20.0)(typescript@5.5.4)))
       tldraw:
         specifier: 3.14.2
-        version: 3.14.2(patch_hash=bbc8f62d0f23c0ec7c109cd4ce8b4182670ea4bde02243c3cfee80b94038a37a)(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+        version: 3.14.2(patch_hash=89e8db00d251ba3863ff631f54ad49dd5aacb63620fc75c26a31a25e59699949)(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
     devDependencies:
       '@octokit/core':
         specifier: ^6.1.2
@@ -23773,7 +23773,7 @@ snapshots:
       - '@types/react'
       - '@types/react-dom'
 
-  tldraw@3.14.2(patch_hash=bbc8f62d0f23c0ec7c109cd4ce8b4182670ea4bde02243c3cfee80b94038a37a)(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
+  tldraw@3.14.2(patch_hash=89e8db00d251ba3863ff631f54ad49dd5aacb63620fc75c26a31a25e59699949)(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
     dependencies:
       '@tiptap/core': 2.26.2(@tiptap/pm@2.26.2)
       '@tiptap/extension-code': 2.26.2(@tiptap/core@2.26.2(@tiptap/pm@2.26.2))
