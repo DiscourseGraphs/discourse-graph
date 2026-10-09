@@ -3,8 +3,10 @@
   "checkpoint_id": "01M4H47KFXF427H52MWP79Q6ZT",
   "strategy": "manual-commit",
   "branch": "eng-2228-add-link-support-to-tldraw-text-shapes-in-obsidian",
-  "checkpoints_count": 4,
-  "files_touched": null,
+  "checkpoints_count": 5,
+  "files_touched": [
+    "apps/obsidian/src/components/canvas/TextLinkDialog.tsx"
+  ],
   "sessions": [
     {
       "metadata": "/0/metadata.json",
@@ -19,14 +21,21 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
-    "input_tokens": 30,
-    "cache_creation_tokens": 21937,
-    "cache_read_tokens": 5502130,
-    "output_tokens": 9766,
-    "api_call_count": 13,
+    "input_tokens": 48,
+    "cache_creation_tokens": 60632,
+    "cache_read_tokens": 6157214,
+    "output_tokens": 12776,
+    "api_call_count": 22,
     "subagent_tokens": {
       "input_tokens": 38,
       "cache_creation_tokens": 183590,
