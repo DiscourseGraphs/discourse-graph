@@ -3,7 +3,7 @@
   "checkpoint_id": "01M4H7Q15TT8N88A88452CJCZE",
   "strategy": "manual-commit",
   "branch": "eng-2312-release-mobile-supported-dg-obsidian",
-  "checkpoints_count": 7,
+  "checkpoints_count": 11,
   "files_touched": null,
   "sessions": [
     {
@@ -26,13 +26,27 @@
       "compact_transcript": "/2/transcript.jsonl",
       "content_hash": "/2/content_hash.txt",
       "prompt": "/2/prompt.txt"
+    },
+    {
+      "metadata": "/3/metadata.json",
+      "transcript": "/3/full.jsonl",
+      "compact_transcript": "/3/transcript.jsonl",
+      "content_hash": "/3/content_hash.txt",
+      "prompt": "/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 8,
-    "cache_creation_tokens": 402319,
-    "cache_read_tokens": 1201095,
-    "output_tokens": 2478,
-    "api_call_count": 4
+    "input_tokens": 68,
+    "cache_creation_tokens": 457075,
+    "cache_read_tokens": 8370513,
+    "output_tokens": 20782,
+    "api_call_count": 33,
+    "subagent_tokens": {
+      "input_tokens": 106,
+      "cache_creation_tokens": 259539,
+      "cache_read_tokens": 4006897,
+      "output_tokens": 5732,
+      "api_call_count": 53
+    }
   }
 }
