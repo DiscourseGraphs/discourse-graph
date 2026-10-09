@@ -189,6 +189,7 @@ const queryCandidatesForType = async ({
           candidate: {
             nodeTypes: [node.type],
             pageTitle: pulled[":block/page"]?.[":node/title"] || "",
+            pageUid: pulled[":block/page"]?.[":block/uid"] || "",
           },
         };
       })
