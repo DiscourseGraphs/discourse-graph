@@ -3,8 +3,10 @@
   "checkpoint_id": "01M4H5X6KPB0FEMKQJG412E3E5",
   "strategy": "manual-commit",
   "branch": "eng-2367-scroll-to-a-candidate-result-in-context-of-its-page-in-the",
-  "checkpoints_count": 4,
-  "files_touched": null,
+  "checkpoints_count": 14,
+  "files_touched": [
+    "apps/roam/src/components/AdvancedNodeSearchDialog/revealBlockInPreview.ts"
+  ],
   "sessions": [
     {
       "metadata": "/0/metadata.json",
@@ -26,20 +28,27 @@
       "compact_transcript": "/2/transcript.jsonl",
       "content_hash": "/2/content_hash.txt",
       "prompt": "/2/prompt.txt"
+    },
+    {
+      "metadata": "/3/metadata.json",
+      "transcript": "/3/full.jsonl",
+      "compact_transcript": "/3/transcript.jsonl",
+      "content_hash": "/3/content_hash.txt",
+      "prompt": "/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 10,
-    "cache_creation_tokens": 3773,
-    "cache_read_tokens": 818879,
-    "output_tokens": 1098,
-    "api_call_count": 4,
+    "input_tokens": 120,
+    "cache_creation_tokens": 97895,
+    "cache_read_tokens": 7007591,
+    "output_tokens": 41165,
+    "api_call_count": 52,
     "subagent_tokens": {
-      "input_tokens": 0,
-      "cache_creation_tokens": 0,
-      "cache_read_tokens": 0,
-      "output_tokens": 0,
-      "api_call_count": 0
+      "input_tokens": 178,
+      "cache_creation_tokens": 384748,
+      "cache_read_tokens": 7087675,
+      "output_tokens": 7286,
+      "api_call_count": 89
     }
   }
 }
