@@ -673,3 +673,7 @@ finish the docs note and open the PR
 </result>
 <usage><subagent_tokens>103164</subagent_tokens><tool_uses>27</tool_uses><duration_ms>281811</duration_ms></usage>
 </task-notification>
+
+---
+
+/babysit
