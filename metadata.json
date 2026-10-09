@@ -3,8 +3,10 @@
   "checkpoint_id": "01M4H6RZBX9NGXPWPTYMF6PS91",
   "strategy": "manual-commit",
   "branch": "eng-2367-scroll-to-a-candidate-result-in-context-of-its-page-in-the",
-  "checkpoints_count": 8,
-  "files_touched": null,
+  "checkpoints_count": 11,
+  "files_touched": [
+    "apps/roam/src/components/AdvancedNodeSearchDialog/AdvancedSearchDialog.tsx"
+  ],
   "sessions": [
     {
       "metadata": "/0/metadata.json",
@@ -26,14 +28,21 @@
       "compact_transcript": "/2/transcript.jsonl",
       "content_hash": "/2/content_hash.txt",
       "prompt": "/2/prompt.txt"
+    },
+    {
+      "metadata": "/3/metadata.json",
+      "transcript": "/3/full.jsonl",
+      "compact_transcript": "/3/transcript.jsonl",
+      "content_hash": "/3/content_hash.txt",
+      "prompt": "/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 60,
-    "cache_creation_tokens": 77078,
-    "cache_read_tokens": 7706028,
-    "output_tokens": 11269,
-    "api_call_count": 30,
+    "input_tokens": 80,
+    "cache_creation_tokens": 93588,
+    "cache_read_tokens": 9816713,
+    "output_tokens": 17550,
+    "api_call_count": 40,
     "subagent_tokens": {
       "input_tokens": 52,
       "cache_creation_tokens": 194441,
