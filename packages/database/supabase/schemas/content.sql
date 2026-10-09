@@ -746,7 +746,7 @@ ALTER TABLE public."ResourceAccess" ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS resource_access_policy ON public."ResourceAccess";
 DROP POLICY IF EXISTS resource_access_select_policy ON public."ResourceAccess";
 CREATE POLICY resource_access_select_policy ON public."ResourceAccess" FOR SELECT USING (
-    account_uid = '00000000-0000-0000-0000-000000000000'::uuid
+    account_uid = public.everyone_uid()
     OR public.in_space(space_id)
     OR public.can_access_account(account_uid)
 );

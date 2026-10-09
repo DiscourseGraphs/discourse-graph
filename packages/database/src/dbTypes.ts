@@ -962,7 +962,7 @@ export type Database = {
           active?: boolean | null
           agent_type?: Database["public"]["Enums"]["AgentType"] | null
           id?: number | null
-          name?: string | null
+          name?: never
           platform?: Database["public"]["Enums"]["Platform"] | null
           write_permission?: boolean | null
         }
@@ -971,7 +971,7 @@ export type Database = {
           active?: boolean | null
           agent_type?: Database["public"]["Enums"]["AgentType"] | null
           id?: number | null
-          name?: string | null
+          name?: never
           platform?: Database["public"]["Enums"]["Platform"] | null
           write_permission?: boolean | null
         }
@@ -1817,6 +1817,7 @@ export type Database = {
         }
         Returns: Json
       }
+      everyone_uid: { Args: never; Returns: string }
       extract_references: { Args: { refs: Json }; Returns: number[] }
       file_access: { Args: { hashvalue: string }; Returns: boolean }
       file_exists: { Args: { hashvalue: string }; Returns: boolean }
@@ -1907,6 +1908,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      my_identity_accounts: { Args: never; Returns: string[] }
       my_permissions_in_space: {
         Args: { space_id_: number }
         Returns: Database["public"]["Enums"]["SpaceAccessPermissions"]
