@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Button,
   Dialog,
@@ -25,6 +31,7 @@ import getDiscourseNodes, {
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
 import { getNodeTagStyles } from "~/utils/getDiscourseNodeColors";
+import { revealBlockInPreview } from "./revealBlockInPreview";
 import { mountAdvancedSearchInSidebar } from "./mountAdvancedSearchInSidebar";
 import {
   DEBOUNCE_MS,
@@ -160,7 +167,112 @@ const ResultRow = ({
   </Button>
 );
 
+const IMAGE_LOAD_TIMEOUT_MS = 1000;
+
+// Unloaded images reserve no height, so scrolling before they load lands off target.
+const waitForImages = (el: HTMLElement): Promise<void> => {
+  const pending = Array.from(el.querySelectorAll("img")).filter(
+    (img) => !img.complete,
+  );
+  if (!pending.length) return Promise.resolve();
+  return Promise.race([
+    Promise.all(
+      pending.map(
+        (img) =>
+          new Promise((resolve) => {
+            img.addEventListener("load", resolve, { once: true });
+            img.addEventListener("error", resolve, { once: true });
+          }),
+      ),
+    ).then(() => undefined),
+    new Promise<void>((resolve) =>
+      window.setTimeout(resolve, IMAGE_LOAD_TIMEOUT_MS),
+    ),
+  ]);
+};
+
+// Children of a collapsed block aren't in the DOM, and expanding would write
+// :block/open to the user's graph.
+const hasCollapsedAncestor = (uid: string): boolean =>
+  window.roamAlphaAPI.data.fast.q(
+    `[:find ?parent :in $ ?uid :where [?block :block/uid ?uid] [?block :block/parents ?parent] [?parent :block/open false]]`,
+    uid,
+  ).length > 0;
+
+const CandidatePreview = ({
+  uid,
+  pageUid,
+  scrollContainerRef,
+}: {
+  uid: string;
+  pageUid: string;
+  scrollContainerRef: React.RefObject<HTMLDivElement | null>;
+}): React.ReactElement => {
+  const hostRef = useRef<HTMLDivElement | null>(null);
+  const [renderedUid, setRenderedUid] = useState<string | null>(null);
+  const showPage = useMemo(
+    () => !!pageUid && !hasCollapsedAncestor(uid),
+    [pageUid, uid],
+  );
+  const renderUid = showPage ? pageUid : uid;
+
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    let cancelled = false;
+    // A fresh mount node per render, so a pending unmount can't tear down the next one.
+    const el = document.createElement("div");
+    host.appendChild(el);
+    setRenderedUid(null);
+    const { components } = window.roamAlphaAPI.ui;
+    const render = showPage
+      ? components.renderPage({ uid: renderUid, el, "hide-mentions?": true })
+      : components.renderBlock({ uid: renderUid, el, "zoom-path?": true });
+    void render
+      .then(() => waitForImages(el))
+      .then(() => {
+        if (!cancelled) setRenderedUid(renderUid);
+      })
+      .catch((error) =>
+        console.error(`Failed to render search preview ${renderUid}:`, error),
+      );
+    return () => {
+      cancelled = true;
+      el.remove();
+      // Unmounting before the render settles would miss it and leave it running.
+      void render
+        .then(() => components.unmountNode({ el }))
+        .catch(() => undefined);
+    };
+  }, [renderUid, showPage]);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || renderedUid !== renderUid) return;
+    let clearFlash = (): void => undefined;
+    const frame = window.requestAnimationFrame(() => {
+      clearFlash = revealBlockInPreview({ container, uid });
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      clearFlash();
+    };
+  }, [renderedUid, renderUid, uid, scrollContainerRef]);
+
+  return <div ref={hostRef} />;
+};
+
 const PreviewPane = ({ result }: { result: SearchResult | null }) => {
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const isCandidate = !!result?.candidate;
+  const wasCandidateRef = useRef(false);
+  useEffect(() => {
+    // Don't carry a candidate's scroll into a node preview, which never scrolled itself.
+    if (wasCandidateRef.current && !isCandidate && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+    wasCandidateRef.current = isCandidate;
+  }, [isCandidate]);
   if (!result) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
@@ -182,11 +294,18 @@ const PreviewPane = ({ result }: { result: SearchResult | null }) => {
         {result.authorName || "Unknown"}
       </div>
       <div
+        ref={scrollContainerRef}
         className="min-h-0 flex-1 overflow-y-auto border-t border-gray-200 px-5 py-3"
         onMouseDown={(event) => event.preventDefault()}
       >
         <div className="pointer-events-none">
-          {isPage ? (
+          {result.candidate ? (
+            <CandidatePreview
+              uid={result.uid}
+              pageUid={result.candidate.pageUid}
+              scrollContainerRef={scrollContainerRef}
+            />
+          ) : isPage ? (
             <RenderRoamPage hideMentions key={result.uid} uid={result.uid} />
           ) : (
             <RenderRoamBlock key={result.uid} uid={result.uid} zoomPath />

@@ -51,7 +51,7 @@ const pulledPage = (uid: string, title: string): PulledDiscourseNode => ({
 const pulledBlock = (uid: string, text: string): PulledDiscourseNode => ({
   ":block/uid": uid,
   ":block/string": text,
-  ":block/page": { ":node/title": "Field notes" },
+  ":block/page": { ":node/title": "Field notes", ":block/uid": "fieldNotes" },
   ":create/time": 3,
   ":edit/time": 4,
 });
@@ -160,13 +160,21 @@ describe("buildSearchIndex", () => {
         uid: "b1",
         type: "clm",
         title: "Soil moisture drives yield",
-        candidate: { nodeTypes: ["clm"], pageTitle: "Field notes" },
+        candidate: {
+          nodeTypes: ["clm"],
+          pageTitle: "Field notes",
+          pageUid: "fieldNotes",
+        },
       },
       {
         uid: "b2",
         type: "clm",
         title: "shared block",
-        candidate: { nodeTypes: ["clm", "evd"], pageTitle: "Field notes" },
+        candidate: {
+          nodeTypes: ["clm", "evd"],
+          pageTitle: "Field notes",
+          pageUid: "fieldNotes",
+        },
       },
     ]);
   });
