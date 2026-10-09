@@ -136,3 +136,19 @@ body.dg-hide-frontmatter-ids .metadata-property[data-property-key^="rel_" i] {
   border-radius: 0;
   color: var(--interactive-accent);
 }
+
+/* The overlay positions a wrapper; tldraw's own button fills it. */
+.dg-text-link-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.dg-text-link-anchor {
+  position: absolute;
+  /* Clears tldraw's edge resize handle, which reaches 6px past the shape. */
+  margin-left: 8px;
+  width: 44px;
+  height: 44px;
+  transform: translateY(-50%);
+  pointer-events: all;
+}
