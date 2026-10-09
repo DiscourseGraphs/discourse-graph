@@ -21,6 +21,13 @@ GRANT SELECT ON TABLE public."ResourceAccess" TO anon;
 GRANT SELECT ON TABLE public."Document" TO anon;
 GRANT SELECT ON TABLE public."Content" TO anon;
 GRANT SELECT ON TABLE public."Concept" TO anon;
+GRANT SELECT ON TABLE public."FileReference" TO anon;
+
+DROP POLICY IF EXISTS "storage_select_assets_access" ON storage.objects;
+CREATE POLICY "storage_select_assets_access"
+ON storage.objects FOR SELECT TO anon, authenticated USING (
+    bucket_id = 'assets' AND file_access(name)
+);
 
 INSERT INTO auth.users (instance_id, id, aud, role, created_at, updated_at, is_super_admin, is_anonymous)
 VALUES ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', 'anon', 'anon', now(), now(), false, true);
