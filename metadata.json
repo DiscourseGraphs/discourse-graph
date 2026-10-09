@@ -3,7 +3,7 @@
   "checkpoint_id": "01M4H6EGPGW6M0R764KZ9MC20S",
   "strategy": "manual-commit",
   "branch": "eng-2367-scroll-to-a-candidate-result-in-context-of-its-page-in-the",
-  "checkpoints_count": 1,
+  "checkpoints_count": 5,
   "files_touched": null,
   "sessions": [
     {
@@ -12,6 +12,13 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
