@@ -145,6 +145,8 @@ body.dg-hide-frontmatter-ids .metadata-property[data-property-key^="rel_" i] {
 }
 .dg-text-link-anchor {
   position: absolute;
+  /* Clears tldraw's edge resize handle, which reaches 6px past the shape. */
+  margin-left: 8px;
   width: 44px;
   height: 44px;
   transform: translateY(-50%);

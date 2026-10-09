@@ -479,13 +479,9 @@ export const TldrawPreviewComponent = ({
                   actions["edit-link"] = {
                     ...editLink,
                     onSelect: () => {
-                      // Mirrors the stock action's guards; without them the
-                      // dialog opens empty with nothing selected.
+                      // Same guard as stock: no-op outside the select tool.
+                      if (!editor.isIn("select")) return;
                       if (!editor.getOnlySelectedShape()) return;
-                      if (editor.getCurrentToolId() !== "select") {
-                        editor.complete();
-                        editor.setCurrentTool("select");
-                      }
                       editor.markHistoryStoppingPoint("edit-link");
                       helpers.addDialog({ component: TextLinkDialog });
                     },
