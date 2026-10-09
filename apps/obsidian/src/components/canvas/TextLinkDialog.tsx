@@ -106,9 +106,9 @@ const TextLinkDialogInner = track(
 
     const handleChange = useCallback(
       (rawValue: string) => {
-        // Auto-correct a doubled https:// from a bad paste.
+        // Drop the prefilled https:// when a full URL is pasted after it.
         const fixedRawValue = rawValue.replace(
-          /https?:\/\/(https?:\/\/)/,
+          /https?:\/\/((?:https?|obsidian):\/\/)/i,
           (_match, arg1: string) => arg1,
         );
         const result = validateUrl(fixedRawValue, shapeType);
