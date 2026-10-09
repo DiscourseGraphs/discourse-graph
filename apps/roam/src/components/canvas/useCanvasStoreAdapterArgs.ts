@@ -12,11 +12,13 @@ import {
 import {
   createAllReferencedNodeUtils,
   createAllRelationShapeUtils,
+  createLegacyDiscourseRelationShapeUtils,
 } from "./DiscourseRelationShape/DiscourseRelationUtil";
 import { AddReferencedNodeType } from "./DiscourseRelationShape/DiscourseRelationTool";
 import {
   createAllReferencedNodeBindings,
   createAllRelationBindings,
+  createLegacyRelationBindings,
 } from "./DiscourseRelationShape/DiscourseRelationBindings";
 import { createMigrations } from "./DiscourseRelationShape/discourseRelationMigrations";
 
@@ -60,34 +62,36 @@ const getUtilTypes = <T extends { type: string }>({
 
 const createShapeUtils = ({
   allNodes,
-  allRelationIds,
   allAddReferencedNodeByAction,
   includeLegacyNodeTypes = false,
+  legacyRelationIds = [],
 }: {
   allNodes: DiscourseNode[];
-  allRelationIds: string[];
   allAddReferencedNodeByAction: AddReferencedNodeType;
   includeLegacyNodeTypes?: boolean;
+  legacyRelationIds?: string[];
 }): TLAnyShapeUtilConstructor[] => {
   return [
     DiscourseNodeUtil,
     ...(includeLegacyNodeTypes
       ? createLegacyDiscourseNodeShapeUtils(allNodes)
       : []),
-    ...createAllRelationShapeUtils(allRelationIds),
+    ...createAllRelationShapeUtils(),
+    ...createLegacyDiscourseRelationShapeUtils(legacyRelationIds),
     ...createAllReferencedNodeUtils(allAddReferencedNodeByAction),
   ];
 };
 
 const createBindingUtils = ({
-  allRelationIds,
   allAddReferencedNodeByAction,
+  legacyRelationIds = [],
 }: {
-  allRelationIds: string[];
   allAddReferencedNodeByAction: AddReferencedNodeType;
+  legacyRelationIds?: string[];
 }): TLAnyBindingUtilConstructor[] => {
   return [
-    ...createAllRelationBindings(allRelationIds),
+    ...createAllRelationBindings(),
+    ...createLegacyRelationBindings(legacyRelationIds),
     ...createAllReferencedNodeBindings(allAddReferencedNodeByAction),
   ];
 };
@@ -107,11 +111,9 @@ export const useCanvasStoreAdapterArgs = ({
 }): CanvasStoreAdapterArgs => {
   const customShapeUtils = createShapeUtils({
     allNodes,
-    allRelationIds,
     allAddReferencedNodeByAction,
   });
   const customBindingUtils = createBindingUtils({
-    allRelationIds,
     allAddReferencedNodeByAction,
   });
   const customShapeTypes = getUtilTypes({
@@ -136,10 +138,10 @@ export const useCanvasStoreAdapterArgs = ({
       pageUid,
       value: createShapeUtils({
         allNodes,
-        allRelationIds,
         allAddReferencedNodeByAction,
-        // Cloudflare rooms may still stream pre-migration node-id shape records.
+        // Cloudflare rooms may still stream pre-migration node-id and relation-id records.
         includeLegacyNodeTypes: true,
+        legacyRelationIds: allRelationIds,
       }),
     }),
     [pageUid, allNodes, allRelationIds, allAddReferencedNodeByAction],
@@ -148,8 +150,8 @@ export const useCanvasStoreAdapterArgs = ({
     () => ({
       pageUid,
       value: createBindingUtils({
-        allRelationIds,
         allAddReferencedNodeByAction,
+        legacyRelationIds: allRelationIds,
       }),
     }),
     [pageUid, allRelationIds, allAddReferencedNodeByAction],

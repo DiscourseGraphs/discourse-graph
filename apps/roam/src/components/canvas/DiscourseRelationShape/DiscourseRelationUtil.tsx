@@ -156,6 +156,46 @@ export const getRelationColor = (
   return `${COLOR_ARRAY[index || 0]}`;
 };
 
+type ShapeWithOptionalRelationTypeId = TLShape & {
+  props?: {
+    relationTypeId?: string | null;
+  };
+};
+
+export const getDiscourseRelationTypeId = ({
+  shape,
+}: {
+  shape: ShapeWithOptionalRelationTypeId;
+}): string => {
+  return shape.props?.relationTypeId || shape.type;
+};
+
+export const getDiscourseRelationBindingType = ({
+  shape,
+}: {
+  shape: ShapeWithOptionalRelationTypeId;
+}): string => {
+  return shape.type === DISCOURSE_RELATION_SHAPE_TYPE
+    ? DISCOURSE_RELATION_SHAPE_TYPE
+    : shape.type;
+};
+
+export const isDiscourseRelationShape = (
+  shape: TLShape,
+): shape is DiscourseRelationShape => {
+  return (
+    shape.type === DISCOURSE_RELATION_SHAPE_TYPE ||
+    isRelationShapeType(shape.type)
+  );
+};
+
+const getDiscourseRelationById = (
+  relationTypeId: string,
+): DiscourseRelation | undefined =>
+  Object.values(discourseContext.relations)
+    .flat()
+    .find((relation) => relation.id === relationTypeId);
+
 export const createAllReferencedNodeUtils = (
   allAddReferencedNodeByAction: AddReferencedNodeType,
 ): TLShapeUtilConstructor<DiscourseRelationShape>[] => {
@@ -185,7 +225,10 @@ export const createAllReferencedNodeUtils = (
         };
 
         const target = editor.getShape(targetId);
-        const bindings = editor.getBindingsFromShape(arrow, arrow.type);
+        const bindings = editor.getBindingsFromShape(
+          arrow,
+          getDiscourseRelationBindingType({ shape: arrow }),
+        );
         const sourceId = bindings.find((b) => b.toId !== targetId)?.toId;
         if (!sourceId) return;
         const source = editor.getShape(sourceId);
@@ -615,12 +658,10 @@ const asDiscourseNodeShape = (
     : null;
 };
 
-export const createAllRelationShapeUtils = (
-  allRelationIds: string[],
-): TLShapeUtilConstructor<DiscourseRelationShape>[] => {
-  const relationShapeUtils = allRelationIds.map((id) => {
+export const createAllRelationShapeUtils =
+  (): TLShapeUtilConstructor<DiscourseRelationShape>[] => {
     class DiscourseRelationUtil extends BaseDiscourseRelationUtil {
-      static override type = id;
+      static override type = DISCOURSE_RELATION_SHAPE_TYPE;
 
       handleCreateRelationsInRoam = async ({
         arrow,
@@ -639,7 +680,10 @@ export const createAllRelationShapeUtils = (
           this.editor.deleteShapes([arrow.id]);
         };
         const target = editor.getShape(targetId);
-        const bindings = editor.getBindingsFromShape(arrow, arrow.type);
+        const bindings = editor.getBindingsFromShape(
+          arrow,
+          getDiscourseRelationBindingType({ shape: arrow }),
+        );
         const sourceId = bindings.find((b) => b.toId !== targetId)?.toId;
         if (!sourceId) return;
         const source = editor.getShape(sourceId);
@@ -652,8 +696,8 @@ export const createAllRelationShapeUtils = (
             "Invalid shape type. Expected a DiscourseNodeShape.",
           );
         }
-        const relations = Object.values(discourseContext.relations).flat();
-        const relation = relations.find((r) => r.id === arrow.type);
+        const relationTypeId = getDiscourseRelationTypeId({ shape: arrow });
+        const relation = getDiscourseRelationById(relationTypeId);
         if (!relation) return;
 
         const sourceNodeType = getDiscourseNodeTypeId({ shape: source });
@@ -684,22 +728,14 @@ export const createAllRelationShapeUtils = (
           );
         }
 
-        // If we found a matching relation with a different ID, switch to it
-        if (matchingRelation.id !== arrow.type) {
-          // Get bindings before updating the shape type
-          const existingBindings = editor.getBindingsFromShape(
-            arrow,
-            arrow.type,
-          );
-          // Update the shape type
-          editor.updateShapes([{ id: arrow.id, type: matchingRelation.id }]);
-          // Update bindings to use the new relation type
-          for (const binding of existingBindings) {
-            editor.updateBinding({
-              ...binding,
-              type: matchingRelation.id,
-            });
-          }
+        if (matchingRelation.id !== relationTypeId) {
+          editor.updateShapes<DiscourseRelationShape>([
+            {
+              id: arrow.id,
+              type: arrow.type,
+              props: { relationTypeId: matchingRelation.id },
+            },
+          ]);
         }
         if (getStoredRelationsEnabled()) {
           const sourceAsDNS = asDiscourseNodeShape(source, editor);
@@ -791,29 +827,18 @@ export const createAllRelationShapeUtils = (
       };
 
       override getDefaultProps(): DiscourseRelationShape["props"] {
-        // TODO: get color from canvasSettings
-
-        const relations = Object.values(discourseContext.relations);
-        // TODO - add canvas settings to relations config
-        const relationIndex = relations.findIndex((rs) =>
-          rs.some((r) => r.id === id),
-        );
-        const isValid = relationIndex >= 0 && relationIndex < relations.length;
-        const color = isValid ? COLOR_ARRAY[relationIndex + 1] : COLOR_ARRAY[0];
-        const text = isValid ? relations[relationIndex][0].label : "";
-
         return {
           dash: "draw",
           size: "m",
           fill: "none",
-          color: color,
-          labelColor: color,
+          color: COLOR_ARRAY[0],
+          labelColor: COLOR_ARRAY[0],
           bend: 0,
           start: { x: 0, y: 0 },
           end: { x: 0, y: 0 },
           arrowheadStart: "none",
           arrowheadEnd: "arrow",
-          text: text,
+          text: "",
           labelPosition: 0.5,
           font: "draw",
           scale: 1,
@@ -826,6 +851,8 @@ export const createAllRelationShapeUtils = (
       ) => {
         const handleId = handle.id as ARROW_HANDLES;
         const bindings = getArrowBindings(this.editor, shape);
+        const relationTypeId = getDiscourseRelationTypeId({ shape });
+        const relationBindingType = getDiscourseRelationBindingType({ shape });
 
         if (handleId === ARROW_HANDLES.MIDDLE) {
           // Bending the arrow...
@@ -852,7 +879,7 @@ export const createAllRelationShapeUtils = (
 
         const update: TLShapePartial<DiscourseRelationShape> = {
           id: shape.id,
-          type: id,
+          type: shape.type,
           props: {},
         };
 
@@ -887,7 +914,7 @@ export const createAllRelationShapeUtils = (
               this.editor.canBindShapes({
                 fromShape: shape,
                 toShape: targetShape,
-                binding: id,
+                binding: relationBindingType,
               })
             );
           },
@@ -931,11 +958,16 @@ export const createAllRelationShapeUtils = (
           const targetNodeType = getDiscourseNodeTypeId({ shape: target });
           const sourceNodeType = getDiscourseNodeTypeId({ shape: sourceNode });
 
-          if (sourceNodeType && targetNodeType && shape.type) {
+          if (
+            sourceNodeType &&
+            targetNodeType &&
+            relationTypeId &&
+            getDiscourseRelationById(relationTypeId)
+          ) {
             const isValidConnection = this.isValidNodeConnection(
               sourceNodeType,
               targetNodeType,
-              shape.type,
+              relationTypeId,
             );
 
             if (!isValidConnection) {
@@ -1025,8 +1057,7 @@ export const createAllRelationShapeUtils = (
 
         // Check if both ends are bound and determine the correct text based on direction
         if (newBindings.start && newBindings.end) {
-          const relations = Object.values(discourseContext.relations).flat();
-          const relation = relations.find((r) => r.id === shape.type);
+          const relation = getDiscourseRelationById(relationTypeId);
 
           if (relation) {
             const startNode = this.editor.getShape(newBindings.start.toId);
@@ -1056,6 +1087,11 @@ export const createAllRelationShapeUtils = (
                 isReverse && effectiveRelation.complement
                   ? effectiveRelation.complement
                   : effectiveRelation.label;
+
+              if (effectiveRelation.id !== relationTypeId) {
+                update.props = update.props || {};
+                update.props.relationTypeId = effectiveRelation.id;
+              }
 
               if (shape.props.text !== newText) {
                 update.props = update.props || {};
@@ -1183,7 +1219,7 @@ export const createAllRelationShapeUtils = (
                 this.editor.canBindShapes({
                   fromShape: shape,
                   toShape: targetShape,
-                  binding: id,
+                  binding: getDiscourseRelationBindingType({ shape }),
                 })
               );
             },
@@ -1219,16 +1255,25 @@ export const createAllRelationShapeUtils = (
         }
       };
     }
-    return DiscourseRelationUtil;
-  });
+    return [DiscourseRelationUtil];
+  };
 
-  class DiscourseRelationFallbackUtil extends BaseDiscourseRelationUtil {
-    static override type = DISCOURSE_RELATION_SHAPE_TYPE;
+// Cloud rooms are never migrated, so they can still hold relation-uid-typed arrows.
+export const createLegacyDiscourseRelationShapeUtils = (
+  relationIds: string[],
+): TLShapeUtilConstructor<DiscourseRelationShape>[] => {
+  const [DiscourseRelationUtil] =
+    createAllRelationShapeUtils() as (typeof BaseDiscourseRelationUtil)[];
+  return relationIds.map(
+    (relationId) =>
+      class LegacyDiscourseRelationUtil extends DiscourseRelationUtil {
+        static override type = relationId;
 
-    handleCreateRelationsInRoam = (): Promise<void> => Promise.resolve();
-  }
-
-  return [...relationShapeUtils, DiscourseRelationFallbackUtil];
+        override getDefaultProps(): DiscourseRelationShape["props"] {
+          return { ...super.getDefaultProps(), relationTypeId: relationId };
+        }
+      },
+  );
 };
 
 const relationShapeProps = {

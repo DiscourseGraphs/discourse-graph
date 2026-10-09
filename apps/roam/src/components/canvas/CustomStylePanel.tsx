@@ -34,7 +34,10 @@ import {
   DiscourseNodeUtil,
   getDiscourseNodeTypeId,
 } from "./DiscourseNodeUtil";
-import { getRelationColor } from "./DiscourseRelationShape/DiscourseRelationUtil";
+import {
+  DISCOURSE_RELATION_SHAPE_TYPE,
+  getRelationColor,
+} from "./DiscourseRelationShape/DiscourseRelationUtil";
 import { getParallelArrowBend } from "./DiscourseRelationShape/helpers";
 import { dispatchToastEvent } from "./ToastListener";
 
@@ -172,26 +175,36 @@ const ContextTabContent = ({
       editor,
       startShapeId: startId,
       endShapeId: endId,
-      relationIds: new Set(getAllRelations().map((r) => r.id)),
+      relationIds: new Set([
+        DISCOURSE_RELATION_SHAPE_TYPE,
+        ...getAllRelations().map((r) => r.id),
+      ]),
     });
     const arrowId = createShapeId();
+    const color = getRelationColor(label);
     editor
       .createShapes([
         {
           id: arrowId,
-          type: relationId,
-          props: { color: getRelationColor(label), bend },
+          type: DISCOURSE_RELATION_SHAPE_TYPE,
+          props: {
+            color,
+            labelColor: color,
+            text: label,
+            relationTypeId: relationId,
+            bend,
+          },
         },
       ])
       .createBindings([
         {
-          type: relationId,
+          type: DISCOURSE_RELATION_SHAPE_TYPE,
           fromId: arrowId,
           toId: startId,
           props: { terminal: "start" },
         },
         {
-          type: relationId,
+          type: DISCOURSE_RELATION_SHAPE_TYPE,
           fromId: arrowId,
           toId: endId,
           props: { terminal: "end" },
