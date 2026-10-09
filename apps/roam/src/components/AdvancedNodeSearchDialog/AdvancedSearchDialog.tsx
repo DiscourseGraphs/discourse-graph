@@ -264,6 +264,15 @@ const CandidatePreview = ({
 
 const PreviewPane = ({ result }: { result: SearchResult | null }) => {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const isCandidate = !!result?.candidate;
+  const wasCandidateRef = useRef(false);
+  useEffect(() => {
+    // Don't carry a candidate's scroll into a node preview, which never scrolled itself.
+    if (wasCandidateRef.current && !isCandidate && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+    wasCandidateRef.current = isCandidate;
+  }, [isCandidate]);
   if (!result) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
