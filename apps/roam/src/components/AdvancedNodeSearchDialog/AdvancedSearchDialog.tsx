@@ -224,19 +224,25 @@ const CandidatePreview = ({
     const el = document.createElement("div");
     host.appendChild(el);
     setRenderedUid(null);
-    void (async () => {
-      const { components } = window.roamAlphaAPI.ui;
-      await (showPage
-        ? components.renderPage({ uid: renderUid, el, "hide-mentions?": true })
-        : components.renderBlock({ uid: renderUid, el, "zoom-path?": true }));
-      await waitForImages(el);
-      if (!cancelled) setRenderedUid(renderUid);
-    })();
+    const { components } = window.roamAlphaAPI.ui;
+    const render = showPage
+      ? components.renderPage({ uid: renderUid, el, "hide-mentions?": true })
+      : components.renderBlock({ uid: renderUid, el, "zoom-path?": true });
+    void render
+      .then(() => waitForImages(el))
+      .then(() => {
+        if (!cancelled) setRenderedUid(renderUid);
+      })
+      .catch((error) =>
+        console.error(`Failed to render search preview ${renderUid}:`, error),
+      );
     return () => {
       cancelled = true;
-      void window.roamAlphaAPI.ui.components
-        .unmountNode({ el })
-        .then(() => el.remove());
+      el.remove();
+      // Unmounting before the render settles would miss it and leave it running.
+      void render
+        .then(() => components.unmountNode({ el }))
+        .catch(() => undefined);
     };
   }, [renderUid, showPage]);
 
