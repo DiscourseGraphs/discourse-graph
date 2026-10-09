@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M4H5VZE41NEK55DN1838KCQ5",
+  "strategy": "manual-commit",
+  "branch": "eng-2367-scroll-to-a-candidate-result-in-context-of-its-page-in-the",
+  "checkpoints_count": 1,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 8,
+    "cache_creation_tokens": 3203,
+    "cache_read_tokens": 818736,
+    "output_tokens": 496,
+    "api_call_count": 2,
+    "subagent_tokens": {
+      "input_tokens": 56,
+      "cache_creation_tokens": 99053,
+      "cache_read_tokens": 2301192,
+      "output_tokens": 335,
+      "api_call_count": 28
+    }
+  }
+}
