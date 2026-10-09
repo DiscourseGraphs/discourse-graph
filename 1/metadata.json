@@ -391,6 +391,37 @@
         "label": "Skill: dg-obsidian-cdp-verify",
         "default_collapsed": true
       }
+    },
+    {
+      "id": "claude-skill-toolu_01WR2rchHDvcSdR1snTjZeV9",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "pr-evidence"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "d15697c51984",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 4473,
+        "end": 4474,
+        "entry_ids": [
+          "34ed9fc9-90e7-454d-849a-9cf30b58c818"
+        ],
+        "tool_use_id": "toolu_01WR2rchHDvcSdR1snTjZeV9"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01WR2rchHDvcSdR1snTjZeV9"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: pr-evidence",
+        "default_collapsed": true
+      }
     }
   ],
   "prompt_attributions": [
