@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Json } from "@repo/database/dbTypes";
 import defaultDiscourseNodes from "~/data/defaultDiscourseNodes";
+import type { ImportedSourceIdentity } from "~/utils/importedSourceIdentity";
 
 vi.mock("roamjs-components/queries/getFullTreeByParentUid", () => ({
   default: () => ({ children: [] }),
@@ -13,12 +14,20 @@ vi.mock("~/utils/getDiscourseNodes", () => ({
   default: vi.fn(() => defaultDiscourseNodes),
 }));
 
-const { mockedGetPageUidByPageTitle } = vi.hoisted(() => ({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  mockedGetPageUidByPageTitle: vi.fn((_title: string) => ""),
-}));
+const { mockedGetPageUidByPageTitle, mockedReadImportedSourceIdentity } =
+  vi.hoisted(() => ({
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    mockedGetPageUidByPageTitle: vi.fn((_title: string) => ""),
+    mockedReadImportedSourceIdentity: vi.fn(
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      (_uid: string): ImportedSourceIdentity | undefined => undefined,
+    ),
+  }));
 vi.mock("roamjs-components/queries/getPageUidByPageTitle", () => ({
   default: mockedGetPageUidByPageTitle,
+}));
+vi.mock("~/utils/importedSourceIdentity", () => ({
+  readImportedSourceIdentity: mockedReadImportedSourceIdentity,
 }));
 
 // Runs before the imports below: getDiscourseNodes calls generateUID at module load.
@@ -32,6 +41,7 @@ import {
   fullContentNodeToCrossApp,
   nodeSchemaToCrossApp,
   nodeUidsWithTypeToCrossApp,
+  reifiedRelationToCrossApp,
 } from "~/utils/roamToCrossAppConverters";
 import getDiscourseNodes, {
   type DiscourseNode,
@@ -145,6 +155,15 @@ describe("fullContentNodeToCrossApp coreTitle", () => {
     });
     expect(node.coreTitle).toBe("unrelated title");
   });
+
+  it("extracts the content from a format with regex metacharacters", () => {
+    const node = fullContentNodeToCrossApp({
+      ...baseNode,
+      format: "Claim (draft) - {content}",
+      text: "Claim (draft) - sleep improves memory",
+    });
+    expect(node.coreTitle).toBe("sleep improves memory");
+  });
 });
 
 const nodeSchema = (overrides: Partial<DiscourseNode>): DiscourseNode => ({
@@ -213,6 +232,23 @@ describe("nodeSchemaToCrossApp format", () => {
   });
 });
 
+describe("nodeSchemaToCrossApp template", () => {
+  it("carries the template body, with no template title", () => {
+    const schema = convertSchema(
+      nodeSchema({ template: [{ text: "Question:" }] }),
+    );
+    expect(schema?.template).toBe("* Question:\n");
+    expect(schema?.templateTitle).toBeUndefined();
+  });
+
+  it.each([
+    ["no template", undefined],
+    ["an empty template", []],
+  ])("leaves the template out for %s", (_label, template) => {
+    expect(convertSchema(nodeSchema({ template }))?.template).toBeUndefined();
+  });
+});
+
 describe("nodeSchemaToCrossApp source slot", () => {
   it("adds a sourceDocument slot definition pointing at the Source node type", () => {
     mockedGetDiscourseNodes.mockReturnValue([
@@ -251,6 +287,7 @@ describe("nodeUidsWithTypeToCrossApp source slot", () => {
     mockedGetPageUidByPageTitle.mockImplementation(
       (title: string) => PAGE_UIDS[title] ?? "",
     );
+    mockedReadImportedSourceIdentity.mockReset();
   });
 
   it("resolves the source page from the title into a sourceDocument slot", async () => {
@@ -261,6 +298,49 @@ describe("nodeUidsWithTypeToCrossApp source slot", () => {
     });
     expect(node.slots).toEqual({ sourceDocument: "source-1" });
   });
+
+  it.each([
+    "orn:obsidian.note:vault-a/node-1",
+    "orn:obsidian:vault-a/node-1",
+    "https://roamresearch.com/#/app/graph-b/node-1",
+  ])(
+    "writes the origin RID %j when the source page was imported from another app",
+    async (sourceNodeRid) => {
+      mockedGetDiscourseNodes.mockReturnValue([EVIDENCE_SCHEMA, SOURCE_SCHEMA]);
+      mockedReadImportedSourceIdentity.mockReturnValue({
+        sourceModifiedAt: "2026-06-14T15:00:00.000Z",
+        sourceNodeRid,
+      });
+      const node = await convertRow({
+        ...baseRow,
+        ":node/title": "[[EVD]] - REM sleep aids recall - [[@sun2019direct]]",
+      });
+      expect(node.slots).toEqual({ sourceDocument: sourceNodeRid });
+      expect(mockedReadImportedSourceIdentity).toHaveBeenCalledWith("source-1");
+    },
+  );
+
+  it.each([
+    "not a rid",
+    "orn:bad",
+    "orn:obsidian.note:vault-a/",
+    "orn:broken/node-1",
+    "https:///node-1",
+  ])(
+    "keeps the page uid when the imported identity %j is not a well-formed RID",
+    async (sourceNodeRid) => {
+      mockedGetDiscourseNodes.mockReturnValue([EVIDENCE_SCHEMA, SOURCE_SCHEMA]);
+      mockedReadImportedSourceIdentity.mockReturnValue({
+        sourceModifiedAt: "2026-06-14T15:00:00.000Z",
+        sourceNodeRid,
+      });
+      const node = await convertRow({
+        ...baseRow,
+        ":node/title": "[[EVD]] - REM sleep aids recall - [[@sun2019direct]]",
+      });
+      expect(node.slots).toEqual({ sourceDocument: "source-1" });
+    },
+  );
 
   // Leniency on the target type: see sourceSlot.ts
   it("accepts a source that is a node of another type", async () => {
@@ -317,5 +397,44 @@ describe("nodeUidsWithTypeToCrossApp source slot", () => {
       ":node/title": "[[CLM]] - REM sleep aids recall",
     });
     expect(node.slots).toBeUndefined();
+  });
+});
+
+describe("reifiedRelationToCrossApp ends", () => {
+  const IMPORTED_RID = "orn:obsidian.note:vault-a/node-9";
+  const relation = {
+    relationId: "rel-1",
+    hasSchema: "triple-1",
+    sourceUid: "local-1",
+    destinationUid: "imported-1",
+  };
+
+  beforeEach(() => {
+    (globalThis as { window: unknown }).window = {
+      roamAlphaAPI: {
+        pull: () => ({
+          ":create/time": 1000,
+          ":edit/time": 2000,
+          ":create/user": { ":user/uid": "user-1" },
+        }),
+      },
+    };
+    mockedReadImportedSourceIdentity.mockReset();
+    mockedReadImportedSourceIdentity.mockImplementation((uid) =>
+      uid === "imported-1"
+        ? {
+            sourceModifiedAt: "2026-06-14T15:00:00.000Z",
+            sourceNodeRid: IMPORTED_RID,
+          }
+        : undefined,
+    );
+  });
+
+  it("writes an imported end as its RID and a local end as its uid", () => {
+    expect(reifiedRelationToCrossApp(relation)).toMatchObject({
+      localId: "rel-1",
+      source: "local-1",
+      destination: IMPORTED_RID,
+    });
   });
 });

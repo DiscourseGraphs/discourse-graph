@@ -124,12 +124,17 @@ export const initObservers = ({
 
       const sharingEnabled =
         settings.featureFlags[FEATURE_FLAG_KEYS.enableNodeSharing];
-      if (sharingEnabled && uid && readImportedSourceIdentity(uid)) {
+      const syncEnabled =
+        settings.featureFlags[FEATURE_FLAG_KEYS.suggestiveModeOverlayEnabled];
+      const isImportedNode =
+        (syncEnabled || sharingEnabled) &&
+        Boolean(uid && readImportedSourceIdentity(uid));
+      if (isImportedNode) {
         renderRefreshImportedNodeTitleButton({ h1, uid });
       }
       const isDiscourseNode = node && node.backedBy !== "default";
       if (isDiscourseNode) {
-        if (sharingEnabled && node.backedBy === "user") {
+        if (sharingEnabled && node.backedBy === "user" && !isImportedNode) {
           renderPublishNodeTitleButton({
             h1,
             uid,

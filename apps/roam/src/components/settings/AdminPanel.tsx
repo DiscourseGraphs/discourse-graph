@@ -328,7 +328,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
     }
     if (data)
       window.open(
-        `${nextRoot()}auth/token?t=${data}&url=/auth/group`,
+        `${nextRoot()}auth/token?t=${encodeURIComponent(data)}&url=/auth/group`,
         "_blank",
       );
   };

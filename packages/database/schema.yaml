@@ -28,6 +28,8 @@ enums:
       direct:
       direct_and_children:
       direct_and_description:
+      full:
+        description: The whole source document, holding nothing that the direct variant already holds (such as the title)
   Validation:
     description: Whether a given value was given by a person, or suggested by an automated agent (and then possibly infirmed.)
     permissible_values:

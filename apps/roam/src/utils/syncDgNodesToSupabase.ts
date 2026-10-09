@@ -3,7 +3,7 @@ import {
   getAllDiscourseNodesSince,
   nodeTypeSince,
 } from "./getAllDiscourseNodesSince";
-import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
+import { getDiscourseNodeFormatExpression } from "@repo/database/lib/getDiscourseNodeFormatExpression";
 import { getImportedNodeUids } from "./importedSourceIdentity";
 import { cleanupOrphanedNodes } from "./cleanupOrphanedNodes";
 import {
@@ -24,6 +24,12 @@ import {
   convertRoamNodeToFullContent,
   type RoamFullContentNode,
 } from "./convertRoamNodeToFullContent";
+import {
+  publishNodeAssets,
+  summarizeAssetResults,
+  type NodeAssetResult,
+} from "./publishNodeAssets";
+import { requestAssetRetries } from "./requestAssetRetry";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { intersection } from "@repo/utils/setOperations";
 import { CORE_TITLE_PROBE_SELECT } from "@repo/database/lib/coreTitleBackfill";
@@ -804,24 +810,44 @@ const upsertNodesToSupabaseAsContent = async (
   await uploadContentBatches({ content, supabaseClient, context });
 };
 
-const upsertRoamNodesToSupabaseAsFullContent = async ({
+/** The asset stage runs here too, so an asset added after sharing still gets a row. */
+export const upsertSharedNodesFullContentWithAssets = async ({
   nodes,
   supabaseClient,
   context,
+  phases,
 }: {
   nodes: RoamFullContentNode[];
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
-}): Promise<void> => {
-  if (nodes.length === 0) {
-    return;
-  }
-
-  const fullContent = convertRoamNodeToFullContent({ nodes });
-  await uploadContentBatches({
-    content: fullContent,
-    supabaseClient,
-    context,
+  phases: SyncPhaseDurations;
+}): Promise<NodeAssetResult[]> => {
+  // Building the markdown is the expensive half of the upload, so it stays inside the
+  // phase it has always been timed under.
+  const converted = await measureSyncPhase({
+    phase: "upsertFullContent",
+    phases,
+    operation: async () => {
+      const converted = convertRoamNodeToFullContent({ nodes });
+      await uploadContentBatches({
+        content: converted.map(({ content }) => content),
+        supabaseClient,
+        context,
+      });
+      return converted;
+    },
+  });
+  // A failed upload throws above, so every converted node now has the Content row
+  // that publishNodeAssets requires.
+  return measureSyncPhase({
+    phase: "publishSharedNodeAssets",
+    phases,
+    operation: () =>
+      publishNodeAssets({
+        client: supabaseClient,
+        spaceId: context.spaceId,
+        nodes: converted.map(({ node }) => node),
+      }),
   });
 };
 
@@ -902,6 +928,52 @@ const reportCoreTitleBackfill = ({
     skipped,
     orphaned,
   });
+};
+
+/**
+ * A Roam asset URL's query string carries a download token that grants access to the
+ * file, so it must not reach analytics. The path still identifies the asset.
+ */
+const withoutUrlQueries = (text: string): string =>
+  text.replace(/(https?:\/\/[^\s?]+)\?[^\s)]*/g, "$1");
+
+/**
+ * Retries are unbounded, so the per-asset events are how a node that keeps failing is
+ * found.
+ */
+export const reportSharedNodeAssets = ({
+  results,
+  retried,
+}: {
+  results: NodeAssetResult[];
+  retried: ReadonlySet<string>;
+}): void => {
+  if (results.length === 0) return;
+  const { copied, unchanged, distinctBlobs, tooLarge, failed } =
+    summarizeAssetResults(results);
+  posthog.capture("Sync shared node assets", {
+    copied,
+    unchanged,
+    distinctBlobs,
+    tooLarge: tooLarge.length,
+    failed: failed.length,
+  });
+  // Per node, unlike the summary: the same file failing in two nodes is two retries.
+  for (const result of results) {
+    if (result.status !== "failed") continue;
+    posthog.capture("Sync shared node asset failed", {
+      sourceLocalId: result.sourceLocalId,
+      sourceRef: withoutUrlQueries(result.sourceRef),
+      error: withoutUrlQueries(result.error),
+      retryScheduled: retried.has(result.sourceLocalId),
+    });
+  }
+  if (failed.length > 0) {
+    console.warn(
+      `Sync could not copy ${failed.length} shared node assets`,
+      failed,
+    );
+  }
 };
 
 const getAllMissingOrNewDiscourseNodes = async ({
@@ -1300,6 +1372,15 @@ export const createOrUpdateDiscourseEmbedding = async (
     claimed = true;
     const activeClaimedAt = new Date();
     claimedAt = activeClaimedAt;
+    // Must run before the upserts: a deleted schema still in the database
+    // holds its name, so upsert_concepts refuses a recreated schema with that
+    // name and the sync fails before reaching a later cleanup.
+    await measureSyncPhase({
+      phase: "cleanupOrphanedNodes",
+      phases,
+      operation: () =>
+        cleanupOrphanedNodes(activeSupabaseClient, activeContext),
+    });
     const allUsers = await measureSyncPhase({
       phase: "getAllUsers",
       phases,
@@ -1445,15 +1526,17 @@ export const createOrUpdateDiscourseEmbedding = async (
               activeContext,
             ),
     });
-    await measureSyncPhase({
-      phase: "upsertFullContent",
-      phases,
-      operation: () =>
-        upsertRoamNodesToSupabaseAsFullContent({
-          nodes: sharedFullContentNodes,
-          supabaseClient: activeSupabaseClient,
-          context: activeContext,
-        }),
+    const sharedNodeAssetResults = await upsertSharedNodesFullContentWithAssets(
+      {
+        nodes: sharedFullContentNodes,
+        supabaseClient: activeSupabaseClient,
+        context: activeContext,
+        phases,
+      },
+    );
+    reportSharedNodeAssets({
+      results: sharedNodeAssetResults,
+      retried: await requestAssetRetries(sharedNodeAssetResults),
     });
     await measureSyncPhase({
       phase: "convertConcepts",
@@ -1486,12 +1569,6 @@ export const createOrUpdateDiscourseEmbedding = async (
         orphaned: coreTitleBackfill.orphanedCount,
       });
     }
-    await measureSyncPhase({
-      phase: "cleanupOrphanedNodes",
-      phases,
-      operation: () =>
-        cleanupOrphanedNodes(activeSupabaseClient, activeContext),
-    });
     const completeEndResult = await measureSyncPhase({
       phase: "endSyncTask",
       phases,

@@ -11,7 +11,8 @@ import internalError from "~/utils/internalError";
 import { materializeSharedNode } from "~/utils/materializeSharedNode";
 import { refreshImportedNode } from "~/utils/refreshImportedNode";
 import { resolveSharedNodeTypes } from "~/utils/resolveSharedNodeTypes";
-import { getLoggedInClient } from "~/utils/supabaseContext";
+import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
+import { importSharedRelations } from "~/utils/importSharedRelations";
 
 vi.mock("roamjs-components/queries/getPageTitleByPageUid", () => ({
   default: vi.fn(),
@@ -34,7 +35,18 @@ vi.mock("~/utils/resolveSharedNodeTypes", () => ({
 }));
 vi.mock("~/utils/supabaseContext", () => ({
   getLoggedInClient: vi.fn(),
+  getSupabaseContext: vi.fn(),
 }));
+vi.mock("~/utils/importSharedRelations", () => ({
+  importSharedRelations: vi.fn(),
+}));
+
+// Runs before the imports above: getDiscourseNodes calls generateUID at module load.
+vi.hoisted(() => {
+  (globalThis as { window?: unknown }).window = {
+    roamAlphaAPI: { util: { generateUID: () => "someUid" } },
+  };
+});
 
 const mockedGetPageTitleByPageUid = vi.mocked(getPageTitleByPageUid);
 const mockedGetSharedNodeByRid = vi.mocked(getSharedNodeByRid);
@@ -43,6 +55,8 @@ const mockedInternalError = vi.mocked(internalError);
 const mockedMaterializeSharedNode = vi.mocked(materializeSharedNode);
 const mockedGetLoggedInClient = vi.mocked(getLoggedInClient);
 const mockedResolveSharedNodeTypes = vi.mocked(resolveSharedNodeTypes);
+const mockedGetSupabaseContext = vi.mocked(getSupabaseContext);
+const mockedImportSharedRelations = vi.mocked(importSharedRelations);
 
 const NODE_TYPE: DiscourseNode = {
   text: "Evidence",
@@ -85,6 +99,10 @@ beforeEach(() => {
     sourceNodeRid: sharedNode.rid,
   });
   mockedGetLoggedInClient.mockResolvedValue(client);
+  mockedGetSupabaseContext.mockResolvedValue({ spaceId: 5 } as Awaited<
+    ReturnType<typeof getSupabaseContext>
+  >);
+  mockedImportSharedRelations.mockResolvedValue({ failures: [], skipped: [] });
   mockedGetSharedNodeByRid.mockResolvedValue(sharedNode);
   mockedResolveSharedNodeTypes.mockResolvedValue(new Map());
   mockedMaterializeSharedNode.mockResolvedValue({
@@ -97,6 +115,82 @@ beforeEach(() => {
 });
 
 describe("refreshImportedNode", () => {
+  it("imports relations after refreshing, including when the node was up to date", async () => {
+    await refreshImportedNode({ pageUid: PAGE_UID, force: true });
+    expect(mockedImportSharedRelations).toHaveBeenCalledWith(client, 5);
+
+    mockedImportSharedRelations.mockClear();
+    mockedMaterializeSharedNode.mockResolvedValue({
+      success: true,
+      action: "skipped",
+      pageUid: PAGE_UID,
+      sourceModifiedAt: sharedNode.lastModified,
+      sourceNodeRid: sharedNode.rid,
+    });
+    await refreshImportedNode({ pageUid: PAGE_UID, force: false });
+    expect(mockedImportSharedRelations).toHaveBeenCalledWith(client, 5);
+  });
+
+  it("does not import relations when asked not to", async () => {
+    await refreshImportedNode({
+      pageUid: PAGE_UID,
+      force: false,
+      importRelations: false,
+    });
+    expect(mockedImportSharedRelations).not.toHaveBeenCalled();
+  });
+
+  it("reports relations that failed to import as a warning, not a failure", async () => {
+    mockedImportSharedRelations.mockResolvedValue({
+      failures: ["a: broken", "b: broken"],
+      skipped: ["c: hidden"],
+    });
+    mockedMaterializeSharedNode.mockResolvedValue({
+      success: true,
+      action: "updated",
+      pageUid: PAGE_UID,
+      sourceModifiedAt: sharedNode.lastModified,
+      sourceNodeRid: sharedNode.rid,
+      warning: "No source was published with this node.",
+    });
+
+    await expect(
+      refreshImportedNode({ pageUid: PAGE_UID, force: true }),
+    ).resolves.toEqual({
+      status: "refreshed",
+      message: 'Refreshed "EVD - REM sleep and recall" from Research vault.',
+      warning:
+        "No source was published with this node. 2 relations could not be imported.",
+    });
+  });
+
+  it("does not warn about relations skipped for a hidden schema", async () => {
+    mockedImportSharedRelations.mockResolvedValue({
+      failures: [],
+      skipped: ["c: hidden"],
+    });
+
+    const result = await refreshImportedNode({
+      pageUid: PAGE_UID,
+      force: true,
+    });
+
+    expect(result.status).toBe("refreshed");
+    expect(result).not.toHaveProperty("warning");
+  });
+
+  it("keeps the refresh when the relation import throws", async () => {
+    mockedImportSharedRelations.mockRejectedValue(new Error("network down"));
+
+    await expect(
+      refreshImportedNode({ pageUid: PAGE_UID, force: true }),
+    ).resolves.toEqual({
+      status: "refreshed",
+      message: 'Refreshed "EVD - REM sleep and recall" from Research vault.',
+      warning: "Could not import relations: network down",
+    });
+  });
+
   it("refreshes the page from its stored source identity", async () => {
     await expect(
       refreshImportedNode({ pageUid: PAGE_UID, force: true }),
@@ -119,6 +213,25 @@ describe("refreshImportedNode", () => {
       force: true,
     });
     expect(mockedInternalError).not.toHaveBeenCalled();
+  });
+
+  it("passes the materializer's warning through", async () => {
+    mockedMaterializeSharedNode.mockResolvedValue({
+      success: true,
+      action: "updated",
+      pageUid: PAGE_UID,
+      sourceModifiedAt: sharedNode.lastModified,
+      sourceNodeRid: sharedNode.rid,
+      warning: "No source was published with this node.",
+    });
+
+    await expect(
+      refreshImportedNode({ pageUid: PAGE_UID, force: true }),
+    ).resolves.toEqual({
+      status: "refreshed",
+      message: 'Refreshed "EVD - REM sleep and recall" from Research vault.',
+      warning: "No source was published with this node.",
+    });
   });
 
   it("passes the resolved node type to the materializer", async () => {

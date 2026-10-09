@@ -98,6 +98,7 @@ export const crossAppNodeSchemaToDbConcept = (
 ): LocalConceptDataInput => {
   const slots = Object.keys(node.slotDefinitions ?? {});
   const literalInfo = filterUndefined({
+    label: node.label,
     template: node.templateTitle,
     template_content: node.template,
     format: node.format,

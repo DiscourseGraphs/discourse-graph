@@ -258,11 +258,7 @@ const DiscourseContextPopupOverlay = ({
     <Popover
       autoFocus={false}
       content={
-        <div
-          className={`roamjs-discourse-context-popover relative max-w-3xl p-4 ${
-            results.length === 0 ? "flex items-center justify-center" : ""
-          }`}
-        >
+        <div className="roamjs-discourse-context-popover relative max-w-3xl p-4">
           <ContextContent
             uid={tagUid}
             results={results}

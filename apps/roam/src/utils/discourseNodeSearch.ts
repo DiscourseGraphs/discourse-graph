@@ -1,5 +1,5 @@
 import { type DiscourseNode } from "~/utils/getDiscourseNodes";
-import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
+import { getDiscourseNodeFormatExpression } from "@repo/database/lib/getDiscourseNodeFormatExpression";
 
 export const DISCOURSE_NODE_MIN_SEARCH_SCORE = 0.1;
 

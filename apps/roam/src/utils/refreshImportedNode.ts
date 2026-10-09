@@ -2,12 +2,12 @@ import { getSharedNodeByRid } from "@repo/database/lib/sharedNodes";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { readImportedSourceIdentity } from "./importedSourceIdentity";
 import internalError from "./internalError";
-import {
-  getErrorMessage,
-  materializeSharedNode,
-} from "./materializeSharedNode";
+import { getErrorMessage } from "./getErrorMessage";
+import { materializeSharedNode } from "./materializeSharedNode";
 import { resolveSharedNodeTypes } from "./resolveSharedNodeTypes";
-import { getLoggedInClient } from "./supabaseContext";
+import { getLoggedInClient, getSupabaseContext } from "./supabaseContext";
+import { importSharedRelations } from "./importSharedRelations";
+import type { DGSupabaseClient } from "@repo/database/lib/client";
 
 export const REFRESH_ERROR_TYPE = "Imported node refresh failed";
 const REFRESH_ERROR_OPERATION = "refresh-imported-node";
@@ -15,14 +15,49 @@ const REFRESH_ERROR_OPERATION = "refresh-imported-node";
 type RefreshImportedNodeResult = {
   status: "refreshed" | "skipped" | "failed";
   message: string;
+  warning?: string;
 };
 
+// A relation published after both of its ends were imported arrives only with a later
+// import or refresh. Returns a warning when some relations could not be imported.
+export const importRelationsAfterRefresh = async (
+  client: DGSupabaseClient,
+): Promise<string | undefined> => {
+  try {
+    const context = await getSupabaseContext();
+    if (!context)
+      return "Could not import relations: could not connect to shared persistence.";
+    // Skipped relations are not reported: they need not involve the refreshed node.
+    const { failures } = await importSharedRelations(client, context.spaceId);
+    if (failures.length === 0) return undefined;
+    return failures.length === 1
+      ? "1 relation could not be imported."
+      : `${failures.length} relations could not be imported.`;
+  } catch (error) {
+    internalError({
+      error,
+      type: REFRESH_ERROR_TYPE,
+      context: { operation: "import-relations-after-refresh" },
+      sendEmail: false,
+    });
+    return `Could not import relations: ${getErrorMessage(error)}`;
+  }
+};
+
+const joinWarnings = (...warnings: (string | undefined)[]) => {
+  const present = warnings.filter((w) => w !== undefined);
+  return present.length > 0 ? { warning: present.join(" ") } : {};
+};
+
+// Refresh-all passes `importRelations: false` and imports relations once at the end.
 export const refreshImportedNode = async ({
   pageUid,
   force,
+  importRelations = true,
 }: {
   pageUid: string;
   force: boolean;
+  importRelations?: boolean;
 }): Promise<RefreshImportedNodeResult> => {
   try {
     const title = getPageTitleByPageUid(pageUid);
@@ -78,14 +113,19 @@ export const refreshImportedNode = async ({
         status: "failed",
         message: `A different page ("${getPageTitleByPageUid(result.pageUid)}") is linked to the same source and was refreshed instead.`,
       };
+    const relationWarning = importRelations
+      ? await importRelationsAfterRefresh(client)
+      : undefined;
     if (result.action === "skipped")
       return {
         status: "skipped",
         message: `"${sharedNode.title}" is already up to date.`,
+        ...joinWarnings(relationWarning),
       };
     return {
       status: "refreshed",
       message: `Refreshed "${sharedNode.title}" from ${sharedNode.spaceName}.`,
+      ...joinWarnings(result.warning, relationWarning),
     };
   } catch (error) {
     internalError({
