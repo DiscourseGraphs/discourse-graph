@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { decorateTitle } from "@repo/database/lib/decorateTitle";
+import type { DiscourseNode } from "~/types";
 import {
   checkInvalidChars,
   normalizeImportedNodeFormat,
+  validateNodeFormat,
 } from "~/utils/validateNodeType";
 
 describe("normalizeImportedNodeFormat", () => {
@@ -54,4 +56,50 @@ describe("normalizeImportedNodeFormat", () => {
   ])("leaves the valid format %s unchanged", (format) => {
     expect(normalizeImportedNodeFormat(format)).toBe(format);
   });
+});
+
+describe("validateNodeFormat", () => {
+  const currentNode: DiscourseNode = {
+    id: "node-1",
+    name: "Evidence",
+    format: "",
+    created: 0,
+    modified: 0,
+  };
+  const validate = (format: string) =>
+    validateNodeFormat({ format, currentNode, allNodes: [currentNode] });
+
+  it.each([
+    [
+      "EVD - {content} - {Source}",
+      "Format contains unsupported placeholder: {Source}. Only {content} is supported.",
+    ],
+    [
+      "{Author}: {content}",
+      "Format contains unsupported placeholder: {Author}. Only {content} is supported.",
+    ],
+    [
+      "{Source} - {content} - {Author} - {Source}",
+      "Format contains unsupported placeholders: {Source}, {Author}. Only {content} is supported.",
+    ],
+  ])("rejects the unsupported placeholders in %s", (format, error) => {
+    expect(validate(format)).toEqual({ isValid: false, error });
+  });
+
+  it.each(["CLM - {content}", "{content}", "@{content}"])(
+    "accepts the content-only format %s",
+    (format) => {
+      expect(validate(format)).toEqual({ isValid: true });
+    },
+  );
+
+  it.each(["CLM - title", "EVD - {Source}"])(
+    "reports the missing {content} for %s",
+    (format) => {
+      expect(validate(format)).toEqual({
+        isValid: false,
+        error: 'Format must include the placeholder "{content}"',
+      });
+    },
+  );
 });
