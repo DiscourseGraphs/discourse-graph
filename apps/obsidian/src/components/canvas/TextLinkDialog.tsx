@@ -46,11 +46,12 @@ const acceptsPageLinks = (shapeType: string): boolean =>
 
 // Every shape type uses tldraw's linkUrl, patched to accept obsidian://open links.
 const validateUrl = (url: string, shapeType: string): UrlValidity => {
-  const isAllowed = (value: string): boolean =>
-    isAllowedTextLinkUrl(value) &&
-    (acceptsPageLinks(shapeType) || !isObsidianUrl(value));
-  if (isAllowed(url)) return { isValid: true, hasProtocol: true };
-  if (isAllowed(`https://${url}`)) return { isValid: true, hasProtocol: false };
+  // Checked before the https:// fallback, which would accept `https://obsidian://…`.
+  if (!acceptsPageLinks(shapeType) && isObsidianUrl(url))
+    return { isValid: false, hasProtocol: false };
+  if (isAllowedTextLinkUrl(url)) return { isValid: true, hasProtocol: true };
+  if (isAllowedTextLinkUrl(`https://${url}`))
+    return { isValid: true, hasProtocol: false };
   return { isValid: false, hasProtocol: false };
 };
 
