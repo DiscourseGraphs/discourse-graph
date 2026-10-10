@@ -1,0 +1,17 @@
+In roam as https://roamresearch.com/#/app/discourse-graphs/page/cCoTewx7J and https://roamresearch.com/#/app/discourse-graphs/page/Sf2Z4gWlR
+
+---
+
+pushed and merged.
+
+---
+
+I think we'll let that error go until we reproduce it. Are all issue candidates linked to in either PRs or linear?
+
+---
+
+Worth doing.
+
+---
+
+Ok we're done. Record and shutdown.
