@@ -38,6 +38,7 @@
     "account_of": { "@id": "dct:creator", "@type": "sioc:account_of" },
     "Person": "foaf:Person",
     "Container": "sioc:Container",
+    "Item": "sioc:Item",
     "content": "sioc:content",
     "container_of": { "@type": "@id", "@id": "sioc:container_of" },
     "has_container": { "@id": "sioc:has_container", "@type": "@id" },

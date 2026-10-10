@@ -5,7 +5,11 @@ import {
   defaultOptionsHandler,
   createApiResponse,
 } from "~/utils/supabase/apiUtils";
-import { asJsonLD, conceptName } from "~/utils/conversion/jsonld";
+import {
+  asJsonLD,
+  conceptName,
+  CONTENT_PAGE_MARKER,
+} from "~/utils/conversion/jsonld";
 import { Tables, Enums } from "@repo/database/dbTypes";
 import { convert, MIMETYPES, type DocType } from "~/utils/conversion/convert";
 
@@ -96,9 +100,15 @@ export const GET = async (
   }
   const contents: Content[] = contentResponse.data;
   const requestUrlParts = request.url.split("/");
-  const baseUrl = requestUrlParts
+  console.log("requestUrlParts", requestUrlParts);
+  const pageUrl = requestUrlParts
     .slice(0, requestUrlParts.length - 1)
     .join("/");
+  console.log("pageUrl", pageUrl);
+  const rootUrl = pageUrl.split("/").slice(0, 3).join("/");
+  console.log("rootUrl", rootUrl);
+  const baseUrl = `${rootUrl}/api/data/${pageUrl.split("/")[5]}`;
+
   const fullContentsArray = contents.filter((c) => c.variant === "full");
   const fullContents = fullContentsArray.length
     ? fullContentsArray[0]
@@ -144,10 +154,10 @@ export const GET = async (
     schema = schemaResponse.data;
   }
   const schemaName = conceptName(concept, schema);
+  let author: PlatformAccount | undefined = undefined;
 
   if (includeData) {
     const authorId = concept.author_id ?? (contents ?? [{}])[0]?.author_id;
-    let author: PlatformAccount | undefined = undefined;
     if (authorId) {
       try {
         const authorResponse = await supabase
@@ -161,20 +171,20 @@ export const GET = async (
         // if anonymous, we do not have access.
       }
     }
-
-    const jsonLdData = asJsonLD({
-      platform,
-      concept,
-      baseUrl,
-      title,
-      schema,
-      content: undefined,
-      author,
-      targetFormat,
-      wrap: true,
-    });
-    text = `<div id="content">\n<script type="application/ld+json">${JSON.stringify(jsonLdData)}</script>\n${text}\n</div>`;
+    text = `<div id="content">\n${text}\n</div>`;
   }
+  const jsonLdData = asJsonLD({
+    platform,
+    concept,
+    baseUrl,
+    title,
+    schema,
+    content: CONTENT_PAGE_MARKER,
+    author,
+    targetFormat,
+    wrap: true,
+  });
+
   const divideFM = fullContents.text.split("---\n");
   const firstTextFragment =
     divideFM.length > 2 && divideFM[0]!.trim().length == 0
@@ -186,6 +196,7 @@ export const GET = async (
   <meta property="og:type" content="${schemaName}" />
   <meta property="og:url" content="${request.url}" />
   <meta property="og:description" content="${firstTextFragment.substring(0, 80)}" />
+  <script type="application/ld+json">${JSON.stringify(jsonLdData)}</script>
   </head>
   <body>
   <main>

@@ -6,6 +6,8 @@ type Content = Tables<"Content">;
 type PlatformAccount = Tables<"PlatformAccount">;
 type Platform = Enums<"Platform">;
 
+export const CONTENT_PAGE_MARKER = Symbol("content-page");
+
 // This is a temporary hack
 export const KnownClassEntities: Record<string, string[]> = {
   Claim: ["dgc:Claim", "mira:Claim"],
@@ -125,7 +127,7 @@ export const asJsonLD = ({
   baseUrl: string;
   title?: Content;
   schema?: Concept;
-  content?: Content;
+  content?: Content | typeof CONTENT_PAGE_MARKER;
   author?: PlatformAccount;
   targetFormat?: DocType;
   wrap?: boolean;
@@ -197,6 +199,14 @@ export const asJsonLD = ({
     extraData[concept.is_schema ? "label" : "title"] = titleText;
   }
   let pageUrl: string | undefined = undefined;
+  if (content === CONTENT_PAGE_MARKER) {
+    extraData["description"] = {
+      "@id": "#content",
+      format: MIMETYPES[targetFormat],
+      "@type": "sioc:Item",
+    };
+    content = undefined;
+  }
   if (content) {
     const rootUrl = baseUrl.split("/").slice(0, 3).join("/");
     pageUrl = `${rootUrl}/api/content/${baseUrl.split("/")[5]}/${concept.id}#`;
@@ -206,6 +216,7 @@ export const asJsonLD = ({
     const contentText = source && convert(content.text, source, targetFormat);
     extraData["description"] = {
       "@id": "page:content",
+      "@type": "Item",
       format: MIMETYPES[targetFormat],
       content: contentText,
     };
@@ -265,7 +276,7 @@ export const wrapJsonLd = (
   } else if (typeof json === "object") {
     return {
       "@context": [ctxUrl, localCtx],
-      has_container: baseUrl,
+      has_container: { "@id": baseUrl, "@type": "Container" },
       ...json,
     };
   } else throw new Error("Wrong input type");
