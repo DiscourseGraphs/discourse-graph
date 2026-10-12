@@ -1,0 +1,1 @@
+I'm trying to define a sentinel value in typescript and obviously doing it wrong. Can you look at uncommitted changes?
