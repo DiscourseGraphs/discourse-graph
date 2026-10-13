@@ -1,0 +1,219 @@
+Read-only PostHog analysis: measure Roam extension version adoption for the Discourse Graphs project. Don't create, edit, or delete anything in PostHog (no insights, dashboards, cohorts, or annotations). Only run queries.
+
+## Context
+We're about to ship ENG-1955 (Roam canvas relation arrows migrate to a new `discourse-relation` shape type, schema v6). Older extension versions can break on canvases saved by newer ones, and one Roam graph can have several users on different plugin versions. A fallback that lets older clients read the new shape type shipped in Roam extension 0.22.0, released to Roam Depot around 2026-08-24. Question: what share of active installs are on 0.22 or later, and which graphs currently mix versions below 0.22 with 0.22+?
+
+## Telemetry facts
+- Roam extension events go to PostHog US (us.i.posthog.com). Find the project that has the `Extension Loaded` event. If several projects have it, pick the one with Roam extension traffic and say which one you used.
+- On every load the extension sends `Extension Loaded` with properties `version` (e.g. "0.22.0"), `buildDate`, `buildCommit`, `buildBranch`, `versionStamp`, `extensionInstallId` (a random id stored in the browser's localStorage, so one install = one browser) and `graphName`.
+- These properties were added in 0.21.0 (ENG-1940), so installs older than 0.21 don't show up.
+- Missing values are sent as "-".
+
+## Steps
+1. Load the posthog querying skill (posthog:querying-posthog-data) and confirm you're on the right project.
+2. Check property values first: distinct `version` values and distinct `buildBranch` values in the last 30 days, with counts. If `buildBranch` has values other than main (or "-"), dev/preview builds are mixed in: report them and exclude them from the adoption numbers with `properties.buildBranch IN ('main', '-')`, showing the totals with and without that filter.
+3. Run these HogQL queries (adapt the syntax if the tool needs it, but keep the logic):
+
+Q1. Share of active installs on 0.22 or later (latest version per install, last 30 days):
+WITH latest AS (
+  SELECT properties.extensionInstallId AS install,
+         argMax(properties.version, timestamp) AS version
+  FROM events
+  WHERE event = 'Extension Loaded'
+    AND timestamp > now() - INTERVAL 30 DAY
+    AND properties.extensionInstallId NOT IN ('-', '')
+  GROUP BY install
+)
+SELECT count() AS installs,
+       countIf(toInt(splitByChar('.', version)[1]) > 0
+            OR toInt(splitByChar('.', version)[2]) >= 22) AS on_0_22_plus,
+       round(100 * on_0_22_plus / installs, 1) AS pct_0_22_plus
+FROM latest
+WHERE version != '-'
+
+Q2. Breakdown by version:
+WITH latest AS (
+  SELECT properties.extensionInstallId AS install,
+         argMax(properties.version, timestamp) AS version
+  FROM events
+  WHERE event = 'Extension Loaded' AND timestamp > now() - INTERVAL 30 DAY
+  GROUP BY install
+)
+SELECT version, count() AS installs FROM latest GROUP BY version ORDER BY installs DESC
+
+Q3. Graphs with mixed versions right now:
+WITH latest AS (
+  SELECT properties.extensionInstallId AS install,
+         argMax(properties.graphName, timestamp) AS graph,
+         argMax(properties.version, timestamp) AS version
+  FROM events
+  WHERE event = 'Extension Loaded' AND timestamp > now() - INTERVAL 30 DAY
+  GROUP BY install
+)
+SELECT graph,
+       groupUniqArray(version) AS versions,
+       countIf(toInt(splitByChar('.', version)[2]) < 22) AS installs_below_0_22,
+       count() AS installs
+FROM latest
+WHERE version != '-'
+GROUP BY graph
+HAVING installs_below_0_22 > 0 AND installs_below_0_22 < installs
+ORDER BY installs DESC
+
+4. Also run Q1 with a 7-day window, to see recent adoption.
+5. Also count graphs with ANY active install below 0.22, even if no other version is present there: canvases in those graphs could still be opened by an upgraded collaborator later.
+
+## Report back (keep it short)
+- Project used, query window(s), and whether you filtered buildBranch.
+- Q1 for 30 and 7 days: installs, on 0.22+, percentage.
+- Q2 table.
+- Q3: the number of mixed-version graphs, and the list (graph name, versions, installs below 0.22 / total). Graph names are fine to show me, but flag it if a name looks like personal data.
+- The step 5 count.
+- Caveats: installs below 0.21 aren't visible, installs are per browser not per person, and any data quirks you noticed (e.g. unparseable versions).
+
+---
+
+/login
+
+---
+
+Read-only PostHog analysis: measure Roam extension version adoption for the Discourse Graphs project. Don't create, edit, or delete anything in PostHog (no insights, dashboards, cohorts, or annotations). Only run queries.
+
+## Context
+We're about to ship ENG-1955 (Roam canvas relation arrows migrate to a new `discourse-relation` shape type, schema v6). Older extension versions can break on canvases saved by newer ones, and one Roam graph can have several users on different plugin versions. A fallback that lets older clients read the new shape type shipped in Roam extension 0.22.0, released to Roam Depot around 2026-08-24. Question: what share of active installs are on 0.22 or later, and which graphs currently mix versions below 0.22 with 0.22+?
+
+## Telemetry facts
+- Roam extension events go to PostHog US (us.i.posthog.com). Find the project that has the `Extension Loaded` event. If several projects have it, pick the one with Roam extension traffic and say which one you used.
+- On every load the extension sends `Extension Loaded` with properties `version` (e.g. "0.22.0"), `buildDate`, `buildCommit`, `buildBranch`, `versionStamp`, `extensionInstallId` (a random id stored in the browser's localStorage, so one install = one browser) and `graphName`.
+- These properties were added in 0.21.0 (ENG-1940), so installs older than 0.21 don't show up.
+- Missing values are sent as "-".
+
+## Steps
+1. Load the posthog querying skill (posthog:querying-posthog-data) and confirm you're on the right project.
+2. Check property values first: distinct `version` values and distinct `buildBranch` values in the last 30 days, with counts. If `buildBranch` has values other than main (or "-"), dev/preview builds are mixed in: report them and exclude them from the adoption numbers with `properties.buildBranch IN ('main', '-')`, showing the totals with and without that filter.
+3. Run these HogQL queries (adapt the syntax if the tool needs it, but keep the logic):
+
+Q1. Share of active installs on 0.22 or later (latest version per install, last 30 days):
+WITH latest AS (
+  SELECT properties.extensionInstallId AS install,
+         argMax(properties.version, timestamp) AS version
+  FROM events
+  WHERE event = 'Extension Loaded'
+    AND timestamp > now() - INTERVAL 30 DAY
+    AND properties.extensionInstallId NOT IN ('-', '')
+  GROUP BY install
+)
+SELECT count() AS installs,
+       countIf(toInt(splitByChar('.', version)[1]) > 0
+            OR toInt(splitByChar('.', version)[2]) >= 22) AS on_0_22_plus,
+       round(100 * on_0_22_plus / installs, 1) AS pct_0_22_plus
+FROM latest
+WHERE version != '-'
+
+Q2. Breakdown by version:
+WITH latest AS (
+  SELECT properties.extensionInstallId AS install,
+         argMax(properties.version, timestamp) AS version
+  FROM events
+  WHERE event = 'Extension Loaded' AND timestamp > now() - INTERVAL 30 DAY
+  GROUP BY install
+)
+SELECT version, count() AS installs FROM latest GROUP BY version ORDER BY installs DESC
+
+Q3. Graphs with mixed versions right now:
+WITH latest AS (
+  SELECT properties.extensionInstallId AS install,
+         argMax(properties.graphName, timestamp) AS graph,
+         argMax(properties.version, timestamp) AS version
+  FROM events
+  WHERE event = 'Extension Loaded' AND timestamp > now() - INTERVAL 30 DAY
+  GROUP BY install
+)
+SELECT graph,
+       groupUniqArray(version) AS versions,
+       countIf(toInt(splitByChar('.', version)[2]) < 22) AS installs_below_0_22,
+       count() AS installs
+FROM latest
+WHERE version != '-'
+GROUP BY graph
+HAVING installs_below_0_22 > 0 AND installs_below_0_22 < installs
+ORDER BY installs DESC
+
+4. Also run Q1 with a 7-day window, to see recent adoption.
+5. Also count graphs with ANY active install below 0.22, even if no other version is present there: canvases in those graphs could still be opened by an upgraded collaborator later.
+
+## Report back (keep it short)
+- Project used, query window(s), and whether you filtered buildBranch.
+- Q1 for 30 and 7 days: installs, on 0.22+, percentage.
+- Q2 table.
+- Q3: the number of mixed-version graphs, and the list (graph name, versions, installs below 0.22 / total). Graph names are fine to show me, but flag it if a name looks like personal data.
+- The step 5 count.
+- Caveats: installs below 0.21 aren't visible, installs are per browser not per person, and any data quirks you noticed (e.g. unparseable versions).
+
+---
+
+<task-notification>
+<task-id>a3c9507cc01832472</task-id>
+<tool-use-id>toolu_017XZ6EnvwKhHNVHPZnXdZtq</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/b27a6244-1f12-4216-a300-aa630a487cf1/tasks/a3c9507cc01832472.output</output-file>
+<status>completed</status>
+<summary>Agent "PostHog Roam version adoption analysis" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>The PostHog MCP token has expired mid-task, so I can't run any queries right now.
+
+**I am the fork** — reporting back: PostHog re-authorization is required before this analysis can run. The exec tool returned `MCP server "plugin:posthog:posthog" requires re-authorization (token expired)` on the very first call (checking the execute-sql schema), before any project lookup or query could happen.
+
+No queries were run — nothing to report on Q1/Q2/Q3 or the step-5 count. Needs the user to run `/mcp` to reconnect the PostHog plugin, then the analysis can proceed from scratch.</result>
+<usage><subagent_tokens>87389</subagent_tokens><tool_uses>2</tool_uses><duration_ms>11795</duration_ms></usage>
+</task-notification>
+
+---
+
+continue the task
+
+---
+
+<task-notification>
+<task-id>aebf2a97ab4939c76</task-id>
+<tool-use-id>toolu_018niy773AL8RgPKjs1CuPag</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/b27a6244-1f12-4216-a300-aa630a487cf1/tasks/aebf2a97ab4939c76.output</output-file>
+<status>completed</status>
+<summary>Agent "PostHog Roam version adoption analysis" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>All queries complete. Writing the final report.
+
+I am the fork — PostHog Roam version adoption analysis for ENG-1955, run read-only (no entities created/modified).
+
+**Project / window / filtering**
+- Project: "Roam" (id 113823, org "Discourse Graphs"). "Discourse graph website" (id 113486) was the other project; it doesn't carry this event.
+- Windows: 30-day and 7-day, as requested.
+- `buildBranch` has ~40 dev/feature branches mixed in (names like `eng-2296-...`) alongside `main` (1972/2037 events) and 13 null. I filtered to `properties.buildBranch IN ('main','-')` for all adoption numbers (treating the observed `NULL` as the "-" equivalent, since no literal `"-"` string appeared).
+
+**Q1 — share on 0.22+ (latest version per install)**
+- 30d, unfiltered: 139 installs, 137 on 0.22+ (98.6%)
+- 30d, main-only: 138 installs, 137 on 0.22+ (99.3%)
+- 7d, main-only: 71 installs, 71 on 0.22+ (100.0%)
+
+**Q2 — version breakdown (30d, main-only)**
+
+| version | installs |
+|---|---|
+| 0.22.0 | 76 |
+| 0.23.0 | 47 |
+| 0.24.0 | 14 |
+| 0.21.0 | 1 |
+
+**Q3 — mixed-version graphs (30d, main-only)**
+1 graph: `discourse-graphs` — versions `[0.24.0, 0.23.0, 0.21.0, 0.22.0]`, 1 install below 0.22 / 16 total. This name looks like a product/workspace name, not personal data.
+
+**Step 5 — graphs with any install below 0.22 (30d, main-only)**
+1 (same `discourse-graphs` graph).
+
+**Caveats**
+- Installs on extension versions below 0.21 are invisible (these properties shipped in 0.21.0/ENG-1940).
+- One install = one browser, not one person; multi-browser users count multiple times.
+- Sample is small (138 installs over 30 days) — percentages are noisy at this scale.
+- No unparseable/non-numeric version strings were seen in the filtered set; a handful of very old versions (0.15.0–0.19.0) and 2 null values exist in the unfiltered 30-day raw event counts but didn't surface as any install's *latest* version.
+- Treated `NULL` buildBranch as equivalent to `"-"` since no literal `"-"` string was observed; if that's wrong, the "unfiltered" vs "main-only" numbers above bound the uncertainty.</result>
+<usage><subagent_tokens>122210</subagent_tokens><tool_uses>22</tool_uses><duration_ms>112207</duration_ms></usage>
+</task-notification>

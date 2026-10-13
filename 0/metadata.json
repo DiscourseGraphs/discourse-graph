@@ -1,0 +1,147 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M4SDZTJ6MVSSGA8XD6JJQ0BC",
+  "session_id": "b27a6244-1f12-4216-a300-aa630a487cf1",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-13T01:28:20.095459Z",
+  "branch": "main",
+  "checkpoints_count": 4,
+  "save_step_count": 4,
+  "files_touched": [
+    "apps/website/public/docs/roam/dg-schema02.PNG"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-5",
+  "turn_id": "7ab59a093cd3",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 17895,
+    "cache_creation_tokens": 128519,
+    "cache_read_tokens": 578159,
+    "output_tokens": 3552,
+    "api_call_count": 10,
+    "subagent_tokens": {
+      "input_tokens": 858,
+      "cache_creation_tokens": 50507,
+      "cache_read_tokens": 2005744,
+      "output_tokens": 9721,
+      "api_call_count": 21
+    }
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "prompt-skill-claude-code-login-2026-10-09T21:09:01.766103Z",
+      "event_type": "prompt_invocation",
+      "skill": {
+        "name": "login"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "prompt_slash_command",
+        "confidence": "explicit"
+      },
+      "turn_id": "46e08a7e09e5",
+      "timestamp": "2026-10-09T21:09:01.766103Z",
+      "native": {
+        "command": "/login"
+      },
+      "collapse": {
+        "target": "user_message",
+        "label": "/login",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01KdtGv9oe6sTvr46Yddvyus",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "posthog:querying-posthog-data"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "7ab59a093cd3",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 36,
+        "end": 37,
+        "entry_ids": [
+          "00094573-30fa-4a06-b8ff-5a034b885444"
+        ],
+        "tool_use_id": "toolu_01KdtGv9oe6sTvr46Yddvyus"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01KdtGv9oe6sTvr46Yddvyus"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: posthog:querying-posthog-data",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 4
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-13T01:28:20.069544Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 0,
+    "total_lines_changed": 0,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 23,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "Default/Cache/No_Vary_Search/journal.baj": 1,
+        "Default/IndexedDB/https_roamresearch.com_0.indexeddb.leveldb/CURRENT": 1,
+        "Default/IndexedDB/https_roamresearch.com_0.indexeddb.leveldb/LOG": 6,
+        "Default/Local Storage/leveldb/CURRENT": 1,
+        "Default/Local Storage/leveldb/LOG": 2,
+        "Default/Service Worker/Database/CURRENT": 1,
+        "Default/Service Worker/Database/LOG": 2,
+        "Default/Session Storage/CURRENT": 1,
+        "Default/Session Storage/LOG": 2,
+        "Default/shared_proto_db/CURRENT": 1,
+        "Default/shared_proto_db/LOG": 2,
+        "Default/shared_proto_db/metadata/CURRENT": 1,
+        "Default/shared_proto_db/metadata/LOG": 2
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 23,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 23,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 23,
+      "agent_lines_removed": 0
+    }
+  ]
+}
