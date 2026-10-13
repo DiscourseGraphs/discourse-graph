@@ -16,14 +16,16 @@ import {
 
 type GraphBackgroundAnimationProps = {
   colors: GraphColors;
+  followPointer?: boolean;
 };
 
 // Renders an absolutely positioned canvas that fills its parent, so the parent
-// must be positioned (e.g. `relative`) and should clip overflow. The first
-// descendant of the parent marked `data-graph-avoid` fades nearby nodes to keep
-// text legible, and pointer tracking listens on the parent.
+// must be positioned (e.g. `relative`) and should clip overflow. Descendants of
+// the parent marked `data-graph-avoid` fade nearby nodes to keep text legible,
+// and pointer tracking listens on the parent.
 export const GraphBackgroundAnimation = ({
   colors,
+  followPointer = true,
 }: GraphBackgroundAnimationProps): ReactElement => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // Depend on the strings, not the `colors` object: a new object identity
@@ -48,22 +50,22 @@ export const GraphBackgroundAnimation = ({
       drawGraph(context, { state, colors: graphColors, time });
     };
 
-    const getAvoidElement = (): Element | null =>
-      canvas.parentElement?.querySelector("[data-graph-avoid]") ?? null;
+    const getAvoidElements = (): Element[] =>
+      Array.from(
+        canvas.parentElement?.querySelectorAll("[data-graph-avoid]") ?? [],
+      );
 
     const measureAvoidRects = (): Rect[] => {
-      const element = getAvoidElement();
-      if (!element) return [];
       const canvasRect = canvas.getBoundingClientRect();
-      const rect = element.getBoundingClientRect();
-      return [
-        {
+      return getAvoidElements().map((element) => {
+        const rect = element.getBoundingClientRect();
+        return {
           left: rect.left - canvasRect.left,
           top: rect.top - canvasRect.top,
           right: rect.right - canvasRect.left,
           bottom: rect.bottom - canvasRect.top,
-        },
-      ];
+        };
+      });
     };
 
     const resize = (): void => {
@@ -133,8 +135,7 @@ export const GraphBackgroundAnimation = ({
       setAvoidRects(state, measureAvoidRects());
       render(performance.now());
     });
-    const avoidElement = getAvoidElement();
-    if (avoidElement) contentObserver.observe(avoidElement);
+    for (const element of getAvoidElements()) contentObserver.observe(element);
     motionQuery.addEventListener("change", handleMotionChange);
     // The canvas ignores pointer events so the page content stays clickable;
     // listen on the parent section instead.
@@ -148,8 +149,10 @@ export const GraphBackgroundAnimation = ({
     const handlePointerLeave = (): void => {
       cursor.isOver = false;
     };
-    section?.addEventListener("pointermove", handlePointerMove);
-    section?.addEventListener("pointerleave", handlePointerLeave);
+    if (followPointer) {
+      section?.addEventListener("pointermove", handlePointerMove);
+      section?.addEventListener("pointerleave", handlePointerLeave);
+    }
     const intersectionObserver = new IntersectionObserver(([entry]) => {
       isInView = entry?.isIntersecting ?? true;
       syncLoop();
@@ -168,7 +171,7 @@ export const GraphBackgroundAnimation = ({
       section?.removeEventListener("pointerleave", handlePointerLeave);
       intersectionObserver.disconnect();
     };
-  }, [pulse, edge]);
+  }, [pulse, edge, followPointer]);
 
   return (
     <canvas
