@@ -1,5 +1,5 @@
 import React from "react";
-import ReactDOM from "react-dom";
+import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
 import {
   createHTMLObserver,
   getPageTitleValueByHtmlElement,
@@ -54,7 +54,7 @@ export const initRelationsPages = (): (() => void) => {
       };
       const blocksObserver = new MutationObserver(hideStorageBlocks);
       blocksObserver.observe(root, { childList: true, subtree: true });
-      ReactDOM.render(
+      const unmount = renderWithUnmount(
         <RelationsPage pageUid={pageUid} onRowsLoaded={onRowsLoaded} />,
         host,
       );
@@ -63,7 +63,7 @@ export const initRelationsPages = (): (() => void) => {
         hidden.forEach((block) =>
           block.classList.remove("dg-relation-storage-block"),
         );
-        ReactDOM.unmountComponentAtNode(host);
+        unmount();
         host.remove();
         mounts.delete(heading);
       });
