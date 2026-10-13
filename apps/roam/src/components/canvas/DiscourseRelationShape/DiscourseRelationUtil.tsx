@@ -117,6 +117,10 @@ import { AddReferencedNodeType } from "./DiscourseRelationTool";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 import internalError from "~/utils/internalError";
 import { refreshDiscourseContextsForMutatedUids } from "~/utils/discourseContextMutationRefresh";
+import {
+  findRelationForPair,
+  type RelationPairMatch,
+} from "~/utils/findRelationForPair";
 
 const COLOR_ARRAY = Array.from(DefaultColorStyle.values)
   .filter((c) => !["red", "green", "grey"].includes(c))
@@ -668,6 +672,7 @@ export const createAllRelationShapeUtils = (
           label: relation.label,
           sourceNodeType,
           targetNodeType,
+          preferredRelationId: relationTypeId,
         });
         const matchingRelation = foundRelation ?? relation;
 
@@ -1048,6 +1053,7 @@ export const createAllRelationShapeUtils = (
                   label: relation.label,
                   sourceNodeType: startNodeType,
                   targetNodeType: endNodeType,
+                  preferredRelationId: relationTypeId,
                 });
 
               const effectiveRelation = matchingRelation ?? relation;
@@ -1771,35 +1777,23 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
     sourceNodeType,
     targetNodeType,
     includeProvisional,
+    preferredRelationId,
   }: {
     label: string;
     sourceNodeType: string;
     targetNodeType: string;
     includeProvisional?: boolean;
-  }): {
-    isDirect: boolean;
-    isReverse: boolean;
-    matchingRelation: DiscourseRelation | null;
-  } {
+    preferredRelationId?: string;
+  }): RelationPairMatch<DiscourseRelation> {
     const relationsWithLabel = includeProvisional
       ? discourseContext.relations[label]
       : discourseContext.relations[label]?.filter(isAcceptedRelationSchema);
-    if (!relationsWithLabel) {
-      return { isDirect: false, isReverse: false, matchingRelation: null };
-    }
-
-    for (const rel of relationsWithLabel) {
-      const { isDirect, isReverse } = this.checkConnectionType(
-        rel,
-        sourceNodeType,
-        targetNodeType,
-      );
-      if (isDirect || isReverse) {
-        return { isDirect, isReverse, matchingRelation: rel };
-      }
-    }
-
-    return { isDirect: false, isReverse: false, matchingRelation: null };
+    return findRelationForPair({
+      relations: relationsWithLabel ?? [],
+      sourceNodeType,
+      targetNodeType,
+      preferredRelationId,
+    });
   }
 
   getValidTargetTypes(label: string, sourceNodeType: string): string[] {
