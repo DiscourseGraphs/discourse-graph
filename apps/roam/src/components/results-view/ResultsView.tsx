@@ -1277,6 +1277,9 @@ const ResultsView: ResultsViewComponent = ({
                   <MenuItem
                     icon={"export"}
                     text={"Share Data"}
+                    // The handler closes this menu. Blueprint dismissal would also
+                    // close an enclosing discourse-context popover and its dialog.
+                    shouldDismissPopover={false}
                     onClick={async () => {
                       posthog.capture("Results View: Share Data Clicked", {
                         parentUid: parentUid,
