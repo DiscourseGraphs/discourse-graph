@@ -9,6 +9,7 @@ import {
   isDiscourseNodeShape,
 } from "~/components/canvas/canvasUtils";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
+import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import { RelationTypeDropdown } from "./RelationTypeDropdown";
 import { createDefaultRelationBetweenNodes } from "./relationCreation";
 
@@ -206,12 +207,15 @@ export const DragHandleOverlay = () => {
           return;
         }
 
-        // Validate that relation types exist between these node types
+        // Stored relations always open the menu; its empty state handles missing types.
         const selectedNodeTypeId = getDiscourseNodeTypeId({
           shape: selectedNode,
         });
         const targetNodeTypeId = getDiscourseNodeTypeId({ shape: target });
-        if (!hasValidRelationTypes(selectedNodeTypeId, targetNodeTypeId)) {
+        if (
+          !getStoredRelationsEnabled() &&
+          !hasValidRelationTypes(selectedNodeTypeId, targetNodeTypeId)
+        ) {
           dispatchToastEvent({
             id: "tldraw-no-valid-relation",
             title: "No relation types are defined between these node types",
