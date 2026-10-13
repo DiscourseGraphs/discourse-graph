@@ -1,14 +1,23 @@
 import { refreshCanvasRelations } from "~/components/canvas/refreshCanvasRelations";
+import { discourseContext } from "~/components/canvas/Tldraw";
 import { createRelationSchema } from "~/utils/createRelationSchema";
 import getDiscourseRelations, {
   type DiscourseRelation,
 } from "~/utils/getDiscourseRelations";
 import { isRelationComplete } from "~/utils/isRelationComplete";
 import refreshConfigTree from "~/utils/refreshConfigTree";
-import { isAcceptedRelationSchema } from "~/utils/relationSchemaAcceptance";
+import {
+  acceptImportedRelationSchema,
+  isAcceptedRelationSchema,
+  isProvisionalRelationSchema,
+} from "~/utils/relationSchemaAcceptance";
+import { isRelationSchemaDeleted } from "~/utils/relationSchemaChanges";
 
 // Roam stores triplets only; a relation type is identified by label + complement.
 export type RelationType = { label: string; complement: string };
+
+export const getNodeTypeText = (type: string): string =>
+  discourseContext.nodes[type]?.text || type;
 
 type TripletFields = Pick<
   DiscourseRelation,
@@ -56,13 +65,16 @@ export const createTripletForPair = async ({
   refreshConfigTree();
   const existing = getDiscourseRelations().find(
     (r) =>
-      isAcceptedRelationSchema(r) &&
+      !isRelationSchemaDeleted(r.id) &&
       r.label === label &&
       r.complement === complement &&
       r.source === sourceType &&
       r.destination === destinationType,
   );
   if (existing) {
+    // A matching imported triplet is accepted rather than duplicated.
+    if (isProvisionalRelationSchema(existing.id))
+      await acceptImportedRelationSchema(existing.id);
     refreshCanvasRelations();
     return existing.id;
   }

@@ -12,9 +12,9 @@ import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import {
   createTripletForPair,
+  getNodeTypeText,
   type RelationType,
 } from "~/components/canvas/existingRelationTypes";
-import { discourseContext } from "~/components/canvas/Tldraw";
 import internalError from "~/utils/internalError";
 import {
   RelationTypeDropdown,
@@ -310,12 +310,10 @@ export const DragHandleOverlay = () => {
         });
         return false;
       }
-      const typeText = (type: string): string =>
-        discourseContext.nodes[type]?.text || type;
       dispatchToastEvent({
         id: "tldraw-add-existing-relation",
         title: "Discourse relation added",
-        description: `${relationType.label} added for ${typeText(pair.sourceType)} and ${typeText(pair.targetType)}`,
+        description: `${relationType.label} added for ${getNodeTypeText(pair.sourceType)} and ${getNodeTypeText(pair.targetType)}`,
         severity: "success",
       });
       return true;

@@ -21,8 +21,14 @@ export const groupRelationsByLabel = (
   );
 
 // Mounted canvases read discourseContext.relations, so a new triplet is invisible until this runs.
+// Relations gone from settings are kept so existing arrows that use them still render.
 export const refreshCanvasRelations = (): void => {
   refreshConfigTree();
-  discourseContext.relations = groupRelationsByLabel(getDiscourseRelations());
+  const fresh = getDiscourseRelations();
+  const freshIds = new Set(fresh.map((r) => r.id));
+  const removed = Object.values(discourseContext.relations)
+    .flat()
+    .filter((r) => !freshIds.has(r.id));
+  discourseContext.relations = groupRelationsByLabel([...fresh, ...removed]);
   notifyRelationSchemaChange();
 };
