@@ -42,7 +42,7 @@ afterEach(() => {
 const render = (props: {
   onAddExisting?: (p: typeof pair) => void;
   onCreateNew?: (p: typeof pair) => void;
-}) =>
+}): void =>
   act(() =>
     root.render(
       React.createElement(RelationTypeDropdown, {
@@ -55,10 +55,10 @@ const render = (props: {
       }),
     ),
   );
-const button = (text: string) =>
+const button = (text: string): HTMLButtonElement | undefined =>
   [...container.querySelectorAll("button")].find((b) => b.textContent === text);
-const click = (el: HTMLElement | undefined) => act(() => el?.click());
-const plus = () =>
+const click = (el: HTMLElement | undefined): void => act(() => el?.click());
+const plus = (): HTMLButtonElement | null =>
   container.querySelector<HTMLButtonElement>(
     'button[aria-label="Add relation type"]',
   );
