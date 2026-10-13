@@ -18,6 +18,7 @@ import { getAllBlogs } from "~/(home)/blog/readBlogs";
 import { FoundationsSection } from "~/components/FoundationsSection";
 import { Logo } from "~/components/Logo";
 import { PlatformBadge } from "~/components/PlatformBadge";
+import { SectionHeader } from "~/components/SectionHeader";
 import { TeamPerson } from "~/components/TeamPerson";
 import { TEAM_MEMBERS } from "~/data/constants";
 import { STATIC_NEWS_ITEMS } from "~/data/news";
@@ -200,34 +201,6 @@ const SUPPORTERS: Supporter[] = [
     height: 262,
   },
 ];
-
-type SectionHeaderProps = {
-  description?: string;
-  eyebrow: string;
-  isWide?: boolean;
-  title: string;
-};
-
-const SectionHeader = ({
-  description,
-  eyebrow,
-  isWide = false,
-  title,
-}: SectionHeaderProps): ReactElement => (
-  <div className={isWide ? "max-w-none md:flex-1" : "max-w-3xl"}>
-    <p className="text-sm font-semibold uppercase tracking-[0.18em] text-secondary">
-      {eyebrow}
-    </p>
-    <h2 className="mt-3 text-3xl font-semibold tracking-tight text-primary sm:text-4xl">
-      {title}
-    </h2>
-    {description && (
-      <p className="mt-4 text-lg leading-8 text-neutral-dark/75">
-        {description}
-      </p>
-    )}
-  </div>
-);
 
 const ArrowLink = ({
   children,
