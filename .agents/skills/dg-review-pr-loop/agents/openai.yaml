@@ -1,0 +1,9 @@
+interface:
+  display_name: "DG PR Review Loop"
+  short_description: "Fix scoped Codex PR findings in bounded reviews"
+  default_prompt: "Use $dg-review-pr-loop on this existing PR or Linear ticket."
+policy:
+  products:
+    - "CHAT"
+    - "CODEX"
+  allow_implicit_invocation: false
