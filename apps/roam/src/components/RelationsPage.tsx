@@ -268,10 +268,11 @@ const RelationsPage = ({
                           dateTime={new Date(row.createdAt).toISOString()}
                           title={new Date(row.createdAt).toLocaleString()}
                         >
-                          {new Date(row.createdAt).toLocaleDateString(
-                            undefined,
-                            { year: "numeric", month: "short", day: "numeric" },
-                          )}
+                          {new Date(row.createdAt).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
                         </time>
                       )}
                     </td>
