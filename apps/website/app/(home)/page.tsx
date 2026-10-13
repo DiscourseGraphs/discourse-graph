@@ -10,9 +10,7 @@ import {
   GitBranch,
   Mail,
   MessageCircle,
-  Network,
   Puzzle,
-  Sparkles,
 } from "lucide-react";
 import { getAllBlogs } from "~/(home)/blog/readBlogs";
 import { FoundationsSection } from "~/components/FoundationsSection";
@@ -28,37 +26,6 @@ import { sortByDateDesc } from "~/utils/sortByDate";
 
 const SLACK_URL =
   "https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg";
-
-const FEATURE_CARDS = [
-  {
-    alt: "Structured scientific infrastructure diagram",
-    description:
-      "Map claims, evidence, questions, and projects as modular pieces that can be reused across people, tools, and contexts.",
-    image: "/section1.webp",
-    title: "Make research ideas composable",
-  },
-  {
-    alt: "Discourse graph coordination layer",
-    description:
-      "Turn high-signal findings into shareable graph objects that support attribution, reuse, and decentralized collaboration.",
-    image: "/section4.webp",
-    title: "Liberate findings from static files",
-  },
-  {
-    alt: "Shareable findings workflow",
-    description:
-      "Exchange work in a form that is easier to find, update, and build on than documents locked into one hierarchy.",
-    image: "/section3.webp",
-    title: "Synthesize and update continuously",
-  },
-  {
-    alt: "Knowledge synthesis workflow",
-    description:
-      "Separate observations from interpretations so researchers can compare, remix, and update shared knowledge without flattening disagreement.",
-    image: "/section2.webp",
-    title: "Communicate with better structure",
-  },
-];
 
 const LAB_BENEFITS = [
   "Identify knowledge gaps and starter projects for new researchers",
@@ -291,114 +258,29 @@ const Home = async (): Promise<ReactElement> => {
       <main className="flex-1">
         <section className="px-5 py-16 sm:px-6 lg:py-24">
           <div id="about" className="mx-auto max-w-7xl scroll-mt-20">
-            <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
-              <SectionHeader
-                eyebrow="About"
-                title="A shared structure for research work in motion"
-                description="Discourse Graphs help teams move beyond static documents by representing research as connected claims, evidence, questions, and projects."
-              />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Card className="h-full rounded-lg border-neutral-dark/10 bg-white shadow-sm">
-                  <CardContent className="flex h-full min-h-28 items-center gap-4 p-6">
-                    <Network
-                      className="h-6 w-6 shrink-0 text-primary"
-                      aria-hidden="true"
-                    />
-                    <p className="text-sm leading-6 text-neutral-dark/75">
-                      Compose work into a graph that can be queried, remixed,
-                      and carried across tools.
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="h-full rounded-lg border-neutral-dark/10 bg-white shadow-sm">
-                  <CardContent className="flex h-full min-h-28 items-center gap-4 p-6">
-                    <Sparkles
-                      className="h-6 w-6 shrink-0 text-secondary"
-                      aria-hidden="true"
-                    />
-                    <p className="text-sm leading-6 text-neutral-dark/75">
-                      Keep findings live as teams interpret evidence and update
-                      their models.
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-
-            <div className="mt-12 grid gap-5 md:grid-cols-2">
-              {FEATURE_CARDS.map((feature) => (
-                <Card
-                  key={feature.title}
-                  className="overflow-hidden rounded-lg border-neutral-dark/10 bg-white shadow-sm"
-                >
-                  <div className="relative aspect-[16/9] bg-neutral-light">
-                    <Image
-                      src={feature.image}
-                      alt={feature.alt}
-                      fill
-                      className="object-cover"
-                      sizes="(min-width: 768px) 50vw, 100vw"
-                    />
-                  </div>
-                  <CardContent className="p-6">
-                    <h3 className="text-xl font-semibold text-neutral-dark">
-                      {feature.title}
-                    </h3>
-                    <p className="mt-3 text-base leading-7 text-neutral-dark/75">
-                      {feature.description}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            <div className="mt-16 grid gap-8 border-t border-neutral-dark/10 py-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-secondary">
-                  Tool choice
-                </p>
-                <h3 className="mt-3 text-3xl font-semibold tracking-tight text-primary">
-                  Client-agnostic and researcher-aligned
-                </h3>
-                <div className="mt-5 space-y-4 text-base leading-7 text-neutral-dark/75">
-                  <p>
-                    Discourse Graphs are a decentralized knowledge exchange
-                    protocol designed to be implemented and owned by researchers
-                    rather than publishers.
-                  </p>
-                  <p>
-                    The model can be implemented in networked notebook software
-                    like{" "}
-                    <Link href="https://roamresearch.com/">Roam Research</Link>,{" "}
-                    <Link href="https://obsidian.md">Obsidian</Link>, and other
-                    tools researchers already use.
-                  </p>
-                  <p className="font-semibold text-secondary">
-                    Discourse Graphs are like GitHub for scientific
-                    communication.
-                  </p>
-                </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="relative aspect-square overflow-hidden rounded-lg border border-neutral-dark/10 bg-white p-4">
-                  <Image
-                    src="/section5a.webp"
-                    alt="Client-agnostic discourse graph workflow"
-                    fill
-                    className="object-contain p-6"
-                    sizes="(min-width: 640px) 50vw, 100vw"
-                  />
-                </div>
-                <div className="relative aspect-square overflow-hidden rounded-lg border border-neutral-dark/10 bg-white p-4">
-                  <Image
-                    src="/section5b.webp"
-                    alt="Researcher-aligned discourse graph workflow"
-                    fill
-                    className="object-contain p-6"
-                    sizes="(min-width: 640px) 50vw, 100vw"
-                  />
-                </div>
-              </div>
+            <SectionHeader
+              eyebrow="About"
+              title="Composable research for connected science"
+            />
+            <div className="mt-6 max-w-3xl space-y-6 text-lg leading-8 text-neutral-dark/75">
+              <p>
+                Scientific inquiry has been artificially constrained by the
+                medium it&apos;s transferred in and the length of the
+                publication process.
+              </p>
+              <p>
+                Discourse graphs are breaking free of these constraints, making
+                science more accessible and collaborative by building{" "}
+                <Link href="https://arxiv.org/html/2407.20666v2?utm_source=DiscourseGraphs&utm_medium=website">
+                  modular, interoperable scientific knowledge systems
+                </Link>
+                .
+              </p>
+              <p>
+                This new method is available to use now in plugins for Roam
+                Research and Obsidian and a tool-agnostic protocol is in
+                development to enable collaboration across platforms.
+              </p>
             </div>
           </div>
         </section>
