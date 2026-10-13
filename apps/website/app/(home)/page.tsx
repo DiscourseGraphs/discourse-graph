@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { getAllBlogs } from "~/(home)/blog/readBlogs";
 import { FoundationsSection } from "~/components/FoundationsSection";
+import { GraphBackgroundAnimation } from "~/components/GraphBackgroundAnimation";
 import { Logo } from "~/components/Logo";
 import { PlatformBadge } from "~/components/PlatformBadge";
 import { SectionHeader } from "~/components/SectionHeader";
@@ -21,6 +22,7 @@ import { TeamPerson } from "~/components/TeamPerson";
 import { TEAM_MEMBERS } from "~/data/constants";
 import { STATIC_NEWS_ITEMS } from "~/data/news";
 import type { NewsItem } from "~/types/news";
+import { getGraphColors } from "~/utils/brandColors";
 import { formatDisplayDate } from "~/utils/formatDate";
 import { sortByDateDesc } from "~/utils/sortByDate";
 
@@ -187,6 +189,7 @@ const ArrowLink = ({
 
 const Home = async (): Promise<ReactElement> => {
   const blogs = await getAllBlogs();
+  const graphColors = getGraphColors();
 
   const blogNewsItems: NewsItem[] = blogs.map((blog) => ({
     date: blog.date,
@@ -202,26 +205,20 @@ const Home = async (): Promise<ReactElement> => {
 
   return (
     <div>
-      <section className="relative isolate flex min-h-[72svh] items-center overflow-hidden bg-neutral-dark px-5 py-16 text-white sm:px-6 lg:py-20">
-        <Image
-          src="/MATSU_lab_journal_club_graph_view.png"
-          alt="Discourse Graph network visualization"
-          fill
-          priority
-          className="object-cover opacity-25"
-          quality={90}
-          sizes="100vw"
-        />
-        <div className="absolute inset-0 bg-neutral-dark/70" />
+      <section
+        data-translucent-header
+        className="relative isolate -mt-[var(--header-height)] flex min-h-[72svh] items-center overflow-hidden border-b border-neutral-dark/10 bg-white px-5 pb-16 pt-[calc(4rem+var(--header-height))] text-neutral-dark sm:px-6 lg:pb-20 lg:pt-[calc(5rem+var(--header-height))]"
+      >
+        <GraphBackgroundAnimation colors={graphColors} />
         <div className="relative z-10 mx-auto w-full max-w-7xl">
-          <div className="max-w-3xl">
-            <p className="inline-flex rounded-md border border-white/20 bg-white/10 px-3 py-1 text-sm font-semibold text-white/85">
+          <div data-graph-avoid className="max-w-3xl">
+            <p className="inline-flex rounded-md border border-neutral-dark/15 bg-neutral-dark/5 px-3 py-1 text-sm font-semibold text-neutral-dark/80 backdrop-blur-sm">
               Open infrastructure for collaborative knowledge synthesis
             </p>
-            <h1 className="mt-6 text-5xl font-semibold tracking-tight text-white sm:text-6xl lg:text-7xl">
+            <h1 className="mt-6 text-5xl font-bold tracking-tight text-neutral-dark sm:text-6xl lg:text-7xl">
               Create knowledge. Make connections.
             </h1>
-            <p className="text-white/82 mt-6 max-w-2xl text-xl leading-8">
+            <p className="mt-6 max-w-2xl text-xl leading-8 text-neutral-dark/75">
               A tool and ecosystem for turning research claims, evidence, and
               questions into modular graphs that teams can share, update, and
               build on.
@@ -238,14 +235,14 @@ const Home = async (): Promise<ReactElement> => {
               </a>
               <Link
                 href="/#plugins"
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-white/35 px-5 py-3 text-sm font-semibold text-white transition-colors hover:border-white hover:bg-white/10 hover:text-white"
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-neutral-dark/30 bg-white/20 px-5 py-3 text-sm font-semibold text-neutral-dark backdrop-blur-sm transition-colors hover:border-neutral-dark hover:bg-white/70 hover:text-neutral-dark"
               >
                 Explore plugins
                 <Puzzle className="h-4 w-4" aria-hidden="true" />
               </Link>
               <Link
                 href={SLACK_URL}
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-white/20 px-5 py-3 text-sm font-semibold text-white/90 transition-colors hover:border-secondary hover:text-white"
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-neutral-dark/20 bg-white/20 px-5 py-3 text-sm font-semibold text-neutral-dark/90 backdrop-blur-sm transition-colors hover:border-secondary hover:bg-white/70 hover:text-neutral-dark"
               >
                 Join Slack
                 <MessageCircle className="h-4 w-4" aria-hidden="true" />
