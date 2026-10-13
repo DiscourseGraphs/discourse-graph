@@ -45,6 +45,7 @@ export const GraphBackgroundAnimation = ({
     let frameId = 0;
     let lastTime = 0;
     let isInView = true;
+    let appliedRatio = 0;
 
     const render = (time: number): void => {
       drawGraph(context, { state, colors: graphColors, time });
@@ -70,11 +71,16 @@ export const GraphBackgroundAnimation = ({
 
     const resize = (): void => {
       const rect = canvas.getBoundingClientRect();
-      setAvoidRects(state, measureAvoidRects());
-      if (!resizeGraph(state, { width: rect.width, height: rect.height })) {
-        return;
-      }
+      if (rect.width <= 0 || rect.height <= 0) return;
       const ratio = window.devicePixelRatio || 1;
+      setAvoidRects(state, measureAvoidRects());
+      const sizeChanged = resizeGraph(state, {
+        width: rect.width,
+        height: rect.height,
+      });
+      // The bitmap also has to change when only the pixel ratio did.
+      if (!sizeChanged && ratio === appliedRatio) return;
+      appliedRatio = ratio;
       canvas.width = rect.width * ratio;
       canvas.height = rect.height * ratio;
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
@@ -128,7 +134,24 @@ export const GraphBackgroundAnimation = ({
       syncLoop();
     };
 
+    // Moving the window to another display changes the pixel ratio without
+    // resizing the canvas. The query matches the current ratio, so it is
+    // re-created after every change.
+    let ratioQuery: MediaQueryList | null = null;
+    const handleRatioChange = (): void => {
+      resize();
+      watchPixelRatio();
+    };
+    const watchPixelRatio = (): void => {
+      ratioQuery?.removeEventListener("change", handleRatioChange);
+      ratioQuery = window.matchMedia(
+        `(resolution: ${window.devicePixelRatio}dppx)`,
+      );
+      ratioQuery.addEventListener("change", handleRatioChange);
+    };
+
     resize();
+    watchPixelRatio();
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(canvas);
     const contentObserver = new ResizeObserver(() => {
@@ -167,6 +190,7 @@ export const GraphBackgroundAnimation = ({
       resizeObserver.disconnect();
       contentObserver.disconnect();
       motionQuery.removeEventListener("change", handleMotionChange);
+      ratioQuery?.removeEventListener("change", handleRatioChange);
       section?.removeEventListener("pointermove", handlePointerMove);
       section?.removeEventListener("pointerleave", handlePointerLeave);
       intersectionObserver.disconnect();
