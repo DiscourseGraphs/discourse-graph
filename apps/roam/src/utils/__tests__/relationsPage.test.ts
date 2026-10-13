@@ -14,7 +14,7 @@ vi.mock("~/utils/getDiscourseRelations", () => ({
 const q = vi.fn();
 const pull = vi.fn();
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   vi.stubGlobal("window", { roamAlphaAPI: { data: { async: { q } }, pull } });
 });
 
@@ -29,17 +29,17 @@ describe("relations page data", () => {
       },
       ":extra": "keep",
     };
-    q.mockResolvedValue([
+    q.mockResolvedValueOnce([
       ["rel", props, 1704067200000],
       ["note", { unrelated: true }],
+    ]).mockResolvedValueOnce([
+      [{ uid: "page", title: "A claim" }],
+      [{ uid: "block", string: "Evidence" }],
     ]);
-    pull.mockImplementation((_pattern, [, uid]) =>
-      uid === "page"
-        ? { ":node/title": "A claim" }
-        : { ":block/string": "Evidence" },
-    );
     const rows = await loadRelationRows("storage-page");
     expect(q.mock.calls[0][1]).toBe("storage-page");
+    expect(q.mock.calls[1][1]).toEqual(["page", "block"]);
+    expect(pull).not.toHaveBeenCalled();
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
       type: "Supports",
@@ -53,7 +53,7 @@ describe("relations page data", () => {
   });
 
   it("keeps malformed relations inspectable and shares endpoint lookups", async () => {
-    q.mockResolvedValue([
+    q.mockResolvedValueOnce([
       [
         "one",
         {
@@ -66,8 +66,7 @@ describe("relations page data", () => {
       ],
       ["two", { "discourse-graph": { sourceUid: 42 } }],
       ["invalid", { "discourse-graph": null }],
-    ]);
-    pull.mockReturnValue(null);
+    ]).mockResolvedValueOnce([]);
     const rows = await loadRelationRows("storage");
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({
@@ -76,7 +75,54 @@ describe("relations page data", () => {
     });
     expect(rows[1].source.uid).toBe("");
     expect(rows.every((row) => row.createdAt === null)).toBe(true);
-    expect(pull).toHaveBeenCalledTimes(1);
+    expect(q).toHaveBeenCalledTimes(2);
+    expect(q.mock.calls[1][1]).toEqual(["deleted"]);
+    expect(pull).not.toHaveBeenCalled();
+  });
+
+  it("loads thousands of endpoints with one asynchronous batch instead of synchronous reads", async () => {
+    const records = Array.from({ length: 2000 }, (_, index) => [
+      `relation-${index}`,
+      {
+        "discourse-graph": {
+          sourceUid: `source-${index}`,
+          destinationUid: "shared",
+        },
+      },
+      1704067200000,
+    ]);
+    q.mockResolvedValueOnce(records).mockImplementationOnce(
+      (_query, uids: string[]) =>
+        Promise.resolve(uids.map((uid) => [{ uid: uid, title: uid }])),
+    );
+    const rows = await loadRelationRows("storage");
+    expect(rows).toHaveLength(2000);
+    expect(rows[1999].source).toMatchObject({
+      text: "source-1999",
+      exists: true,
+    });
+    expect(q).toHaveBeenCalledTimes(2);
+    expect(q.mock.calls[1][1]).toHaveLength(2001);
+    expect(pull).not.toHaveBeenCalled();
+  });
+
+  it("skips endpoint loading when no valid endpoint UIDs exist", async () => {
+    q.mockResolvedValueOnce([
+      ["rel", { "discourse-graph": { sourceUid: "", destinationUid: 42 } }],
+    ]);
+    const rows = await loadRelationRows("storage");
+    expect(rows[0].source.exists).toBe(false);
+    expect(rows[0].destination.exists).toBe(false);
+    expect(q).toHaveBeenCalledTimes(1);
+  });
+
+  it("propagates a failed endpoint batch instead of marking every node missing", async () => {
+    q.mockResolvedValueOnce([
+      ["rel", { "discourse-graph": { sourceUid: "page" } }],
+    ]).mockRejectedValueOnce(new Error("endpoint read failed"));
+    await expect(loadRelationRows("storage")).rejects.toThrow(
+      "endpoint read failed",
+    );
   });
 
   it("propagates read failures instead of presenting an empty graph", async () => {

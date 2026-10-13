@@ -29,55 +29,77 @@ export const loadRelationRows = async (
       [(get-else $ ?child :create/time -1) ?createdAt]]`,
     pageUid,
   )) as [string, Record<string, json>, number][];
+  const relations = records.flatMap(([uid, props, createdAt]) => {
+    const normalized = normalizeProps(props);
+    const relation = isJsonObject(normalized)
+      ? normalized["discourse-graph"]
+      : undefined;
+    return isJsonObject(relation) ? [{ uid, props, createdAt, relation }] : [];
+  });
+  const endpointUids = [
+    ...new Set(
+      relations
+        .flatMap(({ relation }) => [
+          relation.sourceUid,
+          relation.destinationUid,
+        ])
+        .filter(
+          (uid): uid is string => typeof uid === "string" && uid.length > 0,
+        ),
+    ),
+  ];
+  // Async Datalog pull results use unnamespaced keys, unlike roamAlphaAPI.pull.
+  const endpointRecords = endpointUids.length
+    ? ((await window.roamAlphaAPI.data.async.q(
+        `[:find (pull ?node [:block/uid :node/title :block/string])
+          :in $ [?uid ...] :where [?node :block/uid ?uid]]`,
+        endpointUids,
+      )) as [
+        {
+          uid: string;
+          title?: string;
+          string?: string;
+        },
+      ][])
+    : [];
+  const nodes = new Map(endpointRecords.map(([node]) => [node.uid, node]));
   const labels = new Map(getDiscourseRelations().map((r) => [r.id, r.label]));
   const endpoints = new Map<string, RelationEndpoint>();
   const getEndpoint = (value: json | undefined): RelationEndpoint => {
     const uid = typeof value === "string" ? value : "";
     const cached = endpoints.get(uid);
     if (cached) return cached;
-    const node = uid
-      ? window.roamAlphaAPI.pull("[:node/title :block/string :block/uid]", [
-          ":block/uid",
-          uid,
-        ])
-      : null;
+    const node = nodes.get(uid);
     const endpoint = {
       uid,
       text:
-        node?.[":node/title"] ||
-        node?.[":block/string"] ||
+        node?.title ||
+        node?.string ||
         (node ? "Untitled block" : "Missing node"),
-      isPage: typeof node?.[":node/title"] === "string",
+      isPage: typeof node?.title === "string",
       exists: Boolean(node),
     };
     endpoints.set(uid, endpoint);
     return endpoint;
   };
-  return records.flatMap(([uid, props, createdAt]) => {
-    const normalized = normalizeProps(props);
-    const relation = isJsonObject(normalized)
-      ? normalized["discourse-graph"]
-      : undefined;
-    if (!isJsonObject(relation)) return [];
+  return relations.map(({ uid, props, createdAt, relation }) => {
     const schemaUid =
       typeof relation.hasSchema === "string" ? relation.hasSchema : "";
-    return [
-      {
-        uid,
-        props,
-        schemaUid,
-        type: labels.get(schemaUid) || "Unknown type",
-        source: getEndpoint(relation.sourceUid),
-        destination: getEndpoint(relation.destinationUid),
-        tentative: relation.tentative === "true",
-        createdAt:
-          typeof createdAt === "number" &&
-          createdAt >= 0 &&
-          Number.isFinite(new Date(createdAt).getTime())
-            ? createdAt
-            : null,
-      },
-    ];
+    return {
+      uid,
+      props,
+      schemaUid,
+      type: labels.get(schemaUid) || "Unknown type",
+      source: getEndpoint(relation.sourceUid),
+      destination: getEndpoint(relation.destinationUid),
+      tentative: relation.tentative === "true",
+      createdAt:
+        typeof createdAt === "number" &&
+        createdAt >= 0 &&
+        Number.isFinite(new Date(createdAt).getTime())
+          ? createdAt
+          : null,
+    };
   });
 };
 
