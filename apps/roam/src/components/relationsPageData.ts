@@ -14,19 +14,21 @@ export type RelationRow = {
   source: RelationEndpoint;
   destination: RelationEndpoint;
   tentative: boolean;
+  createdAt: number | null;
   props: Record<string, json>;
 };
-export type RelationSort = "type" | "source" | "destination";
+export type RelationSort = "type" | "source" | "destination" | "createdAt";
 
 export const loadRelationRows = async (
   pageUid: string,
 ): Promise<RelationRow[]> => {
   const records = (await window.roamAlphaAPI.data.async.q(
-    `[:find ?uid ?props :in $ ?pageUid :where
+    `[:find ?uid ?props ?createdAt :in $ ?pageUid :where
       [?page :block/uid ?pageUid] [?page :block/children ?child]
-      [?child :block/uid ?uid] [?child :block/props ?props]]`,
+      [?child :block/uid ?uid] [?child :block/props ?props]
+      [(get-else $ ?child :create/time -1) ?createdAt]]`,
     pageUid,
-  )) as [string, Record<string, json>][];
+  )) as [string, Record<string, json>, number][];
   const labels = new Map(getDiscourseRelations().map((r) => [r.id, r.label]));
   const endpoints = new Map<string, RelationEndpoint>();
   const getEndpoint = (value: json | undefined): RelationEndpoint => {
@@ -51,7 +53,7 @@ export const loadRelationRows = async (
     endpoints.set(uid, endpoint);
     return endpoint;
   };
-  return records.flatMap(([uid, props]) => {
+  return records.flatMap(([uid, props, createdAt]) => {
     const normalized = normalizeProps(props);
     const relation = isJsonObject(normalized)
       ? normalized["discourse-graph"]
@@ -68,6 +70,12 @@ export const loadRelationRows = async (
         source: getEndpoint(relation.sourceUid),
         destination: getEndpoint(relation.destinationUid),
         tentative: relation.tentative === "true",
+        createdAt:
+          typeof createdAt === "number" &&
+          createdAt >= 0 &&
+          Number.isFinite(new Date(createdAt).getTime())
+            ? createdAt
+            : null,
       },
     ];
   });
@@ -88,7 +96,7 @@ export const selectRelationRows = ({
 }): RelationRow[] => {
   const query = search.trim().toLocaleLowerCase();
   const label = (row: RelationRow): string =>
-    sort === "type" ? row.type : row[sort].text;
+    sort === "source" || sort === "destination" ? row[sort].text : row.type;
   return rows
     .filter(
       (row) =>
@@ -102,11 +110,21 @@ export const selectRelationRows = ({
           row.destination.uid,
         ].some((value) => value.toLocaleLowerCase().includes(query)),
     )
-    .sort(
-      (a, b) =>
+    .sort((a, b) => {
+      if (sort === "createdAt") {
+        // Unknown creation times stay last in either direction.
+        if (a.createdAt === null && b.createdAt !== null) return 1;
+        if (b.createdAt === null && a.createdAt !== null) return -1;
+        return (
+          ((a.createdAt ?? 0) - (b.createdAt ?? 0) ||
+            a.uid.localeCompare(b.uid)) * (descending ? -1 : 1)
+        );
+      }
+      return (
         (label(a).localeCompare(label(b), undefined, {
           numeric: true,
           sensitivity: "base",
-        }) || a.uid.localeCompare(b.uid)) * (descending ? -1 : 1),
-    );
+        }) || a.uid.localeCompare(b.uid)) * (descending ? -1 : 1)
+      );
+    });
 };

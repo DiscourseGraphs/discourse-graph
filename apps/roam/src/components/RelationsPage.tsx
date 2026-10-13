@@ -16,6 +16,12 @@ import {
 } from "./relationsPageData";
 
 const PAGE_SIZE = 25;
+const SORT_LABELS: Record<RelationSort, string> = {
+  type: "Type",
+  source: "Source",
+  destination: "Destination",
+  createdAt: "Date created",
+};
 const EndpointLink = ({
   endpoint,
 }: {
@@ -104,7 +110,7 @@ const RelationsPage = ({
     ...new Map(rows.map((r) => [r.schemaUid, r.type])).entries(),
   ].sort((a, b) => a[1].localeCompare(b[1]));
   const changeSort = (next: RelationSort): void => {
-    setDescending(next === sort ? !descending : false);
+    setDescending(next === sort ? !descending : next === "createdAt");
     setSort(next);
     setPage(0);
   };
@@ -162,6 +168,7 @@ const RelationsPage = ({
             { value: "type", label: "Sort by type" },
             { value: "source", label: "Sort by source" },
             { value: "destination", label: "Sort by destination" },
+            { value: "createdAt", label: "Sort by date created" },
           ]}
         />
         <Button
@@ -203,32 +210,34 @@ const RelationsPage = ({
           <table className="bp3-html-table bp3-html-table-striped dg-relations-table">
             <thead>
               <tr>
-                {(["type", "source", "destination"] as const).map((column) => (
-                  <th
-                    key={column}
-                    scope="col"
-                    aria-sort={
-                      column === sort
-                        ? descending
-                          ? "descending"
-                          : "ascending"
-                        : "none"
-                    }
-                  >
-                    <Button
-                      minimal
-                      text={column.charAt(0).toUpperCase() + column.slice(1)}
-                      icon={
+                {(["type", "source", "destination", "createdAt"] as const).map(
+                  (column) => (
+                    <th
+                      key={column}
+                      scope="col"
+                      aria-sort={
                         column === sort
                           ? descending
-                            ? "sort-desc"
-                            : "sort-asc"
-                          : undefined
+                            ? "descending"
+                            : "ascending"
+                          : "none"
                       }
-                      onClick={() => changeSort(column)}
-                    />
-                  </th>
-                ))}
+                    >
+                      <Button
+                        minimal
+                        text={SORT_LABELS[column]}
+                        icon={
+                          column === sort
+                            ? descending
+                              ? "sort-desc"
+                              : "sort-asc"
+                            : undefined
+                        }
+                        onClick={() => changeSort(column)}
+                      />
+                    </th>
+                  ),
+                )}
                 <th scope="col">Inspect</th>
               </tr>
             </thead>
@@ -250,6 +259,21 @@ const RelationsPage = ({
                     </td>
                     <td data-label="Destination">
                       <EndpointLink endpoint={row.destination} />
+                    </td>
+                    <td data-label="Date created">
+                      {row.createdAt === null ? (
+                        <span className={Classes.TEXT_MUTED}>Unknown</span>
+                      ) : (
+                        <time
+                          dateTime={new Date(row.createdAt).toISOString()}
+                          title={new Date(row.createdAt).toLocaleString()}
+                        >
+                          {new Date(row.createdAt).toLocaleDateString(
+                            undefined,
+                            { year: "numeric", month: "short", day: "numeric" },
+                          )}
+                        </time>
+                      )}
                     </td>
                     <td>
                       <Button
@@ -273,7 +297,7 @@ const RelationsPage = ({
                   </tr>
                   {expanded.has(row.uid) && (
                     <tr>
-                      <td colSpan={4} className="dg-relation-props">
+                      <td colSpan={5} className="dg-relation-props">
                         <strong>Raw props · {row.uid}</strong>
                         <span className={Classes.TEXT_MUTED}> · Read only</span>
                         <pre>{JSON.stringify(row.props, null, 2)}</pre>

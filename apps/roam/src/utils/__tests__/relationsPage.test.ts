@@ -30,7 +30,7 @@ describe("relations page data", () => {
       ":extra": "keep",
     };
     q.mockResolvedValue([
-      ["rel", props],
+      ["rel", props, 1704067200000],
       ["note", { unrelated: true }],
     ]);
     pull.mockImplementation((_pattern, [, uid]) =>
@@ -44,6 +44,7 @@ describe("relations page data", () => {
     expect(rows[0]).toMatchObject({
       type: "Supports",
       tentative: true,
+      createdAt: 1704067200000,
       props,
       source: { text: "A claim", isPage: true },
       destination: { text: "Evidence", isPage: false },
@@ -74,6 +75,7 @@ describe("relations page data", () => {
       source: { text: "Missing node", exists: false },
     });
     expect(rows[1].source.uid).toBe("");
+    expect(rows.every((row) => row.createdAt === null)).toBe(true);
     expect(pull).toHaveBeenCalledTimes(1);
   });
 
@@ -81,6 +83,13 @@ describe("relations page data", () => {
     q.mockRejectedValue(new Error("read failed"));
     await expect(loadRelationRows("storage")).rejects.toThrow("read failed");
   });
+  it.each([-1, NaN, Infinity, 9e15, "1704067200000"])(
+    "keeps a relation with an invalid creation time (%s) inspectable",
+    async (createdAt) => {
+      q.mockResolvedValue([["rel", { "discourse-graph": {} }, createdAt]]);
+      expect((await loadRelationRows("storage"))[0].createdAt).toBeNull();
+    },
+  );
 });
 
 const row = ({
@@ -99,6 +108,7 @@ const row = ({
   schemaUid: type.toLowerCase(),
   tentative: false,
   props: {},
+  createdAt: null,
   source: { uid: `source-${uid}`, text: source, exists: true, isPage: true },
   destination: {
     uid: `dest-${uid}`,
@@ -113,6 +123,30 @@ const rows = [
   row({ uid: "c", type: "Supports", source: "Study 1", destination: "Gamma" }),
 ];
 describe("relations page filtering and sorting", () => {
+  it.each([false, true])(
+    "sorts creation timestamps chronologically (descending: %s), with unknown dates last",
+    (descending) => {
+      const dated = [
+        { ...rows[0], uid: "new", createdAt: Date.UTC(2026, 0, 1) },
+        { ...rows[0], uid: "unknown", createdAt: null },
+        { ...rows[0], uid: "old", createdAt: Date.UTC(2025, 11, 31) },
+        { ...rows[0], uid: "epoch", createdAt: 0 },
+      ];
+      expect(
+        selectRelationRows({
+          rows: dated,
+          type: "",
+          search: "",
+          sort: "createdAt",
+          descending,
+        }).map((row) => row.uid),
+      ).toEqual(
+        descending
+          ? ["new", "old", "epoch", "unknown"]
+          : ["epoch", "old", "new", "unknown"],
+      );
+    },
+  );
   it("combines type and case-insensitive search including endpoint UIDs", () => {
     expect(
       selectRelationRows({
