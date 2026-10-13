@@ -30,10 +30,16 @@ vi.mock("~/utils/createRelationSchema", () => ({
 }));
 vi.mock("~/utils/relationSchemaChanges", () => ({
   notifyRelationSchemaChange: () => mocks.calls.push("notify"),
+  isRelationSchemaDeleted: () => false,
 }));
 vi.mock("~/utils/relationSchemaAcceptance", () => ({
   isAcceptedRelationSchema: ({ id }: { id: string }) =>
     !mocks.provisional.has(id),
+  isProvisionalRelationSchema: (id: string) => mocks.provisional.has(id),
+  acceptImportedRelationSchema: (id: string) => {
+    mocks.calls.push(`accept:${id}`);
+    return Promise.resolve();
+  },
 }));
 
 const triplet = (
@@ -148,6 +154,16 @@ describe("createTripletForPair", () => {
     expect(mocks.createRelationSchema).not.toHaveBeenCalled();
   });
 
+  it("accepts a matching provisional triplet instead of duplicating it", async () => {
+    mocks.provisional.add("imported");
+    mocks.relations = [
+      triplet({ id: "imported", source: "claim", destination: "evidence" }),
+    ];
+    await expect(createTripletForPair(args)).resolves.toBe("imported");
+    expect(mocks.createRelationSchema).not.toHaveBeenCalled();
+    expect(mocks.calls).toContain("accept:imported");
+  });
+
   it("does not reuse a triplet that runs the other way", async () => {
     mocks.relations = [triplet({ id: "reverse" })];
     mocks.createRelationSchema.mockResolvedValue("new-uid");
@@ -177,5 +193,16 @@ describe("refreshCanvasRelations", () => {
       "opposes",
     ]);
     expect(mocks.calls).toEqual(["refreshConfigTree", "notify"]);
+  });
+
+  it("keeps relations removed from settings so existing arrows still resolve", () => {
+    const deleted = triplet({ id: "deleted", label: "opposes" });
+    mocks.context.relations = { opposes: [deleted] };
+    mocks.relations = [triplet({ id: "a" })];
+    refreshCanvasRelations();
+    expect(mocks.context.relations).toEqual({
+      supports: [triplet({ id: "a" })],
+      opposes: [deleted],
+    });
   });
 });

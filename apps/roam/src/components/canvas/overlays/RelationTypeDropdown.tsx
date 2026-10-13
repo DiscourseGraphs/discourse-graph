@@ -10,9 +10,9 @@ import { getDiscourseNodeTypeId } from "~/components/canvas/DiscourseNodeUtil";
 import { getAllRelations } from "~/components/canvas/canvasUtils";
 import {
   deriveRelationTypes,
+  getNodeTypeText,
   type RelationType,
 } from "~/components/canvas/existingRelationTypes";
-import { discourseContext } from "~/components/canvas/Tldraw";
 import { getValidRelationTypesBetween } from "./relationCreation";
 import { useRelationSchemaRevision } from "~/utils/relationSchemaChanges";
 
@@ -178,8 +178,6 @@ export const RelationTypeDropdown = ({
     </MenuItem>
   ));
   const createNewItem = actionItems.find((item) => item.key === "create-new");
-  const nodeTypeText = (type: string): string =>
-    discourseContext.nodes[type]?.text || type;
 
   return (
     <div
@@ -221,8 +219,8 @@ export const RelationTypeDropdown = ({
                 ‹
               </button>
               <span>
-                {nodeTypeText(pair.sourceType)} →{" "}
-                {nodeTypeText(pair.targetType)}
+                {getNodeTypeText(pair.sourceType)} →{" "}
+                {getNodeTypeText(pair.targetType)}
               </span>
             </div>
             {existingRelationTypes.length === 0 ? (
