@@ -50,6 +50,7 @@ import { renderPublishNodeTitleButton } from "~/components/PublishNodeTitleButto
 import { renderRefreshImportedNodeTitleButton } from "~/components/RefreshImportedNodeTitleButton";
 import { readImportedSourceIdentity } from "~/utils/importedSourceIdentity";
 import { renderCanvasEmbed } from "~/components/canvas/CanvasEmbed";
+import { initRelationsPages } from "~/components/mountRelationsPage";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import findDiscourseNode from "./findDiscourseNode";
@@ -478,6 +479,11 @@ export const initObservers = ({
       discourseNodeSearchTriggerListener,
       nodeCreationPopoverListener,
     },
-    cleanups: [unsubGlobalTrigger, unsubPersonalTrigger, unsubSearchTrigger],
+    cleanups: [
+      unsubGlobalTrigger,
+      unsubPersonalTrigger,
+      unsubSearchTrigger,
+      initRelationsPages(),
+    ],
   };
 };
