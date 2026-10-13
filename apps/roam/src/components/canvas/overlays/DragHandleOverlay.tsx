@@ -394,7 +394,10 @@ export const DragHandleOverlay = () => {
           dropdownPos={pending.dropdownPos}
           onSelect={handleDropdownSelect}
           onDismiss={handleDropdownDismiss}
-          onAddExisting={handleAddExisting}
+          // Legacy mode drops triplets without if-conditions, so a picked type would never appear.
+          onAddExisting={
+            getStoredRelationsEnabled() ? handleAddExisting : undefined
+          }
         />
       )}
     </div>
