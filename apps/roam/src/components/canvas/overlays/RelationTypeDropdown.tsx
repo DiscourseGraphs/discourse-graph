@@ -31,7 +31,7 @@ const MenuItem = ({
 }: {
   onClick: () => void;
   children: React.ReactNode;
-}) => (
+}): React.ReactElement => (
   <button
     onClick={onClick}
     className={MENU_ITEM_CLASS}
