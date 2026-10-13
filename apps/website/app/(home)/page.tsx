@@ -18,7 +18,7 @@ import { Logo } from "~/components/Logo";
 import { PlatformBadge } from "~/components/PlatformBadge";
 import { SectionHeader } from "~/components/SectionHeader";
 import { TeamPerson } from "~/components/TeamPerson";
-import { TEAM_MEMBERS } from "~/data/constants";
+import { MATSU_LAB_URL, TEAM_MEMBERS } from "~/data/constants";
 import { STATIC_NEWS_ITEMS } from "~/data/news";
 import type { NewsItem } from "~/types/news";
 import { formatDisplayDate } from "~/utils/formatDate";
@@ -415,7 +415,7 @@ const Home = async (): Promise<ReactElement> => {
                 />
               </div>
               <figcaption className="mt-3 text-sm text-neutral-dark/65">
-                Snapshot of <Link href="https://matsulab.com/">MATSU lab</Link>{" "}
+                Snapshot of <Link href={MATSU_LAB_URL}>MATSU lab</Link>{" "}
                 Discourse Graph
               </figcaption>
             </figure>
