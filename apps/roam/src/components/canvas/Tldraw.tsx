@@ -55,6 +55,7 @@ import {
 import "tldraw/tldraw.css";
 import tldrawStyles from "./tldrawStyles";
 import { DragHandleOverlay } from "./overlays/DragHandleOverlay";
+import { groupRelationsByLabel } from "./refreshCanvasRelations";
 import { hasAcceptedRelationSchema, isDiscourseNodeShape } from "./canvasUtils";
 import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseRelations, {
@@ -760,18 +761,7 @@ const TldrawCanvasShared = ({
   }, [isPluginReady]);
   const allRelations = useMemo(() => {
     const relations = getDiscourseRelations();
-    discourseContext.relations = relations.reduce(
-      (acc, r) => {
-        if (acc[r.label]) {
-          acc[r.label].push(r);
-        } else {
-          acc[r.label] = [r];
-        }
-        return acc;
-      },
-      {} as Record<string, DiscourseRelation[]>,
-    );
-
+    discourseContext.relations = groupRelationsByLabel(relations);
     return relations;
   }, []);
   const allRelationsById = useMemo(() => {
