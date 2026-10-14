@@ -67,14 +67,17 @@ const mockRoamQuery = (respond: (query: string) => PulledDiscourseNode[]) => {
 };
 
 const respondByQuery = (query: string): PulledDiscourseNode[] => {
-  if (query.includes('"clm-candidate"')) {
+  if (query.includes("clm-candidate")) {
     return [
-      pulledBlock("b1", "Soil moisture drives yield #clm-candidate"),
+      pulledBlock("b1", "Soil moisture drives yield #CLM-Candidate"),
       pulledBlock("b2", "#clm-candidate #evd-candidate shared block"),
       pulledBlock("b3", "#clm-candidate"),
+      // A block tagged with two casings of one tag page comes back twice.
+      pulledBlock("b4", "#clm-candidate #CLM-candidate twice"),
+      pulledBlock("b4", "#clm-candidate #CLM-candidate twice"),
     ];
   }
-  if (query.includes('"evd-candidate"')) {
+  if (query.includes("evd-candidate")) {
     return [pulledBlock("b2", "#clm-candidate #evd-candidate shared block")];
   }
   if (query.includes("CLM")) return [pulledPage("p1", "[[CLM]] - Soil")];
@@ -91,13 +94,13 @@ describe("candidate tag helpers", () => {
     expect(getCandidateTagTitle("clm-candidate")).toBe("clm-candidate");
   });
 
-  it("queries blocks that reference the tag page by exact title", () => {
+  it("queries blocks that reference the tag page, ignoring case", () => {
     const query = buildCandidateBlocksByTagQuery({
-      tagTitle: 'say "hi"',
+      tagTitle: 'say "hi".',
       pullExpression: "[:block/uid]",
     });
 
-    expect(query).toContain('[?tag :node/title "say \\"hi\\""]');
+    expect(query).toContain('(re-pattern "(?i)^say \\"hi\\"\\\\.$")');
     expect(query).toContain("[?block :block/refs ?tag]");
   });
 
@@ -108,6 +111,15 @@ describe("candidate tag helpers", () => {
         tagTitles: ["clm-candidate", "evd-candidate"],
       }),
     ).toBe("Soil drives #keep");
+  });
+
+  it("strips tags in any casing", () => {
+    expect(
+      stripCandidateTags({
+        text: "#CLM-Candidate Soil #[[Clm-candidate]]",
+        tagTitles: ["clm-candidate"],
+      }),
+    ).toBe("Soil");
   });
 
   it("keeps a longer tag that only starts with a configured tag", () => {
@@ -167,6 +179,12 @@ describe("buildSearchIndex", () => {
         type: "clm",
         title: "shared block",
         candidate: { nodeTypes: ["clm", "evd"], pageTitle: "Field notes" },
+      },
+      {
+        uid: "b4",
+        type: "clm",
+        title: "twice",
+        candidate: { nodeTypes: ["clm"], pageTitle: "Field notes" },
       },
     ]);
   });

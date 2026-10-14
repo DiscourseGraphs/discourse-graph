@@ -1,5 +1,4 @@
 import { type DiscourseNode } from "~/utils/getDiscourseNodes";
-import normalizePageTitle from "roamjs-components/queries/normalizePageTitle";
 import { getDiscourseNodeFormatExpression } from "@repo/database/lib/getDiscourseNodeFormatExpression";
 
 export const DISCOURSE_NODE_MIN_SEARCH_SCORE = 0.1;
@@ -117,9 +116,12 @@ export const hasCandidateTag = (
   node: DiscourseNode,
 ): node is DiscourseNode & { tag: string } => !!node.tag?.trim();
 
-// Matches the "is a candidate" datalog translator: one leading "#", exact title.
+// Strips one leading "#", like the "is a candidate" datalog translator.
 export const getCandidateTagTitle = (tag: string): string =>
   tag.trim().replace(/^#/, "");
+
+const escapeRegExp = (value: string): string =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export const buildCandidateBlocksByTagQuery = ({
   tagTitle,
@@ -127,13 +129,19 @@ export const buildCandidateBlocksByTagQuery = ({
 }: {
   tagTitle: string;
   pullExpression: string;
-}): string => `[
+}): string => {
+  // Case-insensitive, like the plugin's other node tag matching (getCleanTagText).
+  const titleRegex = new RegExp(`^${escapeRegExp(tagTitle)}$`);
+  return `[
   :find
     (pull ?block ${pullExpression})
   :where
-    [?tag :node/title "${normalizePageTitle(tagTitle)}"]
+    [(re-pattern "(?i)${escapeRegexPatternForDatalog(titleRegex)}") ?tag-title-regex]
+    [?tag :node/title ?tag-title]
+    [(re-find ?tag-title-regex ?tag-title)]
     [?block :block/refs ?tag]
 ]`;
+};
 
 export const queryCandidateBlocksByTag = async ({
   node,
@@ -153,9 +161,6 @@ export const queryCandidateBlocksByTag = async ({
   return queryResults.map(([result]) => result);
 };
 
-const escapeRegExp = (value: string): string =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
 export const stripCandidateTags = ({
   text,
   tagTitles,
@@ -167,7 +172,7 @@ export const stripCandidateTags = ({
     .reduce((stripped, tagTitle) => {
       const escaped = escapeRegExp(tagTitle);
       return stripped.replace(
-        new RegExp(`#?\\[\\[${escaped}\\]\\]|#${escaped}(?![\\w-])`, "g"),
+        new RegExp(`#?\\[\\[${escaped}\\]\\]|#${escaped}(?![\\w-])`, "gi"),
         "",
       );
     }, text)

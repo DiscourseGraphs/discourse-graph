@@ -246,8 +246,11 @@ export const buildSearchIndex = async ({
     for (const result of resultByType.value) {
       const existing = resultsByUid.get(result.uid);
       if (existing) {
-        if (existing.candidate && result.candidate) {
-          existing.candidate.nodeTypes.push(...result.candidate.nodeTypes);
+        const newTypes = result.candidate?.nodeTypes.filter(
+          (type) => !existing.candidate?.nodeTypes.includes(type),
+        );
+        if (existing.candidate && newTypes) {
+          existing.candidate.nodeTypes.push(...newTypes);
         }
         continue;
       }
