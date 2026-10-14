@@ -1,0 +1,5 @@
+/start eng-2367
+
+---
+
+I don't think between the time we index and the time the search actually happened, the candidate can move to another page. We can just say that it's unlikely and we can ignore it.
