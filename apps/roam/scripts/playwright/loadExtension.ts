@@ -184,14 +184,6 @@ const clickNative = async (
   await target.click({ timeout });
 };
 
-export const classifyBrowserMessage = (
-  message: string,
-): "expected-directory-handle-warning" | "error" =>
-  message.includes("Failed to execute 'put' on 'IDBObjectStore'") &&
-  message.includes("could not be cloned")
-    ? "expected-directory-handle-warning"
-    : "error";
-
 export const loadTestDefinition = async (
   testModulePath?: string,
 ): Promise<(ExtensionTestDefinition & { modulePath: string }) | null> => {
@@ -280,117 +272,45 @@ const readFolderFiles = async (repoDir: string): Promise<ExtensionFile[]> => {
   return files;
 };
 
-const installDirectoryPickerShim = async ({
+export const installDirectoryPickerShim = async ({
   page,
   dirName,
   files,
 }: InstallDirectoryPickerShimOptions): Promise<void> => {
   await page.evaluate(
-    ({ dirName: pageDirName, files: pageFiles }) => {
-      type BrowserExtensionFile = {
-        name: string;
-        content: string;
-        type: string;
-        lastModified: number;
-      };
-
-      type BrowserFileHandle = {
-        kind: "file";
-        name: string;
-        getFile: () => Promise<File>;
-        isSameEntry: (other: unknown) => Promise<boolean>;
-        queryPermission: () => Promise<PermissionState>;
-        requestPermission: () => Promise<PermissionState>;
-      };
-
-      type BrowserDirectoryHandle = {
-        kind: "directory";
-        name: string;
-        getFileHandle: (name: string) => Promise<BrowserFileHandle>;
-        getDirectoryHandle: (name: string) => Promise<never>;
-        resolve: (
-          possibleDescendant: BrowserFileHandle,
-        ) => Promise<string[] | null>;
-        isSameEntry: (other: unknown) => Promise<boolean>;
-        queryPermission: () => Promise<PermissionState>;
-        requestPermission: () => Promise<PermissionState>;
-        entries: () => AsyncGenerator<[string, BrowserFileHandle]>;
-        keys: () => AsyncGenerator<string>;
-        values: () => AsyncGenerator<BrowserFileHandle>;
-        [Symbol.asyncIterator]: () => AsyncGenerator<
-          [string, BrowserFileHandle]
-        >;
-      };
-
-      const makeNotFound = (name: string): DOMException =>
-        new DOMException(
-          `A requested file or directory could not be found: ${name}`,
-          "NotFoundError",
-        );
-
-      const makeFileHandle = (
-        entry: BrowserExtensionFile,
-      ): BrowserFileHandle => {
-        const fileHandle: BrowserFileHandle = {
-          kind: "file",
-          name: entry.name,
-          getFile: () =>
-            Promise.resolve(
-              new File([entry.content], entry.name, {
-                type: entry.type,
-                lastModified: entry.lastModified,
-              }),
-            ),
-          isSameEntry: (other: unknown) =>
-            Promise.resolve(other === fileHandle),
-          queryPermission: () => Promise.resolve("granted"),
-          requestPermission: () => Promise.resolve("granted"),
-        };
-        return fileHandle;
-      };
-
-      const handles = new Map<string, BrowserFileHandle>(
-        pageFiles.map((entry) => [entry.name, makeFileHandle(entry)]),
+    async ({ dirName: pageDirName, files: pageFiles, rootFileNames }) => {
+      // Native origin-private handles can be saved by Roam and reopened after reload.
+      // Plain-object handles cannot be cloned into Roam's IndexedDB store.
+      const root = await navigator.storage.getDirectory();
+      const previews = await root.getDirectoryHandle(
+        "dg-playwright-extensions",
+        {
+          create: true,
+        },
       );
-
-      const directoryHandle: BrowserDirectoryHandle = {
-        kind: "directory",
-        name: pageDirName,
-        getFileHandle: (name: string) => {
-          const handle = handles.get(name);
-          return handle
-            ? Promise.resolve(handle)
-            : Promise.reject(makeNotFound(name));
-        },
-        getDirectoryHandle: (name: string) =>
-          Promise.reject(makeNotFound(name)),
-        resolve: (possibleDescendant: BrowserFileHandle) => {
-          for (const [name, handle] of handles) {
-            if (handle === possibleDescendant) return Promise.resolve([name]);
+      const directoryHandle = await previews.getDirectoryHandle(pageDirName, {
+        create: true,
+      });
+      for (const entry of pageFiles) {
+        const handle = await directoryHandle.getFileHandle(entry.name, {
+          create: true,
+        });
+        const writable = await handle.createWritable();
+        await writable.write(entry.content);
+        await writable.close();
+      }
+      for (const name of rootFileNames) {
+        if (pageFiles.some((file) => file.name === name)) continue;
+        try {
+          await directoryHandle.removeEntry(name);
+        } catch (error) {
+          if (
+            !(error instanceof DOMException && error.name === "NotFoundError")
+          ) {
+            throw error;
           }
-          return Promise.resolve(null);
-        },
-        isSameEntry: (other: unknown) =>
-          Promise.resolve(other === directoryHandle),
-        queryPermission: () => Promise.resolve("granted"),
-        requestPermission: () => Promise.resolve("granted"),
-        async *entries() {
-          await Promise.resolve();
-          for (const entry of handles.entries()) yield entry;
-        },
-        async *keys() {
-          await Promise.resolve();
-          for (const key of handles.keys()) yield key;
-        },
-        async *values() {
-          await Promise.resolve();
-          for (const handle of handles.values()) yield handle;
-        },
-        [Symbol.asyncIterator]() {
-          return this.entries();
-        },
-      };
-
+        }
+      }
       Object.defineProperty(
         window as unknown as DgPlaywrightWindow,
         "showDirectoryPicker",
@@ -400,7 +320,7 @@ const installDirectoryPickerShim = async ({
         },
       );
     },
-    { dirName, files },
+    { dirName, files, rootFileNames: ROOT_FILES.map(({ name }) => name) },
   );
 };
 
@@ -922,37 +842,8 @@ export const main = async (): Promise<void> => {
     if (messages.length > 50) messages.shift();
   };
 
-  const warningKeys = new Set<string>();
-  const recordBrowserMessage = ({
-    message,
-    source,
-  }: {
-    message: string;
-    source: "console" | "pageerror";
-  }): void => {
-    if (
-      classifyBrowserMessage(message) === "expected-directory-handle-warning"
-    ) {
-      if (!warningKeys.has(message)) result.knownWarnings.push(message);
-      warningKeys.add(message);
-      return;
-    }
-    if (source === "pageerror") result.pageErrors.push(message);
-  };
-
   page.on("console", (message) => {
-    const text = `${message.type()}: ${message.text()}`;
-    if (message.type() === "error") {
-      if (
-        classifyBrowserMessage(message.text()) ===
-        "expected-directory-handle-warning"
-      ) {
-        recordBrowserMessage({ message: message.text(), source: "console" });
-        return;
-      }
-      recordBrowserMessage({ message: message.text(), source: "console" });
-    }
-    pushBounded(result.consoleMessages, text);
+    pushBounded(result.consoleMessages, `${message.type()}: ${message.text()}`);
   });
 
   page.on("requestfailed", (request) => {
@@ -963,7 +854,7 @@ export const main = async (): Promise<void> => {
   });
 
   page.on("pageerror", (error) => {
-    recordBrowserMessage({ message: error.message, source: "pageerror" });
+    result.pageErrors.push(error.message);
   });
 
   const persistResult = async (): Promise<void> => {

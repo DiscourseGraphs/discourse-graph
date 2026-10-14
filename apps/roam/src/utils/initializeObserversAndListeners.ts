@@ -106,12 +106,15 @@ export const initObservers = ({
   };
   cleanups: Array<() => void>;
 } => {
+  const relationsPages = initRelationsPages();
   const pageTitleObserver = createHTMLObserver({
     tag: "H1",
     className: "rm-title-display",
     callback: (e) => {
       const h1 = e as HTMLHeadingElement;
       const { title, uid } = getTitleAndUidFromHeader(h1);
+
+      relationsPages.mount({ heading: h1, title, pageUid: uid });
 
       const settings = bulkReadSettings();
 
@@ -159,6 +162,7 @@ export const initObservers = ({
         renderTldrawCanvasInSidebar(props);
       }
     },
+    removeCallback: relationsPages.unmount,
   });
 
   const queryBlockObserver = createButtonObserver({
@@ -483,7 +487,7 @@ export const initObservers = ({
       unsubGlobalTrigger,
       unsubPersonalTrigger,
       unsubSearchTrigger,
-      initRelationsPages(),
+      relationsPages.dispose,
     ],
   };
 };
