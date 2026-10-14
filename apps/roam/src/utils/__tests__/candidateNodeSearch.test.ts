@@ -92,6 +92,9 @@ describe("candidate tag helpers", () => {
   it("strips the leading hash from a configured tag", () => {
     expect(getCandidateTagTitle("#clm-candidate")).toBe("clm-candidate");
     expect(getCandidateTagTitle("clm-candidate")).toBe("clm-candidate");
+    expect(getCandidateTagTitle("#[[Claim Candidate]]")).toBe(
+      "Claim Candidate",
+    );
   });
 
   it("queries blocks that reference the tag page, ignoring case", () => {
@@ -120,6 +123,12 @@ describe("candidate tag helpers", () => {
         tagTitles: ["clm-candidate"],
       }),
     ).toBe("Soil");
+  });
+
+  it("keeps a longer tag that continues with a non-ASCII letter", () => {
+    expect(
+      stripCandidateTags({ text: "Soil #candé", tagTitles: ["cand"] }),
+    ).toBe("Soil #candé");
   });
 
   it("keeps a longer tag that only starts with a configured tag", () => {

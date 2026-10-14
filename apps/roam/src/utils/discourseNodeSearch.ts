@@ -116,9 +116,12 @@ export const hasCandidateTag = (
   node: DiscourseNode,
 ): node is DiscourseNode & { tag: string } => !!node.tag?.trim();
 
-// Strips one leading "#", like the "is a candidate" datalog translator.
+// `#tag` and `#[[tag]]` both name the tag page `tag`.
 export const getCandidateTagTitle = (tag: string): string =>
-  tag.trim().replace(/^#/, "");
+  tag
+    .trim()
+    .replace(/^#/, "")
+    .replace(/^\[\[(.*)\]\]$/, "$1");
 
 const escapeRegExp = (value: string): string =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -172,7 +175,10 @@ export const stripCandidateTags = ({
     .reduce((stripped, tagTitle) => {
       const escaped = escapeRegExp(tagTitle);
       return stripped.replace(
-        new RegExp(`#?\\[\\[${escaped}\\]\\]|#${escaped}(?![\\w-])`, "gi"),
+        new RegExp(
+          `#?\\[\\[${escaped}\\]\\]|#${escaped}(?![\\p{L}\\p{N}_-])`,
+          "giu",
+        ),
         "",
       );
     }, text)

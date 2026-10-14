@@ -62,7 +62,11 @@ const getTagStyle = ({
   node: DiscourseNode | undefined;
 }): React.CSSProperties => {
   const color = node?.canvasSettings?.color;
-  if (!color) return { flexShrink: 0 };
+  if (!color) {
+    return isCandidate
+      ? { backgroundColor: "transparent", border: "1px solid", flexShrink: 0 }
+      : { flexShrink: 0 };
+  }
   return {
     ...getNodeTagStyles(color),
     ...(isCandidate && { backgroundColor: "transparent", boxShadow: "none" }),

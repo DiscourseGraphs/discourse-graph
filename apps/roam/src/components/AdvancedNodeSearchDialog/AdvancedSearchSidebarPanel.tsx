@@ -61,13 +61,14 @@ export const AdvancedSearchSidebarResultsList = ({
         >
           <Icon
             className="rm-search-query__page-row-icon"
-            icon="document"
+            icon={result.candidate ? "paragraph" : "document"}
             iconSize={16}
           />
           <span className="rm-search-query__page-row-title">
             <a
               className="rm-page-ref rm-page-ref--link"
-              data-link-title={displayTitle}
+              // A candidate is a block, so Roam must not resolve this link by title.
+              data-link-title={result.candidate ? undefined : displayTitle}
               data-link-uid={result.uid}
               href={getRoamUrl(result.uid)}
               onMouseDown={(event) => {
@@ -81,7 +82,14 @@ export const AdvancedSearchSidebarResultsList = ({
                 if (event.shiftKey) {
                   event.preventDefault();
                   event.stopPropagation();
+                  return;
                 }
+                if (!result.candidate) return;
+                event.preventDefault();
+                event.stopPropagation();
+                void window.roamAlphaAPI.ui.mainWindow.openBlock({
+                  block: { uid: result.uid },
+                });
               }}
             >
               <span className="rm-page__title cursor-pointer">
