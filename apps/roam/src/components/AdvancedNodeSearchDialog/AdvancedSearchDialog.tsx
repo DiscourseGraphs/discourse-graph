@@ -265,6 +265,7 @@ const AdvancedNodeSearchDialog = ({
   }, [isOpen]);
 
   useEffect(() => {
+    if (!isOpen) return;
     let cancelled = false;
     setIsIndexLoading(true);
     setIndexError(false);
