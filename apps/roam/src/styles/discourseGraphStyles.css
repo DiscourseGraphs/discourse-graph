@@ -247,9 +247,8 @@ div.roamjs-discourse-drawer div.bp3-drawer {
   font-size: 12px;
   margin: 0 0 8px;
 }
-.dg-relations-frame {
-  border: 1px solid rgba(16, 22, 26, 0.15);
-  border-radius: 3px;
+.dg-relations-frame.bp3-card {
+  padding: 0;
   overflow: auto;
   min-height: 180px;
   height: 560px;
@@ -273,7 +272,8 @@ div.roamjs-discourse-drawer div.bp3-drawer {
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--background-color, white);
+  border-radius: 0;
+  box-shadow: none;
 }
 .dg-relations-frame .dg-relations-table th,
 .dg-relations-frame .dg-relations-table td {
@@ -284,9 +284,9 @@ div.roamjs-discourse-drawer div.bp3-drawer {
   padding-top: 12px;
   padding-bottom: 12px;
 }
-.dg-relations-frame .dg-relations-table .dg-relation-row > td {
-  border-top: 1px solid rgba(16, 22, 26, 0.15);
-  box-shadow: none;
+.dg-relations-table .dg-relation-row {
+  margin: 0;
+  border-right: 0;
 }
 .dg-relations-frame .dg-relations-table .dg-relation-inspect {
   padding: 8px 4px;
@@ -345,15 +345,6 @@ div.roamjs-discourse-drawer div.bp3-drawer {
   text-align: center;
   vertical-align: middle;
 }
-.bp3-dark .dg-relations-frame {
-  border-color: rgba(255, 255, 255, 0.15);
-}
-.bp3-dark .dg-relations-table thead {
-  background: var(--background-color, #30404d);
-}
-.bp3-dark .dg-relations-table .dg-relation-row > td {
-  border-color: rgba(255, 255, 255, 0.15);
-}
 @container (max-width: 680px) {
   .dg-relations-compact-sort {
     display: inline-block;
@@ -375,14 +366,11 @@ div.roamjs-discourse-drawer div.bp3-drawer {
     grid-template-areas: "relation date inspect" "source source source" "destination destination destination";
     gap: 6px 8px;
     padding: 12px;
-    border-top: 1px solid rgba(16, 22, 26, 0.15);
-  }
-  .dg-relations-table .dg-relation-row:first-child {
-    border-top: 0;
   }
   .dg-relations-frame .dg-relations-table .dg-relation-row > td {
     padding: 0;
     border: 0;
+    box-shadow: none;
   }
   .dg-relation-source {
     grid-area: source;
@@ -423,8 +411,5 @@ div.roamjs-discourse-drawer div.bp3-drawer {
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-  .bp3-dark .dg-relations-table .dg-relation-row {
-    border-color: rgba(255, 255, 255, 0.15);
   }
 }

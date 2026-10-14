@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Button,
   Classes,
@@ -35,6 +35,7 @@ const FILTER_LABELS: Record<keyof RelationFilters, string> = {
   nodeType: "Node type",
   status: "Status",
 };
+const MAX_PAGE_SIZE = 100;
 
 const EndpointLink = ({
   endpoint,
@@ -109,6 +110,9 @@ const RelationsPage = ({
     [rows, filters, search, sort, descending],
   );
   const lastPage = Math.max(0, Math.ceil(visible.length / pageSize) - 1);
+  useEffect(() => {
+    setPage((previous) => Math.min(previous, lastPage));
+  }, [lastPage]);
   const currentPage = Math.min(page, lastPage);
   const start = currentPage * pageSize;
   const filterCount = Object.values(filters).filter(Boolean).length;
@@ -215,7 +219,10 @@ const RelationsPage = ({
                             ? [
                                 {
                                   value: filters[key],
-                                  label: "Selected type (0)",
+                                  label:
+                                    key === "status"
+                                      ? "Selected status (0)"
+                                      : "Selected type (0)",
                                 },
                               ]
                             : []),
@@ -291,7 +298,7 @@ const RelationsPage = ({
             </p>
           )}
           <div
-            className="dg-relations-frame"
+            className={`dg-relations-frame ${Classes.CARD}`}
             ref={viewport}
             aria-busy={loading}
           >
@@ -303,7 +310,7 @@ const RelationsPage = ({
                 <col className="dg-relation-date-column" />
                 <col className="dg-relation-inspect-column" />
               </colgroup>
-              <thead>
+              <thead className={Classes.CARD}>
                 <tr>
                   {(
                     ["source", "type", "destination", "createdAt"] as const
@@ -343,7 +350,7 @@ const RelationsPage = ({
                   visible.slice(start, start + pageSize).map((row) => (
                     <React.Fragment key={row.uid}>
                       <tr
-                        className="dg-relation-row"
+                        className={`dg-relation-row ${Classes.DIVIDER}`}
                         data-relation-uid={row.uid}
                       >
                         <td className="dg-relation-source">
@@ -450,6 +457,7 @@ const RelationsPage = ({
                   className="w-16"
                   type="number"
                   min={1}
+                  max={MAX_PAGE_SIZE}
                   step={1}
                   aria-label="Results per page"
                   value={pageSizeInput}
@@ -458,7 +466,7 @@ const RelationsPage = ({
                     setPageSizeInput(input);
                     const value = Number(input);
                     if (Number.isSafeInteger(value) && value > 0) {
-                      setPageSize(value);
+                      setPageSize(Math.min(value, MAX_PAGE_SIZE));
                       resetPage();
                     }
                   }}

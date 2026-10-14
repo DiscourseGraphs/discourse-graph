@@ -86,7 +86,13 @@ describe("relations page subscription", () => {
   });
   it("keeps loaded rows on failure, restores storage, then recovers on refresh", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
-    const rows = [{ uid: "relation" } as RelationRow];
+    const rows = [
+      {
+        uid: "relation",
+        source: { uid: "a" },
+        destination: { uid: "b" },
+      } as RelationRow,
+    ];
     load.mockResolvedValueOnce(rows);
     await render();
     load.mockRejectedValueOnce(new Error("offline"));
@@ -104,5 +110,52 @@ describe("relations page subscription", () => {
     expect(result.error).toBe(false);
     expect(result.rows).toEqual([]);
     expect(onRowsLoaded).toHaveBeenLastCalledWith([]);
+  });
+  it("refreshes endpoint edits and deletions, deduplicates watches, and releases replaced endpoints", async () => {
+    const rows = [
+      { uid: "one", source: { uid: "a" }, destination: { uid: "b" } },
+      { uid: "two", source: { uid: "a" }, destination: { uid: "a" } },
+    ] as RelationRow[];
+    load.mockResolvedValue(rows);
+    await render();
+    expect(addPullWatch.mock.calls.map(([, entity]) => entity)).toEqual([
+      '[:block/uid "storage"]',
+      '[:block/uid "a"]',
+      '[:block/uid "b"]',
+    ]);
+    const [pattern, entity, changed] = addPullWatch.mock.calls[1];
+    expect(pattern).toContain(":node/title");
+    expect(pattern).toContain(":block/string");
+    changed();
+    changed();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(150);
+    });
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(addPullWatch).toHaveBeenCalledTimes(3);
+    load.mockResolvedValue([
+      { ...rows[0], destination: { uid: "c" } } as RelationRow,
+    ]);
+    changed();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(150);
+    });
+    expect(removePullWatch).toHaveBeenCalledWith(pattern, entity, changed);
+    expect(removePullWatch).toHaveBeenCalledWith(
+      pattern,
+      '[:block/uid "b"]',
+      changed,
+    );
+    expect(addPullWatch.mock.calls.at(-1)?.[1]).toBe('[:block/uid "c"]');
+    const latestChanged = addPullWatch.mock.calls.at(-1)![2];
+    latestChanged();
+    act(() => root.unmount());
+    await vi.advanceTimersByTimeAsync(150);
+    expect(load).toHaveBeenCalledTimes(3);
+    expect(removePullWatch).toHaveBeenCalledWith(
+      pattern,
+      '[:block/uid "c"]',
+      latestChanged,
+    );
   });
 });

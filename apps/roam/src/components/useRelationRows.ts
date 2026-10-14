@@ -18,6 +18,32 @@ export const useRelationRows = ({
   const [error, setError] = useState(false);
   const [version, setVersion] = useState(0);
   const refresh = useCallback(() => setVersion((value) => value + 1), []);
+  const endpointUids = JSON.stringify(
+    [...new Set(rows.flatMap((row) => [row.source.uid, row.destination.uid]))]
+      .filter(Boolean)
+      .sort(),
+  );
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const changed = (): void => {
+      clearTimeout(timer);
+      timer = setTimeout(refresh, 150);
+    };
+    const pattern = "[:block/uid :node/title :block/string]";
+    const entities = (JSON.parse(endpointUids) as string[]).map(
+      (uid) => `[:block/uid ${JSON.stringify(uid)}]`,
+    );
+    entities.forEach((entity) =>
+      window.roamAlphaAPI.data.addPullWatch(pattern, entity, changed),
+    );
+    return () => {
+      clearTimeout(timer);
+      entities.forEach((entity) =>
+        window.roamAlphaAPI.data.removePullWatch(pattern, entity, changed),
+      );
+    };
+  }, [endpointUids, pageUid, refresh]);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
