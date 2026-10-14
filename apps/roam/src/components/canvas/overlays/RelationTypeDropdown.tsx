@@ -192,7 +192,7 @@ export const RelationTypeDropdown = ({
       >
         <div className="flex items-center justify-between gap-4 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
           <span>Relation Type</span>
-          {!isEmpty && actions.length > 0 && (
+          {!isEmpty && !isPickerOpen && actions.length > 0 && (
             <button
               aria-label="Add relation type"
               aria-expanded={isActionMenuOpen}
