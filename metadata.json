@@ -1,0 +1,42 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M4W6FD9HE6HCQ96AB56YNE73",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/roam/src/components/AdvancedNodeSearchDialog/AdvancedSearchDialog.tsx",
+    "apps/roam/src/components/AdvancedNodeSearchDialog/revealBlockInPreview.ts",
+    "apps/roam/src/components/AdvancedNodeSearchDialog/utils.ts",
+    "apps/roam/src/styles/discourseGraphStyles.css",
+    "apps/roam/src/utils/__tests__/candidateNodeSearch.test.ts",
+    "apps/roam/src/utils/__tests__/revealBlockInPreview.test.ts",
+    "apps/roam/src/utils/discourseNodeSearch.ts",
+    "apps/roam/src/utils/discourseNodeSearchTypes.ts",
+    "apps/roam/src/utils/revealBlockInPreview.ts",
+    "apps/website/public/docs/roam/dg-schema02.PNG"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2,
+    "cache_creation_tokens": 240361,
+    "cache_read_tokens": 38336,
+    "output_tokens": 179,
+    "api_call_count": 1,
+    "subagent_tokens": {
+      "input_tokens": 0,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 0,
+      "api_call_count": 0
+    }
+  }
+}
