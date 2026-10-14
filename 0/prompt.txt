@@ -1,0 +1,104 @@
+/start eng-1995
+
+---
+
+/start eng-1955
+
+---
+
+<task-notification>
+<task-id>a5e3e33a5846fd635</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/3b715508-dab3-4131-83c1-42f4516e3470/tasks/a5e3e33a5846fd635.output</output-file>
+<status>completed</status>
+<summary>Agent "Repo patterns for cloud testing" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>This agent's report was delivered to you as a message from "a5e3e33a5846fd635" (its SubagentHandback call). Read it there; it is not repeated here.
+</result>
+<usage><subagent_tokens>82604</subagent_tokens><tool_uses>21</tool_uses><duration_ms>130252</duration_ms></usage>
+</task-notification>
+
+---
+
+Q12: the mcp isn't official. don't need to register old relation types on local path for now because we already run the migration
+agree with the rest of your recommendation
+
+---
+
+yes, save the plan and start
+
+---
+
+i just install posthog plugin. do whatever setup needed for us to run this query
+
+---
+
+go
+
+---
+
+/posthog:testing-mcp-tools-locally
+
+---
+
+can you try again now?
+
+---
+
+go
+
+---
+
+write me a prompt to try this in another session. because posthog shows authenticated in terminal for me
+
+---
+
+here's the result:
+
+<pasted_content id="957d">
+Roam extension version adoption ‚Äî ENG-1955
+
+Project: "Roam" (id 113823, org Discourse Graphs). Windows: 30d and 7d. buildBranch had ~40 dev branches mixed in alongside main/null ‚Äî filtered to main-only for adoption numbers (shown both ways for Q1).
+
+Q1 ‚Äî share on 0.22+
+
+‚îå‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚î¨‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚î¨‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚î¨‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îê
+‚îÇ     Window      ‚îÇ Installs ‚îÇ On 0.22+ ‚îÇ   %    ‚îÇ
+‚îú‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îº‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îº‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îº‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚î§
+‚îÇ 30d, unfiltered ‚îÇ 139      ‚îÇ 137      ‚îÇ 98.6%  ‚îÇ
+‚îú‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îº‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îº‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îº‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚î§
+‚îÇ 30d, main-only  ‚îÇ 138      ‚îÇ 137      ‚îÇ 99.3%  ‚îÇ
+‚îú‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îº‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îº‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îº‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚î§
+‚îÇ 7d, main-only   ‚îÇ 71       ‚îÇ 71       ‚îÇ 100.0% ‚îÇ
+‚îî‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚î¥‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚î¥‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚î¥‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îò
+
+Q2 ‚Äî version breakdown (30d, main-only)
+
+‚îå‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚î¨‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îê
+‚îÇ Version ‚îÇ Installs ‚îÇ
+‚îú‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îº‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚î§
+‚îÇ 0.22.0  ‚îÇ 76       ‚îÇ
+‚îú‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îº‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚î§
+‚îÇ 0.23.0  ‚îÇ 47       ‚îÇ
+‚îú‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îº‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚î§
+‚îÇ 0.24.0  ‚îÇ 14       ‚îÇ
+‚îú‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îº‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚î§
+‚îÇ 0.21.0  ‚îÇ 1        ‚îÇ
+‚îî‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚î¥‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îò
+
+Q3 ‚Äî mixed-version graphs: 1 graph, discourse-graphs ‚Äî versions [0.24.0, 0.23.0, 0.22.0, 0.21.0], 1 install below 0.22 of 16 total. (Looks like a workspace/product name, not personal data.)
+
+Step 5 ‚Äî graphs with any install below 0.22: 1 (same discourse-graphs graph).
+
+Caveats
+- Installs below 0.21 are invisible (these telemetry properties shipped in 0.21.0 / ENG-1940).
+- One install = one browser, not one person.
+- Small sample (138 installs/30d) ‚Äî percentages are noisy.
+- A few stray very old versions (0.15‚Äì0.19) and nulls appear in raw 30-day events but aren't anyone's latest version. NULL buildBranch was treated as equivalent to "-" since no literal "-" string appeared ‚Äî the unfiltered vs. main-only Q1 numbers bound that uncertainty.
+
+Bottom line for the ENG-1955 decision: adoption of 0.22+ is already ~99% and 100% in the last week, with only one graph (discourse-graphs) currently showing a sub-0.22 install mixed with newer ones.
+</pasted_content id="957d">
+
+---
+
+did eng-1138 add local-path registration?? if so why not?
