@@ -57,7 +57,7 @@ export type OpenRoamSessionOptions = {
   graphUrl?: string;
   profileDir?: string;
   headless?: boolean;
-  viewport?: ViewportSize;
+  viewport?: ViewportSize | null;
   timeout?: number;
   allowInteractiveLogin?: boolean;
   allowCredentialLogin?: boolean;
@@ -342,7 +342,7 @@ export const openRoamSession = async ({
   graphUrl,
   profileDir,
   headless,
-  viewport = { width: 1440, height: 1000 },
+  viewport,
   timeout = 30_000,
   allowInteractiveLogin = false,
   allowCredentialLogin,
@@ -366,7 +366,13 @@ export const openRoamSession = async ({
       resolvedConfig.profileDir,
       {
         headless: resolvedHeadless,
-        viewport,
+        // Manual sessions follow the window; headless screenshots stay repeatable.
+        viewport:
+          viewport === undefined
+            ? resolvedHeadless
+              ? { width: 1440, height: 1000 }
+              : null
+            : viewport,
       },
     );
   } catch (error) {

@@ -1,14 +1,33 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   loadRelationRows,
+  getRelationFilterOptions,
+  UNKNOWN_RELATION_FILTER,
   selectRelationRows,
   type RelationRow,
 } from "~/components/relationsPageData";
 
 vi.mock("~/utils/getDiscourseRelations", () => ({
   default: () => [
-    { id: "supports", label: "Supports" },
-    { id: "challenges", label: "Challenges" },
+    {
+      id: "supports",
+      label: "Supports",
+      source: "evidence",
+      destination: "claim",
+    },
+    {
+      id: "challenges",
+      label: "Challenges",
+      source: "claim",
+      destination: "claim",
+    },
+    { id: "generic", label: "Relates to", source: "*", destination: "*" },
+  ],
+}));
+vi.mock("~/utils/getDiscourseNodes", () => ({
+  default: () => [
+    { type: "evidence", text: "Evidence" },
+    { type: "claim", text: "Claim" },
   ],
 }));
 const q = vi.fn();
@@ -19,6 +38,20 @@ beforeEach(() => {
 });
 
 describe("relations page data", () => {
+  it("keeps the supported Any role distinct from unknown node types", async () => {
+    q.mockResolvedValueOnce([
+      ["generic-relation", { "discourse-graph": { hasSchema: "generic" } }, 0],
+    ]);
+    const rows = await loadRelationRows("storage");
+    expect(rows[0].source).toMatchObject({ typeId: "*", typeLabel: "Any" });
+    expect(rows[0].destination).toMatchObject({
+      typeId: "*",
+      typeLabel: "Any",
+    });
+    expect(getRelationFilterOptions(rows).nodeType).toEqual([
+      { value: "*", label: "Any (1)" },
+    ]);
+  });
   it("resolves page and block endpoints, preserves raw props, and ignores other blocks", async () => {
     const props = {
       ":discourse-graph": {
@@ -46,8 +79,18 @@ describe("relations page data", () => {
       tentative: true,
       createdAt: 1704067200000,
       props,
-      source: { text: "A claim", isPage: true },
-      destination: { text: "Evidence", isPage: false },
+      source: {
+        text: "A claim",
+        isPage: true,
+        typeId: "evidence",
+        typeLabel: "Evidence",
+      },
+      destination: {
+        text: "Evidence",
+        isPage: false,
+        typeId: "claim",
+        typeLabel: "Claim",
+      },
     });
     expect(rows[0].props).toBe(props);
   });
@@ -152,15 +195,25 @@ const row = ({
   uid,
   type,
   schemaUid: type.toLowerCase(),
+  typeKnown: true,
   tentative: false,
   props: {},
   createdAt: null,
-  source: { uid: `source-${uid}`, text: source, exists: true, isPage: true },
+  source: {
+    uid: `source-${uid}`,
+    text: source,
+    exists: true,
+    isPage: true,
+    typeId: "evidence",
+    typeLabel: "Evidence",
+  },
   destination: {
     uid: `dest-${uid}`,
     text: destination,
     exists: true,
     isPage: true,
+    typeId: "claim",
+    typeLabel: "Claim",
   },
 });
 const rows = [
@@ -169,6 +222,155 @@ const rows = [
   row({ uid: "c", type: "Supports", source: "Study 1", destination: "Gamma" }),
 ];
 describe("relations page filtering and sorting", () => {
+  it("filters tentative and confirmed relations alongside type and search", () => {
+    const mixed = [
+      rows[0],
+      { ...rows[1], tentative: true },
+      { ...rows[2], tentative: true },
+    ];
+    const select = {
+      rows: mixed,
+      type: "",
+      search: "",
+      sort: "type" as const,
+      descending: false,
+    };
+    expect(
+      selectRelationRows({ ...select, status: "tentative" }).map((r) => r.uid),
+    ).toEqual(["a", "c"]);
+    expect(
+      selectRelationRows({ ...select, status: "confirmed" }).map((r) => r.uid),
+    ).toEqual(["b"]);
+    expect(selectRelationRows({ ...select, status: "" })).toHaveLength(3);
+    expect(
+      selectRelationRows({
+        ...select,
+        status: "tentative",
+        type: "supports",
+        nodeType: "evidence",
+        search: "Gamma",
+      }).map((r) => r.uid),
+    ).toEqual(["c"]);
+    expect(
+      selectRelationRows({ ...select, status: "confirmed", search: "Gamma" }),
+    ).toEqual([]);
+    expect(getRelationFilterOptions(mixed).status).toEqual([
+      { value: "confirmed", label: "Confirmed (1)" },
+      { value: "tentative", label: "Tentative (2)" },
+    ]);
+    expect(getRelationFilterOptions([]).status).toEqual([
+      { value: "confirmed", label: "Confirmed (0)" },
+      { value: "tentative", label: "Tentative (0)" },
+    ]);
+  });
+  it("matches node types at either end and counts each relation once", () => {
+    const mixed = [
+      rows[0],
+      {
+        ...rows[1],
+        source: { ...rows[1].source, typeId: "claim", typeLabel: "Claim" },
+      },
+      {
+        ...rows[2],
+        destination: {
+          ...rows[2].destination,
+          typeId: "question",
+          typeLabel: "Question",
+        },
+      },
+    ];
+    const select = {
+      rows: mixed,
+      type: "",
+      search: "",
+      sort: "type" as const,
+      descending: false,
+    };
+    expect(
+      selectRelationRows({ ...select, nodeType: "claim" }).map((r) => r.uid),
+    ).toEqual(["a", "b"]);
+    expect(
+      selectRelationRows({ ...select, nodeType: "question" }).map((r) => r.uid),
+    ).toEqual(["c"]);
+    expect(
+      selectRelationRows({
+        ...select,
+        type: "supports",
+        nodeType: "claim",
+        search: "study",
+      }).map((r) => r.uid),
+    ).toEqual(["b"]);
+    expect(
+      selectRelationRows({
+        ...select,
+        nodeType: "missing-type",
+      }),
+    ).toEqual([]);
+    const reversed = mixed.map((row) => ({
+      ...row,
+      source: row.destination,
+      destination: row.source,
+    }));
+    expect(
+      selectRelationRows({ ...select, rows: reversed, nodeType: "claim" }).map(
+        (r) => r.uid,
+      ),
+    ).toEqual(["a", "b"]);
+    expect(getRelationFilterOptions(mixed).nodeType).toEqual([
+      { value: "claim", label: "Claim (2)" },
+      { value: "evidence", label: "Evidence (2)" },
+      { value: "question", label: "Question (1)" },
+    ]);
+    expect(getRelationFilterOptions(reversed).nodeType).toEqual(
+      getRelationFilterOptions(mixed).nodeType,
+    );
+  });
+  it("groups all unknown schemas into one selectable filter, including missing schema IDs", () => {
+    const unknown = ["deleted-schema", ""].map((schemaUid, index) => ({
+      ...rows[index],
+      schemaUid,
+      type: "Unknown type",
+      typeKnown: false,
+      source: { ...rows[index].source, typeId: "", typeLabel: "Unknown type" },
+    }));
+    const mixed = [...unknown, rows[2]];
+    const options = getRelationFilterOptions(mixed);
+    expect(options.type).toEqual([
+      { value: "supports", label: "Supports (1)" },
+      { value: UNKNOWN_RELATION_FILTER, label: "Unknown type (2)" },
+    ]);
+    expect(
+      selectRelationRows({
+        rows: mixed,
+        type: UNKNOWN_RELATION_FILTER,
+        nodeType: UNKNOWN_RELATION_FILTER,
+        search: "",
+        sort: "type",
+        descending: false,
+      }),
+    ).toHaveLength(2);
+  });
+  it("keeps identically named node types separate by their stable IDs", () => {
+    const mixed = [
+      rows[0],
+      { ...rows[1], source: { ...rows[1].source, typeId: "other-evidence" } },
+    ];
+    expect(getRelationFilterOptions(mixed).nodeType).toEqual([
+      { value: "claim", label: "Claim (2)" },
+      { value: "evidence", label: "Evidence (1)" },
+      { value: "other-evidence", label: "Evidence (1)" },
+    ]);
+    expect(
+      selectRelationRows({
+        rows: mixed,
+        type: "",
+        nodeType: "other-evidence",
+        search: "evidence",
+        sort: "type",
+        descending: false,
+      }).map((r) => r.uid),
+    ).toEqual(["a"]);
+  });
   it.each([false, true])(
     "sorts creation timestamps chronologically (descending: %s), with unknown dates last",
     (descending) => {

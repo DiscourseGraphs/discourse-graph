@@ -1,27 +1,41 @@
-import React, { useEffect, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
   Button,
   Classes,
   HTMLSelect,
+  HTMLTable,
   InputGroup,
+  Menu,
+  MenuItem,
+  Popover,
+  Position,
   Spinner,
   Tag,
 } from "@blueprintjs/core";
+import { RenderRoamBlockString } from "~/utils/roamReactComponents";
+import SortableTableHeader from "./SortableTableHeader";
+import { useRelationRows } from "./useRelationRows";
 import {
-  loadRelationRows,
+  EMPTY_RELATION_FILTERS,
+  getRelationFilterOptions,
   selectRelationRows,
   type RelationEndpoint,
-  type RelationRow,
+  type RelationFilters,
   type RelationSort,
 } from "./relationsPageData";
 
-const PAGE_SIZE = 25;
 const SORT_LABELS: Record<RelationSort, string> = {
-  type: "Type",
   source: "Source",
+  type: "Relation",
   destination: "Destination",
-  createdAt: "Date created",
+  createdAt: "Created",
 };
+const FILTER_LABELS: Record<keyof RelationFilters, string> = {
+  type: "Relation type",
+  nodeType: "Node type",
+  status: "Status",
+};
+
 const EndpointLink = ({
   endpoint,
 }: {
@@ -31,9 +45,10 @@ const EndpointLink = ({
     type="button"
     className="bp3-button bp3-minimal bp3-intent-primary dg-relation-link"
     disabled={!endpoint.exists}
+    aria-label={`Open ${endpoint.text}`}
     title={
       endpoint.exists
-        ? `${endpoint.text} (Shift-click to open in sidebar)`
+        ? `${endpoint.text}\nClick to open · Shift-click for sidebar`
         : `Missing node: ${endpoint.uid || "no UID"}`
     }
     onClick={(event) => {
@@ -56,284 +71,424 @@ const EndpointLink = ({
       }
     }}
   >
-    {endpoint.text}
+    {/* Native text can contain links; the endpoint button owns navigation. */}
+    <span className="dg-relation-node-preview" {...{ inert: "" }}>
+      <RenderRoamBlockString string={endpoint.text} />
+    </span>
   </button>
 );
 
 const RelationsPage = ({
   pageUid,
   onRowsLoaded,
+  onVisibilityChange,
 }: {
   pageUid: string;
-  onRowsLoaded: (uids: string[]) => void;
+  onRowsLoaded: (uids: string[] | null) => void;
+  onVisibilityChange: (visible: boolean) => void;
 }): React.JSX.Element => {
-  const [rows, setRows] = useState<RelationRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [refresh, setRefresh] = useState(0);
-  const [type, setType] = useState("");
+  const { rows, loading, error, refresh } = useRelationRows({
+    pageUid,
+    onRowsLoaded,
+  });
+  const [filters, setFilters] = useState<RelationFilters>(
+    EMPTY_RELATION_FILTERS,
+  );
   const [search, setSearch] = useState("");
+  const [uiVisible, setUiVisible] = useState(true);
   const [sort, setSort] = useState<RelationSort>("type");
   const [descending, setDescending] = useState(false);
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(25);
+  const [pageSizeInput, setPageSizeInput] = useState("25");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
-    setError(false);
-    void loadRelationRows(pageUid)
-      .then((nextRows) => {
-        if (!active) return;
-        setRows(nextRows);
-        onRowsLoaded(nextRows.map((r) => r.uid));
-      })
-      .catch(() => {
-        if (!active) return;
-        setError(true);
-        onRowsLoaded([]);
-        console.error("Could not load the relations page.");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [pageUid, refresh, onRowsLoaded]);
-
-  const visible = selectRelationRows({ rows, type, search, sort, descending });
-  const lastPage = Math.max(0, Math.ceil(visible.length / PAGE_SIZE) - 1);
+  const viewport = useRef<HTMLDivElement>(null);
+  const options = useMemo(() => getRelationFilterOptions(rows), [rows]);
+  const visible = useMemo(
+    () => selectRelationRows({ rows, ...filters, search, sort, descending }),
+    [rows, filters, search, sort, descending],
+  );
+  const lastPage = Math.max(0, Math.ceil(visible.length / pageSize) - 1);
   const currentPage = Math.min(page, lastPage);
-  const start = currentPage * PAGE_SIZE;
-  const types = [
-    ...new Map(rows.map((r) => [r.schemaUid, r.type])).entries(),
-  ].sort((a, b) => a[1].localeCompare(b[1]));
+  const start = currentPage * pageSize;
+  const filterCount = Object.values(filters).filter(Boolean).length;
+  const resetPage = (): void => {
+    setPage(0);
+    viewport.current?.scrollTo({ top: 0 });
+  };
   const changeSort = (next: RelationSort): void => {
     setDescending(next === sort ? !descending : next === "createdAt");
     setSort(next);
-    setPage(0);
+    resetPage();
   };
+  const clearFilters = (): void => {
+    setFilters(EMPTY_RELATION_FILTERS);
+    resetPage();
+  };
+
   return (
     <section className="dg-relations-page" aria-label="Stored relations">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <strong aria-live="polite">
-          Number of relations:{" "}
-          {loading ? "…" : error ? "Unavailable" : rows.length}
+      <div className="dg-relations-heading">
+        <strong>
+          Relations <span className={Classes.TEXT_MUTED}>({rows.length})</span>
         </strong>
-        <Button
-          minimal
-          icon="refresh"
-          text="Refresh"
-          disabled={loading}
-          onClick={() => setRefresh((r) => r + 1)}
-        />
-      </div>
-      <div className="mb-3 flex flex-wrap gap-2">
-        <InputGroup
-          className="flex-1"
-          aria-label="Search relations"
-          leftIcon="search"
-          placeholder="Search relations…"
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(0);
-          }}
-        />
-        <HTMLSelect
-          aria-label="Filter by relation type"
-          value={type}
-          onChange={(e) => {
-            setType(e.target.value);
-            setPage(0);
-          }}
-        >
-          <option value="">All types</option>
-          {types
-            .filter(([uid]) => uid)
-            .map(([uid, label]) => (
-              <option key={uid} value={uid}>
-                {label} ({rows.filter((r) => r.schemaUid === uid).length})
-              </option>
-            ))}
-        </HTMLSelect>
-      </div>
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <HTMLSelect
-          aria-label="Sort relations"
-          value={sort}
-          onChange={(e) => changeSort(e.target.value as RelationSort)}
-          options={[
-            { value: "type", label: "Sort by type" },
-            { value: "source", label: "Sort by source" },
-            { value: "destination", label: "Sort by destination" },
-            { value: "createdAt", label: "Sort by date created" },
-          ]}
-        />
-        <Button
-          minimal
-          icon={descending ? "sort-desc" : "sort-asc"}
-          aria-label={descending ? "Sort ascending" : "Sort descending"}
-          onClick={() => setDescending(!descending)}
-        />
-        {(search || type) && (
-          <Button
-            minimal
-            text="Clear filters"
-            onClick={() => {
-              setSearch("");
-              setType("");
-              setPage(0);
-            }}
-          />
-        )}
-        <span className={Classes.TEXT_MUTED}>
-          Shift-click a node to open in sidebar.
+        <span className={Classes.TEXT_MUTED} role="status">
+          {uiVisible && (loading ? "Updating…" : error ? "Update failed" : "")}
         </span>
+        <Button
+          minimal
+          small
+          icon={uiVisible ? "eye-off" : "eye-open"}
+          text={uiVisible ? "Hide UI" : "Show UI"}
+          aria-expanded={uiVisible}
+          title={
+            uiVisible
+              ? "Show the underlying blocks"
+              : "Show the relations browser"
+          }
+          onClick={() => {
+            const visible = !uiVisible;
+            setUiVisible(visible);
+            onVisibilityChange(visible);
+          }}
+        />
       </div>
-      {loading ? (
-        <Spinner size={24} aria-label="Loading relations" />
-      ) : error ? (
-        <p role="alert" className="text-red-700">
-          Could not load relations. Use Refresh to try again. The page blocks
-          remain available below.
-        </p>
-      ) : !visible.length ? (
-        <p className={Classes.TEXT_MUTED}>
-          {rows.length
-            ? "No relations match these filters."
-            : "No stored relations on this page yet."}
-        </p>
-      ) : (
+      {uiVisible && (
         <>
-          <table className="bp3-html-table bp3-html-table-striped dg-relations-table">
-            <thead>
-              <tr>
-                {(["type", "source", "destination", "createdAt"] as const).map(
-                  (column) => (
-                    <th
+          <div className="dg-relations-toolbar">
+            <InputGroup
+              className="dg-relations-search"
+              aria-label="Search relations"
+              leftIcon="search"
+              placeholder="Search relations…"
+              value={search}
+              rightElement={
+                <Button
+                  minimal
+                  small
+                  icon="cross"
+                  aria-label="Clear search"
+                  disabled={!search}
+                  onClick={() => {
+                    setSearch("");
+                    resetPage();
+                  }}
+                />
+              }
+              onChange={(event) => {
+                setSearch(event.target.value);
+                resetPage();
+              }}
+            />
+            <Popover
+              position={Position.BOTTOM_RIGHT}
+              minimal
+              content={
+                <div
+                  className="dg-relations-filters"
+                  aria-label="Relation filters"
+                >
+                  {(
+                    Object.keys(FILTER_LABELS) as (keyof RelationFilters)[]
+                  ).map((key) => (
+                    <label className={Classes.LABEL} key={key}>
+                      {FILTER_LABELS[key]}
+                      <HTMLSelect
+                        fill
+                        aria-label={FILTER_LABELS[key]}
+                        value={filters[key]}
+                        onChange={(event) => {
+                          setFilters({ ...filters, [key]: event.target.value });
+                          resetPage();
+                        }}
+                        options={[
+                          {
+                            value: "",
+                            label:
+                              key === "status" ? "All statuses" : "All types",
+                          },
+                          ...options[key],
+                          ...(filters[key] &&
+                          !options[key].some(
+                            (option) => option.value === filters[key],
+                          )
+                            ? [
+                                {
+                                  value: filters[key],
+                                  label: "Selected type (0)",
+                                },
+                              ]
+                            : []),
+                        ]}
+                      />
+                    </label>
+                  ))}
+                  <p className={Classes.TEXT_MUTED}>
+                    Matches either end of the relation.
+                  </p>
+                  <Button
+                    minimal
+                    icon="reset"
+                    text="Clear filters"
+                    disabled={!filterCount}
+                    onClick={clearFilters}
+                  />
+                </div>
+              }
+            >
+              <Button
+                icon="filter"
+                active={Boolean(filterCount)}
+                text={filterCount ? `Filters (${filterCount})` : "Filters"}
+                aria-label="Filter relations"
+                className="dg-relations-filter-button"
+              />
+            </Popover>
+            <span className="dg-relations-compact-sort">
+              <Popover
+                minimal
+                position={Position.BOTTOM_RIGHT}
+                content={
+                  <Menu aria-label="Sort relations">
+                    {(Object.keys(SORT_LABELS) as RelationSort[]).map((key) => (
+                      <MenuItem
+                        key={key}
+                        text={SORT_LABELS[key]}
+                        icon={
+                          key === sort
+                            ? descending
+                              ? "sort-desc"
+                              : "sort-asc"
+                            : "blank"
+                        }
+                        onClick={() => changeSort(key)}
+                      />
+                    ))}
+                  </Menu>
+                }
+              >
+                <Button
+                  minimal
+                  icon="sort"
+                  aria-label={`Sort by ${SORT_LABELS[sort]}, ${descending ? "descending" : "ascending"}`}
+                  title={`Sort by ${SORT_LABELS[sort]}`}
+                />
+              </Popover>
+            </span>
+            <Button
+              minimal
+              icon="refresh"
+              aria-label="Refresh relations"
+              title="Refresh relations"
+              disabled={loading}
+              onClick={refresh}
+            />
+          </div>
+          {error && (
+            <p role="alert" className="text-red-700">
+              Could not update relations. Refresh to try again. Storage blocks
+              remain available below.
+            </p>
+          )}
+          <div
+            className="dg-relations-frame"
+            ref={viewport}
+            aria-busy={loading}
+          >
+            <HTMLTable className="dg-relations-table">
+              <colgroup>
+                <col />
+                <col className="dg-relation-type-column" />
+                <col />
+                <col className="dg-relation-date-column" />
+                <col className="dg-relation-inspect-column" />
+              </colgroup>
+              <thead>
+                <tr>
+                  {(
+                    ["source", "type", "destination", "createdAt"] as const
+                  ).map((column) => (
+                    <SortableTableHeader
                       key={column}
-                      scope="col"
-                      aria-sort={
+                      label={SORT_LABELS[column]}
+                      direction={
                         column === sort
                           ? descending
                             ? "descending"
                             : "ascending"
-                          : "none"
+                          : null
                       }
-                    >
-                      <Button
-                        minimal
-                        text={SORT_LABELS[column]}
-                        icon={
-                          column === sort
-                            ? descending
-                              ? "sort-desc"
-                              : "sort-asc"
-                            : undefined
-                        }
-                        onClick={() => changeSort(column)}
-                      />
-                    </th>
-                  ),
-                )}
-                <th scope="col">Inspect</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.slice(start, start + PAGE_SIZE).map((row) => (
-                <React.Fragment key={row.uid}>
-                  <tr>
-                    <td data-label="Type">
-                      <Tag minimal>{row.type}</Tag>
-                      {row.tentative && (
-                        <span className={Classes.TEXT_MUTED}>
-                          {" "}
-                          Pending review
-                        </span>
-                      )}
-                    </td>
-                    <td data-label="Source">
-                      <EndpointLink endpoint={row.source} />
-                    </td>
-                    <td data-label="Destination">
-                      <EndpointLink endpoint={row.destination} />
-                    </td>
-                    <td data-label="Date created">
-                      {row.createdAt === null ? (
-                        <span className={Classes.TEXT_MUTED}>Unknown</span>
+                      onSort={() => changeSort(column)}
+                    />
+                  ))}
+                  <th scope="col" aria-label="Inspect" />
+                </tr>
+              </thead>
+              <tbody>
+                {!visible.length ? (
+                  <tr className="dg-relations-empty">
+                    <td colSpan={5}>
+                      {loading ? (
+                        <Spinner size={22} aria-label="Loading relations" />
+                      ) : error ? (
+                        "Relations unavailable"
+                      ) : rows.length ? (
+                        "No relations match your search and filters."
                       ) : (
-                        <time
-                          dateTime={new Date(row.createdAt).toISOString()}
-                          title={new Date(row.createdAt).toLocaleString()}
-                        >
-                          {new Date(row.createdAt).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })}
-                        </time>
+                        "No stored relations yet."
                       )}
-                    </td>
-                    <td>
-                      <Button
-                        minimal
-                        small
-                        icon="code"
-                        text={
-                          expanded.has(row.uid) ? "Hide props" : "Show props"
-                        }
-                        aria-expanded={expanded.has(row.uid)}
-                        onClick={() =>
-                          setExpanded((previous) => {
-                            const next = new Set(previous);
-                            if (next.has(row.uid)) next.delete(row.uid);
-                            else next.add(row.uid);
-                            return next;
-                          })
-                        }
-                      />
                     </td>
                   </tr>
-                  {expanded.has(row.uid) && (
-                    <tr>
-                      <td colSpan={5} className="dg-relation-props">
-                        <strong>Raw props · {row.uid}</strong>
-                        <span className={Classes.TEXT_MUTED}> · Read only</span>
-                        <pre>{JSON.stringify(row.props, null, 2)}</pre>
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
-          <div
-            className="mt-3 flex items-center justify-between gap-2"
-            aria-live="polite"
-          >
-            <span className={Classes.TEXT_MUTED}>
-              {start + 1}–{Math.min(start + PAGE_SIZE, visible.length)} of{" "}
-              {visible.length}
+                ) : (
+                  visible.slice(start, start + pageSize).map((row) => (
+                    <React.Fragment key={row.uid}>
+                      <tr
+                        className="dg-relation-row"
+                        data-relation-uid={row.uid}
+                      >
+                        <td className="dg-relation-source">
+                          <EndpointLink endpoint={row.source} />
+                        </td>
+                        <td className="dg-relation-type">
+                          <Tag minimal>{row.type}</Tag>
+                          {row.tentative && (
+                            <span
+                              className={`dg-relation-pending ${Classes.TEXT_MUTED}`}
+                              title="This relation is pending review"
+                            >
+                              Pending
+                            </span>
+                          )}
+                        </td>
+                        <td className="dg-relation-destination">
+                          <EndpointLink endpoint={row.destination} />
+                        </td>
+                        <td className="dg-relation-date">
+                          {row.createdAt === null ? (
+                            <span className={Classes.TEXT_MUTED}>
+                              Unknown date
+                            </span>
+                          ) : (
+                            <time
+                              dateTime={new Date(row.createdAt).toISOString()}
+                              title={new Date(row.createdAt).toLocaleString()}
+                            >
+                              {new Date(row.createdAt).toLocaleDateString(
+                                "en-US",
+                                {
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                },
+                              )}
+                            </time>
+                          )}
+                        </td>
+                        <td className="dg-relation-inspect">
+                          <Button
+                            minimal
+                            small
+                            icon="code"
+                            aria-label={
+                              expanded.has(row.uid)
+                                ? "Hide relation properties"
+                                : "Inspect relation properties"
+                            }
+                            title={
+                              expanded.has(row.uid)
+                                ? "Hide properties"
+                                : "Inspect properties"
+                            }
+                            aria-expanded={expanded.has(row.uid)}
+                            onClick={() =>
+                              setExpanded((previous) => {
+                                const next = new Set(previous);
+                                if (next.has(row.uid)) next.delete(row.uid);
+                                else next.add(row.uid);
+                                return next;
+                              })
+                            }
+                          />
+                        </td>
+                      </tr>
+                      {expanded.has(row.uid) && (
+                        <tr className="dg-relation-details">
+                          <td colSpan={5}>
+                            <div className="dg-relation-props">
+                              <strong>Properties</strong>
+                              <span className={Classes.TEXT_MUTED}>
+                                {" "}
+                                · Read only · {row.uid}
+                              </span>
+                              <pre>{JSON.stringify(row.props, null, 2)}</pre>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  ))
+                )}
+              </tbody>
+            </HTMLTable>
+          </div>
+          <div className="dg-relations-footer">
+            <span className={Classes.TEXT_MUTED} aria-live="polite">
+              {visible.length
+                ? `${start + 1}–${Math.min(start + pageSize, visible.length)} of ${visible.length}`
+                : rows.length
+                  ? "0 results"
+                  : "0"}
               {visible.length !== rows.length
-                ? ` matching (${rows.length} total)`
+                ? ` · ${rows.length} total`
                 : " relations"}
             </span>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2">
+                Results per page
+                <InputGroup
+                  small
+                  className="w-16"
+                  type="number"
+                  min={1}
+                  step={1}
+                  aria-label="Results per page"
+                  value={pageSizeInput}
+                  onChange={(event) => {
+                    const input = event.target.value;
+                    setPageSizeInput(input);
+                    const value = Number(input);
+                    if (Number.isSafeInteger(value) && value > 0) {
+                      setPageSize(value);
+                      resetPage();
+                    }
+                  }}
+                  onBlur={() => setPageSizeInput(String(pageSize))}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") event.currentTarget.blur();
+                  }}
+                />
+              </label>
               <Button
                 minimal
+                small
                 icon="chevron-left"
                 aria-label="Previous relations"
                 disabled={currentPage === 0}
-                onClick={() => setPage(currentPage - 1)}
+                onClick={() => {
+                  setPage(currentPage - 1);
+                  viewport.current?.scrollTo({ top: 0 });
+                }}
               />
               <Button
                 minimal
+                small
                 icon="chevron-right"
                 aria-label="Next relations"
                 disabled={currentPage === lastPage}
-                onClick={() => setPage(currentPage + 1)}
+                onClick={() => {
+                  setPage(currentPage + 1);
+                  viewport.current?.scrollTo({ top: 0 });
+                }}
               />
             </div>
           </div>

@@ -15,9 +15,9 @@ import {
   HTMLTable,
   ControlGroup,
   FocusStyleManager,
-  Icon,
 } from "@blueprintjs/core";
 import type cytoscape from "cytoscape";
+import SortableTableHeader from "../SortableTableHeader";
 import React, {
   useCallback,
   useEffect,
@@ -1192,24 +1192,11 @@ const DiscourseRelationConfigPanel = ({
     const isActive = sort?.column === column;
 
     return (
-      <th aria-sort={isActive ? sort.direction : "none"}>
-        <button
-          type="button"
-          className="flex w-full cursor-pointer items-center gap-1 border-0 bg-transparent p-0 font-[inherit] text-[inherit]"
-          onClick={() => handleSort(column)}
-        >
-          {label}
-          <Icon
-            icon={
-              isActive && sort.direction === "descending"
-                ? "sort-desc"
-                : "sort-asc"
-            }
-            iconSize={12}
-            className={isActive ? undefined : "invisible"}
-          />
-        </button>
-      </th>
+      <SortableTableHeader
+        label={label}
+        direction={isActive ? sort.direction : null}
+        onSort={() => handleSort(column)}
+      />
     );
   };
 

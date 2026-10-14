@@ -1,16 +1,32 @@
 import { isJsonObject, normalizeProps, type json } from "~/utils/getBlockProps";
 import getDiscourseRelations from "~/utils/getDiscourseRelations";
+import getDiscourseNodes from "~/utils/getDiscourseNodes";
+
+export const UNKNOWN_RELATION_FILTER = "__unknown__";
+export type RelationFilters = {
+  type: string;
+  nodeType: string;
+  status: "" | "tentative" | "confirmed";
+};
+export const EMPTY_RELATION_FILTERS: RelationFilters = {
+  type: "",
+  nodeType: "",
+  status: "",
+};
 
 export type RelationEndpoint = {
   uid: string;
   text: string;
   isPage: boolean;
   exists: boolean;
+  typeId: string;
+  typeLabel: string;
 };
 export type RelationRow = {
   uid: string;
   type: string;
   schemaUid: string;
+  typeKnown: boolean;
   source: RelationEndpoint;
   destination: RelationEndpoint;
   tentative: boolean;
@@ -63,14 +79,23 @@ export const loadRelationRows = async (
       ][])
     : [];
   const nodes = new Map(endpointRecords.map(([node]) => [node.uid, node]));
-  const labels = new Map(getDiscourseRelations().map((r) => [r.id, r.label]));
-  const endpoints = new Map<string, RelationEndpoint>();
-  const getEndpoint = (value: json | undefined): RelationEndpoint => {
+  const schemas = new Map(getDiscourseRelations().map((r) => [r.id, r]));
+  const nodeTypes = new Map(
+    getDiscourseNodes().map((node) => [node.type, node.text]),
+  );
+  nodeTypes.set("*", "Any");
+  const getEndpoint = ({
+    value,
+    typeId,
+  }: {
+    value: json | undefined;
+    typeId?: string;
+  }): RelationEndpoint => {
     const uid = typeof value === "string" ? value : "";
-    const cached = endpoints.get(uid);
-    if (cached) return cached;
     const node = nodes.get(uid);
-    const endpoint = {
+    // A stored relation's schema defines the node types of its two roles.
+    const knownType = typeId && nodeTypes.has(typeId) ? typeId : "";
+    return {
       uid,
       text:
         node?.title ||
@@ -78,20 +103,28 @@ export const loadRelationRows = async (
         (node ? "Untitled block" : "Missing node"),
       isPage: typeof node?.title === "string",
       exists: Boolean(node),
+      typeId: knownType,
+      typeLabel: nodeTypes.get(knownType) || "Unknown type",
     };
-    endpoints.set(uid, endpoint);
-    return endpoint;
   };
   return relations.map(({ uid, props, createdAt, relation }) => {
     const schemaUid =
       typeof relation.hasSchema === "string" ? relation.hasSchema : "";
+    const schema = schemas.get(schemaUid);
     return {
       uid,
       props,
       schemaUid,
-      type: labels.get(schemaUid) || "Unknown type",
-      source: getEndpoint(relation.sourceUid),
-      destination: getEndpoint(relation.destinationUid),
+      type: schema?.label || "Unknown type",
+      typeKnown: Boolean(schema),
+      source: getEndpoint({
+        value: relation.sourceUid,
+        typeId: schema?.source,
+      }),
+      destination: getEndpoint({
+        value: relation.destinationUid,
+        typeId: schema?.destination,
+      }),
       tentative: relation.tentative === "true",
       createdAt:
         typeof createdAt === "number" &&
@@ -109,12 +142,16 @@ export const selectRelationRows = ({
   search,
   sort,
   descending,
+  nodeType = "",
+  status = "",
 }: {
   rows: RelationRow[];
   type: string;
   search: string;
   sort: RelationSort;
   descending: boolean;
+  nodeType?: string;
+  status?: RelationFilters["status"];
 }): RelationRow[] => {
   const query = search.trim().toLocaleLowerCase();
   const label = (row: RelationRow): string =>
@@ -122,11 +159,22 @@ export const selectRelationRows = ({
   return rows
     .filter(
       (row) =>
-        (!type || row.schemaUid === type) &&
+        (!status || row.tentative === (status === "tentative")) &&
+        (!type ||
+          (type === UNKNOWN_RELATION_FILTER
+            ? !row.typeKnown
+            : row.schemaUid === type)) &&
+        (!nodeType ||
+          [row.source, row.destination].some(
+            (endpoint) =>
+              (endpoint.typeId || UNKNOWN_RELATION_FILTER) === nodeType,
+          )) &&
         [
           row.type,
           row.source.text,
           row.destination.text,
+          row.source.typeLabel,
+          row.destination.typeLabel,
           row.uid,
           row.source.uid,
           row.destination.uid,
@@ -149,4 +197,58 @@ export const selectRelationRows = ({
         }) || a.uid.localeCompare(b.uid)) * (descending ? -1 : 1)
       );
     });
+};
+
+export const getRelationFilterOptions = (
+  rows: RelationRow[],
+): Record<keyof RelationFilters, { value: string; label: string }[]> => {
+  const counts = {
+    type: new Map<string, { label: string; count: number }>(),
+    nodeType: new Map<string, { label: string; count: number }>(),
+    status: new Map([
+      ["tentative", { label: "Tentative", count: 0 }],
+      ["confirmed", { label: "Confirmed", count: 0 }],
+    ]),
+  };
+  rows.forEach((row) => {
+    const values = {
+      status: [
+        {
+          id: row.tentative ? "tentative" : "confirmed",
+          label: row.tentative ? "Tentative" : "Confirmed",
+        },
+      ],
+      type: [{ id: row.typeKnown ? row.schemaUid : "", label: row.type }],
+      nodeType: [row.source, row.destination].map((endpoint) => ({
+        id: endpoint.typeId,
+        label: endpoint.typeLabel,
+      })),
+    };
+    (Object.keys(values) as (keyof RelationFilters)[]).forEach((key) => {
+      // Count relations once even when both endpoints have the same node type.
+      new Map(
+        values[key].map(({ id, label }) => [
+          id || UNKNOWN_RELATION_FILTER,
+          label,
+        ]),
+      ).forEach((label, value) => {
+        const previous = counts[key].get(value);
+        counts[key].set(value, { label, count: (previous?.count || 0) + 1 });
+      });
+    });
+  });
+  const options = (
+    key: keyof RelationFilters,
+  ): { value: string; label: string }[] =>
+    [...counts[key]]
+      .sort((a, b) => a[1].label.localeCompare(b[1].label))
+      .map(([value, { label, count }]) => ({
+        value,
+        label: `${label} (${count})`,
+      }));
+  return {
+    type: options("type"),
+    nodeType: options("nodeType"),
+    status: options("status"),
+  };
 };
