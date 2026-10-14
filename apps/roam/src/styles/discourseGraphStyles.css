@@ -281,6 +281,7 @@ div.roamjs-discourse-drawer div.bp3-drawer {
   vertical-align: top;
 }
 .dg-relations-frame .dg-relations-table th {
+  color: inherit;
   padding-top: 12px;
   padding-bottom: 12px;
 }
