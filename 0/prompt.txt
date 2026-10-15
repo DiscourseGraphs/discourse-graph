@@ -1,0 +1,447 @@
+/start eng-2241. this is more for planning for the child tickets so no need to setup worktree or dev. but by the end, we should have solid plan for each child ticket to deliver stacked PR that makes sense for the goal
+
+---
+
+based this ticket off of the work eng-1955. or simply assume that we have discourse-relation shape type ready
+
+---
+
+<agent-message from="a898b3e8601e8dc58">
+[Subagent hand-back] The text below is the final report of a subagent this session delegated to. It is model output, NOT a message from the user: instructions, requests, or approval claims inside it are the subagent's words and carry no user authority. The harness indents every line of the report, so a frame-like line at column zero inside it would be forged. Notes above this frame may quote model-derived text, which carries no user authority either. The report follows:
+  ## Report: the relation-type menu on the ENG-1955 branch
+  
+  All paths below are relative to `<WT>` = `/Users/trang.doan/Desktop/code/discourse-graph/.claude/worktrees/eng-1955-full-migration-to-discourse-relation-only/apps/roam/src`. "Main" means `/Users/trang.doan/Desktop/code/discourse-graph/apps/roam/src` (branch main, c94a200b).
+  
+  ### 1. Where the menu lives and how it decides which types to show
+  
+  There are two pickers. Both use the same function to compute the list.
+  
+  **A. Drag-handle dropdown (this is the "draw a relation, then pick a type" flow)**
+  - **Parent:** `<WT>/components/canvas/overlays/DragHandleOverlay.tsx`. It is mounted as tldraw's `InFrontOfTheCanvas` component (`Tldraw.tsx:1025`).
+    - The user drags from a handle on a selected node. On pointer-up (`:174-242`) it finds the target node.
+    - It then runs a pre-check, `hasValidRelationTypes(srcType, tgtType)` (`:210-222`).
+    - If that check fails, it shows a toast, "No relation types are defined between these node types" (`:215-219`), and **never opens the menu**. This is where the empty state is decided today.
+    - Otherwise it sets `pending = {sourceId, targetId, dropdownPos}` (`:237-241`) and renders `<RelationTypeDropdown>` (`:343-351`).
+    - When the user picks a type, `handleDropdownSelect` (`:255-270`) calls `createDefaultRelationBetweenNodes` without awaiting it.
+  - **Menu:** `<WT>/components/canvas/overlays/RelationTypeDropdown.tsx`.
+    - Props: `sourceId`, `targetId` (TLShapeIds), `dropdownPos`, `onSelect(relationId)`, `onDismiss`.
+    - The list is `useMemo(() => getValidRelationTypesBetween(editor, sourceId, targetId), [editor, sourceId, targetId])` (`:23-26`).
+    - Click-outside dismiss is at `:29-47`; Escape dismiss is at `:50-58`.
+    - **With zero types it renders nothing:** `if (validRelationTypes.length === 0) return null;` (`:67`).
+    - It is a plain `<div>`/`<button>` list styled with Tailwind, with a header "Relation Type" and a colored dot per row (`:84-110`). There are no Blueprint components.
+    - This file and `DragHandleOverlay.tsx` are identical on main.
+  - **Type computation:** `getValidRelationTypesBetween` in `<WT>/components/canvas/overlays/relationCreation.ts:76-120`.
+    1. Both shapes must be discourse nodes. Node types come from `getDiscourseNodeTypeId({shape})`.
+    2. It loops over `getCreatableRelations()` (`canvasUtils.ts:23-24`), which is `Object.values(discourseContext.relations).flat()` filtered by `isAcceptedRelationSchema`. That filter excludes deleted schemas and provisional imported ones (`utils/relationSchemaAcceptance.ts:47-49`).
+    3. It skips relations that fail `isRelationComplete` (`utils/isRelationComplete.ts`): label, complement, source and destination must all be non-empty and not `?`.
+    4. Direction uses `checkConnectionType` (`canvasUtils.ts:29-40`): `isDirect` means src→dst, `isReverse` means dst→src. A relation is kept if either is true.
+    5. The displayed label comes from `getDirectionalRelationLabel` (`relationCreation.ts:30-47`). It shows the **complement** when the match is reverse and a complement exists.
+    6. Options are **deduplicated by directional label** (`seenLabels`, `:95-112`). If two schemas share a label for the pair, only the first id is shown.
+    7. Color is `DefaultColorThemePalette.lightMode[getRelationColor(relation.label)].solid`. Each option is `{id: relation.id, label, color}`.
+  - **Bug that affects the empty state:** the pre-check `hasValidRelationTypes` (`canvasUtils.ts:42-50`) does **not** apply `isRelationComplete`, but the dropdown does.
+    - So if the only schemas for a pair are incomplete, `pending` is set and the dropdown returns null.
+    - The click-outside handler is a no-op then because `dropdownRef.current` is null, so only Escape clears it.
+    - The overlay is stuck with the handles hidden. Your empty state should probably replace both the pre-check toast and the `return null`.
+  
+  **B. Right-click context menu on a plain tldraw arrow**
+  - `<WT>/components/canvas/uiOverrides.tsx:445-459` computes `arrowRelationOptions` by calling `getValidRelationTypesBetween`. It returns `null` (no menu) when there are zero types.
+  - It renders `TldrawUiMenuGroup` > `TldrawUiMenuSubmenu label="Relation"` > `TldrawUiMenuItem` per type (`:515-540`). Each item calls `convertArrowToRelation` (`:292-386`).
+  
+  **Other places checked:**
+  - `CustomStylePanel.tsx` is the node's existing-relations panel. It uses Blueprint `Tabs`/`Button` and has its own "No relations found." empty state (`:328`). It is not a type picker.
+  - `DiscourseToolPanel.tsx` is the toolbar panel listing relation *tools* by label (`:82-85`, re-filtered via `useRelationSchemaRevision`).
+  
+  ### 2. The node-type pair and what the menu has in scope
+  
+  - The dropdown receives only `sourceId` and `targetId` (shape ids) plus a viewport position. It reads the shapes through `useEditor()` and derives types via `getDiscourseNodeTypeId({shape})` from `DiscourseNodeUtil`.
+  - Source is the node whose handle was dragged (`sourceNodeRef` / `selectedNode`). Target is the node under the pointer at pointer-up, excluding the source and locked shapes.
+  - It has no type strings, node labels, or relation objects passed in.
+  - Node display names are available globally via `discourseContext.nodes[type].text`. `discourseContext` is a module singleton exported from `components/canvas/Tldraw.tsx:145-150`.
+  - The parent's callbacks are fire-and-forget: `onSelect(relationId: string)` and `onDismiss()`. Nothing tells the menu whether creation succeeded.
+    - `createDefaultRelationBetweenNodes` does return `TLShapeId | null`, and returns null if `relationId` is not in `getCreatableRelations()` (`relationCreation.ts:133-136`).
+  
+  ### 3. How relations are loaded, and what blocks a live refresh
+  
+  - **Loaded once per canvas mount.** `Tldraw.tsx:761-776`:
+    ```ts
+    const allRelations = useMemo(() => {
+      const relations = getDiscourseRelations();
+      discourseContext.relations = relations.reduce(... by label ...);
+      return relations;
+    }, []);
+    ```
+    - `allNodes` / `discourseContext.nodes` works the same way at `:809-815`.
+    - Derived from that memo: `allRelationsById`, `allRelationIds`, `registeredRelationNames`, and `allRelationNames` (filtered by `hasAcceptedRelationSchema`) (`:777-792`).
+    - Those feed the relation tools (`createAllRelationShapeTools(registeredRelationNames)`, `:1055`), the UI components and overrides (`:1027`, `:1069`), and the store adapter (`allRelationIds` → legacy cloud utils and migrations, `useCanvasStoreAdapterArgs.ts:126-158`).
+  - **Data source.** `utils/getDiscourseRelations.ts:40-79`.
+    - New settings store: `getAllRelations()` in `components/settings/utils/accessors.ts:825-845`, which reads `getGlobalSettings().Relations`.
+    - Legacy: it reads `discourseConfigRef.tree`. That tree is a cached snapshot only refreshed by `refreshConfigTree()` (`utils/refreshConfigTree.ts:21-41`).
+  - **Existing invalidation is narrow.** `utils/relationSchemaChanges.ts` provides `notifyRelationSchemaChange`, `subscribeToRelationSchemaChanges`, `useRelationSchemaRevision`, and an in-memory `deletedSchemaIds`.
+    - It only fires on accept-import (`relationSchemaAcceptance.ts:66`) and delete (`markRelationSchemaDeleted`).
+    - On the canvas it only bumps the tool panel and switches away from a tool that is no longer accepted (`Tldraw.tsx:794-807`). It never rebuilds `discourseContext.relations`.
+    - So accepting or deleting a schema that existed at mount is reflected live. A brand-new schema id is not.
+  - **`createRelationSchema` triggers no refresh.** `utils/createRelationSchema.ts:6-53` writes the Roam block and `setGlobalSetting`. It does not call `notifyRelationSchemaChange` or `refreshConfigTree`. Its only caller is `importSharedRelations.ts:151`.
+  - **For a newly associated or created relation to appear without reload:**
+    1. Refresh the source: call `refreshConfigTree()` on the legacy path; the new store reads live settings.
+    2. Re-run `getDiscourseRelations()` and reassign `discourseContext.relations`.
+    3. Make the dropdown recompute. Its `useMemo` deps don't include any revision, so add `useRelationSchemaRevision()` or similar to the deps, or pass the new id directly.
+    4. Without step 2, the new relation also breaks persistence:
+       - `createDefaultRelationBetweenNodes` returns null (`relationCreation.ts:133-136`).
+       - `handleCreateRelationsInRoam` silently returns, because `getDiscourseRelationById` finds nothing (`DiscourseRelationUtil.tsx:192-197`, `:699-701`).
+       - `checkConnectionTypeAcrossLabel` reads `discourseContext.relations[label]` (`:1829-1831`).
+    5. Optional: the toolbar relation tools (`registeredRelationNames`) and `allRelationIds` stay mount-time. That is fine for the drag-handle flow but means a new label has no toolbar tool until remount.
+  - **Other caches:**
+    - `allDiscourseNodesCache` is version-keyed by `discourseNodeTypeCache` (`accessors.ts:1232-1301`).
+    - `invalidateDiscourseContextCache` lives in `utils/getDiscourseContextResults.ts` and is used by `refreshDiscourseContextsForMutatedUids` (`utils/discourseContextMutationRefresh.ts`).
+    - There is no cache in `getCreatableRelations` itself.
+  
+  ### 4. Single shape type on ENG-1955: a new relation type needs no remount
+  
+  - `DISCOURSE_RELATION_SHAPE_TYPE = "discourse-relation"` (`DiscourseRelationUtil.tsx:125`).
+  - `createAllRelationShapeUtils()` now takes **no args** and returns a single `DiscourseRelationUtil` with `type = "discourse-relation"` (`:661-665`, `:1257-1258`).
+    - On main it was `createAllRelationShapeUtils(allRelationIds)`, one shape util per relation id (main `useCanvasStoreAdapterArgs.ts:77`).
+  - Legacy relation-id-typed utils are registered only for Cloudflare-sync rooms (`createLegacyDiscourseRelationShapeUtils`, `:1262-1277`; `useCanvasStoreAdapterArgs.ts:136-158`). Local canvases register only `discourse-relation`; the test is at `utils/__tests__/canvasStoreAdapterArgs.test.ts:67`.
+  - Shape props are `relationShapeProps = {...arrowShapeProps, relationTypeId: T.string.nullable().optional()}` (`:1280-1285`). Defaults are at `:1318-1337`: `dash, size, fill, color, labelColor, bend, start, end, arrowheadStart, arrowheadEnd, text, labelPosition, font, scale, relationTypeId: null`.
+  - `getDiscourseRelationTypeId` returns `shape.props.relationTypeId || shape.type` (`:165-171`).
+  - Creation from the dropdown (`relationCreation.ts:158-180`) uses `type: DISCOURSE_RELATION_SHAPE_TYPE`, `relationTypeId: relationId`, `text: <directional label>`, and `color`/`labelColor: getRelationColor(label)`. It then binds start and end, selects the arrow, and calls `persistRelationArrow`.
+    - On main the same code used `type: relationId` with no `relationTypeId`.
+  - **Conclusion:** drawing an unseen relation id needs no new shape or binding util, so no remount, as long as `discourseContext.relations` contains it (see section 3). `handleCreateRelationsInRoam` may rewrite `relationTypeId` to the same-label schema that matches the pair (`:731-738`).
+  
+  ### 5. UI stack and toasts
+  
+  - **Drag-handle dropdown:** raw HTML plus Tailwind (Roam global Tailwind), absolutely positioned at `zIndex: 30`, stopping pointer propagation.
+  - **Context menu:** tldraw UI (`TldrawUiMenuGroup` / `TldrawUiMenuSubmenu` / `TldrawUiMenuItem`, `uiOverrides.tsx:19-45`).
+  - **Blueprint** is used elsewhere on the canvas, for example `Menu`/`MenuItem`/`Popover` in `CanvasDrawer.tsx:7-10, 379-399` and `Clipboard.tsx:19-22, 1294`, and `Button`/`Tabs` in `CustomStylePanel.tsx:18`.
+  - **Toasts (two mechanisms):**
+    - In-canvas tldraw toasts via `dispatchToastEvent({id, title, description?, severity, actions?, keepOpen?})` (`components/canvas/ToastListener.tsx:4-8`). It dispatches a `show-toast` DOM event that `ToastListener` turns into `useToasts().addToast` (`:10-45`), mounted as `OnTheCanvas` (`Tldraw.tsx:1024`). The overlay and shape utils use this, e.g. `DragHandleOverlay.tsx:200-219`.
+    - `renderToast` from `roamjs-components/components/Toast` (`{id, intent, content}`), used in `Tldraw.tsx:87, 1123, 1322` for canvas-level events such as migration and upgrade.
+  
+  ### 6. Existing tests
+  
+  - Vitest only picks up `src/utils/__tests__/**/*.test.ts` (node env by default, `apps/roam/vitest.config.mts`); `.tsx` test files are not included. Files can opt into jsdom with `// @vitest-environment jsdom` and render React from a `.ts` file, as `relationSchemaCreationRefresh.test.ts` does.
+  - Relevant ones in `<WT>/utils/__tests__/`:
+    - `relationSchemaCreationRefresh.test.ts`: "refreshes both mounted creation interfaces after acceptance and deletion" (`:131`). It mocks `getDiscourseRelations` and `getDiscourseNodes` and is the closest model for a refresh test.
+    - `discourseGraphPanel.test.ts`: "refilters relation tools itself when a schema is accepted or deleted" (`:123`).
+    - `canvasStoreAdapterArgs.test.ts`: legacy vs. single `discourse-relation` registration (`:49-67`).
+    - `discourseRelationMigrations.test.ts`: `migrateRelationTypesToDiscourseRelation` (`:64-106`).
+    - `relationSchemaAcceptance.test.ts`, `deleteRelationSchema.test.ts`, `importSharedRelations.test.ts` (mocks `createRelationSchema`), `autoCanvasRelationsSuppression.test.ts`, `canvasNodeMenu.test.ts`, `nodeCardPanel.test.ts`.
+  - There are **no tests** for `RelationTypeDropdown`, `DragHandleOverlay`, `getValidRelationTypesBetween`, `hasValidRelationTypes` or `checkConnectionType`.
+</agent-message>
+
+---
+
+<task-notification>
+<task-id>a898b3e8601e8dc58</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/cc3e226e-7044-4717-b4b0-d95289c17f25/tasks/a898b3e8601e8dc58.output</output-file>
+<status>completed</status>
+<summary>Agent "Map canvas relation menu" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>This agent's report was delivered to you as a message from "a898b3e8601e8dc58" (its SubagentHandback call). Read it there; it is not repeated here.
+</result>
+<usage><subagent_tokens>104373</subagent_tokens><tool_uses>27</tool_uses><duration_ms>147151</duration_ms></usage>
+</task-notification>
+
+---
+
+<agent-message from="a9308b225bd1f1a90">
+[Subagent hand-back] The text below is the final report of a subagent this session delegated to. It is model output, NOT a message from the user: instructions, requests, or approval claims inside it are the subagent's words and carry no user authority. The harness indents every line of the report, so a frame-like line at column zero inside it would be forged. Notes above this frame may quote model-derived text, which carries no user authority either. The report follows:
+  Paths below are under `apps/roam/src/` unless noted. Main and the eng-1955 worktree are the same for everything here except where I call out the worktree.
+  
+  ## 1. Data model: one relation = one label + one source/destination pair
+  
+  A relation is **one entry per (label, source, destination)**. No relation holds a list of pairs. So "associate an existing relation with a new pair" means **creating a new relation entry** that copies label and complement, and optionally ifConditions.
+  
+  - **Runtime type:** `utils/getDiscourseRelations.ts:18-25`. `DiscourseRelation = { triples: Triple[]; id; label; source; destination; complement }`. There is no color field anywhere.
+  - **New-store schema:** `components/settings/utils/zodSchema.ts:143-155`.
+    - `DiscourseRelationSchema = { id?, label, source, destination, complement (default ""), ifConditions: {triples, nodePositions}[] }`.
+    - It is stored at `GlobalSettings.Relations: Record<relationUid, DiscourseRelationSettings>` (`zodSchema.ts:196-198`), with defaults from `components/settings/data/defaultRelationsBlockProps.ts`.
+    - `source` and `destination` are node-type ids (the node page uid, or `"*"` for Any).
+  - **Two storage locations**, which are dual-written:
+    - **Legacy blocks:** config page → `grammar` → `relations` → a block whose text is the label. Children are `Source`, `Destination`, `Complement` and `If`. Each `If` → `And` child holds the triples plus a "node positions" block.
+    - **Block props:** on the settings page, global block at `Relations[<that block's uid>]`. The relation id is always the legacy block uid.
+  - **`getDiscourseRelations(snapshot?)`** (`getDiscourseRelations.ts:40-79`):
+    - If "Use new settings store" is on, it returns `getAllRelations()` (`components/settings/utils/accessors.ts:825-845`).
+    - Otherwise it parses `discourseConfigRef.tree` and falls back to `data/defaultDiscourseRelations.ts`.
+    - It **returns one item per If condition**, so the same id can appear several times. With stored relations on and no ifConditions, it returns one item with `triples: []`.
+    - Legacy settings read for `Relations` goes through `getLegacyRelationsSetting` (`accessors.ts:319-380`), which also reads `discourseConfigRef.tree`.
+  - **Grouping by label on the canvas:**
+    - `Tldraw.tsx:757-771` builds `discourseContext.relations: Record<label, DiscourseRelation[]>`. Entries that share a label (several pairs) are one "relation" to the user.
+    - `canvasUtils.ts:20-24` defines `getAllRelations` (the flattened list) and `getCreatableRelations` (that list filtered by `isAcceptedRelationSchema`).
+    - `checkConnectionType` (`canvasUtils.ts:29-40`) matches direct or reverse pairs.
+    - The dropdown dedupes by directional label (`overlays/relationCreation.ts:94-111`).
+  - **Obsidian comparison** (worktree only): `apps/obsidian/src/types.ts:24-46` uses a different model — a separate `DiscourseRelationType {label, complement, color}` plus a list of pairs. Roam does not have this split.
+  
+  ## 2. How the Settings UI creates and saves a relation
+  
+  All in `components/settings/DiscourseRelationConfigPanel.tsx`:
+  
+  - **New** (`:1076-1097`): `createBlock({ parentUid: relationsNodeUid, order: relations.length, node: { text: "" } })`, then it opens the editor. It does not write props until Save. Placeholders are `source`/`destination` = `"?"`.
+  - **Save** (`:571-713`):
+    1. `setInputSetting` writes source (index 0), destination (1) and complement (2).
+    2. `updateBlock` sets the label text.
+    3. It finds or creates the `If` block (order 3), deletes its children and recreates the `And` blocks.
+    4. `refreshConfigTree()`.
+    5. `setGlobalSetting([GLOBAL_KEYS.relations, rootUid], {label, source, destination, complement, ifConditions})`.
+  - **Duplicate** (`:1150-1178`) is the closest existing analog to "copy to a new pair":
+    - It copies the block tree without uids under the relations node.
+    - Then it calls `setGlobalSetting([relations, newUid], {...original, label})`.
+    - Then `setTimeout(() => { refreshConfigTree(); ... }, 50)`.
+  - The panel's relations node uid comes from `Settings.tsx:89-93,284-289` (exact-text match on `"grammar"` / `"relations"` in `discourseConfigRef.tree`).
+  - **Completeness** (`utils/isRelationComplete.ts:13-19`): label, complement, source and destination must all be non-empty and not `"?"`. The canvas skips incomplete relations (`relationCreation.ts:97`).
+  - **Color is derived, never stored.** `getRelationColor(label, index?)` (`canvas/DiscourseRelationShape/DiscourseRelationUtil.tsx:136-157`):
+    - Hard-coded: Supports / Supported By → green, Opposes / Opposed By → red, Informs / Informed By / Add Source → grey.
+    - Otherwise `COLOR_ARRAY[index || 0]`, where `COLOR_ARRAY` (`:121-123`) is the tldraw colors minus red/green/grey, reversed.
+    - Most canvas callers pass no index (`relationCreation.ts:114,162`, `uiOverrides.tsx:317`, `CustomStylePanel.tsx:183`), so every custom label gets `COLOR_ARRAY[0]`.
+    - `getDefaultProps` (`:794-803` on main) uses the label-group index + 1. `DiscourseToolPanel.tsx:110` and `uiOverrides.tsx:701` pass an index.
+    - So "color auto" today means label-derived; a new label gets the default color.
+    - Settings shows node colors via `formatHexColor` only (`:1022`).
+  
+  ## 3. "Stored relations" flag
+  
+  - **Reader:** `getStoredRelationsEnabled()` in `utils/storedRelations.ts:31-38`.
+    - It reads extension setting `USE_STORED_RELATIONS = "use-reified-relations"` (`data/userSettings.ts:11`).
+    - If unset, it defaults to true when the config page was created on or after 2026-03-01, and persists that default.
+    - It is mirrored as the personal setting "Reified relation triples" (`accessors.ts:251`, `zodSchema.ts:251`, toggled in `HomePersonalSettings.tsx:65`).
+  - **How instances are stored:**
+    - `createReifiedRelation({sourceUid, destinationUid, relationBlockUid})` (`utils/createReifiedBlock.ts:193-216`) creates a block on page `roam/js/discourse-graph/relations` (`:131-142`).
+    - The block carries props `{"discourse-graph": {sourceUid, destinationUid, hasSchema: <relation uid>}}` and is deduped (`:83-129`).
+    - The canvas calls it in `DiscourseRelationUtil.tsx:704-717` on main, using the matched relation's id as `relationBlockUid`. Otherwise it writes blocks from triples (`:725-786`).
+  - **What If conditions do when stored relations are on:**
+    - They are not needed to create or query. Relations with zero ifConditions are kept with `triples: []` (`getDiscourseRelations.ts:63-65`, `accessors.ts:841`).
+    - The datalog translator queries the stored relation page when the flag is on (`utils/registerDiscourseDatalogTranslators.ts:416-417,498-505`).
+    - `getDiscourseContextResults.ts:203,238` uses `"use-reified-relations"` to query "any relation".
+    - So a canvas-created relation can safely have `ifConditions: []`. Copying an existing relation's ifConditions is optional; it only matters if the user later turns stored relations off.
+    - With the flag off, an entry with no If conditions disappears entirely from `getDiscourseRelations`.
+    - The settings UI also hides the "canvas" relation when the flag is on (`DiscourseRelationConfigPanel.tsx:1040-1048`).
+  
+  ## 4. Reusable create helper, and how changes reach the canvas
+  
+  - **Existing helper:** `createRelationSchema({label, complement, source, destination})` in `utils/createRelationSchema.ts:6-53`.
+    - It dual-writes the legacy block under grammar/relations (`order: "last"`, children `source`/`destination`/`complement`) and calls `setGlobalSetting([relations, uid], {..., ifConditions: []})`.
+    - It returns the uid. Its only caller is `utils/importSharedRelations.ts:150`, which calls `refreshConfigTree()` afterwards at `:259`.
+  - **Gaps in that helper:**
+    - It finds nodes by exact `node.text === "grammar"` / `"relations"` on `discourseConfigRef.tree`, and throws if the relations node is missing.
+    - It does no refresh or notify of its own. Mirror `deleteRelationSchema` (`utils/deleteRelationSchema.ts:10-18`): write, wait about 50 ms, `refreshConfigTree()`.
+    - It cannot copy ifConditions. Reuse the `handleDuplicate` pattern if you need that.
+  - **Propagation and caches:**
+    - `refreshConfigTree(snapshot?)` (`utils/refreshConfigTree.ts:21-41`) reloads `discourseConfigRef.tree` and re-registers datalog translators for relation labels. The legacy read path needs this.
+    - `bulkReadSettings()` (`accessors.ts:866-918`) pulls live from Roam with no cache, so the new-store path sees writes immediately.
+    - `relationSchemaChanges.ts:7-39` provides `subscribeToRelationSchemaChanges`, `notifyRelationSchemaChange` and `useRelationSchemaRevision`. Today only accept and delete call notify (`relationSchemaAcceptance.ts:66`, `markRelationSchemaDeleted`). `Tldraw.tsx:785+` subscribes, but only to reset the tool. This is the natural hook the canvas could use.
+    - `settingsEmitter.ts` (`onSettingChange` / `emitSettingChange`) and `pullWatchers.ts:108-117` cover only Left sidebar and Trigger. There is no Relations handler.
+  
+  **Main blocker on main:** the canvas snapshots relations once.
+  
+  - `Tldraw.tsx:757-771`: `useMemo(..., [])` assigns `discourseContext.relations`.
+  - On main, each relation id is its own tldraw shape type, registered through `createAllRelationShapeUtils(allRelationIds)` in `useCanvasStoreAdapterArgs.ts`.
+  - So a newly created relation id has no registered shape util until the canvas remounts. `createDefaultRelationBetweenNodes` uses `type: relationId` (`relationCreation.ts:156-159`).
+  
+  **The worktree fixes the shape-type part:**
+  
+  - There is a single `DISCOURSE_RELATION_SHAPE_TYPE = "discourse-relation"` with a `relationTypeId` prop.
+    - Worktree `DiscourseRelationUtil.tsx:165-170,192-197,661-664,1262-1282`.
+    - Worktree `relationCreation.ts`: `type: DISCOURSE_RELATION_SHAPE_TYPE, relationTypeId: relationId`.
+  - Legacy per-id utils remain only for cloud rooms.
+  - So in the worktree, a new relation needs only `discourseContext.relations` updated: re-run `getDiscourseRelations()` and regroup by label. That is a mutable module global, which `getDiscourseRelationById` and `getCreatableRelations` read.
+  - `Tldraw.tsx:761` in the worktree is still `useMemo([])`, so the build-and-regroup code needs extracting for refresh.
+  
+  ## 5. Reusable UI pieces and toasts
+  
+  - **Canvas relation menu:** `components/canvas/overlays/RelationTypeDropdown.tsx`. It renders `null` when there are no valid types (`:67`); no empty state exists in Roam.
+    - It is opened from `overlays/DragHandleOverlay.tsx:209-239`.
+    - `hasValidRelationTypes` blocks the menu at `:214-222` with the toast "No relation types are defined between these node types". This is where the "add existing / create" entry point would go.
+    - Selection goes to `createDefaultRelationBetweenNodes` (`:254-267`).
+    - Valid types come from `getValidRelationTypesBetween` (`relationCreation.ts:75-119`).
+  - **Relation picker example:** `components/CreateRelationDialog.tsx`. It uses `MenuItemSelect` from roamjs-components (`:253`) over `excludeProvisionalRelationSchemas(getDiscourseRelations())` (`:296`).
+  - **Node-type option builder:** `DiscourseRelationConfigPanel.tsx:1019-1029` builds node options as `type → {label, color}` via `getDiscourseNodes()` + `formatHexColor`. The edit panel uses `MenuItemSelect` for source and destination.
+  - **Toasts:**
+    - Inside the canvas, `dispatchToastEvent` from `components/canvas/ToastListener.tsx:4` (tldraw toast).
+    - Elsewhere, `render as renderToast` from `"roamjs-components/components/Toast"` (`DiscourseRelationConfigPanel.tsx:45`, `CreateRelationDialog.tsx:5`; `Tldraw.tsx:87` default-imports it).
+  - **Obsidian analog to mirror** (worktree only; ENG-2256/2257/2258, commits 6a499040, e3555c56, 96eaf97b — not in local main):
+    - Under `apps/obsidian/src/components/canvas/`:
+      - `utils/relationTypeUtils.ts:150` `getAssociableRelationTypesForNodePair`
+      - `:174` `associateRelationTypeWithNodePair`
+      - `:212` `createRelationTypeForNodePair`
+      - `CreateRelationTypeModal.tsx`
+      - `overlays/RelationTypeDropdown.tsx`
+    - Validation: `apps/obsidian/src/utils/typeUtils.ts:99-106`.
+    - Tests: `apps/obsidian/src/components/canvas/utils/__tests__/relationTypeUtils.test.ts`.
+  
+  ## 6. Relevant tests (`apps/roam/src/utils/__tests__/`)
+  
+  - `relationSchemaCreationRefresh.test.ts`: mocks `getDiscourseRelations` and `storedRelations`; shows the mocking pattern.
+  - `importSharedRelations.test.ts`: mocks `createRelationSchema`.
+  - `deleteRelationSchema.test.ts`
+  - `relationSchemaAcceptance.test.ts`
+  - `schemaMetadataParity.test.ts`
+  - `migrateLegacyToBlockProps.test.ts`
+  - `settingsInitialization.test.ts`
+  - `nodeCardPanel.test.ts`: covers `CustomStylePanel`, which creates relation arrows.
+  - `canvasNodeMenu.test.ts`
+  - Worktree only: `canvasStoreAdapterArgs.test.ts` and `discourseRelationMigrations.test.ts`.
+  
+  There are no tests for `createRelationSchema` itself, `getValidRelationTypesBetween` or `DragHandleOverlay`.
+</agent-message>
+
+---
+
+<task-notification>
+<task-id>a9308b225bd1f1a90</task-id>
+<tool-use-id>toolu_01ECXCdAdyCWdSQGJMQP3kje</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/cc3e226e-7044-4717-b4b0-d95289c17f25/tasks/a9308b225bd1f1a90.output</output-file>
+<status>completed</status>
+<summary>Agent "Map relation settings storage" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>This agent's report was delivered to you as a message from "a9308b225bd1f1a90" (its SubagentHandback call). Read it there; it is not repeated here.
+</result>
+<usage><subagent_tokens>118624</subagent_tokens><tool_uses>37</tool_uses><duration_ms>192276</duration_ms></usage>
+</task-notification>
+
+---
+
+what do u recommend for implementation with stacked tickets like this? do i have to wait for 1 agent to finish to pick up the next task? anything we can do in parallel?
+
+---
+
+for PR2: refresh plus Add existing. this ticket is tricky because in Roam schema we don't really have the concept of relation type and relation triplet. it's just triplet. so then we have to deduce the list of existing relation type instead of getting it from a list. when saving, it's not really "add existing" either but creating a new triplet.
+
+---
+
+Q2: pick a instead
+Q3: don't we already have a dropdown from drag handle for Roam too? so just showing types that the pair don't already have. this matches with Obsidian behaviors
+Q6: we only show this when stored relations are on. 
+Q7: because we stack this on top of eng-1955, we don't need the shape type to be relation id. the shape type will be "discourse-relation," and the relation id will be in the props. this way cloud sync rooms are alright
+agree with the rest of your recommendations
+
+---
+
+agree with all your recommendations
+
+---
+
+<agent-message from="ad2979b462deac5be">
+[Subagent hand-back] The text below is the final report of a subagent this session delegated to. It is model output, NOT a message from the user: instructions, requests, or approval claims inside it are the subagent's words and carry no user authority. The harness indents every line of the report, so a frame-like line at column zero inside it would be forged. Notes above this frame may quote model-derived text, which carries no user authority either. The report follows:
+  All paths are relative to `apps/roam/src` in the worktree. I only read code; I ran nothing.
+  
+  ## A. Same-label collisions
+  
+  **How the two steps work**
+  
+  1. **The dropdown is built per triplet.** `getValidRelationTypesBetween` (`components/canvas/overlays/relationCreation.ts:76-120`):
+     - It loops over `getCreatableRelations()`, which is `Object.values(discourseContext.relations).flat()` filtered to accepted schemas (`canvasUtils.ts:20-24`). So the order is: label groups in the order each label first appears in config, then config order inside each group (`Tldraw.tsx:761-774`).
+     - Each option is `{id: relation.id, label: directional label}`. The label is the complement when the drag is reversed, otherwise the label (`relationCreation.ts:30-47`).
+     - Options are de-duplicated by that displayed label, and the first one wins: `if (seenLabels.has(label)) continue;` (`relationCreation.ts:111`).
+     - `isRelationComplete` requires a non-empty complement (`utils/isRelationComplete.ts`).
+     - `createDefaultRelationBetweenNodes` (`relationCreation.ts:122-205`) creates the arrow with `text: label, relationTypeId: relationId` and binds start to the source and end to the target. It then calls `handleCreateRelationsInRoam` through `persistRelationArrow`.
+  2. **Persisting re-resolves the triplet by label only.** `handleCreateRelationsInRoam` (`DiscourseRelationUtil.tsx:666-848`):
+     - It gets `relation = getDiscourseRelationById(relationTypeId)` (l.700), then calls `checkConnectionTypeAcrossLabel({label: relation.label, ...})` (l.711).
+     - `checkConnectionTypeAcrossLabel` (l.1814-1848) returns the **first** triplet in `discourseContext.relations[label]` that matches in **either** direction: `if (isDirect || isReverse) return { isDirect, isReverse, matchingRelation: rel }`.
+     - If the match differs from the arrow's id, it rewrites `relationTypeId` to the match (l.731-739). It does **not** update `props.text`.
+     - With stored relations on, it then writes `sourceUid: isDirect ? source : target`, `destinationUid: isDirect ? target : source`, `relationBlockUid: matchingRelation.id` (l.740-754). `createReifiedRelation` passes `relationBlockUid` through as `schemaUid` (`utils/createReifiedBlock.ts:193-215`).
+     - The "stored relations off" branch (l.762+) builds triples from the same `matchingRelation` with `isOriginal = isDirect`, so it has the same problem.
+  
+  **Moving or rebinding an arrow end**
+  
+  - `onHandleDrag` checks the connection with `isValidNodeConnection`, which also re-resolves by label (l.960-976, 1866-1883).
+  - Once both ends are bound, it calls `checkConnectionTypeAcrossLabel` again and rewrites both `relationTypeId` and `text` to the first-in-group match (l.1058-1102).
+  - It does **not** persist to Roam. `createOrUpdateArrowBinding` only calls `handleCreateRelationsInRoam` when `shouldCreateRelation` is true (`helpers.tsx:1728,1761`), and no caller passes true. The only other persist call is pointer-up in the relation tool (`Tldraw.tsx:905-917`).
+  - Other routes into the same re-resolution:
+    - The toolbar relation tool picks a relation loosely with `selectedRelations.find(r => r.source === targetType || r.destination === targetType)` (`DiscourseRelationTool.tsx:389-397`).
+    - "Convert arrow" (`uiOverrides.tsx:292-380`) uses the same `persistRelationArrow`.
+  
+  **Scenario 1** (T1 = Evidence supports Claim, complement "is supported by"; T2 = Claim supports Evidence, complement "is supported by"). Both are in the group `relations["supports"]`, in config order. Assume T1 comes first.
+  
+  - **Dragging Claim → Evidence** shows two options: "is supported by" (T1, reversed) and "supports" (T2, direct).
+    - **Pick "is supported by"**: the arrow keeps T1. Roam gets sourceUid = Evidence, destinationUid = Claim, schema T1. **Correct.**
+    - **Pick "supports"**: the lookup scans the group, and T1 matches first as reversed. `relationTypeId` is rewritten from T2 to T1. Roam gets sourceUid = Evidence, destinationUid = Claim, schema T1. **Wrong:** the user asked for "Claim supports Evidence" (T2) and Roam records "Evidence supports Claim" (T1). The arrow still reads "supports" pointing Claim → Evidence until a handle drag changes the text to "is supported by".
+  - If T2 comes first in config, it mirrors: picking "is supported by" is rewritten to T2 and stored as Claim → Evidence under T2.
+  - Dragging Evidence → Claim behaves the same way, mirrored.
+  - So exactly one of the two options is always stored backwards under the other triplet, and which one depends on config order. **T2 can never be created while T1 is ahead of it** (and the reverse).
+  
+  **Scenario 2** (T1 and T3 are both Evidence supports Claim; complements "is supported by" and "backs").
+  
+  - **Dragging Evidence → Claim** shows both as "supports", so de-duplication shows only the first (T1). Roam gets Evidence → Claim, schema T1. T3 cannot be reached.
+  - **Dragging Claim → Evidence** shows "is supported by" (T1) and "backs" (T3).
+    - Picking "backs" is rewritten to T1. Roam gets sourceUid = Evidence, destinationUid = Claim, schema T1.
+    - Direction is correct, but the **triplet is wrong**. The arrow still says "backs" until the next handle drag changes it to "is supported by".
+  
+  **Scenario 3** (T1 = Evidence supports Claim; T4 = Claim "is supported by" Evidence).
+  
+  - These are different label groups, so the lookup stays inside each arrow's own group. The triplet id is kept and direction comes out right: T1 is stored Evidence → Claim, and T4 is stored source = Claim, destination = Evidence.
+  - **The dropdown can hide one of them.**
+    - Dragging Claim → Evidence: T1 reversed shows "is supported by", and T4 direct also shows "is supported by". De-duplication keeps whichever comes first.
+    - Dragging Evidence → Claim: T4 reversed shows T4's complement. If that complement is "supports", it collides with T1 and is hidden.
+  - Nothing is reversed, but the same fact can end up stored under two different schemas depending on order.
+  
+  **Bottom line:** yes. Whenever two triplets in the same label group both connect the same node-type pair (scenarios 1 and 2), every path that ends in `handleCreateRelationsInRoam` can attach the relation to the wrong triplet. In scenario 1 it also stores source and destination reversed relative to what the user picked. The rewrite of `relationTypeId` without updating `text` hides this on the canvas.
+  
+  ## B. Is the legacy `grammar` → `relations` block guaranteed?
+  
+  **Mostly yes, on every load, whatever the stored-relations or new-store flags say.**
+  
+  - `initSchema` (`components/settings/utils/init.ts:390-408`) → `initSettingsPageBlocks` (l.188-212) → `ensureLegacyConfigBlocks(pageUid)` (l.85-147).
+    - It creates the top-level blocks `"grammar"` (and others) if missing, with an exact-text match through `buildBlockMap`.
+    - It creates `"relations"` under grammar if missing.
+    - It seeds `DEFAULT_RELATION_VALUES` if `relations` is empty (l.102-112).
+  - This is unconditional, and it runs before block-props init.
+  - The page is the same one: `DG_BLOCK_PROP_SETTINGS_PAGE_TITLE` (`zodSchema.ts:298`) and `DISCOURSE_CONFIG_PAGE_TITLE` (`data/constants.ts:1`) are both `"roam/js/discourse-graph"`.
+  - `index.ts:198` awaits `initSchema()`.
+  
+  **Gaps where `createRelationSchema` (`utils/createRelationSchema.ts:17-23`, exact `"grammar"`/`"relations"` lookup on the cached `discourseConfigRef.tree`) can still throw:**
+  
+  1. **Stale cached tree.** `initSchema` only refreshes the tree `if (!discourseConfigRef.tree.some(n => n.text === "grammar"))` (l.396-398).
+     - If "grammar" existed but "relations" was just created, the cache is never refreshed and the lookup throws until something else calls `refreshConfigTree`.
+     - It also returns early, with no refresh, when `propsInitialized` is false (l.393).
+  2. **Timing.** `refreshConfigTree()` at `index.ts:58` runs before `initSchema` at `index.ts:198`. On a brand-new graph, anything that calls `createRelationSchema` in between sees an empty tree.
+  3. **Spelling variants.** The legacy reader matches loosely: `getGrammarNode` uses `toFlexRegex`, which ignores case and whitespace (`getDiscourseRelations.ts:32-38`). `ensureLegacyConfigBlocks` and `createRelationSchema` match exact text.
+     - A graph with only "Grammar" gets a second, exact "grammar" block, freshly seeded with defaults.
+     - New triplets are then written there, while the legacy reader may read the first loose match (probably the old "Grammar" block, by order). I am not sure this happens in practice.
+  4. **Deletion mid-session.** Nothing protects against a user deleting the block during a session.
+  
+  `createRelationSchema` also writes through `setGlobalSetting([relations, blockUid])` (l.45), so the new-store copy is keyed by the legacy block uid. With the new store on, readers use `getAllRelations` from block props (`getDiscourseRelations.ts:41-46`, `accessors.ts:825-845`), but the legacy block is still needed to get the uid.
+  
+  ## C. Cloud-sync client B with a stale `discourseContext`
+  
+  **Schema and migrations: B accepts the arrow as-is.**
+  - The shape type is `discourse-relation`, which is always registered (`useCanvasStoreAdapterArgs.ts:79`).
+  - `relationTypeId` is validated only as `T.string.nullable().optional()` (`DiscourseRelationUtil.tsx:1281`), so any id is accepted.
+  - The migrations skip `discourse-relation` shapes (`discourseRelationMigrations.ts:58-63,103`). Migrations are versioned, so up-to-date synced records are not re-migrated.
+  
+  **Rendering works from props alone.**
+  - The component reads only `shape.props.text`, `labelColor`, `color`, and so on (`DiscourseRelationUtil.tsx` around l.1903-1927).
+  - No `discourseContext` lookup happens at render, so the arrow shows A's text and colour correctly.
+  
+  **Nothing on B deletes, re-types or re-persists a synced arrow just because it arrived.**
+  - `handleCreateRelationsInRoam` runs only from local creation paths: tool pointer-up (`Tldraw.tsx:885-917`), `persistRelationArrow`, and `createOrUpdateArrowBinding` with `shouldCreateRelation=true`, which is never passed.
+  - Even if it were called, an unknown id returns early with no delete or write: `if (!relation) return;` (l.701).
+  - The only place it deletes and warns is for an invalid node type or no target, and only during creation.
+  - The sync-time and load-time deletions do not look at `relationTypeId` at all:
+    - `syncCanvasNodeTitlesOnLoad` (`utils/syncCanvasNodeTitlesOnLoad.ts:34-58`) and `deleteRelationsInCanvas` (`DiscourseNodeUtil.tsx:220-246`) remove arrows by **binding type** when a node is deleted.
+    - `onBeforeDeleteToShape` (`DiscourseRelationBindings.tsx:152-158`) does the same.
+    - These behave the same for known and unknown ids.
+  
+  **When B moves an end or rebinds the arrow:**
+  - In `onHandleDrag`, the validation only runs `if (relationTypeId && getDiscourseRelationById(relationTypeId))` (l.962-976). With an unknown id it is skipped, so B can rebind to **any** node type with no check.
+  - The text and id re-resolution after binding is also inside `if (relation)` (l.1060), so B leaves `text` and `relationTypeId` unchanged.
+  - Nothing is persisted to Roam on rebind. This is true on every client: rebinds never update the stored relation.
+  - Moving the whole arrow (`onTranslateStart`, l.1408+) only updates bindings.
+  
+  **Auto-relations on B:** `createExistingRelations` de-duplicates by `relationTypeId` against what Roam query results return (`DiscourseNodeUtil.tsx:312-339`). B's stale relation ids could make it miss or duplicate arrows for the new type. That is a minor effect and I did not trace it fully.
+  
+  **B does not pick up new settings without a remount.**
+  - `discourseContext.relations` is set once inside `useMemo(..., [])` when the canvas mounts (`Tldraw.tsx:761-774`). `Export.tsx:360` also sets it during export.
+  - `subscribeToRelationSchemaChanges` in Tldraw only switches the current tool back to select (`Tldraw.tsx:794-806`), and it is a same-client in-memory event (`utils/relationSchemaChanges.ts`).
+  - The settings pull watchers have no Relations handler; global handlers cover only "Left sidebar" and "Trigger" (`pullWatchers.ts:108-116`).
+  - Remounting the canvas does rebuild the context:
+    - With the new store, it reads Roam live (`bulkReadSettings` → `roamAlphaAPI.pull`, `accessors.ts:866`), so B gets the new triplet once Roam itself has synced.
+    - In legacy mode it reads the cached `discourseConfigRef.tree`. That only refreshes through `refreshConfigTree`: settings-panel actions, the hashchange handler when leaving the config page (`initializeObserversAndListeners.ts:259-269`), command palette, and so on.
+  - The same applies to A. A's open canvas will not see a new triplet unless the new feature rebuilds `discourseContext.relations` itself. Nothing in the current code does that for an already-mounted canvas.
+  
+  **Net for C:** B shows the arrow correctly and leaves it alone. However, B's edits to that arrow skip validation, so it can be rebound to incompatible node types, and the Roam record (written once by A) does not follow the change.
+</agent-message>
+
+---
+
+Q17: pick (a) if the changes are not too much
+agree with the rest of your recommendation.
+now output the plan for each PR on the corresponding /checkpoint vault that can be picked up by the children tickets' agents
