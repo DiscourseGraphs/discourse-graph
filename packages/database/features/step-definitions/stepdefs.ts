@@ -557,13 +557,12 @@ Then(
     await expectWriteRejected(operation, {
       insert: () =>
         view.insert({
-          name: "written through my_accounts",
           account_local_id: "written-through-my-accounts",
           platform: "Roam",
         }),
       update: () =>
         view
-          .update({ name: "written through my_accounts" })
+          .update({ account_local_id: "written-through-my-accounts" })
           .eq("platform", "Roam"),
       delete: () => view.delete().eq("platform", "Roam"),
     });
