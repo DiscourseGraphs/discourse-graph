@@ -3,7 +3,7 @@
   "checkpoint_id": "01M533T2XCT0PDA3TSQ13CNCXQ",
   "strategy": "manual-commit",
   "branch": "eng-2408-settings-copy-rename-the-node-trigger-header-and-remove-em",
-  "checkpoints_count": 2,
+  "checkpoints_count": 4,
   "files_touched": [
     "apps/roam/src/components/settings/NodeConfig.tsx",
     "apps/roam/src/components/settings/PreferencesGeneral.tsx",
@@ -24,13 +24,27 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 26,
-    "cache_creation_tokens": 14545,
-    "cache_read_tokens": 2015808,
-    "output_tokens": 5537,
-    "api_call_count": 13
+    "input_tokens": 46,
+    "cache_creation_tokens": 26583,
+    "cache_read_tokens": 5484788,
+    "output_tokens": 10829,
+    "api_call_count": 23,
+    "subagent_tokens": {
+      "input_tokens": 38,
+      "cache_creation_tokens": 79150,
+      "cache_read_tokens": 1589907,
+      "output_tokens": 357,
+      "api_call_count": 19
+    }
   }
 }
