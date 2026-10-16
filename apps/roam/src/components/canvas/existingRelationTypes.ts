@@ -49,6 +49,59 @@ export const deriveRelationTypes = ({
   return [...types.values()];
 };
 
+const sameText = (a: string, b: string): boolean =>
+  a.toLowerCase() === b.toLowerCase();
+
+// Case-insensitive; the canvas keys relation types by label, so one label maps to one complement.
+export const validateNewRelationType = ({
+  label: rawLabel,
+  complement: rawComplement,
+  relations,
+  shownLabels,
+}: RelationType & {
+  relations: TripletFields[];
+  shownLabels: string[];
+}): string | null => {
+  const label = rawLabel.trim();
+  const complement = rawComplement.trim();
+  if (!label || !complement) return "Label and complement are required.";
+
+  const shown = shownLabels.find(
+    (s) => sameText(s, label) || sameText(s, complement),
+  );
+  if (shown)
+    return `"${shown}" is already a relation between these node types.`;
+
+  const complete = relations.filter(isRelationComplete);
+  const duplicate = complete.find(
+    (r) =>
+      isAcceptedRelationSchema(r) &&
+      sameText(r.label, label) &&
+      sameText(r.complement, complement),
+  );
+  if (duplicate)
+    return `"${duplicate.label}" already exists. Use Add existing to add it for these node types.`;
+
+  const conflict = complete.find(
+    (r) => sameText(r.label, label) && !sameText(r.complement, complement),
+  );
+  if (conflict)
+    return `A relation called "${conflict.label}" already exists with complement "${conflict.complement}".`;
+
+  // A complement reused by another type would show the same label for a reverse drag.
+  const others = complete.filter(
+    (r) => !(sameText(r.label, label) && sameText(r.complement, complement)),
+  );
+  const asLabel = others.find((r) => sameText(r.label, complement));
+  if (asLabel)
+    return `"${asLabel.label}" already exists as a relation. To add it the other way round, drag in the other direction and choose Add existing.`;
+  const asComplement = others.find((r) => sameText(r.complement, complement));
+  if (asComplement)
+    return `"${asComplement.complement}" is already the complement of "${asComplement.label}".`;
+
+  return null;
+};
+
 const SCHEMA_WRITE_POLL_MS = 50;
 const SCHEMA_WRITE_TIMEOUT_MS = 3000;
 
