@@ -14,9 +14,11 @@ const CONTEXT: SupabaseContext = {
 const conceptFor = ({
   format,
   basename,
+  sourceDocument,
 }: {
   format: string;
   basename: string;
+  sourceDocument?: string;
 }): LocalConceptDataInput => {
   const file = new TFile();
   file.basename = basename;
@@ -31,6 +33,7 @@ const conceptFor = ({
       created: "",
       last_modified: "",
       changeTypes: [],
+      sourceDocument,
     },
     nodeTypesById: {
       "type-1": {
@@ -60,5 +63,26 @@ describe("discourseNodeInstanceToLocalConcept core_title", () => {
     ).toMatchObject({
       literal_content: { core_title: "sleep improves memory" },
     });
+  });
+});
+
+describe("discourseNodeInstanceToLocalConcept source", () => {
+  it("publishes the Source as local reference content", () => {
+    expect(
+      conceptFor({
+        format: "EVD - {content}",
+        basename: "EVD - Evidence title",
+        sourceDocument: "source",
+      }),
+    ).toMatchObject({ local_reference_content: { sourceDocument: "source" } });
+  });
+
+  it("omits reference content when the node has no Source", () => {
+    expect(
+      conceptFor({
+        format: "EVD - {content}",
+        basename: "EVD - Evidence title",
+      }),
+    ).not.toHaveProperty("local_reference_content");
   });
 });
