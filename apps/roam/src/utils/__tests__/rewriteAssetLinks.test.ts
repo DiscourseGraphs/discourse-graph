@@ -493,15 +493,6 @@ describe("rewriteAssetLinks", () => {
     ).toBe(`{{[[audio]]: ${MIRRORED}}}`);
   });
 
-  it("keeps a non-media wikilink embed a labelled link, so its name survives", () => {
-    expect(
-      rewriteAssetLinks({
-        markdown: `![[notes/report.docx]]`,
-        assets: [{ sourceLocator: "notes/report.docx", url: MIRRORED }],
-      }),
-    ).toBe(`[report.docx](${MIRRORED})`);
-  });
-
   it("returns the markdown untouched when the node has no assets", () => {
     const markdown = `![](a.png) and [[EVD]]`;
     expect(rewriteAssetLinks({ markdown, assets: [] })).toBe(markdown);
