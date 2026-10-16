@@ -194,7 +194,11 @@ export const RelationTypeDropdown = ({
       onPointerUp={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="max-h-[240px] min-w-[160px] overflow-y-auto rounded-lg border border-gray-200 bg-white p-4 shadow-lg">
+      {/* Arbitrary Tailwind values like max-h-[240px] don't apply in Roam, so the cap is inline. */}
+      <div
+        style={{ maxHeight: 240 }}
+        className="min-w-[160px] overflow-y-auto rounded-lg border border-gray-200 bg-white p-4 shadow-lg"
+      >
         <div className="flex items-center justify-between px-2 py-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
           <span>Relation Type</span>
           {!isEmpty && !isPickerOpen && actions.length > 0 && (
