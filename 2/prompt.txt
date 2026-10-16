@@ -1,0 +1,7 @@
+<task-notification>
+<task-id>b33l27wlc</task-id>
+<tool-use-id>toolu_0141DMof94vHyHhtg8PR94vn</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/a56c44bf-f9c5-4e54-ba98-91bb61339904/tasks/b33l27wlc.output</output-file>
+<status>failed</status>
+<summary>Background command "Lease an Obsidian vault and start the dev watcher" failed with exit code 2</summary>
+</task-notification>
