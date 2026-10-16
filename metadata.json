@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M53E2VACPA43HK1R6PMZKRAE",
+  "strategy": "manual-commit",
+  "branch": "eng-2244-create-a-discourse-relation-from-canvas-and-associate-it",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/roam/src/components/canvas/existingRelationTypes.ts",
+    "apps/roam/src/utils/__tests__/existingRelationTypes.test.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 8,
+    "cache_creation_tokens": 7901,
+    "cache_read_tokens": 1056091,
+    "output_tokens": 3845,
+    "api_call_count": 4
+  }
+}
