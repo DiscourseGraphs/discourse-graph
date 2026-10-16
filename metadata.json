@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M53BSZCK7MY7GHT5QBJ92TQQ",
+  "strategy": "manual-commit",
+  "branch": "eng-2407-settings-docs-links-point-to-wrong-or-unrelated-docs-pages",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/roam/src/components/settings/CanvasSettings.tsx",
+    "apps/roam/src/components/settings/utils/docs.tsx",
+    "apps/roam/src/components/settings/utils/settingsCatalog.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 8,
+    "cache_creation_tokens": 160721,
+    "cache_read_tokens": 635419,
+    "output_tokens": 2952,
+    "api_call_count": 4
+  }
+}
