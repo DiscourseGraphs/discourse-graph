@@ -6,12 +6,12 @@ import {
   FormGroup,
   InputGroup,
 } from "@blueprintjs/core";
-import { getAllRelations } from "~/components/canvas/canvasUtils";
 import {
   getNodeTypeText,
   validateNewRelationType,
   type RelationType,
 } from "~/components/canvas/existingRelationTypes";
+import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import { isRelationSchemaDeleted } from "~/utils/relationSchemaChanges";
 import type { NodeTypePair } from "./RelationTypeDropdown";
 
@@ -37,7 +37,7 @@ export const CreateRelationTypeDialog = ({
     const message = validateNewRelationType({
       label,
       complement,
-      relations: getAllRelations().filter(
+      relations: getDiscourseRelations().filter(
         (r) => !isRelationSchemaDeleted(r.id),
       ),
       shownLabels,
@@ -45,12 +45,14 @@ export const CreateRelationTypeDialog = ({
     setError(message);
     if (message) return;
     setIsSaving(true);
-    const saved = await onSubmit({
-      label: label.trim(),
-      complement: complement.trim(),
-    });
-    setIsSaving(false);
-    if (saved) onClose();
+    try {
+      if (
+        await onSubmit({ label: label.trim(), complement: complement.trim() })
+      )
+        onClose();
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
