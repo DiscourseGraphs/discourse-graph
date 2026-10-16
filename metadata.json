@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M52X9EWGJRAWZCD6D64255TF",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/website/public/docs/roam/dg-schema02.PNG"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 22,
+    "cache_creation_tokens": 15099,
+    "cache_read_tokens": 5668625,
+    "output_tokens": 6326,
+    "api_call_count": 11,
+    "subagent_tokens": {
+      "input_tokens": 74,
+      "cache_creation_tokens": 252676,
+      "cache_read_tokens": 3019926,
+      "output_tokens": 6078,
+      "api_call_count": 37
+    }
+  }
+}
