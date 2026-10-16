@@ -5,3 +5,7 @@
 <status>failed</status>
 <summary>Background command "Lease an Obsidian vault and start the dev watcher" failed with exit code 2</summary>
 </task-notification>
+
+---
+
+go ahead and make the plan
