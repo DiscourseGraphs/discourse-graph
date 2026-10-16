@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import matter from "gray-matter";
+import { parseTestNote, serializeTestNote } from "../../../test/frontmatter";
 import { Notice } from "obsidian";
 import type { RelationInstance } from "~/types";
 import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
@@ -287,18 +287,20 @@ describe("source document import", () => {
     expect(await pull()).toEqual({ success: 2, failed: 0 });
     const sources = [...h.files.values()].filter(
       (file) =>
-        matter(h.readContent(file.path)).data.nodeTypeId === "source-type",
+        parseTestNote(h.readContent(file.path)).frontmatter.nodeTypeId ===
+        "source-type",
     );
     expect(sources).toHaveLength(2);
     const sourceContents = sources.map((file) => h.readContent(file.path));
     expect(
       sourceContents.some(
-        (content) => matter(content).content.trim() === "source body",
+        (content) => parseTestNote(content).body.trim() === "source body",
       ),
     ).toBe(true);
     expect(
       sourceContents.some(
-        (content) => matter(content).content.trim() === "Second source body",
+        (content) =>
+          parseTestNote(content).body.trim() === "Second source body",
       ),
     ).toBe(true);
     const relations = Object.values((await loadRelations(h.plugin)).relations);
@@ -306,7 +308,7 @@ describe("source document import", () => {
     expect(new Set(relations.map((relation) => relation.destination))).toEqual(
       new Set(
         sourceContents.map((content) =>
-          String(matter(content).data.importedFromRid),
+          String(parseTestNote(content).frontmatter.importedFromRid),
         ),
       ),
     );
@@ -332,7 +334,7 @@ describe("source document import", () => {
       await h.seedSource();
       const localSource = await h.create(
         "Local source.md",
-        matter.stringify("Local source", {
+        serializeTestNote("Local source", {
           nodeInstanceId: "source",
           nodeTypeId: "source-type",
         }),
@@ -346,9 +348,9 @@ describe("source document import", () => {
                   query: (query: string) =>
                     [...h.files.values()]
                       .filter((file) => {
-                        const frontmatter = matter(
+                        const frontmatter = parseTestNote(
                           h.readContent(file.path),
-                        ).data;
+                        ).frontmatter;
                         return (
                           file.extension === "md" &&
                           [
@@ -382,7 +384,7 @@ describe("source document import", () => {
       for (const id of ["evidence", "source"]) {
         await h.create(
           `Local ${id}.md`,
-          matter.stringify(`Local ${id} body`, {
+          serializeTestNote(`Local ${id} body`, {
             nodeInstanceId: id,
             nodeTypeId: `${id}-type`,
           }),
