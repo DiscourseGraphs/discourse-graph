@@ -3,7 +3,7 @@
   "checkpoint_id": "01M5330M4CR1A4PNK15KZZNZT2",
   "strategy": "manual-commit",
   "branch": "eng-2407-settings-docs-links-point-to-wrong-or-unrelated-docs-pages",
-  "checkpoints_count": 2,
+  "checkpoints_count": 11,
   "files_touched": [
     "apps/roam/src/components/ExportOptions.tsx",
     "apps/roam/src/components/settings/CanvasSettings.tsx",
@@ -22,20 +22,27 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": "/0/prompt.txt"
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 94,
-    "cache_creation_tokens": 115834,
-    "cache_read_tokens": 5516384,
-    "output_tokens": 27846,
-    "api_call_count": 47,
+    "input_tokens": 292,
+    "cache_creation_tokens": 343547,
+    "cache_read_tokens": 23060963,
+    "output_tokens": 126552,
+    "api_call_count": 145,
     "subagent_tokens": {
-      "input_tokens": 10,
-      "cache_creation_tokens": 91871,
-      "cache_read_tokens": 304361,
-      "output_tokens": 465,
-      "api_call_count": 5
+      "input_tokens": 56,
+      "cache_creation_tokens": 223048,
+      "cache_read_tokens": 1190371,
+      "output_tokens": 825,
+      "api_call_count": 28
     }
   }
 }
