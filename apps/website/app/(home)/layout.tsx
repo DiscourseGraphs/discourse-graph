@@ -60,7 +60,7 @@ const HomeLayout = async ({
   return (
     <PostHogProvider>
       <div
-        className={`marketing-site flex min-h-screen flex-col bg-neutral-light text-neutral-dark antialiased ${inter.className}`}
+        className={`marketing-site flex min-h-screen flex-col bg-neutral-light text-neutral-dark antialiased [--header-height:4.5rem] [&:has([data-translucent-header])_header]:bg-white/80 [&:has([data-translucent-header])_header]:backdrop-blur-md ${inter.className}`}
       >
         <div className="border-b border-primary/20 bg-primary px-4 py-2 text-center">
           <Link
@@ -76,8 +76,8 @@ const HomeLayout = async ({
             </span>
           </Link>
         </div>
-        <header className="sticky top-0 z-50 border-b border-neutral-dark/10 bg-neutral-light/95 backdrop-blur">
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-4 py-4 min-[360px]:gap-4 min-[360px]:px-5 md:px-6">
+        <header className="sticky top-0 z-50 h-[var(--header-height)] border-b border-neutral-dark/10 bg-neutral-light/95 backdrop-blur">
+          <div className="mx-auto flex h-full max-w-7xl items-center justify-between gap-2 px-4 min-[360px]:gap-4 min-[360px]:px-5 md:px-6">
             <div className="flex items-center justify-between gap-4">
               <Logo />
             </div>
