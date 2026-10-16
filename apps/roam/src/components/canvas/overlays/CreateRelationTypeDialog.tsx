@@ -37,6 +37,8 @@ export const CreateRelationTypeDialog = ({
     const message = validateNewRelationType({
       label,
       complement,
+      sourceType: pair.sourceType,
+      destinationType: pair.targetType,
       relations: getDiscourseRelations().filter(
         (r) => !isRelationSchemaDeleted(r.id),
       ),

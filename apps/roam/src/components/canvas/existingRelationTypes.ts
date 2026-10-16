@@ -57,9 +57,13 @@ const sameText = (a: string, b: string): boolean =>
 export const validateNewRelationType = ({
   label: rawLabel,
   complement: rawComplement,
+  sourceType,
+  destinationType,
   relations,
   shownLabels,
 }: RelationType & {
+  sourceType: string;
+  destinationType: string;
   relations: TripletFields[];
   shownLabels: string[];
 }): string | null => {
@@ -74,9 +78,16 @@ export const validateNewRelationType = ({
     return `"${shown}" is already a relation between these node types.`;
 
   const complete = relations.filter(isRelationComplete);
+  // createTripletForPair accepts only an exact provisional match for this pair.
+  const isAcceptedOnSave = (r: TripletFields): boolean =>
+    !isAcceptedRelationSchema(r) &&
+    r.label === label &&
+    r.complement === complement &&
+    r.source === sourceType &&
+    r.destination === destinationType;
   const duplicate = complete.find(
     (r) =>
-      isAcceptedRelationSchema(r) &&
+      !isAcceptedOnSave(r) &&
       sameText(r.label, label) &&
       sameText(r.complement, complement),
   );
