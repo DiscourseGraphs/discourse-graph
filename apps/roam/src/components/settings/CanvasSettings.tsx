@@ -41,10 +41,9 @@ const CanvasSettings = ({
         settingKey={DISCOURSE_TOOL_SHORTCUT_KEY}
         blockPropKey={PERSONAL_KEYS.discourseToolShortcut}
         label="Discourse tool keyboard shortcut"
-        description={withDocsLink(
-          "Set a single key to activate the discourse tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut.",
-          ROAM_DOCS.creatingNodes,
-        )}
+        description={
+          "Set a single key to activate the discourse tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut."
+        }
         placeholder="Click to set single key"
         initialValue={personalSettings[PERSONAL_KEYS.discourseToolShortcut]}
       />
@@ -52,7 +51,7 @@ const CanvasSettings = ({
         title="Auto canvas relations"
         description={withDocsLink(
           "Automatically add discourse relations to canvas when a node is added",
-          ROAM_DOCS.storedRelations,
+          ROAM_DOCS.canvasRelations,
         )}
         settingKeys={[PERSONAL_KEYS.autoCanvasRelations]}
         initialValue={personalSettings[PERSONAL_KEYS.autoCanvasRelations]}

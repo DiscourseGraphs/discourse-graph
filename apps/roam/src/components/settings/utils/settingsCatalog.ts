@@ -167,7 +167,6 @@ const AUTHORED_SETTINGS = {
     label: "Text selection popup",
     description:
       "Whether or not to show the discourse node menu when selecting text.",
-    docsLink: ROAM_DOCS.creatingNodes,
     keywords: ["personal", "highlight"],
     path: rootPath(SETTINGS_TAB_IDS.preferencesGeneral),
   },
@@ -181,7 +180,7 @@ const AUTHORED_SETTINGS = {
     label: "Enable stored relations",
     description:
       "Use stored relations instead of legacy pattern-based relations",
-    docsLink: ROAM_DOCS.migrationToStoredRelations,
+    docsLink: ROAM_DOCS.enableStoredRelations,
     keywords: ["personal", "reified", "triples"],
     path: rootPath(SETTINGS_TAB_IDS.preferencesGeneral),
   },
@@ -224,7 +223,6 @@ const AUTHORED_SETTINGS = {
     label: "Discourse tool keyboard shortcut",
     description:
       "Set a single key to activate the discourse tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut.",
-    docsLink: ROAM_DOCS.creatingNodes,
     keywords: ["personal", "tldraw", "hotkey"],
     path: rootPath(SETTINGS_TAB_IDS.featuresCanvas),
   },
@@ -240,7 +238,7 @@ const AUTHORED_SETTINGS = {
     label: "Auto canvas relations",
     description:
       "Automatically add discourse relations to canvas when a node is added",
-    docsLink: ROAM_DOCS.storedRelations,
+    docsLink: ROAM_DOCS.canvasRelations,
     keywords: ["personal", "tldraw"],
     path: rootPath(SETTINGS_TAB_IDS.featuresCanvas),
   },
@@ -254,7 +252,6 @@ const AUTHORED_SETTINGS = {
     parent: "PERSONAL_KEYS.query",
     label: "Hide query metadata",
     description: "Hide the Roam blocks that are used to power each query",
-    docsLink: ROAM_DOCS.querying,
     keywords: ["personal", "query builder"],
     path: rootPath(SETTINGS_TAB_IDS.advancedQueries),
   },
@@ -262,7 +259,6 @@ const AUTHORED_SETTINGS = {
     parent: "PERSONAL_KEYS.query",
     label: "Default page size",
     description: "The default page size used for query results",
-    docsLink: ROAM_DOCS.querying,
     keywords: ["personal", "query builder", "pagination"],
     path: rootPath(SETTINGS_TAB_IDS.advancedQueries),
   },
@@ -271,7 +267,6 @@ const AUTHORED_SETTINGS = {
     label: "Query pages",
     description:
       "The title formats of pages that you would like to serve as pages that generate queries",
-    docsLink: ROAM_DOCS.querying,
     keywords: ["personal", "query builder"],
     path: rootPath(SETTINGS_TAB_IDS.advancedQueries),
   },
@@ -280,7 +275,6 @@ const AUTHORED_SETTINGS = {
     label: "Default filters",
     description:
       "Any filters that should be applied to your results by default",
-    docsLink: ROAM_DOCS.querying,
     keywords: ["personal", "query builder"],
     path: rootPath(SETTINGS_TAB_IDS.advancedQueries),
   },
@@ -290,7 +284,7 @@ const AUTHORED_SETTINGS = {
     label: "remove special characters",
     description:
       "Whether or not to remove the special characters in a file name.",
-    docsLink: ROAM_DOCS.sharing,
+    docsLink: ROAM_DOCS.exportOptions,
     keywords: ["global", "markdown", "filename"],
   },
   "EXPORT_KEYS.resolveBlockReferences": {
@@ -298,7 +292,7 @@ const AUTHORED_SETTINGS = {
     label: "resolve block references",
     description:
       "Replaces block references in the markdown content with the block's content.",
-    docsLink: ROAM_DOCS.sharing,
+    docsLink: ROAM_DOCS.exportOptions,
     keywords: ["global", "markdown"],
   },
   "EXPORT_KEYS.resolveBlockEmbeds": {
@@ -306,7 +300,7 @@ const AUTHORED_SETTINGS = {
     label: "resolve block embeds",
     description:
       "Replaces block embeds in the markdown content with the block's content tree.",
-    docsLink: ROAM_DOCS.sharing,
+    docsLink: ROAM_DOCS.exportOptions,
     keywords: ["global", "markdown"],
   },
   "EXPORT_KEYS.appendReferencedNode": {
@@ -314,21 +308,20 @@ const AUTHORED_SETTINGS = {
     label: "append referenced node",
     description:
       "If a referenced node is defined in a node's format, it will be appended to the discourse context.",
-    docsLink: ROAM_DOCS.sharing,
     keywords: ["global", "markdown"],
   },
   "EXPORT_KEYS.linkType": {
     parent: "GLOBAL_KEYS.export",
     label: "link type",
     description: "How to format links that appear in your export.",
-    docsLink: ROAM_DOCS.sharing,
+    docsLink: ROAM_DOCS.exportOptions,
     keywords: ["global", "markdown", "wikilinks", "alias"],
   },
   "EXPORT_KEYS.maxFilenameLength": {
     parent: "GLOBAL_KEYS.export",
     label: "max filename length",
     description: "Set the maximum name length for markdown file exports.",
-    docsLink: ROAM_DOCS.sharing,
+    docsLink: ROAM_DOCS.exportOptions,
     keywords: ["global", "markdown", "filename"],
   },
   "EXPORT_KEYS.frontmatter": {
@@ -336,7 +329,7 @@ const AUTHORED_SETTINGS = {
     label: "frontmatter",
     description:
       "Specify all the lines that should go to the Frontmatter of the markdown file.",
-    docsLink: ROAM_DOCS.sharing,
+    docsLink: ROAM_DOCS.exportOptions,
     keywords: ["global", "markdown", "yaml"],
   },
   "CANVAS_KEYS.color": {
@@ -350,7 +343,6 @@ const AUTHORED_SETTINGS = {
     label: "Description",
     group: "Identity",
     description: "Describing what the node represents in your graph.",
-    docsLink: ROAM_DOCS.grammarNodes,
     keywords: ["node type"],
     path: nodePath(),
   },
@@ -358,7 +350,7 @@ const AUTHORED_SETTINGS = {
     label: "Tag",
     group: "Identity",
     description: "Designate a hashtag for marking potential nodes.",
-    docsLink: ROAM_DOCS.taggingCandidateNodes,
+    docsLink: ROAM_DOCS.candidateNodeTagSetup,
     keywords: ["node type", "hashtag"],
     path: nodePath(),
   },
@@ -366,7 +358,6 @@ const AUTHORED_SETTINGS = {
     label: "Format",
     group: "Identity",
     description: "The format pages should have.",
-    docsLink: ROAM_DOCS.grammarNodes,
     keywords: ["node type", "deprecated"],
     path: nodePath(),
   },
@@ -374,7 +365,6 @@ const AUTHORED_SETTINGS = {
     label: "Specification",
     group: "Legacy",
     description: "The conditions specified to identify a node.",
-    docsLink: ROAM_DOCS.grammarNodes,
     keywords: ["node type", "query", "conditions"],
     path: nodePath(),
   },
@@ -399,7 +389,6 @@ const AUTHORED_SETTINGS = {
     label: "Template",
     group: "Creation",
     description: "The template that auto fills a page when generated.",
-    docsLink: ROAM_DOCS.creatingNodes,
     keywords: ["node type"],
     path: nodePath(),
   },
@@ -407,7 +396,7 @@ const AUTHORED_SETTINGS = {
     label: "Overlay",
     group: "Attributes",
     description: "Select which attribute is used for the discourse overlay",
-    docsLink: ROAM_DOCS.discourseAttributes,
+    docsLink: ROAM_DOCS.discourseScore,
     keywords: ["node type", "attributes"],
     path: nodePath(),
   },
