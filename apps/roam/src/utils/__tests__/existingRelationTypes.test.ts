@@ -172,7 +172,7 @@ describe("validateNewRelationType", () => {
   it("treats other provisional matches as duplicates, since saving would add a new triplet", () => {
     mocks.provisional.add("a");
     const duplicate =
-      '"supports" already exists. Use Add existing to add it for these node types.';
+      '"supports" already exists as an imported relation type that has not been accepted yet.';
     expect(validate("Supports", "is supported by")).toBe(duplicate);
     const relations = [triplet({ id: "a", source: "question" })];
     expect(validate("supports", "is supported by", { relations })).toBe(
