@@ -49,7 +49,26 @@ export const deriveRelationTypes = ({
   return [...types.values()];
 };
 
-const SCHEMA_WRITE_SETTLE_MS = 50;
+const SCHEMA_WRITE_POLL_MS = 50;
+const SCHEMA_WRITE_TIMEOUT_MS = 3000;
+
+// createRelationSchema doesn't await its settings write, so poll until the triplet is readable.
+// The legacy store reads the cached config tree, hence the refresh on each pass.
+const isRelationReadable = (id: string): boolean => {
+  refreshConfigTree();
+  return getDiscourseRelations().some((r) => r.id === id);
+};
+
+const waitForRelation = async (id: string): Promise<void> => {
+  const deadline = Date.now() + SCHEMA_WRITE_TIMEOUT_MS;
+  while (!isRelationReadable(id)) {
+    if (Date.now() > deadline)
+      throw new Error(`Relation ${id} was not readable after saving`);
+    await new Promise<void>((resolve) =>
+      setTimeout(resolve, SCHEMA_WRITE_POLL_MS),
+    );
+  }
+};
 
 // Saves in drag direction; reuses a matching triplet so repeat picks add nothing.
 export const createTripletForPair = async ({
@@ -84,9 +103,7 @@ export const createTripletForPair = async ({
     source: sourceType,
     destination: destinationType,
   });
-  await new Promise<void>((resolve) =>
-    setTimeout(resolve, SCHEMA_WRITE_SETTLE_MS),
-  );
+  await waitForRelation(id);
   refreshCanvasRelations();
   return id;
 };

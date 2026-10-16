@@ -129,6 +129,8 @@ describe("createTripletForPair", () => {
   it("refreshes the config tree first, saves in drag direction, then refreshes the canvas", async () => {
     mocks.createRelationSchema.mockImplementation(() => {
       mocks.calls.push("create");
+      // The settings write lands after the call returns.
+      setTimeout(() => mocks.relations.push(triplet({ id: "new-uid" })), 60);
       return Promise.resolve("new-uid");
     });
     await expect(createTripletForPair(args)).resolves.toBe("new-uid");
@@ -138,12 +140,8 @@ describe("createTripletForPair", () => {
       source: "claim",
       destination: "evidence",
     });
-    expect(mocks.calls).toEqual([
-      "refreshConfigTree",
-      "create",
-      "refreshConfigTree",
-      "notify",
-    ]);
+    expect(mocks.calls.slice(0, 2)).toEqual(["refreshConfigTree", "create"]);
+    expect(mocks.calls.at(-1)).toBe("notify");
   });
 
   it("reuses a matching triplet instead of writing a new one", async () => {
@@ -166,8 +164,27 @@ describe("createTripletForPair", () => {
 
   it("does not reuse a triplet that runs the other way", async () => {
     mocks.relations = [triplet({ id: "reverse" })];
-    mocks.createRelationSchema.mockResolvedValue("new-uid");
+    mocks.createRelationSchema.mockImplementation(() => {
+      mocks.relations.push(triplet({ id: "new-uid" }));
+      return Promise.resolve("new-uid");
+    });
     await expect(createTripletForPair(args)).resolves.toBe("new-uid");
+  });
+
+  it("rejects without refreshing the canvas when the saved triplet never becomes readable", async () => {
+    vi.useFakeTimers();
+    try {
+      mocks.createRelationSchema.mockResolvedValue("lost-uid");
+      const result = createTripletForPair(args);
+      const assertion = expect(result).rejects.toThrow(
+        "Relation lost-uid was not readable after saving",
+      );
+      await vi.advanceTimersByTimeAsync(3100);
+      await assertion;
+      expect(mocks.calls).not.toContain("notify");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("rejects without refreshing the canvas when the write throws", async () => {
