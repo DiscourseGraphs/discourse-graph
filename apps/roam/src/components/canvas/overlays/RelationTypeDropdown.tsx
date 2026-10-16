@@ -12,6 +12,7 @@ import {
   getNodeTypeText,
   type RelationType,
 } from "~/components/canvas/existingRelationTypes";
+import { CreateRelationTypeDialog } from "./CreateRelationTypeDialog";
 import { getValidRelationTypesBetween } from "./relationCreation";
 import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import { useRelationSchemaRevision } from "~/utils/relationSchemaChanges";
@@ -26,12 +27,11 @@ type RelationTypeDropdownProps = {
   onDismiss: () => void;
   // Each action renders only when its handler is passed.
   // Resolves true once the type is saved, so the menu returns to the type list.
-  onAddExisting?: (args: {
-    pair: NodeTypePair;
-    relationType: RelationType;
-  }) => Promise<boolean>;
-  onCreateNew?: (pair: NodeTypePair) => void;
+  onAddExisting?: (args: SaveRelationTypeArgs) => Promise<boolean>;
+  onCreateNew?: (args: SaveRelationTypeArgs) => Promise<boolean>;
 };
+
+type SaveRelationTypeArgs = { pair: NodeTypePair; relationType: RelationType };
 
 const MENU_ITEM_CLASS =
   "flex w-full cursor-pointer items-center gap-2 rounded-md border-none bg-transparent px-3 py-2 text-left text-[13px] text-[#333] hover:bg-[#f0f0f0]";
@@ -71,6 +71,7 @@ export const RelationTypeDropdown = ({
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const relationSchemaRevision = useRelationSchemaRevision();
   const validRelationTypes = useMemo(
@@ -90,10 +91,11 @@ export const RelationTypeDropdown = ({
     };
   }, [editor, sourceId, targetId]);
 
-  // Handle click outside
+  // Handle click outside; the dialog renders in a portal outside dropdownRef.
   useEffect(() => {
     const handlePointerDown = (e: PointerEvent) => {
       if (
+        !isCreateOpen &&
         dropdownRef.current &&
         !dropdownRef.current.contains(e.target as Node)
       ) {
@@ -109,7 +111,7 @@ export const RelationTypeDropdown = ({
       clearTimeout(timer);
       window.removeEventListener("pointerdown", handlePointerDown, true);
     };
-  }, [onDismiss]);
+  }, [onDismiss, isCreateOpen]);
 
   const existingRelationTypes = useMemo(
     () =>
@@ -124,7 +126,8 @@ export const RelationTypeDropdown = ({
   // Escape leaves the picker first, then closes the menu.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
+      // The dialog closes itself on Escape.
+      if (e.key !== "Escape" || isCreateOpen) return;
       if (isPickerOpen) {
         e.stopPropagation();
         setIsPickerOpen(false);
@@ -134,7 +137,7 @@ export const RelationTypeDropdown = ({
     };
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [onDismiss, isPickerOpen]);
+  }, [onDismiss, isPickerOpen, isCreateOpen]);
 
   const handlePickExisting = async (
     relationType: RelationType,
@@ -168,7 +171,7 @@ export const RelationTypeDropdown = ({
         onCreateNew && {
           key: "create-new",
           label: "Create new",
-          run: () => onCreateNew(pair),
+          run: () => setIsCreateOpen(true),
         },
       ].filter((a): a is { key: string; label: string; run: () => void } =>
         Boolean(a),
@@ -277,6 +280,21 @@ export const RelationTypeDropdown = ({
           </>
         )}
       </div>
+      {isCreateOpen && pair && onCreateNew && (
+        <CreateRelationTypeDialog
+          pair={pair}
+          shownLabels={validRelationTypes.map((t) => t.label)}
+          onClose={() => setIsCreateOpen(false)}
+          onSubmit={async (relationType) => {
+            const created = await onCreateNew({ pair, relationType });
+            if (created) {
+              setIsPickerOpen(false);
+              setIsActionMenuOpen(false);
+            }
+            return created;
+          }}
+        />
+      )}
     </div>
   );
 };
