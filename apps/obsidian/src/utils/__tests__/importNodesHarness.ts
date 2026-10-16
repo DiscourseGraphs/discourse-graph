@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import matter from "gray-matter";
+import { parseTestNote, serializeTestNote } from "../../../test/frontmatter";
 import { TFile } from "obsidian";
 import type DiscourseGraphPlugin from "~/index";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
@@ -198,7 +198,7 @@ export const createHarness = () => {
     return Promise.resolve();
   });
   const getFileCache = vi.fn((file: TFile) => ({
-    frontmatter: matter(contents.get(file.path) ?? "").data,
+    frontmatter: parseTestNote(contents.get(file.path) ?? "").frontmatter,
   }));
   const saveSettings = vi.fn();
   const plugin = {
@@ -229,11 +229,11 @@ export const createHarness = () => {
           file: TFile,
           callback: (frontmatter: Row) => void,
         ) => {
-          const parsed = matter(readContent(file.path));
-          callback(parsed.data);
+          const parsed = parseTestNote(readContent(file.path));
+          callback(parsed.frontmatter);
           contents.set(
             file.path,
-            matter.stringify(parsed.content, parsed.data),
+            serializeTestNote(parsed.body, parsed.frontmatter),
           );
           return Promise.resolve();
         },
@@ -288,7 +288,7 @@ export const createHarness = () => {
   const seedSource = async (local = false): Promise<TFile> =>
     create(
       "My existing source.md",
-      matter.stringify("Original source body", {
+      serializeTestNote("Original source body", {
         nodeInstanceId: "source",
         nodeTypeId: "source-type",
         ...(local ? {} : { importedFromRid: sourceRid }),
