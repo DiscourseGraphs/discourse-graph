@@ -137,9 +137,7 @@ const PreferencesGeneral = ({
       />
       <PersonalFlagPanel
         title="Text selection popup"
-        description={
-          "Whether or not to show the discourse node menu when selecting text."
-        }
+        description="Whether or not to show the discourse node menu when selecting text."
         settingKeys={[PERSONAL_KEYS.textSelectionPopup]}
         initialValue={personalSettings[PERSONAL_KEYS.textSelectionPopup]}
         onChange={(checked) => {

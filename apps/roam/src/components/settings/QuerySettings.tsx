@@ -27,7 +27,7 @@ const QuerySettings = ({
     <div className="flex flex-col gap-4 p-1">
       <PersonalFlagPanel
         title="Hide query metadata"
-        description={"Hide the Roam blocks that are used to power each query"}
+        description="Hide the Roam blocks that are used to power each query"
         settingKeys={[PERSONAL_KEYS.query, QUERY_KEYS.hideQueryMetadata]}
         initialValue={querySettings[QUERY_KEYS.hideQueryMetadata]}
         onChange={(checked) => {
@@ -39,7 +39,7 @@ const QuerySettings = ({
       />
       <PersonalNumberPanel
         title="Default page size"
-        description={"The default page size used for query results"}
+        description="The default page size used for query results"
         settingKeys={[PERSONAL_KEYS.query, QUERY_KEYS.defaultPageSize]}
         initialValue={querySettings[QUERY_KEYS.defaultPageSize]}
         onChange={(value) => {
@@ -51,9 +51,7 @@ const QuerySettings = ({
       />
       <PersonalMultiTextPanel
         title="Query pages"
-        description={
-          "The title formats of pages that you would like to serve as pages that generate queries"
-        }
+        description="The title formats of pages that you would like to serve as pages that generate queries"
         settingKeys={[PERSONAL_KEYS.query, QUERY_KEYS.queryPages]}
         initialValue={querySettings[QUERY_KEYS.queryPages]}
         onChange={(values) => {
@@ -62,9 +60,7 @@ const QuerySettings = ({
       />
       <SettingItemRow
         label="Default filters"
-        description={
-          "Any filters that should be applied to your results by default"
-        }
+        description="Any filters that should be applied to your results by default"
         scope="personal"
         settingKeys={[PERSONAL_KEYS.query, QUERY_KEYS.defaultFilters]}
         controlPlacement="below"

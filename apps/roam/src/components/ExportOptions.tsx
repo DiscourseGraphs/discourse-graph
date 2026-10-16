@@ -72,9 +72,7 @@ const ExportOptions = ({
 
         <GlobalFlagPanel
           title="append referenced node"
-          description={
-            "If a referenced node is defined in a node's format, it will be appended to the discourse context."
-          }
+          description="If a referenced node is defined in a node's format, it will be appended to the discourse context."
           settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.appendReferencedNode]}
           initialValue={exportBlockProps[EXPORT_KEYS.appendReferencedNode]}
           order={6}
