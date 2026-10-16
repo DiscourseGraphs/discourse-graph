@@ -91,8 +91,11 @@ export const validateNewRelationType = ({
       sameText(r.label, label) &&
       sameText(r.complement, complement),
   );
+  // The Add existing picker lists only accepted types.
   if (duplicate)
-    return `"${duplicate.label}" already exists. Use Add existing to add it for these node types.`;
+    return isAcceptedRelationSchema(duplicate)
+      ? `"${duplicate.label}" already exists. Use Add existing to add it for these node types.`
+      : `"${duplicate.label}" already exists as an imported relation type that has not been accepted yet.`;
 
   const conflict = complete.find(
     (r) => sameText(r.label, label) && !sameText(r.complement, complement),
