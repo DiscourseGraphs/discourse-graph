@@ -7,13 +7,13 @@ import React, {
 } from "react";
 import { TLShapeId, useEditor } from "tldraw";
 import { getDiscourseNodeTypeId } from "~/components/canvas/DiscourseNodeUtil";
-import { getAllRelations } from "~/components/canvas/canvasUtils";
 import {
   deriveRelationTypes,
   getNodeTypeText,
   type RelationType,
 } from "~/components/canvas/existingRelationTypes";
 import { getValidRelationTypesBetween } from "./relationCreation";
+import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import { useRelationSchemaRevision } from "~/utils/relationSchemaChanges";
 
 export type NodeTypePair = { sourceType: string; targetType: string };
@@ -114,7 +114,8 @@ export const RelationTypeDropdown = ({
   const existingRelationTypes = useMemo(
     () =>
       deriveRelationTypes({
-        relations: getAllRelations(),
+        // Fresh settings, not discourseContext, which keeps removed relations for existing arrows.
+        relations: getDiscourseRelations(),
         shownLabels: validRelationTypes.map((t) => t.label),
       }),
     [validRelationTypes],
@@ -140,11 +141,13 @@ export const RelationTypeDropdown = ({
   ): Promise<void> => {
     if (!pair || !onAddExisting || isSaving) return;
     setIsSaving(true);
-    const added = await onAddExisting({ pair, relationType });
-    setIsSaving(false);
-    if (added) {
-      setIsPickerOpen(false);
-      setIsActionMenuOpen(false);
+    try {
+      if (await onAddExisting({ pair, relationType })) {
+        setIsPickerOpen(false);
+        setIsActionMenuOpen(false);
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 

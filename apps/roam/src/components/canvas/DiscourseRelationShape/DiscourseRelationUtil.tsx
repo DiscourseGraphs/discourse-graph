@@ -111,7 +111,6 @@ import {
   getDiscourseNodeTypeId,
   isDiscourseNodeShape as isDiscourseNodeShapeTypeGuard,
 } from "~/components/canvas/DiscourseNodeUtil";
-import { checkConnectionType } from "~/components/canvas/canvasUtils";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { AddReferencedNodeType } from "./DiscourseRelationTool";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
@@ -1807,14 +1806,6 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
       { key: `arrow:dot`, component: ArrowheadDotDef },
       { key: `arrow:cross`, component: ArrowheadCrossDef },
     ];
-  }
-
-  checkConnectionType(
-    relation: { source: string; destination: string },
-    sourceNodeType: string,
-    targetNodeType: string,
-  ): { isDirect: boolean; isReverse: boolean } {
-    return checkConnectionType(relation, sourceNodeType, targetNodeType);
   }
 
   checkConnectionTypeAcrossLabel({
