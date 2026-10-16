@@ -137,10 +137,7 @@ const PreferencesGeneral = ({
       />
       <PersonalFlagPanel
         title="Text selection popup"
-        description={withDocsLink(
-          "Whether or not to show the discourse node menu when selecting text.",
-          ROAM_DOCS.creatingNodes,
-        )}
+        description="Whether or not to show the discourse node menu when selecting text."
         settingKeys={[PERSONAL_KEYS.textSelectionPopup]}
         initialValue={personalSettings[PERSONAL_KEYS.textSelectionPopup]}
         onChange={(checked) => {
@@ -160,7 +157,7 @@ const PreferencesGeneral = ({
         title="Enable stored relations"
         description={withDocsLink(
           "Use stored relations instead of legacy pattern-based relations",
-          ROAM_DOCS.migrationToStoredRelations,
+          ROAM_DOCS.enableStoredRelations,
         )}
         settingKeys={[PERSONAL_KEYS.reifiedRelationTriples]}
         initialValue={personalSettings["Reified relation triples"]}

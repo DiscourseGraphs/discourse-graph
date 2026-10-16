@@ -30,7 +30,7 @@ const ExportOptions = ({
           title="remove special characters"
           description={withDocsLink(
             "Whether or not to remove the special characters in a file name.",
-            ROAM_DOCS.sharing,
+            ROAM_DOCS.exportOptions,
           )}
           settingKeys={[
             GLOBAL_KEYS.export,
@@ -47,7 +47,7 @@ const ExportOptions = ({
           title="resolve block references"
           description={withDocsLink(
             "Replaces block references in the markdown content with the block's content.",
-            ROAM_DOCS.sharing,
+            ROAM_DOCS.exportOptions,
           )}
           settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.resolveBlockReferences]}
           initialValue={exportBlockProps[EXPORT_KEYS.resolveBlockReferences]}
@@ -60,7 +60,7 @@ const ExportOptions = ({
           title="resolve block embeds"
           description={withDocsLink(
             "Replaces block embeds in the markdown content with the block's content tree.",
-            ROAM_DOCS.sharing,
+            ROAM_DOCS.exportOptions,
           )}
           settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.resolveBlockEmbeds]}
           initialValue={exportBlockProps[EXPORT_KEYS.resolveBlockEmbeds]}
@@ -72,10 +72,7 @@ const ExportOptions = ({
 
         <GlobalFlagPanel
           title="append referenced node"
-          description={withDocsLink(
-            "If a referenced node is defined in a node's format, it will be appended to the discourse context.",
-            ROAM_DOCS.sharing,
-          )}
+          description="If a referenced node is defined in a node's format, it will be appended to the discourse context."
           settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.appendReferencedNode]}
           initialValue={exportBlockProps[EXPORT_KEYS.appendReferencedNode]}
           order={6}
@@ -89,7 +86,7 @@ const ExportOptions = ({
           title="link type"
           description={withDocsLink(
             "How to format links that appear in your export.",
-            ROAM_DOCS.sharing,
+            ROAM_DOCS.exportOptions,
           )}
           settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.linkType]}
           initialValue={exportBlockProps[EXPORT_KEYS.linkType]}
@@ -104,7 +101,7 @@ const ExportOptions = ({
         title="max filename length"
         description={withDocsLink(
           "Set the maximum name length for markdown file exports.",
-          ROAM_DOCS.sharing,
+          ROAM_DOCS.exportOptions,
         )}
         settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.maxFilenameLength]}
         initialValue={exportBlockProps[EXPORT_KEYS.maxFilenameLength]}
@@ -117,7 +114,7 @@ const ExportOptions = ({
         title="frontmatter"
         description={withDocsLink(
           "Specify all the lines that should go to the Frontmatter of the markdown file.",
-          ROAM_DOCS.sharing,
+          ROAM_DOCS.exportOptions,
         )}
         settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.frontmatter]}
         initialValue={exportBlockProps[EXPORT_KEYS.frontmatter]}
