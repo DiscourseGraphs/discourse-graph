@@ -22,8 +22,6 @@ import {
 } from "./RelationTypeDropdown";
 import { createDefaultRelationBetweenNodes } from "./relationCreation";
 
-const noopAction = (): void => undefined;
-
 const HANDLE_RADIUS = 5;
 const HANDLE_HIT_AREA = 12;
 const HANDLE_PADDING = 8;
@@ -287,13 +285,15 @@ export const DragHandleOverlay = () => {
     [editor, pending],
   );
 
-  const handleAddExisting = useCallback(
+  const saveRelationTypeForPair = useCallback(
     async ({
       pair,
       relationType,
+      isNew,
     }: {
       pair: NodeTypePair;
       relationType: RelationType;
+      isNew: boolean;
     }): Promise<boolean> => {
       try {
         await createTripletForPair({
@@ -302,14 +302,27 @@ export const DragHandleOverlay = () => {
           destinationType: pair.targetType,
         });
       } catch (error) {
-        void internalError({ error, type: "Canvas add existing relation" });
+        void internalError({
+          error,
+          type: isNew
+            ? "Canvas create relation type"
+            : "Canvas add existing relation",
+        });
         dispatchToastEvent({
           id: "tldraw-add-existing-relation-error",
-          title: "Could not add discourse relation",
+          title: isNew
+            ? "Could not create relation type"
+            : "Could not add discourse relation",
           severity: "error",
         });
         return false;
       }
+      if (isNew)
+        dispatchToastEvent({
+          id: "tldraw-create-relation-type",
+          title: "Relation type created",
+          severity: "success",
+        });
       dispatchToastEvent({
         id: "tldraw-add-existing-relation",
         title: "Discourse relation added",
@@ -401,9 +414,15 @@ export const DragHandleOverlay = () => {
           onDismiss={handleDropdownDismiss}
           // Legacy mode can't show new triplets; Create new stays a no-op until ENG-2244.
           onAddExisting={
-            pending.storedRelationsEnabled ? handleAddExisting : undefined
+            pending.storedRelationsEnabled
+              ? (args) => saveRelationTypeForPair({ ...args, isNew: false })
+              : undefined
           }
-          onCreateNew={pending.storedRelationsEnabled ? noopAction : undefined}
+          onCreateNew={
+            pending.storedRelationsEnabled
+              ? (args) => saveRelationTypeForPair({ ...args, isNew: true })
+              : undefined
+          }
         />
       )}
     </div>
