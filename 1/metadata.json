@@ -1,0 +1,162 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M53DJCT7B1B1EH2SGWK7CT67",
+  "session_id": "9c2367db-c7bf-4564-9cea-96ad8a2a2b46",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-16T22:33:24.027374Z",
+  "branch": "eng-2244-create-a-discourse-relation-from-canvas-and-associate-it",
+  "checkpoints_count": 6,
+  "save_step_count": 6,
+  "files_touched": [
+    "apps/roam/src/components/canvas/existingRelationTypes.ts",
+    "apps/roam/src/utils/__tests__/existingRelationTypes.test.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "3f6f0a4df366",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 156,
+    "cache_creation_tokens": 317209,
+    "cache_read_tokens": 11079335,
+    "output_tokens": 59923,
+    "api_call_count": 78
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "prompt-skill-claude-code-start-2026-10-16T17:57:35.315805Z",
+      "event_type": "prompt_invocation",
+      "skill": {
+        "name": "start"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "prompt_slash_command",
+        "confidence": "explicit"
+      },
+      "turn_id": "05e3b13af31d",
+      "timestamp": "2026-10-16T17:57:35.315805Z",
+      "native": {
+        "command": "/start"
+      },
+      "collapse": {
+        "target": "user_message",
+        "label": "/start",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01Wjuurkgz6ejBA5izPQNXiW",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-roam-load-extension"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "3f6f0a4df366",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 346,
+        "end": 347,
+        "entry_ids": [
+          "cb44d5f6-efa0-4b71-8547-1e90361fc64c"
+        ],
+        "tool_use_id": "toolu_01Wjuurkgz6ejBA5izPQNXiW"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01Wjuurkgz6ejBA5izPQNXiW"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-roam-load-extension",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 6
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-16T22:33:23.932008Z",
+    "agent_lines": 420,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 420,
+    "total_lines_changed": 420,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 23,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "Default/Cache/No_Vary_Search/journal.baj": 1,
+        "Default/IndexedDB/https_roamresearch.com_0.indexeddb.leveldb/CURRENT": 1,
+        "Default/IndexedDB/https_roamresearch.com_0.indexeddb.leveldb/LOG": 6,
+        "Default/Local Storage/leveldb/CURRENT": 1,
+        "Default/Local Storage/leveldb/LOG": 2,
+        "Default/Service Worker/Database/CURRENT": 1,
+        "Default/Service Worker/Database/LOG": 2,
+        "Default/Session Storage/CURRENT": 1,
+        "Default/Session Storage/LOG": 2,
+        "Default/shared_proto_db/CURRENT": 1,
+        "Default/shared_proto_db/LOG": 2,
+        "Default/shared_proto_db/metadata/CURRENT": 1,
+        "Default/shared_proto_db/metadata/LOG": 2
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 97,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 97,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 391,
+      "agent_lines_removed": 33
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 391,
+      "agent_lines_removed": 33
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 392,
+      "agent_lines_removed": 33
+    }
+  ]
+}

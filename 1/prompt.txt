@@ -1,0 +1,17 @@
+start with the validation and its tests
+
+---
+
+would adding the check prevents user from creating reverse relation??
+
+---
+
+nah ok go with your original proposal . start implementing
+
+---
+
+yes start roam and verify it live
+
+---
+
+fix cancel styling issue
