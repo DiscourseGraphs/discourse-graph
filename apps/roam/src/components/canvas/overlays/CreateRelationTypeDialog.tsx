@@ -60,7 +60,6 @@ export const CreateRelationTypeDialog = ({
       canEscapeKeyClose={!isSaving}
       canOutsideClickClose={!isSaving}
       title="Add relation type"
-      // Not roamjs-canvas-dialog: a third-party Roam style recolors its first footer button.
       className="w-96"
     >
       <form
