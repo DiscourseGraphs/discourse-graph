@@ -1,3 +1,7 @@
+import {
+  CONTENT_PLACEHOLDER,
+  FORMAT_PLACEHOLDER,
+} from "@repo/database/lib/decorateTitle";
 import { DiscourseNode } from "~/types";
 
 type ValidationResult = {
@@ -32,6 +36,21 @@ export const validateNodeFormat = ({
     return {
       isValid: false,
       error: 'Format must include the placeholder "{content}"',
+    };
+  }
+
+  // Same placeholder rule as decorateTitle, which can't build titles from other placeholders.
+  const unsupportedPlaceholders = [
+    ...new Set(
+      (format.match(FORMAT_PLACEHOLDER) ?? []).filter(
+        (placeholder) => placeholder.toLowerCase() !== CONTENT_PLACEHOLDER,
+      ),
+    ),
+  ];
+  if (unsupportedPlaceholders.length > 0) {
+    return {
+      isValid: false,
+      error: `Format contains unsupported placeholder${unsupportedPlaceholders.length > 1 ? "s" : ""}: ${unsupportedPlaceholders.join(", ")}. Only ${CONTENT_PLACEHOLDER} is supported.`,
     };
   }
 
