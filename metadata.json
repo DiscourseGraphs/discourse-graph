@@ -3,7 +3,7 @@
   "checkpoint_id": "01M53396FYSXNFSKP0CH8ZB3Q1",
   "strategy": "manual-commit",
   "branch": "eng-2407-settings-docs-links-point-to-wrong-or-unrelated-docs-pages",
-  "checkpoints_count": 5,
+  "checkpoints_count": 11,
   "files_touched": [
     "apps/roam/src/components/ExportOptions.tsx",
     "apps/roam/src/components/settings/CanvasSettings.tsx",
@@ -24,14 +24,21 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 80,
-    "cache_creation_tokens": 74904,
-    "cache_read_tokens": 4489522,
-    "output_tokens": 18422,
-    "api_call_count": 40,
+    "input_tokens": 140,
+    "cache_creation_tokens": 638584,
+    "cache_read_tokens": 12932446,
+    "output_tokens": 34457,
+    "api_call_count": 71,
     "subagent_tokens": {
       "input_tokens": 0,
       "cache_creation_tokens": 0,
