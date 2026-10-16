@@ -61,13 +61,14 @@ export const AdvancedSearchSidebarResultsList = ({
         >
           <Icon
             className="rm-search-query__page-row-icon"
-            icon="document"
+            icon={result.candidate ? "paragraph" : "document"}
             iconSize={16}
           />
           <span className="rm-search-query__page-row-title">
             <a
               className="rm-page-ref rm-page-ref--link"
-              data-link-title={displayTitle}
+              // A candidate is a block, so Roam must not resolve this link by title.
+              data-link-title={result.candidate ? undefined : displayTitle}
               data-link-uid={result.uid}
               href={getRoamUrl(result.uid)}
               onMouseDown={(event) => {
@@ -81,7 +82,14 @@ export const AdvancedSearchSidebarResultsList = ({
                 if (event.shiftKey) {
                   event.preventDefault();
                   event.stopPropagation();
+                  return;
                 }
+                if (!result.candidate) return;
+                event.preventDefault();
+                event.stopPropagation();
+                void window.roamAlphaAPI.ui.mainWindow.openBlock({
+                  block: { uid: result.uid },
+                });
               }}
             >
               <span className="rm-page__title cursor-pointer">
@@ -98,6 +106,7 @@ export const AdvancedSearchSidebarResultsList = ({
 type AdvancedSearchDockedFiltersProps = {
   discourseNodes: DiscourseNode[];
   selectedNodeTypeIds: string[];
+  showCandidates: boolean;
   sort: SortConfig;
 };
 
@@ -107,6 +116,7 @@ const getNodeIndicatorColor = (node: DiscourseNode): string =>
 const AdvancedSearchDockedFilters = ({
   discourseNodes,
   selectedNodeTypeIds,
+  showCandidates,
   sort,
 }: AdvancedSearchDockedFiltersProps): React.ReactElement | null => {
   const allTypeIds = discourseNodes.map((node) => node.type);
@@ -119,7 +129,7 @@ const AdvancedSearchDockedFilters = ({
     : [];
   const showSort = isNonDefaultSort(sort);
 
-  if (!isTypeFilterActive && !showSort) return null;
+  if (!isTypeFilterActive && !showSort && !showCandidates) return null;
 
   return (
     <div className="dg-node-search-sidebar__filters mb-1 ml-2 mr-2 flex flex-col gap-1.5">
@@ -154,6 +164,9 @@ const AdvancedSearchDockedFilters = ({
           {sort.direction === "asc" ? "ascending" : "descending"})
         </p>
       )}
+      {showCandidates && (
+        <p className="text-xs text-gray-500">Showing candidate nodes</p>
+      )}
     </div>
   );
 };
@@ -176,6 +189,7 @@ export const AdvancedSearchSidebarPanel = ({
     results: dockedResults,
     selectedNodeTypeIds,
     sort,
+    showCandidates = false,
   } = dockedState;
 
   const [searchTerm, setSearchTerm] = useState(query);
@@ -204,7 +218,7 @@ export const AdvancedSearchSidebarPanel = ({
     setIndexError(false);
     setSearchIndex(null);
 
-    void buildSearchIndex(discourseNodes)
+    void buildSearchIndex({ discourseNodes, includeCandidates: showCandidates })
       .then(({ miniSearch, results: indexedResults }) => {
         if (cancelled) return;
         setSearchIndex({ miniSearch, allResults: indexedResults });
@@ -224,7 +238,7 @@ export const AdvancedSearchSidebarPanel = ({
     return () => {
       cancelled = true;
     };
-  }, [discourseNodes]);
+  }, [discourseNodes, showCandidates]);
 
   const { results, isSearching } = useAdvancedNodeSearchResults({
     debouncedSearchTerm,
@@ -243,6 +257,7 @@ export const AdvancedSearchSidebarPanel = ({
       results,
       selectedNodeTypeIds,
       sort,
+      showCandidates,
       windowId,
       dgSearchId,
     });
@@ -252,6 +267,7 @@ export const AdvancedSearchSidebarPanel = ({
     onPersistState,
     results,
     selectedNodeTypeIds,
+    showCandidates,
     sort,
     windowId,
   ]);
@@ -275,6 +291,7 @@ export const AdvancedSearchSidebarPanel = ({
         <AdvancedSearchDockedFilters
           discourseNodes={discourseNodes}
           selectedNodeTypeIds={selectedNodeTypeIds}
+          showCandidates={showCandidates}
           sort={sort}
         />
       )}

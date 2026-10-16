@@ -14,6 +14,8 @@ export const BASIC_DISCOURSE_NODE_PULL =
 
 export const DISCOURSE_NODE_SEARCH_METADATA_PULL = `[:block/string :node/title :block/uid :create/time :edit/time {:create/user [:user/display-name :user/email]} {:edit/user [:user/display-name :user/email]}]`;
 
+export const CANDIDATE_BLOCK_SEARCH_PULL = `[:block/string :block/uid :create/time :edit/time {:create/user [:user/display-name :user/email]} {:edit/user [:user/display-name :user/email]} {:block/page [:node/title]}]`;
+
 /* eslint-disable @typescript-eslint/naming-convention */
 type PulledDiscourseUser = {
   ":user/display-name"?: string;
@@ -35,6 +37,7 @@ export type PulledDiscourseNode = {
   ":edit/time"?: string | number;
   ":create/user"?: PulledDiscourseUser;
   ":edit/user"?: PulledDiscourseUser;
+  ":block/page"?: { ":node/title"?: string };
 };
 /* eslint-enable @typescript-eslint/naming-convention */
 
@@ -108,6 +111,79 @@ export const queryDiscourseNodesByFormat = async ({
 
   return queryResults.map(([result]) => result);
 };
+
+export const hasCandidateTag = (
+  node: DiscourseNode,
+): node is DiscourseNode & { tag: string } => !!node.tag?.trim();
+
+// `#tag` and `#[[tag]]` both name the tag page `tag`.
+export const getCandidateTagTitle = (tag: string): string =>
+  tag
+    .trim()
+    .replace(/^#/, "")
+    .replace(/^\[\[(.*)\]\]$/, "$1");
+
+const escapeRegExp = (value: string): string =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+export const buildCandidateBlocksByTagQuery = ({
+  tagTitle,
+  pullExpression,
+}: {
+  tagTitle: string;
+  pullExpression: string;
+}): string => {
+  // Case-insensitive, like the plugin's other node tag matching (getCleanTagText).
+  const titleRegex = new RegExp(`^${escapeRegExp(tagTitle)}$`);
+  return `[
+  :find
+    (pull ?block ${pullExpression})
+  :where
+    [(re-pattern "(?i)${escapeRegexPatternForDatalog(titleRegex)}") ?tag-title-regex]
+    [?tag :node/title ?tag-title]
+    [(re-find ?tag-title-regex ?tag-title)]
+    [?block :block/refs ?tag]
+]`;
+};
+
+export const queryCandidateBlocksByTag = async ({
+  node,
+  pullExpression = BASIC_DISCOURSE_NODE_PULL,
+}: {
+  node: DiscourseNode & { tag: string };
+  pullExpression?: string;
+}): Promise<PulledDiscourseNode[]> => {
+  const query = buildCandidateBlocksByTagQuery({
+    tagTitle: getCandidateTagTitle(node.tag),
+    pullExpression,
+  });
+  const queryResults = (await window.roamAlphaAPI.data.async.fast.q(query)) as [
+    PulledDiscourseNode,
+  ][];
+
+  return queryResults.map(([result]) => result);
+};
+
+export const stripCandidateTags = ({
+  text,
+  tagTitles,
+}: {
+  text: string;
+  tagTitles: string[];
+}): string =>
+  tagTitles
+    .reduce((stripped, tagTitle) => {
+      const escaped = escapeRegExp(tagTitle);
+      return stripped.replace(
+        new RegExp(
+          `#?\\[\\[${escaped}\\]\\]|#${escaped}(?![\\p{L}\\p{N}_-])`,
+          "giu",
+        ),
+        "",
+      );
+    }, text)
+    .replace(/\s+/g, " ")
+    .trim();
 
 export const queryDiscourseNodesByFormatSync = ({
   node,
