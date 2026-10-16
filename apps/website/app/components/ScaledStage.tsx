@@ -6,6 +6,9 @@ import type { ReactElement, ReactNode } from "react";
 type ScaledStageProps = {
   children: ReactNode;
   height: number;
+  // Exposes the content to keyboard and assistive tech. Set it for stages that
+  // contain links; otherwise the stage is a single decorative image.
+  interactive?: boolean;
   label: string;
   width: number;
 };
@@ -22,6 +25,7 @@ const supportsLengthDivision = (): boolean =>
 export const ScaledStage = ({
   children,
   height,
+  interactive = false,
   label,
   width,
 }: ScaledStageProps): ReactElement => {
@@ -45,14 +49,14 @@ export const ScaledStage = ({
   return (
     <div
       ref={containerRef}
-      role="img"
+      role={interactive ? "group" : "img"}
       aria-label={label}
       className="relative w-full overflow-hidden [container-type:inline-size]"
       // Reserves the scaled height so the layout doesn't shift on load.
       style={{ aspectRatio: `${width} / ${height}` }}
     >
       <div
-        aria-hidden="true"
+        aria-hidden={interactive ? undefined : true}
         className="absolute left-0 top-0 origin-top-left"
         style={{
           height,

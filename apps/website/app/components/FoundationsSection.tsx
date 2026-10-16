@@ -1,7 +1,9 @@
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { ScaledStage } from "~/components/ScaledStage";
 import { SectionHeader } from "~/components/SectionHeader";
+import { MATSU_LAB_URL, MATT_AKAMATSU_GITHUB_URL } from "~/data/constants";
 
 // Card size in the Figma frame; positions below use these coordinates.
 const CARD_WIDTH = 570;
@@ -251,9 +253,10 @@ const SharingCard = (): ReactElement => (
     headerHeight={SHARING_OFFSET}
   >
     <ScaledStage
+      interactive
       width={CARD_WIDTH}
       height={CARD_HEIGHT - SHARING_OFFSET}
-      label="Example shared result node by Matt Akamatsu of MATSU Lab, dated Jan 31, 2026: undergraduates produced original results within four months of joining the lab, with a Share button."
+      label="Example shared result node"
     >
       <div
         className="overflow-hidden rounded-[20px] border border-black bg-white px-[13px] py-4"
@@ -267,8 +270,12 @@ const SharingCard = (): ReactElement => (
           </p>
         </div>
         <div className="flex items-center gap-3 px-2.5 text-sm leading-[normal] text-black">
-          <MetaItem icon="user">Matt Akamatsu</MetaItem>
-          <MetaItem icon="earth">MATSU Lab</MetaItem>
+          <MetaItem icon="user" href={MATT_AKAMATSU_GITHUB_URL}>
+            Matt Akamatsu
+          </MetaItem>
+          <MetaItem icon="earth" href={MATSU_LAB_URL}>
+            MATSU Lab
+          </MetaItem>
           <MetaItem icon="calendar">Jan 31, 2026</MetaItem>
           <span className="rounded bg-[#f6f6f6] px-1 py-0.5">
             <MetaItem icon="share">Share</MetaItem>
@@ -284,7 +291,7 @@ const SharingCard = (): ReactElement => (
         </p>
       </div>
       <div
-        className="absolute h-[236px] w-[530px] bg-gradient-to-b from-transparent from-50% to-[#f1f1f1] to-95%"
+        className="pointer-events-none absolute h-[236px] w-[530px] bg-gradient-to-b from-transparent from-50% to-[#f1f1f1] to-95%"
         style={abs(21, -2)}
       />
       <Image
@@ -331,27 +338,41 @@ const ICON_PATHS: Record<string, ReactNode> = {
 
 const MetaItem = ({
   children,
+  href,
   icon,
 }: {
   children: ReactNode;
+  href?: string;
   icon: keyof typeof ICON_PATHS;
-}): ReactElement => (
-  <span className="inline-flex items-center gap-1 whitespace-nowrap">
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+}): ReactElement => {
+  const content = (
+    <>
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {ICON_PATHS[icon]}
+      </svg>
+      {children}
+    </>
+  );
+  const className = "inline-flex items-center gap-1 whitespace-nowrap";
+  if (!href) return <span className={className}>{content}</span>;
+  return (
+    <Link
+      href={href}
+      className={`${className} -mx-1 -my-0.5 rounded px-1 py-0.5 transition-colors hover:bg-[#f6f6f6] focus-visible:bg-[#f6f6f6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary`}
     >
-      {ICON_PATHS[icon]}
-    </svg>
-    {children}
-  </span>
-);
+      {content}
+    </Link>
+  );
+};
 
 const PROTOCOL_OFFSET = 126;
 

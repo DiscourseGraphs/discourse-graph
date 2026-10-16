@@ -14,13 +14,15 @@ import {
 } from "lucide-react";
 import { getAllBlogs } from "~/(home)/blog/readBlogs";
 import { FoundationsSection } from "~/components/FoundationsSection";
+import { GraphBackgroundAnimation } from "~/components/GraphBackgroundAnimation";
 import { Logo } from "~/components/Logo";
 import { PlatformBadge } from "~/components/PlatformBadge";
 import { SectionHeader } from "~/components/SectionHeader";
 import { TeamPerson } from "~/components/TeamPerson";
-import { TEAM_MEMBERS } from "~/data/constants";
+import { MATSU_LAB_URL, TEAM_MEMBERS } from "~/data/constants";
 import { STATIC_NEWS_ITEMS } from "~/data/news";
 import type { NewsItem } from "~/types/news";
+import { getGraphColors } from "~/utils/brandColors";
 import { formatDisplayDate } from "~/utils/formatDate";
 import { sortByDateDesc } from "~/utils/sortByDate";
 
@@ -187,6 +189,7 @@ const ArrowLink = ({
 
 const Home = async (): Promise<ReactElement> => {
   const blogs = await getAllBlogs();
+  const graphColors = getGraphColors();
 
   const blogNewsItems: NewsItem[] = blogs.map((blog) => ({
     date: blog.date,
@@ -202,26 +205,20 @@ const Home = async (): Promise<ReactElement> => {
 
   return (
     <div>
-      <section className="relative isolate flex min-h-[72svh] items-center overflow-hidden bg-neutral-dark px-5 py-16 text-white sm:px-6 lg:py-20">
-        <Image
-          src="/MATSU_lab_journal_club_graph_view.png"
-          alt="Discourse Graph network visualization"
-          fill
-          priority
-          className="object-cover opacity-25"
-          quality={90}
-          sizes="100vw"
-        />
-        <div className="absolute inset-0 bg-neutral-dark/70" />
+      <section
+        data-translucent-header
+        className="relative isolate -mt-[var(--header-height)] flex min-h-[72svh] items-center overflow-hidden border-b border-neutral-dark/10 bg-white px-5 pb-16 pt-[calc(4rem+var(--header-height))] text-neutral-dark sm:px-6 lg:pb-20 lg:pt-[calc(5rem+var(--header-height))]"
+      >
+        <GraphBackgroundAnimation colors={graphColors} />
         <div className="relative z-10 mx-auto w-full max-w-7xl">
-          <div className="max-w-3xl">
-            <p className="inline-flex rounded-md border border-white/20 bg-white/10 px-3 py-1 text-sm font-semibold text-white/85">
+          <div data-graph-avoid className="max-w-3xl">
+            <p className="inline-flex rounded-md border border-neutral-dark/15 bg-neutral-dark/5 px-3 py-1 text-sm font-semibold text-neutral-dark/80 backdrop-blur-sm">
               Open infrastructure for collaborative knowledge synthesis
             </p>
-            <h1 className="mt-6 text-5xl font-semibold tracking-tight text-white sm:text-6xl lg:text-7xl">
+            <h1 className="mt-6 text-5xl font-bold tracking-tight text-neutral-dark sm:text-6xl lg:text-7xl">
               Create knowledge. Make connections.
             </h1>
-            <p className="text-white/82 mt-6 max-w-2xl text-xl leading-8">
+            <p className="mt-6 max-w-2xl text-xl leading-8 text-neutral-dark/75">
               A tool and ecosystem for turning research claims, evidence, and
               questions into modular graphs that teams can share, update, and
               build on.
@@ -238,14 +235,14 @@ const Home = async (): Promise<ReactElement> => {
               </a>
               <Link
                 href="/#plugins"
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-white/35 px-5 py-3 text-sm font-semibold text-white transition-colors hover:border-white hover:bg-white/10 hover:text-white"
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-neutral-dark/30 bg-white/20 px-5 py-3 text-sm font-semibold text-neutral-dark backdrop-blur-sm transition-colors hover:border-neutral-dark hover:bg-white/70 hover:text-neutral-dark"
               >
                 Explore plugins
                 <Puzzle className="h-4 w-4" aria-hidden="true" />
               </Link>
               <Link
                 href={SLACK_URL}
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-white/20 px-5 py-3 text-sm font-semibold text-white/90 transition-colors hover:border-secondary hover:text-white"
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-neutral-dark/20 bg-white/20 px-5 py-3 text-sm font-semibold text-neutral-dark/90 backdrop-blur-sm transition-colors hover:border-secondary hover:bg-white/70 hover:text-neutral-dark"
               >
                 Join Slack
                 <MessageCircle className="h-4 w-4" aria-hidden="true" />
@@ -415,7 +412,7 @@ const Home = async (): Promise<ReactElement> => {
                 />
               </div>
               <figcaption className="mt-3 text-sm text-neutral-dark/65">
-                Snapshot of <Link href="https://matsulab.com/">MATSU lab</Link>{" "}
+                Snapshot of <Link href={MATSU_LAB_URL}>MATSU lab</Link>{" "}
                 Discourse Graph
               </figcaption>
             </figure>
@@ -608,7 +605,7 @@ const Home = async (): Promise<ReactElement> => {
           </div>
         </section>
 
-        <section className="bg-neutral-dark px-5 pb-48 pt-16 text-white sm:px-6 lg:pb-56 lg:pt-24">
+        <section className="border-t border-neutral-dark/10 bg-white px-5 py-16 text-neutral-dark sm:px-6 lg:py-24">
           <div
             id="contact"
             className="mx-auto grid max-w-7xl scroll-mt-20 gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center"
@@ -620,7 +617,7 @@ const Home = async (): Promise<ReactElement> => {
               <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
                 Help build better infrastructure for collaborative research
               </h2>
-              <p className="mt-5 text-lg leading-8 text-white/75">
+              <p className="mt-5 text-lg leading-8 text-neutral-dark/75">
                 We are building user-friendly Discourse Graph plugins in tools
                 for thought and would like to hear from researchers, developers,
                 labs, and funders.
@@ -629,24 +626,24 @@ const Home = async (): Promise<ReactElement> => {
             <div className="grid gap-4 sm:grid-cols-2">
               <Link
                 href="mailto:discoursegraphs@homeworld.bio"
-                className="rounded-lg border border-white/15 bg-white/10 p-5 transition-colors hover:border-primary hover:text-white"
+                className="rounded-lg border border-neutral-dark/10 bg-neutral-light p-5 transition-colors hover:border-primary"
               >
                 <Mail className="h-6 w-6 text-primary" aria-hidden="true" />
                 <h3 className="mt-4 font-semibold">Send us a line</h3>
-                <p className="mt-2 text-sm leading-6 text-white/70">
+                <p className="mt-2 text-sm leading-6 text-neutral-dark/70">
                   Talk with us about development, pilots, and collaborations.
                 </p>
               </Link>
               <Link
                 href={SLACK_URL}
-                className="rounded-lg border border-white/15 bg-white/10 p-5 transition-colors hover:border-secondary hover:text-white"
+                className="rounded-lg border border-neutral-dark/10 bg-neutral-light p-5 transition-colors hover:border-secondary"
               >
                 <MessageCircle
                   className="h-6 w-6 text-secondary"
                   aria-hidden="true"
                 />
                 <h3 className="mt-4 font-semibold">Join Slack</h3>
-                <p className="mt-2 text-sm leading-6 text-white/70">
+                <p className="mt-2 text-sm leading-6 text-neutral-dark/70">
                   Follow project updates and talk with the community.
                 </p>
               </Link>
@@ -655,53 +652,57 @@ const Home = async (): Promise<ReactElement> => {
         </section>
       </main>
 
-      <footer className="border-t border-white/10 bg-neutral-dark px-5 py-10 text-white sm:px-6">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 md:grid-cols-[1fr_0.7fr_1.1fr] md:items-start">
-          <div className="flex flex-col gap-3">
-            <Logo textClassName="text-white" linked={false} />
-            <p className="text-sm text-white/55">
+      <footer className="relative isolate overflow-hidden border-t border-neutral-dark/10 bg-neutral-light px-5 py-10 text-neutral-dark sm:px-6">
+        <GraphBackgroundAnimation colors={graphColors} followPointer={false} />
+        <div className="relative z-10 mx-auto grid max-w-7xl grid-cols-1 gap-10 md:grid-cols-[1fr_0.7fr_1.1fr] md:items-start">
+          <div data-graph-avoid className="flex flex-col gap-3">
+            <Logo linked={false} />
+            <p className="text-sm text-neutral-dark/70">
               Copyright 2024-{new Date().getFullYear()} Homeworld Collective
             </p>
           </div>
 
-          <div className="grid gap-2 text-sm">
+          <div data-graph-avoid className="grid gap-2 text-sm">
             <Link
               href="/careers"
-              className="text-white/70 transition-colors hover:text-primary"
+              className="text-neutral-dark/70 transition-colors hover:text-neutral-dark hover:underline"
             >
               Careers
             </Link>
             <Link
               href="https://github.com/DiscourseGraphs"
-              className="text-white/70 transition-colors hover:text-primary"
+              className="text-neutral-dark/70 transition-colors hover:text-neutral-dark hover:underline"
             >
               GitHub
             </Link>
             <Link
               href="https://www.youtube.com/@discoursegraphs"
-              className="text-white/70 transition-colors hover:text-primary"
+              className="text-neutral-dark/70 transition-colors hover:text-neutral-dark hover:underline"
             >
               YouTube
             </Link>
             <Link
               href={SLACK_URL}
-              className="text-white/70 transition-colors hover:text-primary"
+              className="text-neutral-dark/70 transition-colors hover:text-neutral-dark hover:underline"
             >
               Slack
             </Link>
             <Link
               href="https://bsky.app/profile/discoursegraphs.bsky.social"
-              className="text-white/70 transition-colors hover:text-primary"
+              className="text-neutral-dark/70 transition-colors hover:text-neutral-dark hover:underline"
             >
               Bluesky
             </Link>
           </div>
 
-          <div className="rounded-lg border border-white/15 p-5">
-            <h3 className="text-lg font-semibold text-white">
+          <div
+            data-graph-avoid
+            className="rounded-lg border border-neutral-dark/15 p-5"
+          >
+            <h3 className="text-lg font-semibold text-neutral-dark">
               Stay up to date
             </h3>
-            <p className="mt-1 text-sm text-white/65">
+            <p className="mt-1 text-sm text-neutral-dark/65">
               Periodic news and info about the Discourse Graphs project.
             </p>
 
@@ -717,11 +718,11 @@ const Home = async (): Promise<ReactElement> => {
                 id="bd-email"
                 placeholder="your@email.com"
                 required
-                className="min-w-0 flex-1 rounded-md border border-white/20 bg-neutral-dark px-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-white/40"
+                className="min-w-0 flex-1 rounded-md border border-neutral-dark/20 bg-white px-3 py-2 text-sm text-neutral-dark placeholder-neutral-dark/40 focus:outline-none focus:ring-1 focus:ring-neutral-dark/30"
               />
               <button
                 type="submit"
-                className="rounded-md border border-white px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white hover:text-neutral-dark"
+                className="rounded-md border border-neutral-dark px-4 py-2 text-sm font-semibold text-neutral-dark transition-colors hover:bg-neutral-dark hover:text-white"
               >
                 Subscribe
               </button>
