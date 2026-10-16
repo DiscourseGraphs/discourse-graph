@@ -35,20 +35,22 @@ Documents:
 
 Content:
 
-| id | source_local_id | page_id | scale    | represents_id | text                                         |
-|----|-------------|-------------|----------|---------------|----------------------------------------------|
-| 5  | nt1pgid         | 1       | document | 16            | discourse-graphs/nodes/Claim                 |
-| 6  | nt2pgid         | 2       | document | 17            | discourse-graphs/nodes/Hypothesis            |
-| 12 | dgpgid          | 3       | document |               | roam/js/discourse-graph                      |
-| 7  | et1bkid         | 3       | block    | 18            | Opposes                                      |
-| 13 | et1r1bkid       | 3       | block    |               | source                                       |
-| 14 | et1r2bkid       | 3       | block    |               | destination                                  |
-| 8  | somepgid        | 4       | document |               | Some page                                    |
-| 24 | hyp1pgid        | 22      | document | 20            | [HYP] Some hypothesis                        |
-| 25 | clm1pgid        | 23      | document | 19            | [HYP] Some claim                             |
-| 9  | hyp1refbkid     | 4       | block    |               | a block referring to [[HYP] Some hypothesis] |
-| 10 | opp1bkid        | 4       | block    | 21            | OpposedBy                                    |
-| 11 | clm1refbkid     | 4       | block    |               | a block referring to [[CLM] Some claim]      |
+| id | source_local_id | page_id | scale    | represents_id | part_of | text                                         | metadata             |
+|----|-------------|-------------|----------|---------------| ------- |----------------------------------------------|----------------------|
+| 5  | nt1pgid         | 1       | document | 16            |         | discourse-graphs/nodes/Claim                 |                      |
+| 6  | nt2pgid         | 2       | document | 17            |         | discourse-graphs/nodes/Hypothesis            |                      |
+| 12 | dgpgid          | 3       | document |               |         | roam/js/discourse-graph                      |                      |
+| 7  | et1bkid         | 3       | block    | 18            |         | Opposes                                      |                      |
+| 13 | et1r1bkid       | 3       | block    |               |         | source                                       |                      |
+| 14 | et1r2bkid       | 3       | block    |               |         | destination                                  |                      |
+| 8  | somepgid        | 4       | document |               |         | Some page                                    |                      |
+| 24 | hyp1pgid        | 22      | document | 20            |         | [HYP] Some hypothesis                        |                      |
+| 25 | clm1pgid        | 23      | document | 19            |         | [CLM] Some claim                             |                      |
+| 9  | hyp1refbkid     | 4       | block    |               |         | a block referring to [[HYP] Some hypothesis] |                      |
+| 10 | opp1bkid        | 4       | block    | 21            |         | OpposedBy                                    |                      |
+| 11 | clm1refbkid     | 4       | block    |               |         | a block referring to [[CLM] Some claim]      |                      |
+| 26 |                 | 4       | quote    |               | 11      | [[CLM] Some claim]                           | {start: 21, end: 43} |
+| 27 |                 | 4       | quote    |               | 9       | [[HYP] Some hypothesis]                      | {start: 21, end: 38} |
 
 Concept:
 
@@ -68,13 +70,39 @@ ContentLink
 
 | source | destination |
 |--------|-------------|
-| 9      | 24          |
-| 11     | 25          |
+| 27     | 24          |
+| 26     | 25          |
 
-Note: I would probably create a sub-Content for the link text and use this as source.
-OR use a char_start, char_end.
+Occurence
 
-Missing: Ontology
+| source | destination |
+|--------|-------------|
+| 27     | 20          |
+| 26     | 19          |
+
 
 This is what the rows would look like in diagram form:
 ![Diagram showing the relationships between roam blocks and supabase rows.](./relation_diagram.svg)
+
+This expresses how a single reference is modeled:
+
+![Diagram showing the claim reference.](./reference_diagram_anchor.svg)
+
+Note: It would be possible, but not necessarily desirable, to skip the quote sub-contents (26, 27) and directly put the content/occurence links to the enclosing block. We would probably want to give anchor information in the link in that case.
+
+ContentLink
+
+| source | destination | metadata             |
+|--------|-------------|----------------------|
+| 9      | 24          | {start: 21, end: 43} |
+| 11     | 25          | {start: 21, end: 38} |
+
+Occurence
+
+| source | destination | metadata             |
+|--------|-------------|----------------------|
+| 9      | 20          | {start: 21, end: 43} |
+| 11     | 19          | {start: 21, end: 38} |
+
+
+![Diagram showing the claim reference without materialized anchors.](./reference_diagram_no_anchor.svg)
