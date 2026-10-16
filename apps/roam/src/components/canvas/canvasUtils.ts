@@ -26,8 +26,6 @@ export const getCreatableRelations = () =>
 export const hasAcceptedRelationSchema = (relationLabel: string): boolean =>
   !!discourseContext.relations[relationLabel]?.some(isAcceptedRelationSchema);
 
-export { checkConnectionType } from "~/utils/findRelationForPair";
-
 export const hasValidRelationTypes = (
   sourceNodeType: string,
   targetNodeType: string,

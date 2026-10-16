@@ -28,9 +28,6 @@ vi.mock("~/components/canvas/DiscourseNodeUtil", () => ({
 vi.mock("~/components/canvas/overlays/relationCreation", () => ({
   getValidRelationTypesBetween: () => mocks.types,
 }));
-vi.mock("~/components/canvas/canvasUtils", () => ({
-  getAllRelations: () => mocks.relations,
-}));
 vi.mock("~/components/canvas/Tldraw", () => ({
   discourseContext: {
     nodes: {
@@ -46,7 +43,9 @@ vi.mock("~/utils/createRelationSchema", () => ({
   createRelationSchema: vi.fn(),
 }));
 vi.mock("~/utils/refreshConfigTree", () => ({ default: vi.fn() }));
-vi.mock("~/utils/getDiscourseRelations", () => ({ default: () => [] }));
+vi.mock("~/utils/getDiscourseRelations", () => ({
+  default: () => mocks.relations,
+}));
 vi.mock("~/utils/relationSchemaAcceptance", () => ({
   isAcceptedRelationSchema: () => true,
 }));
