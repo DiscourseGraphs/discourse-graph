@@ -10,7 +10,16 @@ import {
 } from "~/components/canvas/canvasUtils";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
-import { RelationTypeDropdown } from "./RelationTypeDropdown";
+import {
+  createTripletForPair,
+  getNodeTypeText,
+  type RelationType,
+} from "~/components/canvas/existingRelationTypes";
+import internalError from "~/utils/internalError";
+import {
+  RelationTypeDropdown,
+  type NodeTypePair,
+} from "./RelationTypeDropdown";
 import { createDefaultRelationBetweenNodes } from "./relationCreation";
 
 const HANDLE_RADIUS = 5;
@@ -273,6 +282,40 @@ export const DragHandleOverlay = () => {
     [editor, pending],
   );
 
+  const handleAddExisting = useCallback(
+    async ({
+      pair,
+      relationType,
+    }: {
+      pair: NodeTypePair;
+      relationType: RelationType;
+    }): Promise<boolean> => {
+      try {
+        await createTripletForPair({
+          ...relationType,
+          sourceType: pair.sourceType,
+          destinationType: pair.targetType,
+        });
+      } catch (error) {
+        void internalError({ error, type: "Canvas add existing relation" });
+        dispatchToastEvent({
+          id: "tldraw-add-existing-relation-error",
+          title: "Could not add discourse relation",
+          severity: "error",
+        });
+        return false;
+      }
+      dispatchToastEvent({
+        id: "tldraw-add-existing-relation",
+        title: "Discourse relation added",
+        description: `${relationType.label} added for ${getNodeTypeText(pair.sourceType)} and ${getNodeTypeText(pair.targetType)}`,
+        severity: "success",
+      });
+      return true;
+    },
+    [],
+  );
+
   const handleDropdownDismiss = useCallback(() => {
     setPending(null);
     if (sourceNodeRef.current) {
@@ -351,6 +394,10 @@ export const DragHandleOverlay = () => {
           dropdownPos={pending.dropdownPos}
           onSelect={handleDropdownSelect}
           onDismiss={handleDropdownDismiss}
+          // Legacy mode drops triplets without if-conditions, so a picked type would never appear.
+          onAddExisting={
+            getStoredRelationsEnabled() ? handleAddExisting : undefined
+          }
         />
       )}
     </div>

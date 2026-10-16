@@ -7,7 +7,14 @@ import React, {
 } from "react";
 import { TLShapeId, useEditor } from "tldraw";
 import { getDiscourseNodeTypeId } from "~/components/canvas/DiscourseNodeUtil";
+import {
+  deriveRelationTypes,
+  getNodeTypeText,
+  type RelationType,
+} from "~/components/canvas/existingRelationTypes";
 import { getValidRelationTypesBetween } from "./relationCreation";
+import getDiscourseRelations from "~/utils/getDiscourseRelations";
+import { useRelationSchemaRevision } from "~/utils/relationSchemaChanges";
 
 export type NodeTypePair = { sourceType: string; targetType: string };
 
@@ -18,7 +25,11 @@ type RelationTypeDropdownProps = {
   onSelect: (relationId: string) => void;
   onDismiss: () => void;
   // Each action renders only when its handler is passed.
-  onAddExisting?: (pair: NodeTypePair) => void;
+  // Resolves true once the type is saved, so the menu returns to the type list.
+  onAddExisting?: (args: {
+    pair: NodeTypePair;
+    relationType: RelationType;
+  }) => Promise<boolean>;
   onCreateNew?: (pair: NodeTypePair) => void;
 };
 
@@ -58,10 +69,15 @@ export const RelationTypeDropdown = ({
   const editor = useEditor();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
+  const relationSchemaRevision = useRelationSchemaRevision();
   const validRelationTypes = useMemo(
     () => getValidRelationTypesBetween(editor, sourceId, targetId),
-    [editor, sourceId, targetId],
+    // relationSchemaRevision re-reads discourseContext.relations after a schema change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [editor, sourceId, targetId, relationSchemaRevision],
   );
 
   const pair = useMemo<NodeTypePair | null>(() => {
@@ -95,16 +111,45 @@ export const RelationTypeDropdown = ({
     };
   }, [onDismiss]);
 
-  // Handle Escape key
+  const existingRelationTypes = useMemo(
+    () =>
+      deriveRelationTypes({
+        // Fresh settings, not discourseContext, which keeps removed relations for existing arrows.
+        relations: getDiscourseRelations(),
+        shownLabels: validRelationTypes.map((t) => t.label),
+      }),
+    [validRelationTypes],
+  );
+
+  // Escape leaves the picker first, then closes the menu.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key !== "Escape") return;
+      if (isPickerOpen) {
+        e.stopPropagation();
+        setIsPickerOpen(false);
+      } else {
         onDismiss();
       }
     };
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [onDismiss]);
+  }, [onDismiss, isPickerOpen]);
+
+  const handlePickExisting = async (
+    relationType: RelationType,
+  ): Promise<void> => {
+    if (!pair || !onAddExisting || isSaving) return;
+    setIsSaving(true);
+    try {
+      if (await onAddExisting({ pair, relationType })) {
+        setIsPickerOpen(false);
+        setIsActionMenuOpen(false);
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleSelect = useCallback(
     (relationId: string) => {
@@ -118,7 +163,7 @@ export const RelationTypeDropdown = ({
         onAddExisting && {
           key: "add-existing",
           label: "Add existing…",
-          run: () => onAddExisting(pair),
+          run: () => setIsPickerOpen(true),
         },
         onCreateNew && {
           key: "create-new",
@@ -135,6 +180,7 @@ export const RelationTypeDropdown = ({
       {a.label}
     </MenuItem>
   ));
+  const createNewItem = actionItems.find((item) => item.key === "create-new");
 
   return (
     <div
@@ -151,10 +197,14 @@ export const RelationTypeDropdown = ({
       onPointerUp={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="max-h-[240px] min-w-[160px] overflow-y-auto rounded-lg border border-gray-200 bg-white p-4 shadow-lg">
+      {/* Arbitrary Tailwind values like max-h-[240px] don't apply in Roam, so the cap is inline. */}
+      <div
+        style={{ maxHeight: 240 }}
+        className="min-w-[160px] overflow-y-auto rounded-lg border border-gray-200 bg-white p-4 shadow-lg"
+      >
         <div className="flex items-center justify-between px-2 py-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
           <span>Relation Type</span>
-          {!isEmpty && actions.length > 0 && (
+          {!isEmpty && !isPickerOpen && actions.length > 0 && (
             <button
               aria-label="Add relation type"
               aria-expanded={isActionMenuOpen}
@@ -165,7 +215,40 @@ export const RelationTypeDropdown = ({
             </button>
           )}
         </div>
-        {isEmpty ? (
+        {isPickerOpen && pair ? (
+          <>
+            <div className="flex items-center gap-1 px-2 py-1 text-[13px] text-gray-500">
+              <button
+                aria-label="Back to relation types"
+                onClick={() => setIsPickerOpen(false)}
+                className="cursor-pointer rounded border-none bg-transparent px-1 text-sm text-gray-500"
+              >
+                ‹
+              </button>
+              <span>
+                {getNodeTypeText(pair.sourceType)} →{" "}
+                {getNodeTypeText(pair.targetType)}
+              </span>
+            </div>
+            {existingRelationTypes.length === 0 ? (
+              <>
+                <div className="px-3 py-2 text-[13px] text-gray-500">
+                  No other relation types
+                </div>
+                {createNewItem}
+              </>
+            ) : (
+              existingRelationTypes.map((rt) => (
+                <MenuItem
+                  key={JSON.stringify([rt.label, rt.complement])}
+                  onClick={() => void handlePickExisting(rt)}
+                >
+                  {rt.label} / {rt.complement}
+                </MenuItem>
+              ))
+            )}
+          </>
+        ) : isEmpty ? (
           actionItems.length > 0 ? (
             actionItems
           ) : (
