@@ -15,7 +15,6 @@ import { GLOBAL_KEYS, PERSONAL_KEYS } from "./utils/settingKeys";
 import { type SettingsSnapshot } from "./utils/accessors";
 import { useLegacyConfigBlocks } from "./utils/useLegacyConfigBlocks";
 import { SettingsSectionHeading } from "./components/SettingsHeadings";
-import { ROAM_DOCS, withDocsLink } from "./utils/docs";
 
 const CanvasSettings = ({
   onloadArgs,
@@ -47,10 +46,7 @@ const CanvasSettings = ({
       />
       <PersonalFlagPanel
         title="Auto canvas relations"
-        description={withDocsLink(
-          "Automatically add discourse relations to canvas when a node is added",
-          ROAM_DOCS.canvasRelations,
-        )}
+        description="Automatically add discourse relations to canvas when a node is added"
         settingKeys={[PERSONAL_KEYS.autoCanvasRelations]}
         initialValue={personalSettings[PERSONAL_KEYS.autoCanvasRelations]}
         onChange={(checked) => {

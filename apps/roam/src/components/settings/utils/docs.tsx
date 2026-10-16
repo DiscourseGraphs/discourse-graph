@@ -8,7 +8,6 @@ export const ROAM_DOCS = {
   exportOptions: `${ROAM_DOCS_BASE_URL}/guides/sharing-discourse-graph#export-options`,
   migrationToStoredRelations: `${ROAM_DOCS_BASE_URL}/guides/migration-to-stored-relations`,
   enableStoredRelations: `${ROAM_DOCS_BASE_URL}/guides/migration-to-stored-relations#turn-on-stored-relations-for-an-existing-install`,
-  canvasRelations: `${ROAM_DOCS_BASE_URL}/guides/using-the-canvas#connecting-discourse-nodes-with-relations`,
   discourseContextOverlay: `${ROAM_DOCS_BASE_URL}/guides/exploring-discourse-graph/discourse-context-overlay`,
   discourseScore: `${ROAM_DOCS_BASE_URL}/guides/exploring-discourse-graph/discourse-context-overlay#discourse-score`,
 } as const;

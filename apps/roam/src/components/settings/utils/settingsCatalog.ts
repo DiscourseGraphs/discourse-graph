@@ -238,7 +238,6 @@ const AUTHORED_SETTINGS = {
     label: "Auto canvas relations",
     description:
       "Automatically add discourse relations to canvas when a node is added",
-    docsLink: ROAM_DOCS.canvasRelations,
     keywords: ["personal", "tldraw"],
     path: rootPath(SETTINGS_TAB_IDS.featuresCanvas),
   },
