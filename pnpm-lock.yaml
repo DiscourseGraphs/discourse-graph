@@ -185,6 +185,9 @@ importers:
       eslint:
         specifier: 'catalog:'
         version: 9.39.5(jiti@1.21.7)
+      gray-matter:
+        specifier: ^4.0.3
+        version: 4.0.3
       obsidian:
         specifier: ^1.7.2
         version: 1.8.7(@codemirror/state@6.5.2)(@codemirror/view@6.38.8)
