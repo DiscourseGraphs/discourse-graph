@@ -127,7 +127,15 @@ describe("validateNewRelationType", () => {
       relations = [triplet({ id: "a" })],
       shownLabels = [],
     }: { relations?: DiscourseRelation[]; shownLabels?: string[] } = {},
-  ) => validateNewRelationType({ label, complement, relations, shownLabels });
+  ) =>
+    validateNewRelationType({
+      label,
+      complement,
+      sourceType: "evidence",
+      destinationType: "claim",
+      relations,
+      shownLabels,
+    });
 
   it("accepts a new label and complement", () => {
     expect(validate("informs", "is informed by")).toBeNull();
@@ -156,9 +164,20 @@ describe("validateNewRelationType", () => {
     );
   });
 
-  it("lets a provisional exact match through, since saving accepts it", () => {
+  it("lets an exact provisional match on this pair through, since saving accepts it", () => {
     mocks.provisional.add("a");
     expect(validate("supports", "is supported by")).toBeNull();
+  });
+
+  it("treats other provisional matches as duplicates, since saving would add a new triplet", () => {
+    mocks.provisional.add("a");
+    const duplicate =
+      '"supports" already exists. Use Add existing to add it for these node types.';
+    expect(validate("Supports", "is supported by")).toBe(duplicate);
+    const relations = [triplet({ id: "a", source: "question" })];
+    expect(validate("supports", "is supported by", { relations })).toBe(
+      duplicate,
+    );
   });
 
   it("blocks a label that exists with a different complement, ignoring case", () => {
