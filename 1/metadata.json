@@ -783,6 +783,37 @@
         "label": "Skill: scope-check",
         "default_collapsed": true
       }
+    },
+    {
+      "id": "claude-skill-toolu_01NDujvcFsCgE1p1JX7Axz8C",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-pr-adherence-check"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "d156f4b501ab",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 1613,
+        "end": 1614,
+        "entry_ids": [
+          "1373e610-367b-43af-bd67-8a09dd619001"
+        ],
+        "tool_use_id": "toolu_01NDujvcFsCgE1p1JX7Axz8C"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01NDujvcFsCgE1p1JX7Axz8C"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-pr-adherence-check",
+        "default_collapsed": true
+      }
     }
   ],
   "session_metrics": {
