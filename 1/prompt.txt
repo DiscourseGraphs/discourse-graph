@@ -1,0 +1,13 @@
+go ahead and make the edits
+
+---
+
+hmm some em dashes are better replaced with a comma no?
+
+---
+
+yes, switch the tooltips to commas. node index description is...clunky, is this the same description as in main? can we rephrase this?
+
+---
+
+simply say "A table of all X pages."
