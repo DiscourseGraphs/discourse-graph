@@ -7,6 +7,7 @@
  * "Keeping the stub honest" in AGENTS.md before adding one.
  */
 
+import { parse as parseYamlUpstream } from "yaml";
 import type {
   Debouncer,
   FileStats,
@@ -94,6 +95,12 @@ export const normalizePath = (path: string): string => {
     .replace(NBSP_RE, " ")
     .normalize("NFC");
 };
+
+/**
+ * Obsidian's `parseYaml` is `YAML.parse` from the `yaml` package, not js-yaml,
+ * so the stub delegates to that package rather than reimplementing it.
+ */
+export const parseYaml = (yaml: string): unknown => parseYamlUpstream(yaml);
 
 export const parseLinktext = (
   linktext: string,
