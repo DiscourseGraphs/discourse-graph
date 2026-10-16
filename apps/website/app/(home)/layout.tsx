@@ -90,7 +90,7 @@ const HomeLayout = async ({
               {/* Use hard navigation across the marketing/docs boundary because client-side transitions can leak docs CSS. */}
               <a
                 href="/docs"
-                className="inline-flex items-center justify-center rounded-md border border-neutral-dark/20 bg-transparent px-4 py-2 text-sm font-semibold text-neutral-dark transition-colors hover:bg-neutral-dark/5"
+                className="inline-flex items-center justify-center px-2 py-2 text-sm font-semibold text-neutral-dark/75 transition-colors hover:text-neutral-dark"
               >
                 Open docs
               </a>
