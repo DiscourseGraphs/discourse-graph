@@ -1,6 +1,6 @@
 ---
 name: dg-create-engineering-ticket
-description: Create concise Discourse Graphs Engineering tickets in Linear with the canonical template, correct readiness status, an active existing project (or the `Obsidian plugin` label for unprojected Obsidian work), and existing labels. Use when the user asks to create or draft an Engineering ticket; do not use for Feedback tickets.
+description: Create concise Discourse Graphs Engineering tickets in Linear with the canonical template, correct readiness status, an active existing project (none for unprojected Obsidian work), and existing labels (including `Obsidian plugin` for Obsidian work). Use when the user asks to create or draft an Engineering ticket; do not use for Feedback tickets.
 ---
 
 # DG Create Engineering Ticket
@@ -71,7 +71,7 @@ Any project you select must exist, not be completed, canceled, archived, or tras
 
 - Inspect existing issue labels and apply every clearly relevant label. Always apply `Obsidian plugin` to Obsidian work, since it is how unprojected Obsidian tickets reach the queue.
 - Never create a label or guess an uncertain label.
-- Missing or uncertain optional labels do not block creation. If `Ticket Draft` or the required provenance label is missing or ambiguous, return the prepared draft and report the configuration gap instead of creating an unmarked ticket or substituting a status.
+- Missing or uncertain optional labels do not block creation. If `Ticket Draft`, the required provenance label, or `Obsidian plugin` for Obsidian work is missing or ambiguous, return the prepared draft and report the configuration gap instead of creating an unmarked ticket or substituting a status.
 - Set priority only when the user or context makes it clear and useful.
 - Do not set a cycle or release. CI/CD handles releases.
 
@@ -81,4 +81,4 @@ Draft without changing Linear when the user asks for a draft, review, or rewrite
 
 Before creation, resolve the current Engineering statuses, selected project, and existing labels. Create the issue once with its title, completed description (including skill attribution), `Ticket Draft` status, project (omitted for unprojected Obsidian work), provenance and relevant labels, and justified priority. If the result is ambiguous, search for the issue before retrying so a transient failure does not create a duplicate.
 
-Read the created issue back and verify its status, labels, and attribution. Report any mismatch instead of claiming successful routing. Return the issue identifier, title, status, project, and link, and say that human review is pending. Include the generated branch name when Linear returns one. Do not restate the full description unless the user asks.
+Read the created issue back and verify its status, labels, and attribution. For unprojected Obsidian work, confirm the project is empty and `Obsidian plugin` is applied. Report any mismatch instead of claiming successful routing. Return the issue identifier, title, status, project, and link, and say that human review is pending. Include the generated branch name when Linear returns one. Do not restate the full description unless the user asks.
