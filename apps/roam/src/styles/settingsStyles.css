@@ -25,6 +25,11 @@
   padding: 2px;
 }
 
+/* Keeps a search-jumped row clear of the sticky section heading above it. */
+.dg-settings-tabs [data-setting-id] {
+  scroll-margin-top: 3rem;
+}
+
 /** No row dividers: the only rule on a page is the one under a section heading. */
 
 /* Translucent neutral so the badge reads on Roam's light and dark themes;
