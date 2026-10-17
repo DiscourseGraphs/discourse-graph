@@ -33,7 +33,7 @@ const SettingScopeIndicator = ({ scope }: { scope: SettingScope }) => {
     <Tooltip content={tooltip} position={Position.TOP} hoverOpenDelay={300}>
       <span
         aria-label={tooltip}
-        className="dg-setting-row__scope flex h-5 w-5 flex-shrink-0 items-center justify-center rounded opacity-60"
+        className="dg-setting-row__scope flex h-5 w-5 flex-shrink-0 cursor-default items-center justify-center rounded opacity-60"
       >
         <Icon icon={icon} iconSize={12} />
       </span>
