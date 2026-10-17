@@ -47,7 +47,6 @@ import GrammarNodesRoute from "./GrammarNodesRoute";
 
 /** `pr-1` leaves room for the search flash's `-mx-2`, which the scroll box would clip. */
 const TAB_PANEL_CLASS = "overflow-y-auto pr-1";
-/** Caps the width of tabs made of setting rows; see settingsStyles.css. */
 const ROW_TAB_PANEL_CLASS = "dg-settings-row-panel";
 
 const SectionHeader = ({ children }: { children: React.ReactNode }) => (
