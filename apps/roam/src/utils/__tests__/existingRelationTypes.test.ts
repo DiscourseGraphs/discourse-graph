@@ -147,7 +147,7 @@ describe("validateNewRelationType", () => {
       destinationType: "claim",
       relations,
       shownLabels,
-      reservedNames: ["is a", "Has Any Relation To", "supports"],
+      reservedNames: ["is a", "Has Any Relation To"],
     });
 
   it("accepts a new label and complement", () => {
@@ -189,7 +189,14 @@ describe("validateNewRelationType", () => {
     expect(validate("related", "related")).toBeNull();
   });
 
-  it("rejects built-in query conditions but not existing relation names, ignoring case", () => {
+  it("rejects built-in query conditions even when an incomplete relation uses the name, ignoring case", () => {
+    const relations = [triplet({ id: "i", label: "is a", destination: "?" })];
+    expect(validate("Is A", "is an instance of", { relations })).toBe(
+      '"is a" is a reserved query condition.',
+    );
+  });
+
+  it("rejects built-in query conditions, ignoring case", () => {
     expect(validate("IS A", "is an instance of")).toBe(
       '"is a" is a reserved query condition.',
     );

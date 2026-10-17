@@ -141,11 +141,8 @@ export const validateNewRelationType = ({
     return `"${asComplement.complement}" is already the complement of "${asComplement.label}".`;
 
   // Relation names register as query conditions and would replace a built-in one.
-  const relationNames = relations.flatMap((r) => [r.label, r.complement]);
   const reserved = reservedNames.find(
-    (n) =>
-      (sameText(n, label) || sameText(n, complement)) &&
-      !relationNames.some((r) => sameText(r, n)),
+    (n) => sameText(n, label) || sameText(n, complement),
   );
   if (reserved) return `"${reserved}" is a reserved query condition.`;
 
