@@ -44,7 +44,9 @@ vi.mock("~/utils/createRelationSchema", () => ({
   createRelationSchema: vi.fn(),
 }));
 vi.mock("~/utils/refreshConfigTree", () => ({ default: vi.fn() }));
-vi.mock("~/utils/conditionToDatalog", () => ({ getConditionKeys: () => [] }));
+vi.mock("~/utils/conditionToDatalog", () => ({
+  getBuiltInConditionKeys: () => [],
+}));
 vi.mock("~/utils/getDiscourseRelations", () => ({
   default: () => mocks.relations,
 }));
