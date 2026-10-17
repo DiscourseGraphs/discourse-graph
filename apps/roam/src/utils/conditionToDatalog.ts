@@ -966,19 +966,25 @@ const translator: Record<string, Translator> = {
   },
 };
 
+// Relation names share this registry, and a deleted relation's key lingers until reload.
+const builtInConditionKeys = new Set(Object.keys(translator));
+
 export const registerDatalogTranslator = ({
   key,
+  builtIn,
   ...translation
-}: Translator & { key: string }) => {
+}: Translator & { key: string; builtIn?: boolean }) => {
   translator[key] = translation;
+  if (builtIn) builtInConditionKeys.add(key);
   return () => unregisterDatalogTranslator({ key });
 };
 
 export const unregisterDatalogTranslator = ({ key }: { key: string }) =>
   delete translator[key];
 
-// Includes "self", which getConditionLabels hides from the query editor.
-export const getConditionKeys = (): string[] => Object.keys(translator);
+export const getBuiltInConditionKeys = (): string[] => [
+  ...builtInConditionKeys,
+];
 
 export const getConditionLabels = () =>
   Object.keys(translator)

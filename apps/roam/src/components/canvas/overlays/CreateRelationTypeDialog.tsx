@@ -11,7 +11,7 @@ import {
   validateNewRelationType,
   type RelationType,
 } from "~/components/canvas/existingRelationTypes";
-import { getConditionKeys } from "~/utils/conditionToDatalog";
+import { getBuiltInConditionKeys } from "~/utils/conditionToDatalog";
 import getDiscourseRelations from "~/utils/getDiscourseRelations";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { isRelationSchemaDeleted } from "~/utils/relationSchemaChanges";
@@ -47,7 +47,7 @@ export const CreateRelationTypeDialog = ({
         (r) => !isRelationSchemaDeleted(r.id),
       ),
       shownLabels,
-      reservedNames: getConditionKeys(),
+      reservedNames: getBuiltInConditionKeys(),
     });
     setError(message);
     if (message) return;
