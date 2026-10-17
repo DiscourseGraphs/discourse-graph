@@ -5,6 +5,9 @@
 import { USE_STORED_RELATIONS } from "~/data/userSettings";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import { getSetting, setSetting } from "./extensionSettings";
+import { getPersonalSettingsKey } from "~/components/settings/utils/zodSchema";
+import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
+import { isJsonObject, normalizeProps, type json } from "./getBlockProps";
 
 const INSTALL_CUTOFF = Date.parse("2026-03-01T00:00:00.000Z");
 
@@ -26,13 +29,29 @@ const getInstallDefault = (): boolean => {
   return typeof createdAt === "number" && createdAt >= INSTALL_CUTOFF;
 };
 
-// Once the config page exists, persist the resolved default under the new
-// setting key so future reads can use the explicit setting path directly.
+// Extension settings reset when a dev extension is re-added; the graph keeps the user's choice.
+const getGraphStoredRelations = (): boolean | undefined => {
+  const page = window.roamAlphaAPI.pull(
+    "[{:block/children [:block/string :block/props]}]",
+    [":node/title", DISCOURSE_CONFIG_PAGE_TITLE],
+  ) as { ":block/children"?: Record<string, json>[] } | null;
+  const personalKey = getPersonalSettingsKey();
+  const personalBlock = page?.[":block/children"]?.find(
+    (child) => child[":block/string"] === personalKey,
+  );
+  const props = normalizeProps(personalBlock?.[":block/props"] ?? null);
+  const value = isJsonObject(props)
+    ? props[PERSONAL_KEYS.reifiedRelationTriples]
+    : undefined;
+  return typeof value === "boolean" ? value : undefined;
+};
+
+// Persist the resolved value under the setting key so future reads use it directly.
 export const getStoredRelationsEnabled = (): boolean => {
   const value = getSetting<boolean | undefined>(USE_STORED_RELATIONS);
   if (typeof value === "boolean") return value;
 
-  const resolvedDefault = getInstallDefault();
+  const resolvedDefault = getGraphStoredRelations() ?? getInstallDefault();
   setResolvedDefault(resolvedDefault);
   return resolvedDefault;
 };
