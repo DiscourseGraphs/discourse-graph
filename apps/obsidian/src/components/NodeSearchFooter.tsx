@@ -5,10 +5,13 @@ type NodeSearchFooterProps = {
   canAct: boolean;
   canInsertLink: boolean;
   isActiveResultLinkable: boolean;
+  isPreviewOpen: boolean;
+  isPreviewToggleVisible: boolean;
   onClose: () => void;
   onInsertLink: () => void;
   onOpenInNewTab: () => void;
   onOpenInSplit: () => void;
+  onTogglePreview: () => void;
 };
 
 type FooterActionProps = {
@@ -39,8 +42,8 @@ const FooterAction = ({
     className="prompt-instruction dg-search-footer-action inline-flex h-auto cursor-pointer items-center gap-1 rounded-none border-0 p-0 disabled:cursor-not-allowed disabled:opacity-50"
     disabled={disabled}
     onClick={onClick}
-    // Clicking must not move focus out of the query input, or the arrow keys stop
-    // reaching the result list.
+    // Clicking leaves focus where it was, in the query or the result list, so the
+    // keyboard path is unchanged.
     onMouseDown={(event) => event.preventDefault()}
   >
     <KeyHints keys={keys} />
@@ -55,10 +58,13 @@ export const NodeSearchFooter = ({
   canAct,
   canInsertLink,
   isActiveResultLinkable,
+  isPreviewOpen,
+  isPreviewToggleVisible,
   onClose,
   onInsertLink,
   onOpenInNewTab,
   onOpenInSplit,
+  onTogglePreview,
 }: NodeSearchFooterProps): ReactElement => (
   <div className="prompt-instructions dg-search-footer shrink-0 justify-start px-0 pb-0 text-left">
     {/* Absent, not disabled: with no cursor there is nothing to insert into. */}
@@ -82,6 +88,22 @@ export const NodeSearchFooter = ({
       label="open in split"
       onClick={onOpenInSplit}
     />
+    {/* Only while the result list has focus; elsewhere ← and → move the caret. */}
+    {isPreviewToggleVisible &&
+      (isPreviewOpen ? (
+        <FooterAction
+          keys={["ArrowLeft"]}
+          label="close preview"
+          onClick={onTogglePreview}
+        />
+      ) : (
+        <FooterAction
+          disabled={!canAct}
+          keys={["ArrowRight"]}
+          label="preview"
+          onClick={onTogglePreview}
+        />
+      ))}
     {/* The Escape key itself is handled by Obsidian's modal scope; this button
         is the pointer equivalent, so every footer item responds to a click. */}
     <FooterAction keys={["Escape"]} label="close" onClick={onClose} />
