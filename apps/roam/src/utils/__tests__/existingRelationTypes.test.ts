@@ -166,7 +166,12 @@ describe("validateNewRelationType", () => {
 
   it("lets an exact provisional match on this pair through, since saving accepts it", () => {
     mocks.provisional.add("a");
-    expect(validate("supports", "is supported by")).toBeNull();
+    mocks.provisional.add("b");
+    const relations = [
+      triplet({ id: "b", source: "question" }),
+      triplet({ id: "a" }),
+    ];
+    expect(validate("supports", "is supported by", { relations })).toBeNull();
   });
 
   it("treats other provisional matches as duplicates, since saving would add a new triplet", () => {
