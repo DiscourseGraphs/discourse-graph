@@ -3,7 +3,7 @@
   "checkpoint_id": "01M552YDYWGGAM3E59DKHH4QD9",
   "strategy": "manual-commit",
   "branch": "eng-2409-long-settings-pages-are-hard-to-scan-add-collapsible",
-  "checkpoints_count": 8,
+  "checkpoints_count": 9,
   "files_touched": [
     "apps/roam/src/components/settings/GrammarNodesRoute.tsx",
     "apps/roam/src/components/settings/NodeConfig.tsx",
@@ -42,20 +42,27 @@
       "compact_transcript": "/3/transcript.jsonl",
       "content_hash": "/3/content_hash.txt",
       "prompt": "/3/prompt.txt"
+    },
+    {
+      "metadata": "/4/metadata.json",
+      "transcript": "/4/full.jsonl",
+      "compact_transcript": "/4/transcript.jsonl",
+      "content_hash": "/4/content_hash.txt",
+      "prompt": "/4/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 18,
-    "cache_creation_tokens": 90313,
-    "cache_read_tokens": 1450441,
-    "output_tokens": 3821,
-    "api_call_count": 9,
+    "input_tokens": 28,
+    "cache_creation_tokens": 96667,
+    "cache_read_tokens": 3415260,
+    "output_tokens": 8594,
+    "api_call_count": 14,
     "subagent_tokens": {
-      "input_tokens": 0,
-      "cache_creation_tokens": 0,
-      "cache_read_tokens": 0,
-      "output_tokens": 0,
-      "api_call_count": 0
+      "input_tokens": 4,
+      "cache_creation_tokens": 2753,
+      "cache_read_tokens": 120970,
+      "output_tokens": 16,
+      "api_call_count": 2
     }
   }
 }
