@@ -78,13 +78,13 @@ describe("SettingsGroup", () => {
     vi.unstubAllGlobals();
   });
 
-  it("keeps collapsed rows mounted but hidden, so search anchors still resolve", () => {
+  it("keeps collapsed rows mounted, so search anchors still resolve", () => {
     render(false);
     const content = document.getElementById(
       heading().getAttribute("aria-controls")!,
     )!;
     expect(heading().getAttribute("aria-expanded")).toBe("false");
-    expect(content.className).toBe("hidden");
+    expect(content.closest("[aria-hidden='true']")).not.toBeNull();
     expect(container.querySelector("[data-setting-id='row']")).not.toBeNull();
   });
 

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { Classes } from "@blueprintjs/core";
 import { settingAnchorSelector } from "~/components/settings/utils/settingAnchor";
 
 /** Roughly 500ms at 60fps. */
@@ -37,6 +38,16 @@ const flashRow = (target: Element): void => {
   ]);
 };
 
+/** Blueprint sets an open `Collapse` to `height: auto` only after its animation ends;
+ *  scrolling earlier lands short of the row. */
+const isFullyExpanded = (target: Element): boolean => {
+  for (let el = target.parentElement; el; el = el.parentElement) {
+    if (el.classList.contains(Classes.COLLAPSE) && el.style.height !== "auto")
+      return false;
+  }
+  return true;
+};
+
 /** The row is not in the DOM when the jump is dispatched — only the active panel renders,
  *  and a `Collapse` mounts later still — so a single lookup misses and this retries. */
 export const useSettingAnchorScroll = ({
@@ -51,16 +62,18 @@ export const useSettingAnchorScroll = ({
     let frame = 0;
     let rafId = 0;
 
+    const reveal = (target: Element) => {
+      target.scrollIntoView({ block: "center", behavior: "smooth" });
+      flashRow(target);
+      onSettled();
+    };
+
     const look = () => {
       const target = document.querySelector(settingAnchorSelector(anchorId));
-      if (target) {
-        target.scrollIntoView({ block: "center", behavior: "smooth" });
-        flashRow(target);
-        onSettled();
-        return;
-      }
+      if (target && isFullyExpanded(target)) return reveal(target);
       if (frame++ >= MAX_LOOKUP_FRAMES) {
-        onSettled();
+        if (target) reveal(target);
+        else onSettled();
         return;
       }
       rafId = requestAnimationFrame(look);

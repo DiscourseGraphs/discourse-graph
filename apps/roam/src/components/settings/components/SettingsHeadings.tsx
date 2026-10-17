@@ -1,5 +1,5 @@
 import React, { useId, useLayoutEffect, useRef } from "react";
-import { Icon } from "@blueprintjs/core";
+import { Collapse, Icon } from "@blueprintjs/core";
 
 /** `bp3-heading` carries the themed text color; `border-0 border-solid` is
  *  required because Roam ships no Tailwind preflight to default border-style. */
@@ -102,10 +102,12 @@ export const SettingsGroup = ({
       ) : (
         <StickyHeading>{title}</StickyHeading>
       )}
-      {/* Hidden rather than unmounted, so pending setting writes and search anchors survive a collapse. */}
-      <div id={contentId} className={isOpen ? "flex flex-col gap-4" : "hidden"}>
-        {children}
-      </div>
+      {/* keepChildrenMounted so pending setting writes and search anchors survive a collapse. */}
+      <Collapse isOpen={isOpen} keepChildrenMounted>
+        <div id={contentId} className="flex flex-col gap-4">
+          {children}
+        </div>
+      </Collapse>
     </div>
   );
 };
