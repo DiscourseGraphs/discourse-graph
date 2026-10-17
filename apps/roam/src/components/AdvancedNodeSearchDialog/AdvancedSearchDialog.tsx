@@ -186,6 +186,8 @@ const PreviewPane = ({ result }: { result: SearchResult | null }) => {
         {result.authorName || "Unknown"}
       </div>
       <div
+        // Remount per result so each preview starts scrolled to the top.
+        key={result.uid}
         className="min-h-0 flex-1 overflow-y-auto border-t border-gray-200 px-5 py-3"
         onMouseDown={(event) => event.preventDefault()}
       >
@@ -193,7 +195,13 @@ const PreviewPane = ({ result }: { result: SearchResult | null }) => {
           {isPage ? (
             <RenderRoamPage hideMentions key={result.uid} uid={result.uid} />
           ) : (
-            <RenderRoamBlock key={result.uid} uid={result.uid} zoomPath />
+            <RenderRoamBlock
+              key={result.uid}
+              uid={result.uid}
+              zoomPath
+              // Display-only: shows a candidate's direct children without writing :block/open.
+              open={result.candidate ? true : undefined}
+            />
           )}
         </div>
       </div>
