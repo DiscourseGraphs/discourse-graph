@@ -12,6 +12,7 @@ import {
   type RelationType,
 } from "~/components/canvas/existingRelationTypes";
 import getDiscourseRelations from "~/utils/getDiscourseRelations";
+import refreshConfigTree from "~/utils/refreshConfigTree";
 import { isRelationSchemaDeleted } from "~/utils/relationSchemaChanges";
 import type { NodeTypePair } from "./RelationTypeDropdown";
 
@@ -34,6 +35,8 @@ export const CreateRelationTypeDialog = ({
 
   const handleSubmit = async (): Promise<void> => {
     if (isSaving) return;
+    // Saving refreshes the config tree first, so validate against the same data.
+    refreshConfigTree();
     const message = validateNewRelationType({
       label,
       complement,
@@ -47,14 +50,17 @@ export const CreateRelationTypeDialog = ({
     setError(message);
     if (message) return;
     setIsSaving(true);
+    let saved = false;
     try {
-      if (
-        await onSubmit({ label: label.trim(), complement: complement.trim() })
-      )
-        onClose();
+      saved = await onSubmit({
+        label: label.trim(),
+        complement: complement.trim(),
+      });
     } finally {
-      setIsSaving(false);
+      // A successful save unmounts the dialog.
+      if (!saved) setIsSaving(false);
     }
+    if (saved) onClose();
   };
 
   return (

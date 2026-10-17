@@ -319,7 +319,9 @@ export const DragHandleOverlay = () => {
             : "Canvas add existing relation",
         });
         dispatchToastEvent({
-          id: "tldraw-add-existing-relation-error",
+          id: isNew
+            ? "tldraw-create-relation-type-error"
+            : "tldraw-add-existing-relation-error",
           title: isNew
             ? "Could not create relation type"
             : "Could not add discourse relation",
@@ -347,7 +349,9 @@ export const DragHandleOverlay = () => {
           severity: "success",
         });
       dispatchToastEvent({
-        id: "tldraw-add-existing-relation",
+        id: isNew
+          ? "tldraw-create-relation-type-added"
+          : "tldraw-add-existing-relation",
         title,
         description,
         severity: "success",
