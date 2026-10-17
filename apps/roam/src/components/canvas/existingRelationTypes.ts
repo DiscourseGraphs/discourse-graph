@@ -68,7 +68,16 @@ export const validateNewRelationType = ({
 }): string | null => {
   const label = rawLabel.trim();
   const complement = rawComplement.trim();
-  if (!label || !complement) return "Label and complement are required.";
+  // "?" counts as missing, as everywhere else that reads relation types.
+  if (
+    !isRelationComplete({
+      label,
+      complement,
+      source: sourceType,
+      destination: destinationType,
+    })
+  )
+    return "Label and complement are required.";
 
   const shown = shownLabels.find(
     (s) => sameText(s, label) || sameText(s, complement),
@@ -77,7 +86,7 @@ export const validateNewRelationType = ({
     return `"${shown}" is already a relation between these node types.`;
 
   const complete = relations.filter(isRelationComplete);
-  // createTripletForPair accepts an exact provisional match for this pair, so it is not a duplicate.
+  // createTripletForPair accepts an exact provisional match for this pair; only case twins are duplicates then.
   const isAcceptedOnSave = complete.some(
     (r) =>
       !isAcceptedRelationSchema(r) &&
@@ -86,11 +95,12 @@ export const validateNewRelationType = ({
       r.source === sourceType &&
       r.destination === destinationType,
   );
-  const duplicate = isAcceptedOnSave
-    ? undefined
-    : complete.find(
-        (r) => sameText(r.label, label) && sameText(r.complement, complement),
-      );
+  const duplicate = complete.find(
+    (r) =>
+      !(isAcceptedOnSave && r.label === label && r.complement === complement) &&
+      sameText(r.label, label) &&
+      sameText(r.complement, complement),
+  );
   // The Add existing picker lists only accepted types.
   if (duplicate)
     return isAcceptedRelationSchema(duplicate)

@@ -146,6 +146,9 @@ describe("validateNewRelationType", () => {
       "Label and complement are required.",
     );
     expect(validate("informs", "")).toBe("Label and complement are required.");
+    expect(validate("informs", " ? ")).toBe(
+      "Label and complement are required.",
+    );
   });
 
   it("rejects a label or complement the pair already shows, ignoring case", () => {
@@ -172,6 +175,22 @@ describe("validateNewRelationType", () => {
       triplet({ id: "a" }),
     ];
     expect(validate("supports", "is supported by", { relations })).toBeNull();
+  });
+
+  it("blocks a case twin of an accepted type even when accepting an exact provisional match", () => {
+    mocks.provisional.add("a");
+    const relations = [
+      triplet({ id: "a" }),
+      triplet({
+        id: "b",
+        label: "Supports",
+        complement: "Is Supported By",
+        source: "question",
+      }),
+    ];
+    expect(validate("supports", "is supported by", { relations })).toBe(
+      '"Supports" already exists. Use Add existing to add it for these node types.',
+    );
   });
 
   it("still blocks conflicts when accepting an exact provisional match", () => {
