@@ -26,7 +26,7 @@ type NodeTypeChip = {
   textColor: string;
 };
 
-const isPlainCharacterKey = (event: KeyboardEvent): boolean =>
+export const isPlainCharacterKey = (event: KeyboardEvent): boolean =>
   event.key.length === 1 && !event.altKey && !event.ctrlKey && !event.metaKey;
 
 // An editable span has no selectionStart, so the caret comes from the selection.
@@ -37,7 +37,7 @@ const isCaretAtStart = (field: HTMLElement | null): boolean => {
   return selection.anchorOffset === 0;
 };
 
-const setCaretToEnd = (field: HTMLElement): void => {
+export const setCaretToEnd = (field: HTMLElement): void => {
   const selection = field.ownerDocument.getSelection();
   if (!selection) return;
   const range = field.ownerDocument.createRange();

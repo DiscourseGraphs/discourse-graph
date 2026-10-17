@@ -5,10 +5,12 @@ type NodeSearchFooterProps = {
   canAct: boolean;
   canInsertLink: boolean;
   isActiveResultLinkable: boolean;
+  isPreviewOpen: boolean;
   onClose: () => void;
   onInsertLink: () => void;
   onOpenInNewTab: () => void;
   onOpenInSplit: () => void;
+  onTogglePreview: () => void;
 };
 
 type FooterActionProps = {
@@ -55,10 +57,12 @@ export const NodeSearchFooter = ({
   canAct,
   canInsertLink,
   isActiveResultLinkable,
+  isPreviewOpen,
   onClose,
   onInsertLink,
   onOpenInNewTab,
   onOpenInSplit,
+  onTogglePreview,
 }: NodeSearchFooterProps): ReactElement => (
   <div className="prompt-instructions dg-search-footer shrink-0 justify-start px-0 pb-0 text-left">
     {/* Absent, not disabled: with no cursor there is nothing to insert into. */}
@@ -82,6 +86,20 @@ export const NodeSearchFooter = ({
       label="open in split"
       onClick={onOpenInSplit}
     />
+    {isPreviewOpen ? (
+      <FooterAction
+        keys={["ArrowLeft"]}
+        label="close preview"
+        onClick={onTogglePreview}
+      />
+    ) : (
+      <FooterAction
+        disabled={!canAct}
+        keys={["ArrowRight"]}
+        label="preview"
+        onClick={onTogglePreview}
+      />
+    )}
     {/* The Escape key itself is handled by Obsidian's modal scope; this button
         is the pointer equivalent, so every footer item responds to a click. */}
     <FooterAction keys={["Escape"]} label="close" onClick={onClose} />

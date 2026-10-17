@@ -17,13 +17,18 @@ import {
   type KeyboardEvent,
   type MouseEvent,
   type ReactElement,
+  type RefObject,
 } from "react";
 import { createRoot, Root } from "react-dom/client";
 import type DiscourseGraphPlugin from "~/index";
 import { NodeDisplayOptionsMenu } from "~/components/NodeDisplayOptionsMenu";
 import { NodeSearchFooter } from "~/components/NodeSearchFooter";
 import { NodeSortMenu } from "~/components/NodeSortMenu";
-import { NodeTypeChipsSearchInput } from "~/components/NodeTypeChipsSearchInput";
+import {
+  isPlainCharacterKey,
+  NodeTypeChipsSearchInput,
+  setCaretToEnd,
+} from "~/components/NodeTypeChipsSearchInput";
 import { NodeTypeFilterMenu } from "~/components/NodeTypeFilterMenu";
 import type { SearchDropdownId } from "~/components/SearchDropdown";
 import {
@@ -270,19 +275,20 @@ const NodeTypePill = ({
 const ResultList = ({
   results,
   activeIndex,
+  listRef,
   onActivate,
 }: {
   results: SearchResultRow[];
   activeIndex: number;
+  listRef: RefObject<HTMLDivElement | null>;
   onActivate: (index: number) => void;
 }): ReactElement => {
-  const listRef = useRef<HTMLDivElement | null>(null);
   const pointerPositionRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     const active = listRef.current?.children[activeIndex];
     active?.scrollIntoView({ block: "nearest" });
-  }, [activeIndex]);
+  }, [activeIndex, listRef]);
 
   // Scrolling drags rows under a stationary cursor, and the mouseenter that
   // fires is not a choice. Compare coordinates rather than resetting a flag on
@@ -300,13 +306,15 @@ const ResultList = ({
   return (
     // No `aria-label` here: Obsidian renders one as a hover tooltip, which
     // covers the results the moment the pointer enters the list.
+    // Focusable by click only, so Tab still runs from the query to the footer.
     <div
       ref={listRef}
       role="listbox"
+      tabIndex={-1}
       onMouseMove={(event) => {
         hasPointerMoved(event);
       }}
-      className="flex-1 overflow-y-auto"
+      className="flex-1 overflow-y-auto outline-none"
     >
       {results.map((result, index) => (
         <div
@@ -314,10 +322,8 @@ const ResultList = ({
           role="option"
           aria-selected={index === activeIndex}
           onMouseEnter={(event) => hasPointerMoved(event) && onActivate(index)}
+          // The click also focuses the listbox, which hands ← and → to the preview.
           onClick={() => onActivate(index)}
-          // Keeps focus in the search input, so the keyboard path stays live
-          // after a click.
-          onMouseDown={(event) => event.preventDefault()}
           className={`border-modifier-border flex cursor-pointer items-start gap-2 border-b px-3 py-2 ${
             index === activeIndex ? "bg-modifier-hover" : ""
           }`}
@@ -366,12 +372,14 @@ const NodeSearch = ({
   const [openDropdown, setOpenDropdown] = useState<SearchDropdownId>(null);
   const [sortKey, setSortKey] = useState<SortKey>(DEFAULT_SORT_KEY);
   const [showCandidates, setShowCandidates] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [tagCandidates, setTagCandidates] = useState<SearchableNode[]>([]);
   const [sortDirection, setSortDirection] = useState<SortDirection>(
     DEFAULT_SORT_DIRECTION,
   );
   // An editable span, so the query shares its line boxes with the filter chips.
   const inputRef = useRef<HTMLSpanElement | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
   const userNames = useAuthorNames({
     app,
     plugin,
@@ -554,6 +562,27 @@ const NodeSearch = ({
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    // In the query, ← and → stay caret movement; only the focused list toggles the preview.
+    const isListFocused = event.target === listRef.current;
+    if (
+      isListFocused &&
+      (event.key === "ArrowLeft" || event.key === "ArrowRight")
+    ) {
+      event.preventDefault();
+      if (event.key === "ArrowLeft") setIsPreviewOpen(false);
+      else if (activeResult) setIsPreviewOpen(true);
+      return;
+    }
+
+    // Not prevented, so the browser types the key into the query focused here.
+    if (isListFocused && isPlainCharacterKey(event)) {
+      const field = inputRef.current;
+      if (!field) return;
+      field.focus();
+      setCaretToEnd(field);
+      return;
+    }
+
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       // Otherwise the caret jumps to the start or end of the query.
       event.preventDefault();
@@ -640,7 +669,14 @@ const NodeSearch = ({
         />
       </div>
       <div className="border-modifier-border mt-3 flex flex-1 overflow-hidden rounded border">
-        <div className="border-modifier-border flex w-2/5 flex-col border-r">
+        {/* No preflight here: without `border-0 border-solid`, `border-r` draws nothing. */}
+        <div
+          className={`flex flex-col ${
+            isPreviewOpen
+              ? "border-modifier-border w-2/5 border-0 border-r border-solid"
+              : "w-full"
+          }`}
+        >
           {nodesState.status === "loading" && (
             <div className="text-muted p-4">Loading discourse nodes…</div>
           )}
@@ -656,20 +692,29 @@ const NodeSearch = ({
             <ResultList
               results={results}
               activeIndex={activeIndexInRange}
+              listRef={listRef}
               onActivate={setActiveIndex}
             />
           )}
         </div>
-        <PreviewPane app={app} result={activeResult} authorName={authorName} />
+        {isPreviewOpen && (
+          <PreviewPane
+            app={app}
+            result={activeResult}
+            authorName={authorName}
+          />
+        )}
       </div>
       <NodeSearchFooter
         canAct={nodesState.status === "ready" && !!activeResult}
         canInsertLink={!!insertTarget}
         isActiveResultLinkable={isActiveResultLinkable}
+        isPreviewOpen={isPreviewOpen}
         onClose={onClose}
         onInsertLink={insertLinkToActiveResult}
         onOpenInNewTab={() => openActiveResult(openFileInNewTab)}
         onOpenInSplit={() => openActiveResult(openFileInNewLeaf)}
+        onTogglePreview={() => setIsPreviewOpen((isOpen) => !isOpen)}
       />
     </div>
   );
