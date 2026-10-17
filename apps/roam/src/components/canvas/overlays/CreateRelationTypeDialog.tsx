@@ -63,6 +63,7 @@ export const CreateRelationTypeDialog = ({
       onClose={onClose}
       canEscapeKeyClose={!isSaving}
       canOutsideClickClose={!isSaving}
+      isCloseButtonShown={!isSaving}
       title="Add relation type"
       className="w-96"
     >
