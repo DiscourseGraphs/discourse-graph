@@ -1,4 +1,4 @@
-import React, { useId, useLayoutEffect, useRef } from "react";
+import React, { useEffect, useId, useLayoutEffect, useRef } from "react";
 import { Collapse, Icon } from "@blueprintjs/core";
 
 /** `bp3-heading` carries the themed text color; `border-0 border-solid` is
@@ -55,7 +55,13 @@ export const SettingsGroup = ({
   const contentId = useId();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const scrollerToRealign = useRef<HTMLElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
   const isOpen = collapsible?.isOpen ?? true;
+
+  // Collapse only clips kept-mounted rows; inert keeps Tab out. React 18 drops an `inert` prop.
+  useEffect(() => {
+    contentRef.current?.toggleAttribute("inert", !isOpen);
+  }, [isOpen]);
 
   // Collapsing a stuck section removes the content above the viewport; keep its heading in place.
   // Scrolls only the settings scroller: scrollIntoView would also move Blueprint's overlay.
@@ -102,12 +108,16 @@ export const SettingsGroup = ({
       ) : (
         <StickyHeading>{title}</StickyHeading>
       )}
-      {/* keepChildrenMounted so pending setting writes and search anchors survive a collapse. */}
-      <Collapse isOpen={isOpen} keepChildrenMounted>
-        <div id={contentId} className="flex flex-col gap-4">
-          {children}
-        </div>
-      </Collapse>
+      {collapsible ? (
+        // keepChildrenMounted so pending setting writes and search anchors survive a collapse.
+        <Collapse isOpen={isOpen} keepChildrenMounted>
+          <div ref={contentRef} id={contentId} className="flex flex-col gap-4">
+            {children}
+          </div>
+        </Collapse>
+      ) : (
+        <div className="flex flex-col gap-4">{children}</div>
+      )}
     </div>
   );
 };

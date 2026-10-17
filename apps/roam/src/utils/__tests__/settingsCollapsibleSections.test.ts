@@ -85,6 +85,7 @@ describe("SettingsGroup", () => {
     )!;
     expect(heading().getAttribute("aria-expanded")).toBe("false");
     expect(content.closest("[aria-hidden='true']")).not.toBeNull();
+    expect(content.hasAttribute("inert")).toBe(true);
     expect(container.querySelector("[data-setting-id='row']")).not.toBeNull();
   });
 

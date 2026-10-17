@@ -2,8 +2,8 @@ import { useEffect } from "react";
 import { Classes } from "@blueprintjs/core";
 import { settingAnchorSelector } from "~/components/settings/utils/settingAnchor";
 
-/** Roughly 500ms at 60fps. */
-const MAX_LOOKUP_FRAMES = 30;
+/** Time-based so it outlasts Blueprint's 200ms Collapse timer on high-refresh displays. */
+const LOOKUP_TIMEOUT_MS = 500;
 const FLASH_HOLD_MS = 600;
 const FLASH_FADE_MS = 700;
 
@@ -59,7 +59,7 @@ export const useSettingAnchorScroll = ({
 }): void => {
   useEffect(() => {
     if (!anchorId) return;
-    let frame = 0;
+    const deadline = performance.now() + LOOKUP_TIMEOUT_MS;
     let rafId = 0;
 
     const reveal = (target: Element) => {
@@ -71,7 +71,7 @@ export const useSettingAnchorScroll = ({
     const look = () => {
       const target = document.querySelector(settingAnchorSelector(anchorId));
       if (target && isFullyExpanded(target)) return reveal(target);
-      if (frame++ >= MAX_LOOKUP_FRAMES) {
+      if (performance.now() >= deadline) {
         if (target) reveal(target);
         else onSettled();
         return;

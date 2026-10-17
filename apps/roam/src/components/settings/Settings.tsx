@@ -110,7 +110,10 @@ export const SettingsDialog = ({
   const handleSearchSelect = useCallback((entry: SearchableEntry) => {
     dispatch({ type: "navigate", path: entry.path });
     // A collapsed section hides its rows from the scroll-and-flash, so a jump expands everything.
-    if (tabIdOf(entry.path) === SETTINGS_TAB_IDS.grammarNodes)
+    if (
+      entry.kind === "setting" &&
+      tabIdOf(entry.path) === SETTINGS_TAB_IDS.grammarNodes
+    )
       setCollapsedNodeSections(new Set());
     setPendingAnchorId(entry.kind === "setting" ? entry.anchorId : null);
   }, []);
