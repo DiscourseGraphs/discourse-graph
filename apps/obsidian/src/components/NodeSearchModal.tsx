@@ -318,10 +318,10 @@ const ResultList = ({
   return (
     // No `aria-label` here: Obsidian renders one as a hover tooltip, which
     // covers the results the moment the pointer enters the list.
-    // Focusable by click only, so Tab still runs from the query to the footer.
     <div
       ref={listRef}
       role="listbox"
+      // Focusable by click only, so Tab still runs from the query to the footer.
       tabIndex={-1}
       onMouseMove={(event) => {
         hasPointerMoved(event);
@@ -600,7 +600,7 @@ const NodeSearch = ({
       return;
     }
 
-    // Not prevented, so typing, Backspace, paste and IME land in the query focused here.
+    // Left unprevented, so typing, paste and IME land in the query focused here.
     if (isListFocused && !RESULT_LIST_KEYS.has(event.key)) {
       const field = inputRef.current;
       if (!field) return;

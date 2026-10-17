@@ -88,7 +88,7 @@ export const NodeSearchFooter = ({
       label="open in split"
       onClick={onOpenInSplit}
     />
-    {/* Only once a result is clicked: elsewhere ← and → move the caret, so the hint would be wrong. */}
+    {/* Only while the result list has focus; elsewhere ← and → move the caret. */}
     {isPreviewToggleVisible &&
       (isPreviewOpen ? (
         <FooterAction
