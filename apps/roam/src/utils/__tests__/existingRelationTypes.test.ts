@@ -186,6 +186,17 @@ describe("validateNewRelationType", () => {
     expect(validate("supports", "is supported by", { relations })).toBeNull();
   });
 
+  it("still blocks conflicts when accepting an exact provisional match", () => {
+    mocks.provisional.add("a");
+    const relations = [
+      triplet({ id: "a" }),
+      triplet({ id: "b", complement: "backs", source: "question" }),
+    ];
+    expect(validate("supports", "is supported by", { relations })).toBe(
+      'A relation called "supports" already exists with complement "backs".',
+    );
+  });
+
   it("treats other provisional matches as duplicates, since saving would add a new triplet", () => {
     mocks.provisional.add("a");
     const duplicate =

@@ -78,7 +78,7 @@ export const validateNewRelationType = ({
     return `"${shown}" is already a relation between these node types.`;
 
   const complete = relations.filter(isRelationComplete);
-  // createTripletForPair accepts an exact provisional match for this pair instead of adding one.
+  // createTripletForPair accepts an exact provisional match for this pair, so it is not a duplicate.
   const isAcceptedOnSave = complete.some(
     (r) =>
       !isAcceptedRelationSchema(r) &&
@@ -87,11 +87,11 @@ export const validateNewRelationType = ({
       r.source === sourceType &&
       r.destination === destinationType,
   );
-  if (isAcceptedOnSave) return null;
-
-  const duplicate = complete.find(
-    (r) => sameText(r.label, label) && sameText(r.complement, complement),
-  );
+  const duplicate = isAcceptedOnSave
+    ? undefined
+    : complete.find(
+        (r) => sameText(r.label, label) && sameText(r.complement, complement),
+      );
   // The Add existing picker lists only accepted types.
   if (duplicate)
     return isAcceptedRelationSchema(duplicate)
