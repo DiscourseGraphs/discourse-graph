@@ -49,6 +49,108 @@ export const deriveRelationTypes = ({
   return [...types.values()];
 };
 
+const sameText = (a: string, b: string): boolean =>
+  a.toLowerCase() === b.toLowerCase();
+
+// Case-insensitive; the canvas keys relation types by label, so one label maps to one complement.
+export const validateNewRelationType = ({
+  label: rawLabel,
+  complement: rawComplement,
+  sourceType,
+  destinationType,
+  relations,
+  shownLabels,
+  reservedNames,
+}: RelationType & {
+  sourceType: string;
+  destinationType: string;
+  relations: TripletFields[];
+  shownLabels: string[];
+  reservedNames: string[];
+}): string | null => {
+  const label = rawLabel.trim();
+  const complement = rawComplement.trim();
+  // "?" counts as missing, as everywhere else that reads relation types.
+  if (
+    !isRelationComplete({
+      label,
+      complement,
+      source: sourceType,
+      destination: destinationType,
+    })
+  )
+    return "Label and complement are required.";
+  // Lookups keyed by label read inherited Object properties as existing entries.
+  const prototypeName = [label, complement].find((n) => n in Object.prototype);
+  if (prototypeName) return `"${prototypeName}" is a reserved name.`;
+  // Queries can't tell the directions apart when both names match the same node type.
+  if (sourceType === destinationType && sameText(label, complement))
+    return "Label and complement must differ when both node types are the same.";
+
+  const shown = shownLabels.find(
+    (s) => sameText(s, label) || sameText(s, complement),
+  );
+  if (shown)
+    return `"${shown}" is already a relation between these node types.`;
+
+  const complete = relations.filter(isRelationComplete);
+  // createTripletForPair accepts an exact provisional match for this pair; only case twins are duplicates then.
+  const isAcceptedOnSave = complete.some(
+    (r) =>
+      !isAcceptedRelationSchema(r) &&
+      r.label === label &&
+      r.complement === complement &&
+      r.source === sourceType &&
+      r.destination === destinationType,
+  );
+  const duplicate = complete.find(
+    (r) =>
+      !(isAcceptedOnSave && r.label === label && r.complement === complement) &&
+      sameText(r.label, label) &&
+      sameText(r.complement, complement),
+  );
+  // The Add existing picker lists only accepted types.
+  if (duplicate)
+    return isAcceptedRelationSchema(duplicate)
+      ? `"${duplicate.label}" already exists. Use Add existing to add it for these node types.`
+      : `"${duplicate.label}" already exists as an imported relation type that has not been accepted yet.`;
+
+  const conflict = complete.find(
+    (r) => sameText(r.label, label) && !sameText(r.complement, complement),
+  );
+  if (conflict)
+    return `A relation called "${conflict.label}" already exists with complement "${conflict.complement}".`;
+
+  // Text reused across types shows the same label for one drag direction, and queries match both.
+  const others = complete.filter(
+    (r) => !(sameText(r.label, label) && sameText(r.complement, complement)),
+  );
+  const reverseHint = (r: TripletFields): string =>
+    isAcceptedRelationSchema(r)
+      ? " To add it the other way round, drag in the other direction and choose Add existing."
+      : "";
+  const labelAsComplement = others.find((r) => sameText(r.complement, label));
+  if (labelAsComplement)
+    return `"${labelAsComplement.complement}" is already the complement of "${labelAsComplement.label}".${reverseHint(labelAsComplement)}`;
+  const asLabel = others.find((r) => sameText(r.label, complement));
+  if (asLabel)
+    return `"${asLabel.label}" already exists as a relation.${reverseHint(asLabel)}`;
+  const asComplement = others.find((r) => sameText(r.complement, complement));
+  if (asComplement)
+    return `"${asComplement.complement}" is already the complement of "${asComplement.label}".`;
+
+  // Relation names register as query conditions and would replace a built-in one.
+  const relationNames = relations.flatMap((r) => [r.label, r.complement]);
+  const reserved = reservedNames.find(
+    (n) =>
+      (sameText(n, label) || sameText(n, complement)) &&
+      !relationNames.some((r) => sameText(r, n)),
+  );
+  if (reserved) return `"${reserved}" is a reserved query condition.`;
+
+  return null;
+};
+
 const SCHEMA_WRITE_POLL_MS = 50;
 const SCHEMA_WRITE_TIMEOUT_MS = 3000;
 

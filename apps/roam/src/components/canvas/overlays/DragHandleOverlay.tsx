@@ -282,13 +282,15 @@ export const DragHandleOverlay = () => {
     [editor, pending],
   );
 
-  const handleAddExisting = useCallback(
+  const saveRelationTypeForPair = useCallback(
     async ({
       pair,
       relationType,
+      isNew,
     }: {
       pair: NodeTypePair;
       relationType: RelationType;
+      isNew: boolean;
     }): Promise<boolean> => {
       try {
         await createTripletForPair({
@@ -297,16 +299,33 @@ export const DragHandleOverlay = () => {
           destinationType: pair.targetType,
         });
       } catch (error) {
-        void internalError({ error, type: "Canvas add existing relation" });
+        void internalError({
+          error,
+          type: isNew
+            ? "Canvas create relation type"
+            : "Canvas add existing relation",
+        });
         dispatchToastEvent({
-          id: "tldraw-add-existing-relation-error",
-          title: "Could not add discourse relation",
+          id: isNew
+            ? "tldraw-create-relation-type-error"
+            : "tldraw-add-existing-relation-error",
+          title: isNew
+            ? "Could not create relation type"
+            : "Could not add discourse relation",
           severity: "error",
         });
         return false;
       }
+      if (isNew)
+        dispatchToastEvent({
+          id: "tldraw-create-relation-type",
+          title: "Relation type created",
+          severity: "success",
+        });
       dispatchToastEvent({
-        id: "tldraw-add-existing-relation",
+        id: isNew
+          ? "tldraw-create-relation-type-added"
+          : "tldraw-add-existing-relation",
         title: "Discourse relation added",
         description: `${relationType.label} added for ${getNodeTypeText(pair.sourceType)} and ${getNodeTypeText(pair.targetType)}`,
         severity: "success",
@@ -396,7 +415,14 @@ export const DragHandleOverlay = () => {
           onDismiss={handleDropdownDismiss}
           // Legacy mode drops triplets without if-conditions, so a picked type would never appear.
           onAddExisting={
-            getStoredRelationsEnabled() ? handleAddExisting : undefined
+            getStoredRelationsEnabled()
+              ? (args) => saveRelationTypeForPair({ ...args, isNew: false })
+              : undefined
+          }
+          onCreateNew={
+            getStoredRelationsEnabled()
+              ? (args) => saveRelationTypeForPair({ ...args, isNew: true })
+              : undefined
           }
         />
       )}

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createTripletForPair,
   deriveRelationTypes,
+  validateNewRelationType,
 } from "~/components/canvas/existingRelationTypes";
 import { refreshCanvasRelations } from "~/components/canvas/refreshCanvasRelations";
 import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
@@ -115,6 +116,177 @@ describe("deriveRelationTypes", () => {
     expect(types).toEqual([
       { label: "supports", complement: "is supported by" },
     ]);
+  });
+});
+
+describe("validateNewRelationType", () => {
+  const validate = (
+    label: string,
+    complement: string,
+    {
+      relations = [triplet({ id: "a" })],
+      shownLabels = [],
+    }: { relations?: DiscourseRelation[]; shownLabels?: string[] } = {},
+  ) =>
+    validateNewRelationType({
+      label,
+      complement,
+      sourceType: "evidence",
+      destinationType: "claim",
+      relations,
+      shownLabels,
+      reservedNames: ["is a", "Has Any Relation To", "supports"],
+    });
+
+  it("accepts a new label and complement", () => {
+    expect(validate("informs", "is informed by")).toBeNull();
+  });
+
+  it("requires a label and a complement after trimming", () => {
+    expect(validate("  ", "is informed by")).toBe(
+      "Label and complement are required.",
+    );
+    expect(validate("informs", "")).toBe("Label and complement are required.");
+    expect(validate("informs", " ? ")).toBe(
+      "Label and complement are required.",
+    );
+  });
+
+  it("rejects names inherited from Object", () => {
+    expect(validate("constructor", "is constructed by")).toBe(
+      '"constructor" is a reserved name.',
+    );
+    expect(validate("informs", "toString")).toBe(
+      '"toString" is a reserved name.',
+    );
+  });
+
+  it("rejects identical label and complement only when both node types match", () => {
+    const sameType = validateNewRelationType({
+      label: "related",
+      complement: "Related",
+      sourceType: "claim",
+      destinationType: "claim",
+      relations: [],
+      shownLabels: [],
+      reservedNames: [],
+    });
+    expect(sameType).toBe(
+      "Label and complement must differ when both node types are the same.",
+    );
+    expect(validate("related", "related")).toBeNull();
+  });
+
+  it("rejects built-in query conditions but not existing relation names, ignoring case", () => {
+    expect(validate("IS A", "is an instance of")).toBe(
+      '"is a" is a reserved query condition.',
+    );
+    expect(validate("informs", "has any relation to")).toBe(
+      '"Has Any Relation To" is a reserved query condition.',
+    );
+  });
+
+  it("rejects a label or complement the pair already shows, ignoring case", () => {
+    const shownLabels = ["Opposes"];
+    expect(validate("opposes", "x", { shownLabels })).toBe(
+      '"Opposes" is already a relation between these node types.',
+    );
+    expect(validate("x", " OPPOSES ", { shownLabels })).toBe(
+      '"Opposes" is already a relation between these node types.',
+    );
+  });
+
+  it("points an existing label + complement to Add existing, ignoring case", () => {
+    expect(validate(" Supports", "IS SUPPORTED BY ")).toBe(
+      '"supports" already exists. Use Add existing to add it for these node types.',
+    );
+  });
+
+  it("lets an exact provisional match on this pair through, since saving accepts it", () => {
+    mocks.provisional.add("a");
+    mocks.provisional.add("b");
+    const relations = [
+      triplet({ id: "b", source: "question" }),
+      triplet({ id: "a" }),
+    ];
+    expect(validate("supports", "is supported by", { relations })).toBeNull();
+  });
+
+  it("blocks a case twin of an accepted type even when accepting an exact provisional match", () => {
+    mocks.provisional.add("a");
+    const relations = [
+      triplet({ id: "a" }),
+      triplet({
+        id: "b",
+        label: "Supports",
+        complement: "Is Supported By",
+        source: "question",
+      }),
+    ];
+    expect(validate("supports", "is supported by", { relations })).toBe(
+      '"Supports" already exists. Use Add existing to add it for these node types.',
+    );
+  });
+
+  it("still blocks conflicts when accepting an exact provisional match", () => {
+    mocks.provisional.add("a");
+    const relations = [
+      triplet({ id: "a" }),
+      triplet({ id: "b", complement: "backs", source: "question" }),
+    ];
+    expect(validate("supports", "is supported by", { relations })).toBe(
+      'A relation called "supports" already exists with complement "backs".',
+    );
+  });
+
+  it("treats other provisional matches as duplicates, since saving would add a new triplet", () => {
+    mocks.provisional.add("a");
+    const duplicate =
+      '"supports" already exists as an imported relation type that has not been accepted yet.';
+    expect(validate("Supports", "is supported by")).toBe(duplicate);
+    const relations = [triplet({ id: "a", source: "question" })];
+    expect(validate("supports", "is supported by", { relations })).toBe(
+      duplicate,
+    );
+  });
+
+  it("blocks a label that exists with a different complement, ignoring case", () => {
+    expect(validate("SUPPORTS", "backs")).toBe(
+      'A relation called "supports" already exists with complement "is supported by".',
+    );
+  });
+
+  it("blocks a label that is another type's complement, ignoring case", () => {
+    expect(validate("Is Supported By", "backs")).toBe(
+      '"is supported by" is already the complement of "supports". To add it the other way round, drag in the other direction and choose Add existing.',
+    );
+  });
+
+  it("blocks a complement that is another type's label, ignoring case", () => {
+    expect(validate("backs", "Supports")).toBe(
+      '"supports" already exists as a relation. To add it the other way round, drag in the other direction and choose Add existing.',
+    );
+  });
+
+  it("leaves out the Add existing hint when the reverse match is provisional", () => {
+    mocks.provisional.add("a");
+    expect(validate("is supported by", "backs")).toBe(
+      '"is supported by" is already the complement of "supports".',
+    );
+    expect(validate("backs", "supports")).toBe(
+      '"supports" already exists as a relation.',
+    );
+  });
+
+  it("blocks a complement that is another type's complement, ignoring case", () => {
+    expect(validate("backs", "Is Supported By")).toBe(
+      '"is supported by" is already the complement of "supports".',
+    );
+  });
+
+  it("ignores incomplete triplets", () => {
+    const relations = [triplet({ id: "i", destination: "?" })];
+    expect(validate("supports", "backs", { relations })).toBeNull();
   });
 });
 
