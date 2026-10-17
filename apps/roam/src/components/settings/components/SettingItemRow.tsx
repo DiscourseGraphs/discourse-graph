@@ -1,0 +1,134 @@
+import React, { useId } from "react";
+import {
+  Icon,
+  type IconName,
+  Label,
+  Position,
+  Tooltip,
+} from "@blueprintjs/core";
+import Description from "~/components/settings/SettingsDescription";
+import { settingAnchor } from "~/components/settings/utils/settingAnchor";
+import { describedSetting } from "~/components/settings/utils/settingsCatalog";
+import { withDocsLink } from "~/components/settings/utils/docs";
+
+/** Per-node settings are `global`: they live on the node type's page, so the whole graph sees them. */
+export type SettingScope = "personal" | "global";
+
+const SCOPE_INDICATORS = {
+  personal: {
+    icon: "person",
+    tooltip: "Personal — applies only to you",
+  },
+  global: {
+    icon: "globe",
+    tooltip: "Graph-wide — applies to everyone in this graph",
+  },
+} as const satisfies Record<SettingScope, { icon: IconName; tooltip: string }>;
+
+/** Raw <label> plus flex on purpose: Blueprint's `.bp3-label .bp3-popover-wrapper` and
+ *  `.bp3-icon` vertical-align rules would otherwise push the badge out of line. */
+const SettingScopeIndicator = ({ scope }: { scope: SettingScope }) => {
+  const { icon, tooltip } = SCOPE_INDICATORS[scope];
+  return (
+    <Tooltip content={tooltip} position={Position.TOP} hoverOpenDelay={300}>
+      <span
+        aria-label={tooltip}
+        className="dg-setting-row__scope flex h-5 w-5 flex-shrink-0 items-center justify-center rounded opacity-60"
+      >
+        <Icon icon={icon} iconSize={12} />
+      </span>
+    </Tooltip>
+  );
+};
+
+type SettingItemRowProps = {
+  label: React.ReactNode;
+  description?: React.ReactNode;
+  /** A function receives the row's id to bind label and control; a node labels itself. */
+  control: React.ReactNode | ((controlId: string) => React.ReactNode);
+  scope?: SettingScope;
+  /** `below` is for controls too tall to sit beside the label, such as a textarea. */
+  controlPlacement?: "trailing" | "below";
+  settingKeys?: string[];
+  error?: string;
+  /** Pre-overhaul label, description and control stack, kept for the Export dialog's options. */
+  inline?: boolean;
+};
+
+const SettingItemRow = ({
+  label,
+  description,
+  control,
+  scope,
+  controlPlacement = "trailing",
+  settingKeys,
+  error,
+  inline = false,
+}: SettingItemRowProps): React.ReactElement => {
+  const controlId = useId();
+  const isAssociated = typeof control === "function";
+  // Falls back to the catalog so the row and search read one description.
+  const authored =
+    description === undefined ? describedSetting(settingKeys) : undefined;
+  const resolvedDescription =
+    description ??
+    (authored
+      ? authored.docsLink
+        ? withDocsLink(authored.description, authored.docsLink)
+        : authored.description
+      : undefined);
+  if (inline) {
+    return (
+      <Label {...(settingKeys ? settingAnchor(settingKeys) : {})}>
+        {label}
+        {resolvedDescription ? (
+          <Description description={resolvedDescription} />
+        ) : null}
+        {error ? (
+          <div className="text-sm font-medium text-red-700">{error}</div>
+        ) : null}
+        {isAssociated ? control(controlId) : control}
+      </Label>
+    );
+  }
+  // Description is a sibling of the label: nested, its doc links would toggle the control (ENG-2080).
+  const LabelTag = isAssociated ? "label" : "div";
+
+  return (
+    <div
+      {...(settingKeys ? settingAnchor(settingKeys) : {})}
+      className={`dg-setting-row py-3 ${
+        controlPlacement === "trailing"
+          ? "flex items-center justify-between gap-4"
+          : "flex flex-col gap-2"
+      }`}
+    >
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <LabelTag
+          {...(isAssociated ? { htmlFor: controlId } : {})}
+          className={`mb-0 flex items-center gap-2 font-semibold ${
+            isAssociated ? "cursor-pointer" : ""
+          }`}
+        >
+          {scope ? <SettingScopeIndicator scope={scope} /> : null}
+          <span>{label}</span>
+        </LabelTag>
+        {resolvedDescription ? (
+          <div className="text-sm font-normal text-gray-500">
+            {resolvedDescription}
+          </div>
+        ) : null}
+        {error ? (
+          <div className="text-sm font-medium text-red-700">{error}</div>
+        ) : null}
+      </div>
+      <div
+        className={controlPlacement === "trailing" ? "flex-shrink-0" : "w-full"}
+      >
+        {isAssociated ? control(controlId) : control}
+      </div>
+    </div>
+  );
+};
+
+export default SettingItemRow;
