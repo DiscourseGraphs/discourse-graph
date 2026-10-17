@@ -3,10 +3,10 @@
   "checkpoint_id": "01M552YDYWGGAM3E59DKHH4QD9",
   "session_id": "23e2695a-e848-4726-8a24-c535b2593640",
   "strategy": "manual-commit",
-  "created_at": "2026-10-17T14:06:13.769717Z",
+  "created_at": "2026-10-17T14:07:13.078617Z",
   "branch": "eng-2409-long-settings-pages-are-hard-to-scan-add-collapsible",
-  "checkpoints_count": 7,
-  "save_step_count": 7,
+  "checkpoints_count": 1,
+  "save_step_count": 8,
   "files_touched": [
     "apps/roam/src/components/settings/GrammarNodesRoute.tsx",
     "apps/roam/src/components/settings/NodeConfig.tsx",
@@ -19,20 +19,22 @@
   ],
   "agent": "Claude Code",
   "model": "claude-opus-5-5",
-  "turn_id": "b0db6d898915",
-  "compact_transcript_start": 0,
+  "turn_id": "906538372ea3",
+  "checkpoint_transcript_start": 507,
+  "transcript_lines_at_start": 507,
+  "compact_transcript_start": 78,
   "token_usage": {
-    "input_tokens": 134,
-    "cache_creation_tokens": 307192,
-    "cache_read_tokens": 10126885,
-    "output_tokens": 55303,
-    "api_call_count": 64,
+    "input_tokens": 8,
+    "cache_creation_tokens": 5869,
+    "cache_read_tokens": 907540,
+    "output_tokens": 1771,
+    "api_call_count": 4,
     "subagent_tokens": {
-      "input_tokens": 116,
-      "cache_creation_tokens": 242392,
-      "cache_read_tokens": 4973640,
-      "output_tokens": 2929,
-      "api_call_count": 57
+      "input_tokens": 0,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 0,
+      "api_call_count": 0
     }
   },
   "skill_events_version": 1,
@@ -58,21 +60,52 @@
         "label": "/start",
         "default_collapsed": true
       }
+    },
+    {
+      "id": "claude-skill-toolu_015x3V9G6Z7VoqfNWAFiWtrH",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "create-pr"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "906538372ea3",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 525,
+        "end": 526,
+        "entry_ids": [
+          "9c83445d-91dc-426d-b953-15ef80488982"
+        ],
+        "tool_use_id": "toolu_015x3V9G6Z7VoqfNWAFiWtrH"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_015x3V9G6Z7VoqfNWAFiWtrH"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: create-pr",
+        "default_collapsed": true
+      }
     }
   ],
   "session_metrics": {
-    "turn_count": 7
+    "turn_count": 8
   },
   "initial_attribution": {
-    "calculated_at": "2026-10-17T14:06:13.635244Z",
-    "agent_lines": 797,
-    "agent_removed": 373,
+    "calculated_at": "2026-10-17T14:07:12.95664Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
     "human_added": 0,
     "human_modified": 0,
-    "human_removed": 0,
-    "total_committed": 797,
-    "total_lines_changed": 1170,
-    "agent_percentage": 100,
+    "human_removed": 1,
+    "total_committed": 0,
+    "total_lines_changed": 1,
+    "agent_percentage": 0,
     "metric_version": 2
   },
   "prompt_attributions": [
@@ -161,6 +194,13 @@
         "Default/shared_proto_db/metadata/CURRENT": 1,
         "Default/shared_proto_db/metadata/LOG": 2
       }
+    },
+    {
+      "checkpoint_number": 9,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
     }
   ]
 }
