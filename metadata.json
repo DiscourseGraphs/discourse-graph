@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M554JBZZDFSA925YKC6ER68J",
+  "strategy": "manual-commit",
+  "branch": "eng-2410-settings-layout-polish-max-width-cut-off-placeholder-tooltip",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/roam/src/components/settings/Settings.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 26,
+    "cache_creation_tokens": 23162,
+    "cache_read_tokens": 2189532,
+    "output_tokens": 6678,
+    "api_call_count": 13,
+    "subagent_tokens": {
+      "input_tokens": 24,
+      "cache_creation_tokens": 47798,
+      "cache_read_tokens": 855092,
+      "output_tokens": 92,
+      "api_call_count": 12
+    }
+  }
+}
