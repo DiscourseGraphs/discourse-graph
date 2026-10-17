@@ -3,7 +3,7 @@
   "checkpoint_id": "01M552YDYWGGAM3E59DKHH4QD9",
   "session_id": "0c78336b-eaae-4ac0-b1ab-be0e4e91494b",
   "strategy": "manual-commit",
-  "created_at": "2026-10-17T14:06:12.332744Z",
+  "created_at": "2026-10-17T14:07:12.202323Z",
   "branch": "eng-2409-long-settings-pages-are-hard-to-scan-add-collapsible",
   "checkpoints_count": 4,
   "save_step_count": 7,
@@ -13,22 +13,15 @@
   "agent": "Claude Code",
   "model": "claude-opus-5-5",
   "turn_id": "43ae99b4880f",
-  "checkpoint_transcript_start": 689,
-  "transcript_lines_at_start": 689,
-  "compact_transcript_start": 107,
+  "checkpoint_transcript_start": 761,
+  "transcript_lines_at_start": 761,
+  "compact_transcript_start": 121,
   "token_usage": {
-    "input_tokens": 20,
-    "cache_creation_tokens": 189161,
-    "cache_read_tokens": 2030132,
-    "output_tokens": 3044,
-    "api_call_count": 10,
-    "subagent_tokens": {
-      "input_tokens": 108,
-      "cache_creation_tokens": 357053,
-      "cache_read_tokens": 4002461,
-      "output_tokens": 761,
-      "api_call_count": 52
-    }
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
   },
   "skill_events_version": 1,
   "skill_events": [
@@ -462,14 +455,14 @@
     "turn_count": 7
   },
   "initial_attribution": {
-    "calculated_at": "2026-10-17T14:06:12.2345Z",
+    "calculated_at": "2026-10-17T14:07:12.050001Z",
     "agent_lines": 0,
     "agent_removed": 0,
-    "human_added": 265,
+    "human_added": 264,
     "human_modified": 32,
     "human_removed": 0,
-    "total_committed": 265,
-    "total_lines_changed": 306,
+    "total_committed": 264,
+    "total_lines_changed": 305,
     "agent_percentage": 0,
     "metric_version": 2
   },
