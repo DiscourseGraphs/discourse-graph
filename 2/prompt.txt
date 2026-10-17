@@ -1,0 +1,15 @@
+<task-notification>
+<task-id>bic369vnq</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/9e7b8c21-a19a-4d89-8e50-67823d7bcf47/tasks/bic369vnq.output</output-file>
+<status>failed</status>
+<summary>Background command "Lease an Obsidian vault and start the dev watcher" failed with exit code 2</summary>
+</task-notification>
+
+---
+
+go ahead with the plan
+
+---
+
+the arrow left and right should only govern the preview toggle if the input field is not in focused. if the input field (where query) is in focused, then we should just treat it as going back and forth characters in the query.
