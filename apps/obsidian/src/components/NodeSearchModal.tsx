@@ -666,6 +666,8 @@ const NodeSearch = ({
       onFocus={(event) =>
         setIsResultListFocused(event.target === listRef.current)
       }
+      // Focus can leave to non-focusable modal areas, which fire no focus event here.
+      onBlur={() => setIsResultListFocused(false)}
     >
       {/* Padded so a trigger's count badge is not clipped by the modal's overflow-hidden content. */}
       {/* Top-aligned: the field grows downwards, so the triggers stay on its first line. */}
