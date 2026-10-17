@@ -42,6 +42,37 @@
         "label": "/start",
         "default_collapsed": true
       }
+    },
+    {
+      "id": "claude-skill-toolu_01ENcm4rc4Vq5qShf2PFxzpn",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-roam-load-extension"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "50347eacce7c",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 201,
+        "end": 202,
+        "entry_ids": [
+          "bab453b9-2360-46b6-a7e1-a58bdb271f97"
+        ],
+        "tool_use_id": "toolu_01ENcm4rc4Vq5qShf2PFxzpn"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01ENcm4rc4Vq5qShf2PFxzpn"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-roam-load-extension",
+        "default_collapsed": true
+      }
     }
   ],
   "session_metrics": {
