@@ -494,3 +494,7 @@ why don't i see these changes when i load the build from the worktree?
 ---
 
 why do i then still see errors of "no relation types defined betweent hese node types"?
+
+---
+
+hmm it seems like the colors for the relation types added were all defaulted to white? this is bad. if it's add existing we should honor the color settings too. if it's new we should just default to whatever color that's compatible with both light and dark mode
