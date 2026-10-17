@@ -385,6 +385,8 @@ const NodeSearch = ({
   const [sortKey, setSortKey] = useState<SortKey>(DEFAULT_SORT_KEY);
   const [showCandidates, setShowCandidates] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  // Mirrors focus so the footer shows the toggle only when ← and → reach it.
+  const [isResultListFocused, setIsResultListFocused] = useState(false);
   const [tagCandidates, setTagCandidates] = useState<SearchableNode[]>([]);
   const [sortDirection, setSortDirection] = useState<SortDirection>(
     DEFAULT_SORT_DIRECTION,
@@ -658,7 +660,13 @@ const NodeSearch = ({
   return (
     // Bound here rather than on the input so navigation survives focus moving
     // elsewhere in the modal, and so result actions have one place to live.
-    <div className="flex h-full flex-col" onKeyDown={handleKeyDown}>
+    <div
+      className="flex h-full flex-col"
+      onKeyDown={handleKeyDown}
+      onFocus={(event) =>
+        setIsResultListFocused(event.target === listRef.current)
+      }
+    >
       {/* Padded so a trigger's count badge is not clipped by the modal's overflow-hidden content. */}
       {/* Top-aligned: the field grows downwards, so the triggers stay on its first line. */}
       <div className="flex items-start gap-2 px-1 pt-1">
@@ -745,6 +753,7 @@ const NodeSearch = ({
         canInsertLink={!!insertTarget}
         isActiveResultLinkable={isActiveResultLinkable}
         isPreviewOpen={isPreviewOpen}
+        isPreviewToggleVisible={isResultListFocused}
         onClose={onClose}
         onInsertLink={insertLinkToActiveResult}
         onOpenInNewTab={() => openActiveResult(openFileInNewTab)}

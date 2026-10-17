@@ -6,6 +6,7 @@ type NodeSearchFooterProps = {
   canInsertLink: boolean;
   isActiveResultLinkable: boolean;
   isPreviewOpen: boolean;
+  isPreviewToggleVisible: boolean;
   onClose: () => void;
   onInsertLink: () => void;
   onOpenInNewTab: () => void;
@@ -58,6 +59,7 @@ export const NodeSearchFooter = ({
   canInsertLink,
   isActiveResultLinkable,
   isPreviewOpen,
+  isPreviewToggleVisible,
   onClose,
   onInsertLink,
   onOpenInNewTab,
@@ -86,20 +88,22 @@ export const NodeSearchFooter = ({
       label="open in split"
       onClick={onOpenInSplit}
     />
-    {isPreviewOpen ? (
-      <FooterAction
-        keys={["ArrowLeft"]}
-        label="close preview"
-        onClick={onTogglePreview}
-      />
-    ) : (
-      <FooterAction
-        disabled={!canAct}
-        keys={["ArrowRight"]}
-        label="preview"
-        onClick={onTogglePreview}
-      />
-    )}
+    {/* Only once a result is clicked: elsewhere ← and → move the caret, so the hint would be wrong. */}
+    {isPreviewToggleVisible &&
+      (isPreviewOpen ? (
+        <FooterAction
+          keys={["ArrowLeft"]}
+          label="close preview"
+          onClick={onTogglePreview}
+        />
+      ) : (
+        <FooterAction
+          disabled={!canAct}
+          keys={["ArrowRight"]}
+          label="preview"
+          onClick={onTogglePreview}
+        />
+      ))}
     {/* The Escape key itself is handled by Obsidian's modal scope; this button
         is the pointer equivalent, so every footer item responds to a click. */}
     <FooterAction keys={["Escape"]} label="close" onClick={onClose} />
