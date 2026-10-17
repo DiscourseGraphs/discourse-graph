@@ -9,6 +9,8 @@ on:
       - "packages/tailwind-config/**"
       - "packages/utils/**"
       - "packages/database/**"
+      - "packages/content-model/**"
+      - "packages/types/**"
       - "packages/ui/**"
 
 env:

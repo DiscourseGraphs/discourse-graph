@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - "packages/database/**"
+      - "packages/content-model/**"
+      - "packages/utils/**"
 env:
   SUPABASE_USE_DB: local
   SUPABASE_PROJECT_ID: test
