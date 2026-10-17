@@ -25,10 +25,10 @@
   padding: 2px;
 }
 
-/* Row pages only: Relations, Admin and the node index hold wide tables. The cap sits on
-   the content, not the scroll box, so the scrollbar stays at the dialog edge. */
+/* Row content only: tables, the node index and the specification query editor need full width.
+   The cap sits on the content, not the scroll box, so the scrollbar stays at the dialog edge. */
 .dg-settings-row-panel > *,
-.dg-settings-node-config {
+.dg-settings-node-config > :not(:has(.roamjs-node-specification)) {
   max-width: 720px;
 }
 
