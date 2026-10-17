@@ -42,6 +42,37 @@
         "label": "/start",
         "default_collapsed": true
       }
+    },
+    {
+      "id": "claude-skill-toolu_01TFAFKe9y11VjZEaQ7QVrrQ",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-obsidian-cdp-verify"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "274a5ab0565b",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 232,
+        "end": 233,
+        "entry_ids": [
+          "ad81d085-8581-4d20-912d-485dbc467554"
+        ],
+        "tool_use_id": "toolu_01TFAFKe9y11VjZEaQ7QVrrQ"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01TFAFKe9y11VjZEaQ7QVrrQ"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-obsidian-cdp-verify",
+        "default_collapsed": true
+      }
     }
   ],
   "session_metrics": {
