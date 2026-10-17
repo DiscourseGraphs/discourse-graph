@@ -15,10 +15,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 30,
-    "cache_creation_tokens": 25266,
-    "cache_read_tokens": 3457082,
-    "output_tokens": 11381,
-    "api_call_count": 15
+    "input_tokens": 226,
+    "cache_creation_tokens": 377454,
+    "cache_read_tokens": 18105047,
+    "output_tokens": 86938,
+    "api_call_count": 112
   }
 }
