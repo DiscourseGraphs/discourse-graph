@@ -191,8 +191,14 @@ describe("validateNewRelationType", () => {
     );
   });
 
+  it("blocks a label that is another type's complement, ignoring case", () => {
+    expect(validate("Is Supported By", "backs")).toBe(
+      '"is supported by" is already the complement of "supports". To add it the other way round, drag in the other direction and choose Add existing.',
+    );
+  });
+
   it("blocks a complement that is another type's label, ignoring case", () => {
-    expect(validate("is supported by", "Supports")).toBe(
+    expect(validate("backs", "Supports")).toBe(
       '"supports" already exists as a relation. To add it the other way round, drag in the other direction and choose Add existing.',
     );
   });

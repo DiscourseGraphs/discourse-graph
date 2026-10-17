@@ -103,10 +103,13 @@ export const validateNewRelationType = ({
   if (conflict)
     return `A relation called "${conflict.label}" already exists with complement "${conflict.complement}".`;
 
-  // A complement reused by another type would show the same label for a reverse drag.
+  // Text reused across types shows the same label for one drag direction, and queries match both.
   const others = complete.filter(
     (r) => !(sameText(r.label, label) && sameText(r.complement, complement)),
   );
+  const labelAsComplement = others.find((r) => sameText(r.complement, label));
+  if (labelAsComplement)
+    return `"${labelAsComplement.complement}" is already the complement of "${labelAsComplement.label}". To add it the other way round, drag in the other direction and choose Add existing.`;
   const asLabel = others.find((r) => sameText(r.label, complement));
   if (asLabel)
     return `"${asLabel.label}" already exists as a relation. To add it the other way round, drag in the other direction and choose Add existing.`;
