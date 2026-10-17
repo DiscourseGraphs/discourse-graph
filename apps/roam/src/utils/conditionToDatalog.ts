@@ -977,6 +977,9 @@ export const registerDatalogTranslator = ({
 export const unregisterDatalogTranslator = ({ key }: { key: string }) =>
   delete translator[key];
 
+// Includes "self", which getConditionLabels hides from the query editor.
+export const getConditionKeys = (): string[] => Object.keys(translator);
+
 export const getConditionLabels = () =>
   Object.keys(translator)
     .filter((k) => k !== "self")

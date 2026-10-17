@@ -147,6 +147,7 @@ describe("validateNewRelationType", () => {
       destinationType: "claim",
       relations,
       shownLabels,
+      reservedNames: ["is a", "Has Any Relation To", "supports"],
     });
 
   it("accepts a new label and complement", () => {
@@ -160,6 +161,40 @@ describe("validateNewRelationType", () => {
     expect(validate("informs", "")).toBe("Label and complement are required.");
     expect(validate("informs", " ? ")).toBe(
       "Label and complement are required.",
+    );
+  });
+
+  it("rejects names inherited from Object", () => {
+    expect(validate("constructor", "is constructed by")).toBe(
+      '"constructor" is a reserved name.',
+    );
+    expect(validate("informs", "toString")).toBe(
+      '"toString" is a reserved name.',
+    );
+  });
+
+  it("rejects identical label and complement only when both node types match", () => {
+    const sameType = validateNewRelationType({
+      label: "related",
+      complement: "Related",
+      sourceType: "claim",
+      destinationType: "claim",
+      relations: [],
+      shownLabels: [],
+      reservedNames: [],
+    });
+    expect(sameType).toBe(
+      "Label and complement must differ when both node types are the same.",
+    );
+    expect(validate("related", "related")).toBeNull();
+  });
+
+  it("rejects built-in query conditions but not existing relation names, ignoring case", () => {
+    expect(validate("IS A", "is an instance of")).toBe(
+      '"is a" is a reserved query condition.',
+    );
+    expect(validate("informs", "has any relation to")).toBe(
+      '"Has Any Relation To" is a reserved query condition.',
     );
   });
 

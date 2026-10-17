@@ -61,11 +61,13 @@ export const validateNewRelationType = ({
   destinationType,
   relations,
   shownLabels,
+  reservedNames,
 }: RelationType & {
   sourceType: string;
   destinationType: string;
   relations: TripletFields[];
   shownLabels: string[];
+  reservedNames: string[];
 }): string | null => {
   const label = rawLabel.trim();
   const complement = rawComplement.trim();
@@ -79,6 +81,12 @@ export const validateNewRelationType = ({
     })
   )
     return "Label and complement are required.";
+  // Lookups keyed by label read inherited Object properties as existing entries.
+  const prototypeName = [label, complement].find((n) => n in Object.prototype);
+  if (prototypeName) return `"${prototypeName}" is a reserved name.`;
+  // Queries can't tell the directions apart when both names match the same node type.
+  if (sourceType === destinationType && sameText(label, complement))
+    return "Label and complement must differ when both node types are the same.";
 
   const shown = shownLabels.find(
     (s) => sameText(s, label) || sameText(s, complement),
@@ -131,6 +139,15 @@ export const validateNewRelationType = ({
   const asComplement = others.find((r) => sameText(r.complement, complement));
   if (asComplement)
     return `"${asComplement.complement}" is already the complement of "${asComplement.label}".`;
+
+  // Relation names register as query conditions and would replace a built-in one.
+  const relationNames = relations.flatMap((r) => [r.label, r.complement]);
+  const reserved = reservedNames.find(
+    (n) =>
+      (sameText(n, label) || sameText(n, complement)) &&
+      !relationNames.some((r) => sameText(r, n)),
+  );
+  if (reserved) return `"${reserved}" is a reserved query condition.`;
 
   return null;
 };
