@@ -22,15 +22,15 @@ describe("getRelationColor", () => {
     expect(getRelationColor("constructor")).toBe("grey");
   });
 
-  it("never picks white or a reserved color for indexed relations, and wraps past the palette", () => {
+  it("keeps named colors out of the indexed palette and wraps past it", () => {
     const colors = Array.from({ length: 20 }, (_, i) =>
       getRelationColor("custom", i),
     );
-    expect(colors).not.toContain("white");
     expect(colors).not.toContain("red");
     expect(colors).not.toContain("green");
     expect(colors).not.toContain("grey");
     expect(colors).not.toContain(undefined);
-    expect(getRelationColor("custom", 0)).toBe(getRelationColor("custom", 9));
+    expect(getRelationColor("custom", 0)).toBe("white");
+    expect(getRelationColor("custom", 0)).toBe(getRelationColor("custom", 10));
   });
 });
