@@ -4,11 +4,7 @@
   "strategy": "manual-commit",
   "branch": "eng-2266-make-the-advanced-node-search-sort-menu-keyboard-navigable",
   "checkpoints_count": 3,
-  "files_touched": [
-    "apps/obsidian/src/components/NodeDisplayOptionsMenu.tsx",
-    "apps/obsidian/src/components/NodeSortMenu.tsx",
-    "apps/obsidian/src/components/SearchDropdown.tsx"
-  ],
+  "files_touched": null,
   "sessions": [
     {
       "metadata": "/0/metadata.json",
@@ -19,10 +15,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 174,
-    "cache_creation_tokens": 333755,
-    "cache_read_tokens": 11877559,
-    "output_tokens": 68025,
-    "api_call_count": 86
+    "input_tokens": 30,
+    "cache_creation_tokens": 25266,
+    "cache_read_tokens": 3457082,
+    "output_tokens": 11381,
+    "api_call_count": 15
   }
 }
