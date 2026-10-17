@@ -44,6 +44,9 @@ describe("node config sections", () => {
   });
 });
 
+// createElement passes children positionally, which the props type cannot see.
+type GroupProps = React.ComponentProps<typeof SettingsGroup>;
+
 describe("SettingsGroup", () => {
   let container: HTMLDivElement;
   let root: Root;
@@ -51,15 +54,11 @@ describe("SettingsGroup", () => {
   const render = (isOpen: boolean, onToggle = vi.fn()): void => {
     act(() =>
       root.render(
-        React.createElement(SettingsGroup, {
-          title: "Canvas",
-          collapsible: { isOpen, onToggle },
-          children: React.createElement(
-            "div",
-            { "data-setting-id": "row" },
-            "Row",
-          ),
-        }),
+        React.createElement(
+          SettingsGroup,
+          { title: "Canvas", collapsible: { isOpen, onToggle } } as GroupProps,
+          React.createElement("div", { "data-setting-id": "row" }, "Row"),
+        ),
       ),
     );
   };
@@ -106,10 +105,11 @@ describe("SettingsGroup", () => {
   it("renders a plain heading when not collapsible", () => {
     act(() =>
       root.render(
-        React.createElement(SettingsGroup, {
-          title: "Node trigger",
-          children: "Row",
-        }),
+        React.createElement(
+          SettingsGroup,
+          { title: "Node trigger" } as GroupProps,
+          "Row",
+        ),
       ),
     );
     expect(heading()).toBeNull();

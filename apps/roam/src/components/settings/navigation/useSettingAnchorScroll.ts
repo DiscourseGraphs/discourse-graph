@@ -62,7 +62,7 @@ export const useSettingAnchorScroll = ({
     const deadline = performance.now() + LOOKUP_TIMEOUT_MS;
     let rafId = 0;
 
-    const reveal = (target: Element) => {
+    const reveal = (target: Element): void => {
       target.scrollIntoView({ block: "center", behavior: "smooth" });
       flashRow(target);
       onSettled();
