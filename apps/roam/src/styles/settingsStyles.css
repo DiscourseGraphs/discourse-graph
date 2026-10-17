@@ -25,6 +25,20 @@
   padding: 2px;
 }
 
+/* Opaque so rows scrolling under a stuck heading are hidden; matches the dialog's
+   bg-white and Blueprint's .bp3-dark .bp3-dialog background. */
+.dg-settings-heading {
+  background-color: #ffffff;
+}
+.bp3-dark .dg-settings-heading {
+  background-color: #293742;
+}
+
+/* Keeps a search-jumped row clear of the sticky section heading above it. */
+.dg-settings-tabs [data-setting-id] {
+  scroll-margin-top: 3rem;
+}
+
 /** No row dividers: the only rule on a page is the one under a section heading. */
 
 /* Translucent neutral so the badge reads on Roam's light and dark themes;

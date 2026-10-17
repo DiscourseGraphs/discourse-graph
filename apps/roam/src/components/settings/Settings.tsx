@@ -43,6 +43,7 @@ import { SettingsNavProvider } from "./navigation/SettingsNavContext";
 import SettingsSearchField from "./navigation/SettingsSearchField";
 import { useSettingAnchorScroll } from "./navigation/useSettingAnchorScroll";
 import type { SearchableEntry } from "./utils/settingsCatalog";
+import type { CollapsedSections } from "./utils/nodeConfigSections";
 import GrammarNodesRoute from "./GrammarNodesRoute";
 
 /** `pr-1` leaves room for the search flash's `-mx-2`, which the scroll box would clip. */
@@ -103,8 +104,13 @@ export const SettingsDialog = ({
   );
   // Cleared once settled, so a repeat jump to the same row still scrolls.
   const [pendingAnchorId, setPendingAnchorId] = useState<string | null>(null);
+  // Lives here so it survives switching node types and tabs, but not closing the dialog.
+  const [collapsedNodeSections, setCollapsedNodeSections] =
+    useState<CollapsedSections>(() => new Set());
   const handleSearchSelect = useCallback((entry: SearchableEntry) => {
     dispatch({ type: "navigate", path: entry.path });
+    // A collapsed section hides its rows from the scroll-and-flash, so a jump expands everything.
+    setCollapsedNodeSections(new Set());
     setPendingAnchorId(entry.kind === "setting" ? entry.anchorId : null);
   }, []);
   const clearPendingAnchor = useCallback(() => setPendingAnchorId(null), []);
@@ -279,7 +285,11 @@ export const SettingsDialog = ({
             title={SETTINGS_TAB_META[SETTINGS_TAB_IDS.grammarNodes].label}
             panel={
               <SettingsNavProvider path={path} dispatch={dispatch}>
-                <GrammarNodesRoute onloadArgs={onloadArgs} />
+                <GrammarNodesRoute
+                  onloadArgs={onloadArgs}
+                  collapsedSections={collapsedNodeSections}
+                  setCollapsedSections={setCollapsedNodeSections}
+                />
               </SettingsNavProvider>
             }
           />
