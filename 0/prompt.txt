@@ -200,3 +200,11 @@ fix the backspace issue, move isPlainCharacterKey back, note tests in PR
   
   I checked the Backspace replay to the chip input and found no defect. The caret sits at offset 0 when the query is empty. The bubbled synthetic event falls through `handleKeyDown` harmlessly. The chip-highlight effect then moves focus to the chip as intended.
 </agent-message>
+
+---
+
+maybe don't show the button to preview in the toggle until user has clicked outside of the search bar?
+
+---
+
+or maybe when they already click on a preview item?
