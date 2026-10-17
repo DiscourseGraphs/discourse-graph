@@ -41,8 +41,8 @@ const FooterAction = ({
     className="prompt-instruction dg-search-footer-action inline-flex h-auto cursor-pointer items-center gap-1 rounded-none border-0 p-0 disabled:cursor-not-allowed disabled:opacity-50"
     disabled={disabled}
     onClick={onClick}
-    // Clicking must not move focus out of the query input, or the arrow keys stop
-    // reaching the result list.
+    // Clicking leaves focus where it was, in the query or the result list, so the
+    // keyboard path is unchanged.
     onMouseDown={(event) => event.preventDefault()}
   >
     <KeyHints keys={keys} />

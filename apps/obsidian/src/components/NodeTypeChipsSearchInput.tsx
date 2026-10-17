@@ -9,7 +9,8 @@ import {
 } from "react";
 import { DiscourseNode } from "~/types";
 import { getAllDiscourseNodeColors } from "~/utils/colorUtils";
-import { getHintKeys } from "~/utils/keyboardHints";
+import { setCaretToEnd } from "~/utils/contentEditable";
+import { getHintKeys, isPlainCharacterKey } from "~/utils/keyboardHints";
 import {
   getBestPrefixMatch,
   getCompletionSuffix,
@@ -26,25 +27,12 @@ type NodeTypeChip = {
   textColor: string;
 };
 
-export const isPlainCharacterKey = (event: KeyboardEvent): boolean =>
-  event.key.length === 1 && !event.altKey && !event.ctrlKey && !event.metaKey;
-
 // An editable span has no selectionStart, so the caret comes from the selection.
 const isCaretAtStart = (field: HTMLElement | null): boolean => {
   const selection = field?.ownerDocument.getSelection();
   if (!field || !selection?.isCollapsed || !selection.anchorNode) return false;
   if (!field.contains(selection.anchorNode)) return false;
   return selection.anchorOffset === 0;
-};
-
-export const setCaretToEnd = (field: HTMLElement): void => {
-  const selection = field.ownerDocument.getSelection();
-  if (!selection) return;
-  const range = field.ownerDocument.createRange();
-  range.selectNodeContents(field);
-  range.collapse(false);
-  selection.removeAllRanges();
-  selection.addRange(range);
 };
 
 const NodeTypeChipTag = ({

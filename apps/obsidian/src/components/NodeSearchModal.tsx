@@ -24,11 +24,7 @@ import type DiscourseGraphPlugin from "~/index";
 import { NodeDisplayOptionsMenu } from "~/components/NodeDisplayOptionsMenu";
 import { NodeSearchFooter } from "~/components/NodeSearchFooter";
 import { NodeSortMenu } from "~/components/NodeSortMenu";
-import {
-  isPlainCharacterKey,
-  NodeTypeChipsSearchInput,
-  setCaretToEnd,
-} from "~/components/NodeTypeChipsSearchInput";
+import { NodeTypeChipsSearchInput } from "~/components/NodeTypeChipsSearchInput";
 import { NodeTypeFilterMenu } from "~/components/NodeTypeFilterMenu";
 import type { SearchDropdownId } from "~/components/SearchDropdown";
 import {
@@ -60,6 +56,7 @@ import {
   type SortKey,
 } from "~/utils/discourseNodeSort";
 import { findTaggedLineElement } from "~/utils/taggedLineLocator";
+import { setCaretToEnd } from "~/utils/contentEditable";
 
 const MAX_VISIBLE_RESULTS = 50;
 const SEARCH_DEBOUNCE_MS = 250;
@@ -85,6 +82,21 @@ const formatTimestamp = (epochMs: number): string =>
   });
 
 const PREVIEW_FLASH_CLASS = "dg-search-preview-flash";
+
+// Keys the focused result list acts on itself; every other key belongs to the query.
+const RESULT_LIST_KEYS = new Set([
+  "ArrowUp",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+  "Enter",
+  "Tab",
+  "Escape",
+  "Shift",
+  "Meta",
+  "Control",
+  "Alt",
+]);
 
 // An image reserves no height until it loads, which would shift a line scrolled to before then.
 const waitForImages = async (container: HTMLElement): Promise<void> => {
@@ -496,6 +508,9 @@ const NodeSearch = ({
   const activeIndexInRange = activeIndex < results.length ? activeIndex : 0;
   const activeResult = results[activeIndexInRange];
 
+  // Shared by the footer and →, so the key and the button agree on when there is something to act on.
+  const canAct = nodesState.status === "ready" && !!activeResult;
+
   // Only the preview shows an author, so resolve the selection, not all 50 rows.
   const authorName = useMemo(
     () =>
@@ -507,6 +522,15 @@ const NodeSearch = ({
 
   useEffect(() => {
     setActiveIndex(0);
+  }, [results]);
+
+  // Unmounting a focused list drops focus to <body>, out of reach of the modal's keys.
+  useEffect(() => {
+    const field = inputRef.current;
+    if (results.length || !field) return;
+    if (field.ownerDocument.activeElement !== field.ownerDocument.body) return;
+    field.focus();
+    setCaretToEnd(field);
   }, [results]);
 
   const moveActiveIndex = (delta: number) => {
@@ -570,12 +594,12 @@ const NodeSearch = ({
     ) {
       event.preventDefault();
       if (event.key === "ArrowLeft") setIsPreviewOpen(false);
-      else if (activeResult) setIsPreviewOpen(true);
+      else if (canAct) setIsPreviewOpen(true);
       return;
     }
 
-    // Not prevented, so the browser types the key into the query focused here.
-    if (isListFocused && isPlainCharacterKey(event)) {
+    // Not prevented, so typing, Backspace, paste and IME land in the query focused here.
+    if (isListFocused && !RESULT_LIST_KEYS.has(event.key)) {
       const field = inputRef.current;
       if (!field) return;
       field.focus();
@@ -706,7 +730,7 @@ const NodeSearch = ({
         )}
       </div>
       <NodeSearchFooter
-        canAct={nodesState.status === "ready" && !!activeResult}
+        canAct={canAct}
         canInsertLink={!!insertTarget}
         isActiveResultLinkable={isActiveResultLinkable}
         isPreviewOpen={isPreviewOpen}
