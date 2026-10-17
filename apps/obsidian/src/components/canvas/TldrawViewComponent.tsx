@@ -51,6 +51,9 @@ import { DragHandleOverlay } from "./overlays/DragHandleOverlay";
 import { NodeCardContextMenu } from "./NodeCardContextMenu";
 import { WHITE_LOGO_SVG } from "~/icons";
 import { CustomContextMenu } from "./CustomContextMenu";
+import { TextLinkDialog } from "~/components/canvas/TextLinkDialog";
+import { TextLinkOverlay } from "~/components/canvas/overlays/TextLinkOverlay";
+import { registerLinkNavigation } from "~/components/canvas/utils/linkNavigation";
 import {
   openFileInSidebar,
   openFileInNewTab,
@@ -128,6 +131,11 @@ export const TldrawPreviewComponent = ({
     }, 250);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!isEditorMounted || !editorRef.current) return;
+    return registerLinkNavigation(editorRef.current, plugin);
+  }, [isEditorMounted, plugin]);
 
   // Add keyboard event listener for Meta+Alt+Enter when editor is mounted
   useEffect(() => {
@@ -463,6 +471,24 @@ export const TldrawPreviewComponent = ({
               },
             }}
             overrides={{
+              // Swap only edit-link's dialog; the menu item, icon, placement
+              // and eligibility gate stay stock.
+              actions: (editor, actions, helpers) => {
+                const editLink = actions["edit-link"];
+                if (editLink) {
+                  actions["edit-link"] = {
+                    ...editLink,
+                    onSelect: () => {
+                      // Same guard as stock: no-op outside the select tool.
+                      if (!editor.isIn("select")) return;
+                      if (!editor.getOnlySelectedShape()) return;
+                      editor.markHistoryStoppingPoint("edit-link");
+                      helpers.addDialog({ component: TextLinkDialog });
+                    },
+                  };
+                }
+                return actions;
+              },
               tools: (editor, tools) => {
                 tools["discourse-node"] = {
                   id: "discourse-node",
@@ -541,6 +567,7 @@ export const TldrawPreviewComponent = ({
               InFrontOfTheCanvas: () => (
                 <>
                   <DragHandleOverlay plugin={plugin} file={file} />
+                  <TextLinkOverlay />
                 </>
               ),
             }}
