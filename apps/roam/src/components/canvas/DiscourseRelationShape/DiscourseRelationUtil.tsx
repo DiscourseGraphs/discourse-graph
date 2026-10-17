@@ -121,9 +121,8 @@ import {
   type RelationPairMatch,
 } from "~/utils/findRelationForPair";
 
-// Red, green and grey are reserved for named relations; white is invisible on a light canvas.
 const COLOR_ARRAY = Array.from(DefaultColorStyle.values)
-  .filter((c) => !["red", "green", "grey", "white"].includes(c))
+  .filter((c) => !["red", "green", "grey"].includes(c))
   .reverse() as TLDefaultColorStyle[];
 
 const NAMED_RELATION_COLORS = new Map<string, TLDefaultColorStyle>([
