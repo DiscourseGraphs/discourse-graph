@@ -42,9 +42,10 @@ const NodeTypeFilterRow = ({
     </label>
     <button
       type="button"
-      // Hidden until the row is hovered or focused so the list stays scannable,
-      // but focusable by keyboard rather than pointer-only.
-      className="text-muted hover:text-normal shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
+      // Pointer-only: arrow keys stop once per row, on the checkbox.
+      tabIndex={-1}
+      // Hidden until the row is hovered so the list stays scannable.
+      className="text-muted hover:text-normal shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
       onClick={(event) => {
         event.stopPropagation();
         onSelectOnly();
@@ -109,7 +110,15 @@ const NodeTypeFilterPanel = ({
         <div className="border-modifier-border border-b p-2">
           <button
             type="button"
-            onClick={() => onSelectedIdsChange([])}
+            onClick={(event) => {
+              // This button unmounts on clear; if it held focus, park focus on the dropdown panel so arrow keys keep working.
+              if (activeDocument.activeElement === event.currentTarget) {
+                event.currentTarget
+                  .closest<HTMLElement>("[data-search-dropdown-panel]")
+                  ?.focus();
+              }
+              onSelectedIdsChange([]);
+            }}
             onMouseDown={(event) => event.preventDefault()}
             className="w-full text-sm"
           >
