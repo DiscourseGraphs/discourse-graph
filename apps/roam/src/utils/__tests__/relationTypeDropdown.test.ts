@@ -53,6 +53,7 @@ vi.mock("~/utils/refreshConfigTree", () => ({ default: vi.fn() }));
 vi.mock("~/components/settings/utils/accessors", () => ({
   isNewSettingsStoreEnabled: () => false,
 }));
+vi.mock("~/utils/conditionToDatalog", () => ({ getConditionKeys: () => [] }));
 vi.mock("~/utils/getDiscourseRelations", () => ({
   default: () => mocks.relations,
 }));
