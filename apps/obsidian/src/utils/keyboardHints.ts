@@ -47,9 +47,6 @@ export const formatHintKeys = ({
 export const getHintKeys = (keys: HintKey[]): string[] =>
   formatHintKeys({ keys, isMacOS: Platform.isMacOS });
 
-export const isPlainCharacterKey = (event: KeyboardEvent): boolean =>
-  event.key.length === 1 && !event.altKey && !event.ctrlKey && !event.metaKey;
-
 // Rows are divs, so Enter and Space have to be wired up the way a button gets them free.
 export const activateOnKey = (
   event: KeyboardEvent<HTMLDivElement>,

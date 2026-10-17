@@ -604,6 +604,17 @@ const NodeSearch = ({
       if (!field) return;
       field.focus();
       setCaretToEnd(field);
+      // This keydown still targets the list, so replay Backspace for the query's highlight-last-chip step.
+      if (event.key === "Backspace" && !query) {
+        event.preventDefault();
+        const view = field.ownerDocument.defaultView ?? window;
+        field.dispatchEvent(
+          new view.KeyboardEvent("keydown", {
+            key: "Backspace",
+            bubbles: true,
+          }),
+        );
+      }
       return;
     }
 

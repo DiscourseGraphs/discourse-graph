@@ -10,7 +10,7 @@ import {
 import { DiscourseNode } from "~/types";
 import { getAllDiscourseNodeColors } from "~/utils/colorUtils";
 import { setCaretToEnd } from "~/utils/contentEditable";
-import { getHintKeys, isPlainCharacterKey } from "~/utils/keyboardHints";
+import { getHintKeys } from "~/utils/keyboardHints";
 import {
   getBestPrefixMatch,
   getCompletionSuffix,
@@ -26,6 +26,9 @@ type NodeTypeChip = {
   name: string;
   textColor: string;
 };
+
+const isPlainCharacterKey = (event: KeyboardEvent): boolean =>
+  event.key.length === 1 && !event.altKey && !event.ctrlKey && !event.metaKey;
 
 // An editable span has no selectionStart, so the caret comes from the selection.
 const isCaretAtStart = (field: HTMLElement | null): boolean => {
