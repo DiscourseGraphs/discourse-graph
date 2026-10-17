@@ -3,7 +3,7 @@
   "checkpoint_id": "01M553DVNG21Y06NX5YBQZ7722",
   "strategy": "manual-commit",
   "branch": "eng-2409-long-settings-pages-are-hard-to-scan-add-collapsible",
-  "checkpoints_count": 2,
+  "checkpoints_count": 5,
   "files_touched": [
     "apps/roam/src/components/settings/Settings.tsx"
   ],
@@ -21,13 +21,20 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 10,
-    "cache_creation_tokens": 7463,
-    "cache_read_tokens": 1269355,
-    "output_tokens": 3241,
-    "api_call_count": 5
+    "input_tokens": 38,
+    "cache_creation_tokens": 103530,
+    "cache_read_tokens": 2940751,
+    "output_tokens": 19024,
+    "api_call_count": 19
   }
 }
