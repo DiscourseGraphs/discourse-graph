@@ -214,6 +214,16 @@ describe("validateNewRelationType", () => {
     );
   });
 
+  it("leaves out the Add existing hint when the reverse match is provisional", () => {
+    mocks.provisional.add("a");
+    expect(validate("is supported by", "backs")).toBe(
+      '"is supported by" is already the complement of "supports".',
+    );
+    expect(validate("backs", "supports")).toBe(
+      '"supports" already exists as a relation.',
+    );
+  });
+
   it("blocks a complement that is another type's complement, ignoring case", () => {
     expect(validate("backs", "Is Supported By")).toBe(
       '"is supported by" is already the complement of "supports".',

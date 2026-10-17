@@ -107,12 +107,16 @@ export const validateNewRelationType = ({
   const others = complete.filter(
     (r) => !(sameText(r.label, label) && sameText(r.complement, complement)),
   );
+  const reverseHint = (r: TripletFields): string =>
+    isAcceptedRelationSchema(r)
+      ? " To add it the other way round, drag in the other direction and choose Add existing."
+      : "";
   const labelAsComplement = others.find((r) => sameText(r.complement, label));
   if (labelAsComplement)
-    return `"${labelAsComplement.complement}" is already the complement of "${labelAsComplement.label}". To add it the other way round, drag in the other direction and choose Add existing.`;
+    return `"${labelAsComplement.complement}" is already the complement of "${labelAsComplement.label}".${reverseHint(labelAsComplement)}`;
   const asLabel = others.find((r) => sameText(r.label, complement));
   if (asLabel)
-    return `"${asLabel.label}" already exists as a relation. To add it the other way round, drag in the other direction and choose Add existing.`;
+    return `"${asLabel.label}" already exists as a relation.${reverseHint(asLabel)}`;
   const asComplement = others.find((r) => sameText(r.complement, complement));
   if (asComplement)
     return `"${asComplement.complement}" is already the complement of "${asComplement.label}".`;
