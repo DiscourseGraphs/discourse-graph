@@ -47,6 +47,8 @@ import GrammarNodesRoute from "./GrammarNodesRoute";
 
 /** `pr-1` leaves room for the search flash's `-mx-2`, which the scroll box would clip. */
 const TAB_PANEL_CLASS = "overflow-y-auto pr-1";
+/** Caps the width of tabs made of setting rows; see settingsStyles.css. */
+const ROW_TAB_PANEL_CLASS = "dg-settings-row-panel";
 
 const SectionHeader = ({ children }: { children: React.ReactNode }) => (
   <div className="bp3-tab-copy mt-4 cursor-default select-none text-lg font-semibold text-neutral-dark">
@@ -213,6 +215,7 @@ export const SettingsDialog = ({
             id={SETTINGS_TAB_IDS.preferencesGeneral}
             title={SETTINGS_TAB_META[SETTINGS_TAB_IDS.preferencesGeneral].label}
             className={TAB_PANEL_CLASS}
+            panelClassName={ROW_TAB_PANEL_CLASS}
             panel={
               <PreferencesGeneral
                 onloadArgs={onloadArgs}
@@ -226,6 +229,7 @@ export const SettingsDialog = ({
             id={SETTINGS_TAB_IDS.preferencesStyling}
             title={SETTINGS_TAB_META[SETTINGS_TAB_IDS.preferencesStyling].label}
             className={TAB_PANEL_CLASS}
+            panelClassName={ROW_TAB_PANEL_CLASS}
             panel={
               <PreferencesStyling
                 personalSettings={settings.personalSettings}
@@ -239,6 +243,7 @@ export const SettingsDialog = ({
               SETTINGS_TAB_META[SETTINGS_TAB_IDS.featuresDiscourseContext].label
             }
             className={TAB_PANEL_CLASS}
+            panelClassName={ROW_TAB_PANEL_CLASS}
             panel={
               <DiscourseContextSettings
                 onloadArgs={onloadArgs}
@@ -250,6 +255,7 @@ export const SettingsDialog = ({
             id={SETTINGS_TAB_IDS.featuresCanvas}
             title={SETTINGS_TAB_META[SETTINGS_TAB_IDS.featuresCanvas].label}
             className={TAB_PANEL_CLASS}
+            panelClassName={ROW_TAB_PANEL_CLASS}
             panel={
               <CanvasSettings
                 onloadArgs={onloadArgs}
@@ -264,6 +270,7 @@ export const SettingsDialog = ({
               SETTINGS_TAB_META[SETTINGS_TAB_IDS.featuresLeftSidebar].label
             }
             className={TAB_PANEL_CLASS}
+            panelClassName={ROW_TAB_PANEL_CLASS}
             hidden={!leftSidebarEnabled}
             panel={
               <LeftSidebarSettings
@@ -301,6 +308,7 @@ export const SettingsDialog = ({
             id={SETTINGS_TAB_IDS.advancedQueries}
             title={SETTINGS_TAB_META[SETTINGS_TAB_IDS.advancedQueries].label}
             className={TAB_PANEL_CLASS}
+            panelClassName={ROW_TAB_PANEL_CLASS}
             panel={
               <QuerySettings
                 extensionAPI={extensionAPI}
