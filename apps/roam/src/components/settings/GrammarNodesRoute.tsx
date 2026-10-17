@@ -55,20 +55,21 @@ const GrammarNodesRoute = ({
       ? (nodes.find((n) => n.type === segment)?.text ?? segment)
       : (SUB_PAGE_LABELS[segment] ?? segment);
 
-  const isNodeConfigPage = Boolean(node) && !subPage;
-  const sections = getNodeConfigSections({ isSyncEnabled: isSyncEnabled() });
-  const allCollapsed = areAllSectionsCollapsed(collapsedSections, sections);
-  const toggleAllButton = isNodeConfigPage ? (
-    <Button
-      minimal
-      small
-      icon={allCollapsed ? "expand-all" : "collapse-all"}
-      text={allCollapsed ? "Expand all" : "Collapse all"}
-      onClick={() =>
-        setCollapsedSections(toggleAllSections(collapsedSections, sections))
-      }
-    />
-  ) : null;
+  const renderToggleAllButton = (): JSX.Element => {
+    const sections = getNodeConfigSections({ isSyncEnabled: isSyncEnabled() });
+    const allCollapsed = areAllSectionsCollapsed(collapsedSections, sections);
+    return (
+      <Button
+        minimal
+        small
+        icon={allCollapsed ? "expand-all" : "collapse-all"}
+        text={allCollapsed ? "Expand all" : "Collapse all"}
+        onClick={() =>
+          setCollapsedSections(toggleAllSections(collapsedSections, sections))
+        }
+      />
+    );
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -76,7 +77,7 @@ const GrammarNodesRoute = ({
         ancestorLabels={NODES_ANCESTOR_LABELS}
         rootLabel="Nodes"
         resolveLabel={resolveLabel}
-        actions={toggleAllButton}
+        actions={node && !subPage ? renderToggleAllButton() : null}
       />
       {/* `-mx-1 px-1` widens the scroll box so the search flash is not clipped; content stays put. */}
       <div className="-mx-1 min-h-0 flex-auto overflow-y-auto px-1">
