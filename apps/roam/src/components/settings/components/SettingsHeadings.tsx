@@ -91,7 +91,7 @@ export const SettingsGroup = ({
           aria-controls={contentId}
           onClick={toggle}
           onKeyDown={(e) => {
-            if (e.key !== "Enter" && e.key !== " ") return;
+            if ((e.key !== "Enter" && e.key !== " ") || e.repeat) return;
             e.preventDefault();
             toggle();
           }}

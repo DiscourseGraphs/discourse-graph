@@ -34,7 +34,7 @@ const GrammarNodesRoute = ({
 }: {
   onloadArgs: OnloadArgs;
   collapsedSections: CollapsedSections;
-  setCollapsedSections: (next: CollapsedSections) => void;
+  setCollapsedSections: React.Dispatch<React.SetStateAction<CollapsedSections>>;
 }): JSX.Element => {
   const { segments, goToDepth } = useSettingsNav();
   const nodes = getDiscourseNodes().filter(excludeDefaultNodes);
@@ -55,21 +55,12 @@ const GrammarNodesRoute = ({
       ? (nodes.find((n) => n.type === segment)?.text ?? segment)
       : (SUB_PAGE_LABELS[segment] ?? segment);
 
-  const renderToggleAllButton = (): JSX.Element => {
-    const sections = getNodeConfigSections({ isSyncEnabled: isSyncEnabled() });
-    const allCollapsed = areAllSectionsCollapsed(collapsedSections, sections);
-    return (
-      <Button
-        minimal
-        small
-        icon={allCollapsed ? "expand-all" : "collapse-all"}
-        text={allCollapsed ? "Expand all" : "Collapse all"}
-        onClick={() =>
-          setCollapsedSections(toggleAllSections(collapsedSections, sections))
-        }
-      />
-    );
-  };
+  const sections =
+    node && !subPage
+      ? getNodeConfigSections({ isSyncEnabled: isSyncEnabled() })
+      : null;
+  const allCollapsed =
+    !!sections && areAllSectionsCollapsed(collapsedSections, sections);
 
   return (
     <div className="flex h-full flex-col">
@@ -77,7 +68,21 @@ const GrammarNodesRoute = ({
         ancestorLabels={NODES_ANCESTOR_LABELS}
         rootLabel="Nodes"
         resolveLabel={resolveLabel}
-        actions={node && !subPage ? renderToggleAllButton() : null}
+        actions={
+          sections && (
+            <Button
+              minimal
+              small
+              icon={allCollapsed ? "expand-all" : "collapse-all"}
+              text={allCollapsed ? "Expand all" : "Collapse all"}
+              onClick={() =>
+                setCollapsedSections((prev) =>
+                  toggleAllSections(prev, sections),
+                )
+              }
+            />
+          )
+        }
       />
       {/* `-mx-1 px-1` widens the scroll box so the search flash is not clipped; content stays put. */}
       <div className="-mx-1 min-h-0 flex-auto overflow-y-auto px-1">
@@ -94,7 +99,7 @@ const GrammarNodesRoute = ({
             node={node}
             collapsedSections={collapsedSections}
             onToggleSection={(section) =>
-              setCollapsedSections(toggleSection(collapsedSections, section))
+              setCollapsedSections((prev) => toggleSection(prev, section))
             }
           />
         )}
