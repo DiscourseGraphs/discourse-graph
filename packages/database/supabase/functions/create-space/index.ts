@@ -25,23 +25,23 @@ import type {
 
 // For now, duplicating the functions from @repo/database/lib/contextFunctions
 
-const spaceAnonUserEmail = (platform: string, space_id: number) =>
-  `${platform.toLowerCase()}-${space_id}-anon@database.discoursegraphs.com`;
+const spaceAnonUserEmail = (platform: string, spaceId: number) =>
+  `${platform.toLowerCase()}-${spaceId}-anon@database.discoursegraphs.com`;
 
-const asPostgrestFailure = <T>(
+const asPostgrestFailure = (
   message: string,
   code: string,
   status: number = 400,
-): PostgrestSingleResponse<T> => {
+): PostgrestSingleResponse<any> => {
   return {
     data: null,
-    error: {
+    success: false,
+    error: new PostgrestError({
       message,
       code,
       details: "",
-      hint: "",
-      name: code,
-    },
+      hint: code,
+    }),
     count: null,
     statusText: code,
     status,
@@ -72,8 +72,7 @@ const processAndGetOrCreateSpace = async (
 ): Promise<PostgrestSingleResponse<SpaceRecord>> => {
   const { name, url, platform, password } = data;
   const error = spaceValidator(data);
-  if (error !== null)
-    return asPostgrestFailure<SpaceRecord>(error, "invalid space");
+  if (error !== null) return asPostgrestFailure(error, "invalid space");
   const result = await supabase
     .from("Space")
     .upsert(
@@ -128,6 +127,7 @@ const processAndGetOrCreateSpace = async (
         status: resultCreateAnonymousUser.error.status || -1,
         statusText: resultCreateAnonymousUser.error.message,
         data: null,
+        success: false,
         error: new PostgrestError({
           message: resultCreateAnonymousUser.error.message,
           details:
@@ -230,8 +230,11 @@ Deno.serve(async (req) => {
 
   // check that we have at least a valid anonymous token with a dummy query.
   // Unfortunately, this seems to be too permissive.
-  const authHeader = req.headers.get("Authorization") as string | undefined;
-  if (!authHeader) {
+  const Authorization = req.headers.get("Authorization");
+  const apikey = req.headers.get("apikey");
+
+  const token = Authorization?.replace("Bearer ", "") ?? apikey;
+  if (!token) {
     return Response.json(
       { msg: "Missing authorization headers" },
       {
@@ -240,9 +243,14 @@ Deno.serve(async (req) => {
       },
     );
   }
-  const token = authHeader.replace("Bearer ", "");
+  const headers = Object.fromEntries(
+    Object.entries({ apikey, Authorization }).filter(
+      (e): e is [string, string] => e[1] !== null,
+    ),
+  );
+
   const supabaseAnonClient: DGSupabaseClient = createClient(url, token, {
-    global: { headers: { Authorization: authHeader } },
+    global: { headers },
   });
   {
     const { error } = await supabaseAnonClient
@@ -275,7 +283,7 @@ Deno.serve(async (req) => {
     return Response.json(
       {
         msg: "Invalid JSON in request body",
-        error: String(error?.message ?? error),
+        error: error instanceof Error ? error.message : String(error),
       },
       {
         status: 400,
