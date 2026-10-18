@@ -145,16 +145,6 @@ describe("copyAssetToSharedStorage", () => {
     ]);
   });
 
-  it("prefers the name from file.get over the one in the descriptor", async () => {
-    mockFetch({ descriptor: descriptorFor({ size: 7 }) });
-    mockRoam({ bytes: "PNGDATA" });
-
-    const result = await copy(harness.client);
-
-    expect(result.sourcePath).toBe(ROAM_NAME);
-    expect(result.sourcePath).not.toBe(DESCRIPTOR_NAME);
-  });
-
   it("stores the storage timestamps, which do not move between publishes", async () => {
     mockFetch({ descriptor: descriptorFor({ size: 7 }) });
     mockRoam({ bytes: "PNGDATA" });

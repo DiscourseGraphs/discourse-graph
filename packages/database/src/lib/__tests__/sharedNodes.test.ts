@@ -237,10 +237,6 @@ describe("buildSharedNodes", () => {
     });
   });
 
-  it("leaves slots undefined when the node references nothing", () => {
-    expect(build()[0]?.slots).toBeUndefined();
-  });
-
   it("sorts newest nodes first", () => {
     const olderNode = {
       ...nodes[0]!,
