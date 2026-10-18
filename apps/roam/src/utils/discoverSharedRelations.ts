@@ -13,7 +13,7 @@ import {
   dbRelationTypeSchemasToCrossApp,
   dbNodeSchemasToCrossApp,
 } from "@repo/database/lib/dbToCrossAppConverters";
-import { Tables } from "@repo/database/dbTypes";
+import type { ColumnRow } from "@repo/database/inputTypes";
 import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
 import { getImportedSourceRids } from "./importedSourceIdentity";
 import {
@@ -22,8 +22,7 @@ import {
   pickTripleCandidate,
 } from "@repo/database/lib/tripleMatching";
 
-type Concept = Tables<"Concept">;
-
+type Concept = ColumnRow<"Concept">;
 // A visible triple of an Obsidian relation's relation type.
 export type TripleCandidate = {
   rid: string;
