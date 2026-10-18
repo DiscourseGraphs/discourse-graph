@@ -6,11 +6,11 @@ import {
   dbRelationToCrossApp,
   dbRelationsToCrossApp,
 } from "../dbToCrossAppConverters";
-import { Tables, Json } from "../../dbTypes";
+import type { Json } from "../../dbTypes";
+import type { ColumnRow } from "../../inputTypes";
 import type { DGSupabaseClient } from "../client";
 
-type Concept = Tables<"Concept">;
-
+type Concept = ColumnRow<"Concept">;
 const spaceMap: Record<number, string> = { 1: "obsidian:vault-a" };
 const accountMap: Record<number, string> = { 42: "account-local-1" };
 
