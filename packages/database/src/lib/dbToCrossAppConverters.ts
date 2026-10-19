@@ -4,11 +4,12 @@ import {
   CrossAppRelationTripleSchema,
   CrossAppRelation,
 } from "../crossAppContracts";
-import { Tables, Json } from "../dbTypes";
+import type { Json } from "../dbTypes";
+import type { ColumnRow } from "../inputTypes";
 import type { DGSupabaseClient } from "./client";
 import { ridToSpaceUriAndLocalId, spaceUriAndLocalIdToRid, isRid } from "./rid";
 
-type Concept = Tables<"Concept">;
+type Concept = ColumnRow<"Concept">;
 
 const getConceptMap = async (
   client: DGSupabaseClient,

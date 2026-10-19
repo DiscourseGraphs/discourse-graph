@@ -4,7 +4,7 @@
 
 import "@supabase/functions-js/edge-runtime";
 import { corsHeaders } from "@supabase/supabase-js/cors";
-import { createClient, type UserResponse } from "@supabase/supabase-js";
+import { createClient, AuthError } from "@supabase/supabase-js";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 
 // The following lines are duplicated from apps/website/app/utils/llm/cors.ts
@@ -48,7 +48,11 @@ Deno.serve(async (req) => {
     return Response.json(
       {
         msg: "Invalid JSON in request body",
-        error: String(error?.message ?? error),
+        error: String(
+          (typeof error === "object"
+            ? (error as { message?: string })?.message
+            : null) ?? error,
+        ),
       },
       {
         status: 400,
@@ -90,8 +94,11 @@ Deno.serve(async (req) => {
     );
   }
   const supabase = createClient(url, anon_key);
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
+  const authHeader = req.headers.get("Authorization") as string | undefined;
+  let apiKeyHeader = req.headers.get("apikey") as string | undefined;
+
+  const token = authHeader?.replace("Bearer ", "") ?? apiKeyHeader;
+  if (token === undefined) {
     return Response.json(
       { msg: "Missing authorization headers" },
       {
@@ -100,7 +107,14 @@ Deno.serve(async (req) => {
       },
     );
   }
-  const token = authHeader.replace("Bearer ", "");
+  if (token === anon_key)
+    return Response.json(
+      { msg: "Unauthorized anonymous access" },
+      {
+        status: 401,
+        headers: myCorsHeaders,
+      },
+    );
   const { data, error } = await supabase.auth.getClaims(token);
 
   const userEmail = data?.claims?.email;
@@ -117,18 +131,18 @@ Deno.serve(async (req) => {
   const password = crypto.randomUUID();
   const email = `${groupName}@groups.discoursegraphs.com`;
   const supabaseAdmin: DGSupabaseClient = createClient(url, service_key);
-  let userResponse: UserResponse | undefined;
-  try {
-    userResponse = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      role: "anon",
-      user_metadata: { group: true },
-      email_confirm: false,
-    });
-    if (userResponse.error) throw userResponse.error;
-    if (!userResponse.data.user) throw new Error("Did not create user");
-  } catch (error) {
+  const userResponse = await supabaseAdmin.auth.admin.createUser({
+    email,
+    password,
+    role: "anon",
+    user_metadata: { group: true },
+    email_confirm: false,
+  });
+  if (!userResponse.data.user)
+    userResponse.error = new AuthError("Did not create user");
+
+  if (userResponse.error) {
+    const error = userResponse.error;
     if (error.code === "email_exists") {
       return Response.json(
         { msg: "A group by this name exists" },
@@ -143,6 +157,7 @@ Deno.serve(async (req) => {
       { status: 500, headers: myCorsHeaders },
     );
   }
+
   const group_id = userResponse.data.user.id;
   const membershipResponse = await supabaseAdmin
     .from("group_membership")
