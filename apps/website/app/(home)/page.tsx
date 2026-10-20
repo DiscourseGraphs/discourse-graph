@@ -18,6 +18,7 @@ import { GraphBackgroundAnimation } from "~/components/GraphBackgroundAnimation"
 import { Logo } from "~/components/Logo";
 import { PlatformBadge } from "~/components/PlatformBadge";
 import { SectionHeader } from "~/components/SectionHeader";
+import { SocialProofSection } from "~/components/SocialProofSection";
 import { TeamPerson } from "~/components/TeamPerson";
 import { MATSU_LAB_URL, TEAM_MEMBERS } from "~/data/constants";
 import { STATIC_NEWS_ITEMS } from "~/data/news";
@@ -281,6 +282,8 @@ const Home = async (): Promise<ReactElement> => {
             </div>
           </div>
         </section>
+
+        <SocialProofSection />
 
         <FoundationsSection />
 
