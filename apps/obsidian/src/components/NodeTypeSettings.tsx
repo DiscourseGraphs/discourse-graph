@@ -1,7 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { validateNodeFormat, validateNodeName } from "~/utils/validateNodeType";
 import { usePlugin } from "./PluginContext";
-import { App, Component, MarkdownRenderer, Notice, setIcon } from "obsidian";
+import {
+  App,
+  Component,
+  DropdownComponent,
+  ExtraButtonComponent,
+  MarkdownRenderer,
+  Notice,
+  setIcon,
+} from "obsidian";
 import generateUid from "~/utils/generateUid";
 import { DiscourseNode } from "~/types";
 import { ConfirmationModal } from "./ConfirmationModal";
@@ -225,6 +233,8 @@ const ColorField = ({
   />
 );
 
+const NO_TEMPLATE_PLACEHOLDER = "No file selected";
+
 const TemplateField = ({
   value,
   error,
@@ -244,111 +254,72 @@ const TemplateField = ({
   onImportClick: () => void;
   importDisabledReason?: string;
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const dropdownContainerRef = useRef<HTMLDivElement>(null);
+  const importButtonContainerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<DropdownComponent | null>(null);
+  const importButtonRef = useRef<ExtraButtonComponent | null>(null);
   const isTemplateConfigured =
     templateConfig.isEnabled && !!templateConfig.folderPath;
-  const isDisabled = disabled || !isTemplateConfigured;
-  const displayValue = !isTemplateConfigured
-    ? "Template folder not configured"
-    : value
-      ? value
-      : "No template";
 
-  const handleSelect = (nextValue: string): void => {
-    onChange(nextValue);
-    setIsOpen(false);
-  };
+  useEffect(() => {
+    const dropdownContainer = dropdownContainerRef.current;
+    const importButtonContainer = importButtonContainerRef.current;
+    if (!dropdownContainer || !importButtonContainer) return;
 
-  const menuItemStyle = {
-    background: "transparent",
-    border: "none",
-    borderRadius: 0,
-    boxShadow: "none",
-    color: "var(--text-normal)",
-    fontSize: "var(--font-ui-small)",
-    height: "28px",
-    justifyContent: "flex-start",
-    padding: "4px 10px",
-    textAlign: "left" as const,
-    width: "100%",
-  };
+    dropdownRef.current = new DropdownComponent(dropdownContainer);
+    importButtonRef.current = new ExtraButtonComponent(
+      importButtonContainer,
+    ).setIcon("import");
+
+    return () => {
+      dropdownContainer.empty();
+      importButtonContainer.empty();
+      dropdownRef.current = null;
+      importButtonRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const dropdown = dropdownRef.current;
+    if (!dropdown) return;
+
+    dropdown.selectEl.empty();
+    dropdown.addOption(
+      "",
+      isTemplateConfigured
+        ? NO_TEMPLATE_PLACEHOLDER
+        : "Template folder not configured",
+    );
+    for (const templateFile of templateFiles) {
+      dropdown.addOption(templateFile, templateFile);
+    }
+    // Keep a saved template visible even if it is missing from the folder
+    if (value && !templateFiles.includes(value)) {
+      dropdown.addOption(value, value);
+    }
+    dropdown.setValue(value || "");
+    dropdown.setDisabled(!!disabled || !isTemplateConfigured);
+    dropdown.selectEl.toggleClass("input-error", !!error);
+  }, [value, error, templateFiles, disabled, isTemplateConfigured]);
+
+  useEffect(() => {
+    dropdownRef.current?.onChange(onChange);
+  }, [onChange]);
+
+  useEffect(() => {
+    const importButton = importButtonRef.current;
+    if (!importButton) return;
+
+    importButton
+      .setTooltip(importDisabledReason ?? "Import template from groups")
+      .setDisabled(!!importDisabledReason)
+      .onClick(onImportClick);
+  }, [importDisabledReason, onImportClick]);
 
   return (
-    <div className="relative w-full min-w-48">
-      <button
-        type="button"
-        className={`dropdown w-full text-left ${error ? "input-error" : ""}`}
-        disabled={isDisabled}
-        onClick={() => setIsOpen((current) => !current)}
-      >
-        <span className="truncate">{displayValue}</span>
-      </button>
-      {isOpen && (
-        <div
-          className="absolute right-0 z-50 mt-1 w-full min-w-56 overflow-hidden"
-          style={{
-            background: "var(--background-primary)",
-            border: "1px solid var(--background-modifier-border)",
-            borderRadius: "var(--radius-s)",
-            boxShadow: "var(--shadow-s)",
-            padding: "4px",
-          }}
-        >
-          <button
-            type="button"
-            className="flex"
-            style={{
-              ...menuItemStyle,
-              fontStyle: "italic",
-              justifyContent: "space-between",
-            }}
-            onClick={() => handleSelect("")}
-          >
-            <span className="truncate">No template</span>
-          </button>
-          {templateFiles.map((templateFile) => (
-            <button
-              type="button"
-              key={templateFile}
-              className="flex"
-              style={{
-                ...menuItemStyle,
-                justifyContent: "space-between",
-              }}
-              onClick={() => handleSelect(templateFile)}
-            >
-              <span className="truncate">{templateFile}</span>
-            </button>
-          ))}
-          <div
-            style={{
-              borderTop: "1px solid var(--background-modifier-border)",
-              marginTop: "4px",
-              paddingTop: "4px",
-            }}
-          >
-            <button
-              type="button"
-              className="flex disabled:opacity-60"
-              style={{
-                ...menuItemStyle,
-                color: "var(--text-accent)",
-                fontWeight: "var(--font-medium)",
-                justifyContent: "space-between",
-              }}
-              disabled={!!importDisabledReason}
-              title={importDisabledReason}
-              onClick={() => {
-                setIsOpen(false);
-                onImportClick();
-              }}
-            >
-              <span className="truncate">Import template from groups...</span>
-              <span aria-hidden="true">&gt;</span>
-            </button>
-          </div>
-        </div>
-      )}
+    <div className="flex items-center justify-end gap-2">
+      <div ref={importButtonContainerRef} className="flex" />
+      <div ref={dropdownContainerRef} className="flex" />
     </div>
   );
 };
@@ -884,6 +855,20 @@ const NodeTypeSettings = () => {
     if (editingRef.current) saveSettings(editingRef.current);
   };
 
+  const getTemplateImportDisabledReason = (): string | undefined => {
+    if (isEditingImported) return "Imported node types can't be edited.";
+    if (!templateConfig.isEnabled || !templateConfig.folderPath) {
+      return "Configure and enable the Obsidian templates plugin first.";
+    }
+    if (!editingNodeType?.name.trim()) {
+      return "Name this node type before importing shared templates.";
+    }
+    if (!plugin.settings.syncModeEnabled) {
+      return "Enable sync mode before importing shared templates.";
+    }
+    return undefined;
+  };
+
   const openTemplateImportPanel = async (): Promise<void> => {
     if (!editingNodeType) return;
 
@@ -1022,13 +1007,7 @@ const NodeTypeSettings = () => {
             onImportClick={() => {
               void openTemplateImportPanel();
             }}
-            importDisabledReason={
-              !editingNodeType.name.trim()
-                ? "Name this node type before importing shared templates."
-                : !plugin.settings.syncModeEnabled
-                  ? "Enable sync mode before importing shared templates."
-                  : undefined
-            }
+            importDisabledReason={getTemplateImportDisabledReason()}
           />
         ) : fieldConfig.type === "color" ? (
           <ColorField
