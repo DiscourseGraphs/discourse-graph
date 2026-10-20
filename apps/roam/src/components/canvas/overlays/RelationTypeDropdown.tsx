@@ -169,26 +169,25 @@ export const RelationTypeDropdown = ({
             </div>
           )
         ) : (
-          <>
-            {isActionMenuOpen && (
-              <div className="mb-1 border-b border-gray-200 pb-1">
-                {actionItems}
-              </div>
-            )}
-            {validRelationTypes.map((rt) => (
-              <MenuItem key={rt.id} onClick={() => handleSelect(rt.id)}>
-                <span
-                  style={{
-                    backgroundColor: rt.color,
-                  }}
-                  className="h-2 w-2 flex-shrink-0 rounded-full bg-gray-800"
-                />
-                {rt.label}
-              </MenuItem>
-            ))}
-          </>
+          validRelationTypes.map((rt) => (
+            <MenuItem key={rt.id} onClick={() => handleSelect(rt.id)}>
+              <span
+                style={{
+                  backgroundColor: rt.color,
+                }}
+                className="h-2 w-2 flex-shrink-0 rounded-full bg-gray-800"
+              />
+              {rt.label}
+            </MenuItem>
+          ))
         )}
       </div>
+      {/* Sibling of the menu so its overflow doesn't clip it, and inside dropdownRef for click-outside. */}
+      {!isEmpty && isActionMenuOpen && (
+        <div className="absolute left-full top-0 ml-1 whitespace-nowrap rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
+          {actionItems}
+        </div>
+      )}
     </div>
   );
 };

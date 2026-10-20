@@ -106,6 +106,16 @@ describe("populated state", () => {
     expect(onCreateNew).toHaveBeenCalledWith(pair);
   });
 
+  it("opens the actions in a popover beside the menu, not inside it", () => {
+    render({ onAddExisting: vi.fn(), onCreateNew: vi.fn() });
+    click(plus() ?? undefined);
+
+    const menu = button("supports")?.closest(".overflow-y-auto");
+    expect(menu).toBeTruthy();
+    expect(menu?.contains(button("Add existing…") ?? null)).toBe(false);
+    expect(menu?.contains(button("Create new") ?? null)).toBe(false);
+  });
+
   it("renders only the action whose handler is passed", () => {
     render({ onCreateNew: vi.fn() });
     click(plus() ?? undefined);
