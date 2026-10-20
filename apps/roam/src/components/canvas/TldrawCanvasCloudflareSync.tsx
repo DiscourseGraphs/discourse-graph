@@ -2,7 +2,6 @@ import { useSync } from "@tldraw/sync";
 import {
   TLAnyBindingUtilConstructor,
   TLAnyShapeUtilConstructor,
-  TLAssetStore,
   TLStoreWithStatus,
   defaultBindingUtils,
   defaultShapeUtils,
@@ -10,6 +9,7 @@ import {
 } from "tldraw";
 import { useMemo } from "react";
 import { getCurrentRoamTldrawUserInfo } from "~/utils/roamTldrawUserInfo";
+import { createRoamAssetStore } from "~/utils/roamCanvasAssetStore";
 
 /** Base URL for tldraw-sync-cloudflare worker. Use https (not wss) - useSync upgrades to WebSocket. */
 export const TLDRAW_CLOUDFLARE_SYNC_WS_BASE_URL =
@@ -35,20 +35,6 @@ export const getSyncRoomId = ({ pageUid }: { pageUid: string }): string => {
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=+$/g, "");
-};
-
-const parseRoamUploadResponse = (value: string): string => {
-  return value.replace(/^!\[\]\(/, "").replace(/\)$/, "");
-};
-
-const createRoamAssetStore = (): TLAssetStore => {
-  return {
-    upload: async (_asset, file) => {
-      const response = await window.roamAlphaAPI.file.upload({ file });
-      return parseRoamUploadResponse(response);
-    },
-    resolve: (asset) => asset.props.src,
-  };
 };
 
 export const useCloudflareSyncStore = ({
