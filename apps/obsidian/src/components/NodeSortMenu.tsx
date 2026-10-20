@@ -1,6 +1,9 @@
 import { App, setIcon } from "obsidian";
 import type { ReactElement } from "react";
-import { SearchDropdown } from "~/components/SearchDropdown";
+import {
+  SEARCH_DROPDOWN_ITEM_FOCUS_RING,
+  SearchDropdown,
+} from "~/components/SearchDropdown";
 import { activateOnKey } from "~/utils/keyboardHints";
 import {
   SORT_OPTIONS,
@@ -37,7 +40,7 @@ const SortOptionRow = ({
     onClick={onSelect}
     onKeyDown={(event) => activateOnKey(event, onSelect)}
     onMouseDown={(event) => event.preventDefault()}
-    className={`flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm ${
+    className={`flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm ${SEARCH_DROPDOWN_ITEM_FOCUS_RING} ${
       isSelected
         ? "bg-accent text-on-accent"
         : "text-normal hover:bg-modifier-hover"
@@ -73,7 +76,7 @@ const DirectionToggle = ({
         onClick={() => onSelect(direction)}
         onKeyDown={(event) => activateOnKey(event, () => onSelect(direction))}
         onMouseDown={(event) => event.preventDefault()}
-        className={`flex flex-1 cursor-pointer items-center justify-center gap-1 rounded px-2 py-1 text-sm ${
+        className={`flex flex-1 cursor-pointer items-center justify-center gap-1 rounded px-2 py-1 text-sm ${SEARCH_DROPDOWN_ITEM_FOCUS_RING} ${
           direction === sortDirection
             ? "bg-accent text-on-accent"
             : "text-normal hover:bg-modifier-hover"
