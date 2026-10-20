@@ -9,6 +9,7 @@ import {
 } from "react";
 import { DiscourseNode } from "~/types";
 import { getAllDiscourseNodeColors } from "~/utils/colorUtils";
+import { setCaretToEnd } from "~/utils/contentEditable";
 import { getHintKeys } from "~/utils/keyboardHints";
 import {
   getBestPrefixMatch,
@@ -35,16 +36,6 @@ const isCaretAtStart = (field: HTMLElement | null): boolean => {
   if (!field || !selection?.isCollapsed || !selection.anchorNode) return false;
   if (!field.contains(selection.anchorNode)) return false;
   return selection.anchorOffset === 0;
-};
-
-const setCaretToEnd = (field: HTMLElement): void => {
-  const selection = field.ownerDocument.getSelection();
-  if (!selection) return;
-  const range = field.ownerDocument.createRange();
-  range.selectNodeContents(field);
-  range.collapse(false);
-  selection.removeAllRanges();
-  selection.addRange(range);
 };
 
 const NodeTypeChipTag = ({
