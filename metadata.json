@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5DS0658QSC8PYEKD8T1XGG9",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "apps/roam/src/components/ExportOptions.tsx",
+    "apps/roam/src/components/settings/CanvasSettings.tsx",
+    "apps/roam/src/components/settings/DiscourseNodeSuggestiveRules.tsx",
+    "apps/roam/src/components/settings/NodeConfig.tsx",
+    "apps/roam/src/components/settings/NodeTemplatePage.tsx",
+    "apps/roam/src/components/settings/PreferencesGeneral.tsx",
+    "apps/roam/src/components/settings/QuerySettings.tsx",
+    "apps/roam/src/components/settings/utils/docs.tsx",
+    "apps/roam/src/components/settings/utils/settingsCatalog.ts",
+    "apps/website/public/docs/roam/dg-schema02.PNG"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  }
+}
