@@ -151,8 +151,12 @@ export const RelationTypeDropdown = ({
       onPointerUp={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="max-h-[240px] min-w-[160px] overflow-y-auto rounded-lg border border-gray-200 bg-white p-4 shadow-lg">
-        <div className="flex items-center justify-between px-2 py-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+      <div
+        // Roam's Tailwind 2 ignores arbitrary values like min-w-[160px].
+        style={{ minWidth: 160 }}
+        className="max-h-[240px] overflow-y-auto rounded-lg border border-gray-200 bg-white p-4 shadow-lg"
+      >
+        <div className="flex items-center justify-between gap-4 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
           <span>Relation Type</span>
           {!isEmpty && actions.length > 0 && (
             <button
