@@ -32,6 +32,7 @@ type PendingConnection = {
   targetId: TLShapeId;
   /** Viewport coords for dropdown positioning (midpoint between nodes) */
   dropdownPos: { x: number; y: number };
+  storedRelationsEnabled: boolean;
 };
 
 const getEdgeMidpoints = (bounds: {
@@ -214,8 +215,9 @@ export const DragHandleOverlay = () => {
           shape: selectedNode,
         });
         const targetNodeTypeId = getDiscourseNodeTypeId({ shape: target });
+        const storedRelationsEnabled = getStoredRelationsEnabled();
         if (
-          !getStoredRelationsEnabled() &&
+          !storedRelationsEnabled &&
           !hasValidRelationTypes(selectedNodeTypeId, targetNodeTypeId)
         ) {
           dispatchToastEvent({
@@ -244,6 +246,7 @@ export const DragHandleOverlay = () => {
           sourceId: selectedNode.id,
           targetId: target.id,
           dropdownPos: midVp,
+          storedRelationsEnabled,
         });
       };
 
@@ -354,8 +357,10 @@ export const DragHandleOverlay = () => {
           onSelect={handleDropdownSelect}
           onDismiss={handleDropdownDismiss}
           // No-ops until ENG-2243 and ENG-2244 wire the flows; legacy mode can't show new triplets.
-          onAddExisting={getStoredRelationsEnabled() ? noopAction : undefined}
-          onCreateNew={getStoredRelationsEnabled() ? noopAction : undefined}
+          onAddExisting={
+            pending.storedRelationsEnabled ? noopAction : undefined
+          }
+          onCreateNew={pending.storedRelationsEnabled ? noopAction : undefined}
         />
       )}
     </div>
