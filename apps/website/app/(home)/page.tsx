@@ -169,6 +169,13 @@ const SUPPORTERS: Supporter[] = [
     width: 546,
     height: 262,
   },
+  {
+    alt: "Astera",
+    href: "https://astera.org/",
+    image: "/supporter-logos/Astera.svg",
+    width: 447,
+    height: 128,
+  },
 ];
 
 const ArrowLink = ({
@@ -580,12 +587,12 @@ const Home = async (): Promise<ReactElement> => {
               title="Supported by open science funders and partners"
               description="Organizations helping make modular, reusable scientific communication possible."
             />
-            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="mt-10 flex flex-wrap justify-center gap-4">
               {SUPPORTERS.map((supporter) => (
                 <Link
                   key={supporter.href}
                   href={supporter.href}
-                  className="flex h-32 items-center justify-center gap-3 rounded-lg border border-neutral-dark/10 bg-white p-6 transition-colors hover:border-secondary"
+                  className="flex h-32 w-full items-center justify-center gap-3 rounded-lg border border-neutral-dark/10 bg-white p-6 transition-colors hover:border-secondary sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.7rem)]"
                 >
                   <Image
                     src={supporter.image}
