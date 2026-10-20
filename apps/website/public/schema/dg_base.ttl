@@ -17,41 +17,66 @@
 # This is inspired by https://hyperknowledge.org/schemas/hyperknowledge_frames.ttl
 # and topic mapping
 
+dgb:Node a owl:Class;
+    rdfs:comment "Superclass of all DiscourseGraph nodes"@en .
+
+# NodeSchema is the metaclass of node types; it is equivalent to being a subclass of dgb:Node,
+# so either `X a dgb:NodeSchema` or `X rdfs:subClassOf dgb:Node` can be asserted and the other inferred.
+# (OWL Full: OWL 2 DL forbids restrictions on rdfs:subClassOf. OWL RL reasoners apply it.)
+# Side effect: reasoners that derive reflexive subClassOf will also infer dgb:Node a dgb:NodeSchema
+# (and likewise dgb:RelationInstance a dgb:AbstractRelationDef, below).
 dgb:NodeSchema
-rdfs:subClassOf owl:Class;
+    rdfs:subClassOf owl:Class;
+    owl:equivalentClass [a owl:Restriction; owl:onProperty rdfs:subClassOf; owl:hasValue dgb:Node];
     rdfs:comment "Subclasses of DiscourseGraph nodes"@en .
+
+# The declared domain and range of a role. Restrictions on rdfs:domain/rdfs:range would also
+# apply to inferred superclass domains (up to owl:Thing), so roles declare theirs with these
+# subproperties; rdfs:domain and rdfs:range are still inferred (and may also be asserted).
+dgb:roleDomain rdfs:subPropertyOf rdfs:domain;
+    rdfs:comment "The declared domain of a role: the node schema that has the role"@en .
+
+dgb:roleRange rdfs:subPropertyOf rdfs:range;
+    rdfs:comment "The declared range of a role: the node schema of the role's values"@en .
 
 dgb:Role
     rdfs:subClassOf owl:ObjectProperty,
-        [a owl:Restriction; owl:onProperty rdfs:domain ; owl:allValuesFrom dgb:NodeSchema ],
-        [a owl:Restriction; owl:onProperty rdfs:range ; owl:allValuesFrom dgb:NodeSchema ];
+        [a owl:Restriction; owl:onProperty dgb:roleDomain ; owl:allValuesFrom dgb:NodeSchema ],
+        [a owl:Restriction; owl:onProperty dgb:roleRange ; owl:allValuesFrom dgb:NodeSchema ];
     rdfs:comment "A role within a node schema"@en .
 
 
-dgb:AbstractRelationDef rdfs:comment "DiscourseGraph relation definitions"@en.
+# Likewise, relation definitions are (punned) classes of relation instances.
+dgb:AbstractRelationDef rdfs:subClassOf dgb:NodeSchema;
+  owl:equivalentClass [a owl:Restriction; owl:onProperty rdfs:subClassOf; owl:hasValue dgb:RelationInstance];
+  rdfs:comment "DiscourseGraph relation definitions"@en.
 
 dgb:RelationDef rdfs:subClassOf owl:ObjectProperty, dgb:AbstractRelationDef;
   rdfs:comment "DiscourseGraph relations"@en.
 
 
-dgb:RelationInstance rdfs:subClassOf rdf:Statement, dgb:NodeSchema,
-  [a owl:Restriction; owl:onProperty rdfs:predicate ; owl:allValuesFrom dgb:RelationDef ].
+dgb:RelationInstance rdfs:subClassOf rdf:Statement, dgb:Node,
+  [a owl:Restriction; owl:onProperty rdf:predicate ; owl:allValuesFrom dgb:RelationDef ].
 
 dgb:source a dgb:Role ;
     rdfs:subPropertyOf rdf:subject ;
+    dgb:roleDomain dgb:RelationInstance ;
+    dgb:roleRange dgb:Node ;
     rdfs:domain dgb:RelationInstance ;
-    rdfs:range dgb:NodeSchema ;
+    rdfs:range dgb:Node ;
     rdfs:comment "The source of a binary relation"@en .
 
 dgb:destination a dgb:Role ;
     rdfs:subPropertyOf rdf:object ;
+    dgb:roleDomain dgb:RelationInstance ;
+    dgb:roleRange dgb:Node ;
     rdfs:domain dgb:RelationInstance ;
-    rdfs:range dgb:NodeSchema ;
+    rdfs:range dgb:Node ;
     rdfs:comment "The destination of a binary relation"@en .
 
 dgb:textRefersToNode a owl:ObjectProperty;
-  rdfs:domain dgb:NodeSchema;
-  rdfs:range dgb:NodeSchema;
+  rdfs:domain dgb:Node;
+  rdfs:range dgb:Node;
   rdfs:comment "The text of a node refers to another node"@en .
 
 
@@ -63,8 +88,8 @@ dgb:textRefersToNode a owl:ObjectProperty;
 # :y0 a :y.
 # :r a dgb:NodeSchema.
 # :x_r a dgb:Role ;
-#     rdfs:domain :r ;
-#     rdfs:range :x .
+#     dgb:roleDomain :r ;
+#     dgb:roleRange :x .
 
 # :r0 a :r;
 #  :x_r :x0.
