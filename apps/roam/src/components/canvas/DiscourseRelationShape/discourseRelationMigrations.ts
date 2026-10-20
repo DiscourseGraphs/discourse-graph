@@ -15,9 +15,12 @@ import {
   TLBaseShape,
 } from "tldraw";
 import { createMigrationIds } from "tldraw";
-import { RelationBinding } from "./DiscourseRelationBindings";
-import { getRelationColor } from "./DiscourseRelationUtil";
+import {
+  DISCOURSE_RELATION_SHAPE_TYPE,
+  getRelationColor,
+} from "./DiscourseRelationUtil";
 import { DISCOURSE_NODE_SHAPE_TYPE } from "~/components/canvas/DiscourseNodeUtil";
+import type { RelationBinding } from "./DiscourseRelationBindings";
 
 const SEQUENCE_ID_BASE = "com.roam-research.discourse-graphs";
 
@@ -33,6 +36,122 @@ const getRecordTypeName = (record: unknown): string | undefined => {
   return typeof candidate === "string" ? candidate : undefined;
 };
 
+const hasArrowLikeProps = (record: unknown): boolean => {
+  if (typeof record !== "object" || record === null) return false;
+  const props = (record as { props?: unknown }).props;
+  if (typeof props !== "object" || props === null) return false;
+  return (
+    "start" in props &&
+    "end" in props &&
+    "arrowheadEnd" in props &&
+    ("bend" in props || "labelPosition" in props || "text" in props)
+  );
+};
+
+const isIgnoredArrowLikeShapeType = ({
+  recordType,
+  allNodeTypes,
+}: {
+  recordType: string;
+  allNodeTypes: string[];
+}): boolean => {
+  return (
+    recordType === "arrow" ||
+    recordType === DISCOURSE_RELATION_SHAPE_TYPE ||
+    recordType === DISCOURSE_NODE_SHAPE_TYPE ||
+    allNodeTypes.includes(recordType)
+  );
+};
+
+const isLegacyRelationOrReferencedShape = ({
+  record,
+  allRelationIds,
+  allAddReferencedNodeActions,
+  allNodeTypes,
+}: {
+  record: unknown;
+  allRelationIds: string[];
+  allAddReferencedNodeActions: string[];
+  allNodeTypes: string[];
+}): boolean => {
+  const recordType = getRecordType(record);
+  if (getRecordTypeName(record) !== "shape" || !recordType) return false;
+  if (
+    [...allRelationIds, ...allAddReferencedNodeActions].includes(recordType)
+  ) {
+    return true;
+  }
+  return (
+    hasArrowLikeProps(record) &&
+    !isIgnoredArrowLikeShapeType({ recordType, allNodeTypes })
+  );
+};
+
+const isLegacyCanonicalRelationShape = ({
+  record,
+  allRelationIds,
+  allAddReferencedNodeActions,
+  allNodeTypes,
+}: {
+  record: unknown;
+  allRelationIds: string[];
+  allAddReferencedNodeActions: string[];
+  allNodeTypes: string[];
+}): boolean => {
+  const recordType = getRecordType(record);
+  if (getRecordTypeName(record) !== "shape" || !recordType) return false;
+  if (allRelationIds.includes(recordType)) return true;
+  if (allAddReferencedNodeActions.includes(recordType)) return false;
+  return (
+    hasArrowLikeProps(record) &&
+    !isIgnoredArrowLikeShapeType({ recordType, allNodeTypes })
+  );
+};
+
+export const migrateRelationTypesToDiscourseRelation = ({
+  oldStore,
+  allRelationIds,
+  allAddReferencedNodeActions,
+  allNodeTypes,
+}: {
+  oldStore: Record<string, any>;
+  allRelationIds: string[];
+  allAddReferencedNodeActions: string[];
+  allNodeTypes: string[];
+}): void => {
+  const migratedRelationTypeIdsByShapeId = new Map<TLShapeId, string>();
+
+  for (const record of Object.values(oldStore)) {
+    if (
+      !isLegacyCanonicalRelationShape({
+        record,
+        allRelationIds,
+        allAddReferencedNodeActions,
+        allNodeTypes,
+      })
+    ) {
+      continue;
+    }
+
+    const shape = record;
+    const relationTypeId = shape.props?.relationTypeId || shape.type;
+    if (!shape.props) shape.props = {};
+    shape.props.relationTypeId = relationTypeId;
+    shape.type = DISCOURSE_RELATION_SHAPE_TYPE;
+    migratedRelationTypeIdsByShapeId.set(shape.id, relationTypeId);
+  }
+
+  for (const record of Object.values(oldStore)) {
+    if (getRecordTypeName(record) !== "binding") continue;
+
+    const binding = record as RelationBinding;
+    if (!migratedRelationTypeIdsByShapeId.has(binding.fromId)) {
+      continue;
+    }
+    binding.type = DISCOURSE_RELATION_SHAPE_TYPE;
+  }
+};
+
 export const createMigrations = ({
   allRelationIds,
   allAddReferencedNodeActions,
@@ -42,16 +161,13 @@ export const createMigrations = ({
   allAddReferencedNodeActions: string[];
   allNodeTypes: string[];
 }) => {
-  const allRelationShapeIds = [
-    ...allRelationIds,
-    ...allAddReferencedNodeActions,
-  ];
   const versions = createMigrationIds(`${SEQUENCE_ID_BASE}`, {
     ExtractBindings: 1,
     "2.3.0": 2,
     AddSizeAndFontFamily: 3,
     RemoveNullAssetFileSize: 4,
     MigrateNodeTypeToDiscourseNode: 5,
+    MigrateRelationTypeToDiscourseRelation: 6,
   });
   return createMigrationSequence({
     sequenceId: `${SEQUENCE_ID_BASE}`,
@@ -78,12 +194,12 @@ export const createMigrations = ({
           >;
 
           const arrows = Object.values(oldStore).filter((r): r is OldArrow => {
-            const recordType = getRecordType(r);
-            return (
-              getRecordTypeName(r) === "shape" &&
-              !!recordType &&
-              allRelationShapeIds.includes(recordType)
-            );
+            return isLegacyRelationOrReferencedShape({
+              record: r,
+              allRelationIds,
+              allAddReferencedNodeActions,
+              allNodeTypes,
+            });
           });
 
           for (const a of arrows) {
@@ -141,12 +257,12 @@ export const createMigrations = ({
         id: versions["2.3.0"],
         scope: "record",
         filter: (r: any) => {
-          const recordType = getRecordType(r);
-          return (
-            getRecordTypeName(r) === "shape" &&
-            !!recordType &&
-            allRelationShapeIds.includes(recordType)
-          );
+          return isLegacyRelationOrReferencedShape({
+            record: r,
+            allRelationIds,
+            allAddReferencedNodeActions,
+            allNodeTypes,
+          });
         },
         up: (arrow: any) => {
           arrow.props.start = { x: 0, y: 0 };
@@ -201,6 +317,18 @@ export const createMigrations = ({
         up: (shape: any) => {
           shape.props.nodeTypeId = shape.type;
           shape.type = DISCOURSE_NODE_SHAPE_TYPE;
+        },
+      },
+      {
+        id: versions["MigrateRelationTypeToDiscourseRelation"],
+        scope: "store",
+        up: (oldStore) => {
+          migrateRelationTypesToDiscourseRelation({
+            oldStore,
+            allRelationIds,
+            allAddReferencedNodeActions,
+            allNodeTypes,
+          });
         },
       },
     ],
