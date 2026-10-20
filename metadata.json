@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5DS0K88Z2RT334TRQWCEDDY",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 7,
+  "files_touched": [
+    "apps/obsidian/src/components/canvas/DiscourseToolPanel.tsx",
+    "apps/obsidian/src/components/useSchemaSelection.ts",
+    "apps/website/public/docs/roam/dg-schema02.PNG"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1084,
+    "cache_creation_tokens": 3815883,
+    "cache_read_tokens": 199235123,
+    "output_tokens": 527210,
+    "api_call_count": 537,
+    "subagent_tokens": {
+      "input_tokens": 194,
+      "cache_creation_tokens": 515352,
+      "cache_read_tokens": 7213096,
+      "output_tokens": 3800,
+      "api_call_count": 97
+    }
+  }
+}
