@@ -13,6 +13,8 @@ import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import { RelationTypeDropdown } from "./RelationTypeDropdown";
 import { createDefaultRelationBetweenNodes } from "./relationCreation";
 
+const noopAction = (): void => undefined;
+
 const HANDLE_RADIUS = 5;
 const HANDLE_HIT_AREA = 12;
 const HANDLE_PADDING = 8;
@@ -351,6 +353,9 @@ export const DragHandleOverlay = () => {
           dropdownPos={pending.dropdownPos}
           onSelect={handleDropdownSelect}
           onDismiss={handleDropdownDismiss}
+          // No-ops until ENG-2243 and ENG-2244 wire the flows; legacy mode can't show new triplets.
+          onAddExisting={getStoredRelationsEnabled() ? noopAction : undefined}
+          onCreateNew={getStoredRelationsEnabled() ? noopAction : undefined}
         />
       )}
     </div>
