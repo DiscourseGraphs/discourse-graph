@@ -1,0 +1,41 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5DS0CCE02N8NSFF5QHCBW84",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "apps/roam/src/components/DiscourseNodeMenu.tsx",
+    "apps/roam/src/components/settings/NodeConfig.tsx",
+    "apps/roam/src/components/settings/Settings.tsx",
+    "apps/roam/src/components/settings/components/SettingItemRow.tsx",
+    "apps/roam/src/components/settings/navigation/useSettingAnchorScroll.ts",
+    "apps/roam/src/styles/settingsStyles.css",
+    "apps/website/public/docs/roam/dg-schema02.png",
+    "local/pr-body-eng-2410.md",
+    "local/roam-playwright/eng2410/verify.mjs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 26,
+    "cache_creation_tokens": 12865,
+    "cache_read_tokens": 2847689,
+    "output_tokens": 5679,
+    "api_call_count": 12,
+    "subagent_tokens": {
+      "input_tokens": 14,
+      "cache_creation_tokens": 73220,
+      "cache_read_tokens": 403568,
+      "output_tokens": 49,
+      "api_call_count": 7
+    }
+  }
+}
