@@ -45,7 +45,7 @@ const CanvasSettings = ({
           "Set a single key to activate the discourse tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut.",
           ROAM_DOCS.creatingNodes,
         )}
-        placeholder="Click to set single key"
+        placeholder="Set single key"
         initialValue={personalSettings[PERSONAL_KEYS.discourseToolShortcut]}
       />
       <PersonalFlagPanel

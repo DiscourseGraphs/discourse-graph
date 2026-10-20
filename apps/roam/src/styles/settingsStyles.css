@@ -25,6 +25,13 @@
   padding: 2px;
 }
 
+/* Row content only: tables, the node index and the specification query editor need full width.
+   The cap sits on the content, not the scroll box, so the scrollbar stays at the dialog edge. */
+.dg-settings-row-panel > *,
+.dg-settings-node-config > :not(:has(.roamjs-node-specification)) {
+  max-width: 720px;
+}
+
 /** No row dividers: the only rule on a page is the one under a section heading. */
 
 /* Translucent neutral so the badge reads on Roam's light and dark themes;
