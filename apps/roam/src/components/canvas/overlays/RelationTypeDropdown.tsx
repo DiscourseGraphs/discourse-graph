@@ -22,9 +22,6 @@ type RelationTypeDropdownProps = {
   onCreateNew?: (pair: NodeTypePair) => void;
 };
 
-const MENU_ITEM_CLASS =
-  "flex w-full cursor-pointer items-center gap-2 rounded-md border-none bg-transparent px-3 py-2 text-left text-[13px] text-[#333] hover:bg-[#f0f0f0]";
-
 const MenuItem = ({
   onClick,
   children,
@@ -34,13 +31,7 @@ const MenuItem = ({
 }): React.ReactElement => (
   <button
     onClick={onClick}
-    className={MENU_ITEM_CLASS}
-    onMouseEnter={(e) => {
-      (e.currentTarget as HTMLElement).style.backgroundColor = "#f0f0f0";
-    }}
-    onMouseLeave={(e) => {
-      (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";
-    }}
+    className="flex w-full cursor-pointer items-center gap-2 rounded-md border-none bg-transparent px-3 py-2 text-left text-sm text-gray-800 hover:bg-gray-100"
   >
     {children}
   </button>
@@ -152,9 +143,9 @@ export const RelationTypeDropdown = ({
       onClick={(e) => e.stopPropagation()}
     >
       <div
-        // Roam's Tailwind 2 ignores arbitrary values like min-w-[160px].
+        // Tailwind 2's min-w scale has no fixed widths.
         style={{ minWidth: 160 }}
-        className="max-h-[240px] overflow-y-auto rounded-lg border border-gray-200 bg-white p-4 shadow-lg"
+        className="max-h-60 overflow-y-auto rounded-lg border border-gray-200 bg-white p-4 shadow-lg"
       >
         <div className="flex items-center justify-between gap-4 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
           <span>Relation Type</span>
@@ -173,7 +164,7 @@ export const RelationTypeDropdown = ({
           actionItems.length > 0 ? (
             actionItems
           ) : (
-            <div className="px-3 py-2 text-[13px] text-gray-500">
+            <div className="px-3 py-2 text-sm text-gray-500">
               No relation types between these nodes
             </div>
           )
@@ -190,7 +181,7 @@ export const RelationTypeDropdown = ({
                   style={{
                     backgroundColor: rt.color,
                   }}
-                  className="h-2 w-2 flex-shrink-0 rounded-full bg-[#333]"
+                  className="h-2 w-2 flex-shrink-0 rounded-full bg-gray-800"
                 />
                 {rt.label}
               </MenuItem>
