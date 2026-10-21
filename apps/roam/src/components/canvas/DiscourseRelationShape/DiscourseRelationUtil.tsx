@@ -153,7 +153,7 @@ export const getRelationColor = (
   const named = NAMED_RELATION_COLORS.get(relationName.toLowerCase());
   if (named) return named;
   // Arrows paint this name as a raw CSS color; CSS grey is the one readable on light and dark canvases.
-  if (index === undefined) return "grey";
+  if (index === undefined || index < 0) return "grey";
   return COLOR_ARRAY[index % COLOR_ARRAY.length];
 };
 

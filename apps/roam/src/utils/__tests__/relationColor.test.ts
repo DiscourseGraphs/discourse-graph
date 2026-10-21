@@ -20,6 +20,7 @@ describe("getRelationColor", () => {
   it("falls back to grey, readable on light and dark canvases, when drawing without an index", () => {
     expect(getRelationColor("eng2244 custom")).toBe("grey");
     expect(getRelationColor("constructor")).toBe("grey");
+    expect(getRelationColor("removed relation", -1)).toBe("grey");
   });
 
   it("keeps named colors out of the indexed palette and wraps past it", () => {
