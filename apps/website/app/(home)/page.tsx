@@ -232,7 +232,6 @@ const Home = async (): Promise<ReactElement> => {
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               {/* Use hard navigation across the marketing/docs boundary because client-side transitions can leak docs CSS. */}
-              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
               <a
                 href="/docs"
                 className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary/90 hover:text-white"
@@ -342,7 +341,6 @@ const Home = async (): Promise<ReactElement> => {
                     </div>
                     <div className="mt-auto flex flex-wrap gap-3">
                       {/* Use hard navigation across the marketing/docs boundary because client-side transitions can leak docs CSS. */}
-                      {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                       <a
                         href={plugin.docsHref}
                         className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary/90 hover:text-white"
