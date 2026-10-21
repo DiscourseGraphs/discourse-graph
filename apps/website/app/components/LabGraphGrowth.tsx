@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
+import Image from "next/image";
+import type { GraphColors } from "~/utils/graphBackground/colors";
 import {
   GROWTH_DURATION,
   drawGrowthFrame,
@@ -10,25 +12,36 @@ import {
   type GrowthModel,
 } from "~/utils/labGraphGrowth";
 
-// Share of the figure that must be on screen before the animation plays.
-const PLAY_THRESHOLD = 0.4;
+// Share of the figure that must be on screen before the animation first plays.
+const START_THRESHOLD = 0.6;
+// Longest step one frame may advance. Frames stop in a background tab, so
+// without a cap the time away would count as playback.
+const MAX_FRAME_MS = 50;
+const POSTER_SIZES = "(min-width: 1024px) 58vw, 100vw";
 
 type LabGraphGrowthProps = {
   dataUrl: string;
+  // The finished graph, shown when the data can't load or JavaScript is off.
+  posterSrc: string;
   label: string;
+  colors: GraphColors;
 };
 
-// Plays once when scrolled into view, pauses while off screen, then holds the
-// last frame with a replay button. The data is fetched on first approach, so
-// it costs nothing for visitors who never scroll this far. With reduced
-// motion it draws the finished graph straight away.
+// Plays once when most of the figure is on screen, pauses while it is fully
+// off screen, then holds the last frame with a replay button. The data is
+// fetched on first approach, so it costs nothing for visitors who never
+// scroll this far. With reduced motion it draws the finished graph.
 export const LabGraphGrowth = ({
   dataUrl,
+  posterSrc,
   label,
+  colors,
 }: LabGraphGrowthProps): ReactElement => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const replayRef = useRef<(() => void) | null>(null);
   const [isDone, setIsDone] = useState(false);
+  const [hasFailed, setHasFailed] = useState(false);
+  const { pulse, edge } = colors;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -39,13 +52,14 @@ export const LabGraphGrowth = ({
       "(prefers-reduced-motion: reduce)",
     ).matches;
     const fontFamily = getComputedStyle(canvas).fontFamily;
+    const graphColors: GraphColors = { pulse, edge };
     let model: GrowthModel | null = null;
     let isLoading = false;
     let isDisposed = false;
-    let isVisible = false;
+    let isOnScreen = false;
     let hasStarted = false;
     let elapsed = reducedMotion ? GROWTH_DURATION : 0;
-    let startedAt: number | null = null;
+    let lastTime: number | null = null;
     let frameId = 0;
 
     const draw = (): void => {
@@ -54,6 +68,7 @@ export const LabGraphGrowth = ({
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
       drawGrowthFrame(context, {
         model,
+        colors: graphColors,
         elapsed,
         width: canvas.clientWidth,
         height: canvas.clientHeight,
@@ -69,20 +84,20 @@ export const LabGraphGrowth = ({
     };
 
     const step = (time: number): void => {
-      if (startedAt === null) startedAt = time - elapsed;
-      elapsed = time - startedAt;
+      elapsed += Math.min(MAX_FRAME_MS, time - (lastTime ?? time));
+      lastTime = time;
       draw();
       if (elapsed >= GROWTH_DURATION) {
         frameId = 0;
         setIsDone(true);
         return;
       }
-      frameId = isVisible ? requestAnimationFrame(step) : 0;
+      frameId = isOnScreen ? requestAnimationFrame(step) : 0;
     };
 
     const resume = (): void => {
       if (frameId || !model || elapsed >= GROWTH_DURATION) return;
-      startedAt = null;
+      lastTime = null;
       frameId = requestAnimationFrame(step);
     };
 
@@ -96,25 +111,32 @@ export const LabGraphGrowth = ({
     };
     replayRef.current = replay;
 
-    const play = (): void => {
-      if (!model || reducedMotion || !isVisible) return;
-      if (hasStarted) resume();
-      else replay();
+    const startWhenMostlyVisible = (ratio: number): void => {
+      if (!model || reducedMotion) return;
+      if (hasStarted) {
+        if (isOnScreen) resume();
+      } else if (ratio >= START_THRESHOLD) {
+        replay();
+      }
     };
 
-    const load = async (): Promise<void> => {
-      if (isLoading) return;
+    const load = async (ratio: number): Promise<void> => {
+      if (isLoading || model) return;
       isLoading = true;
       try {
         const response = await fetch(dataUrl);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = (await response.json()) as GrowthData;
         if (isDisposed) return;
         model = prepareGrowth(data);
+        setHasFailed(false);
         resize();
-        play();
+        startWhenMostlyVisible(ratio);
       } catch (error) {
-        // The figure stays blank; there is nothing useful to show instead.
         console.error(`Error loading lab graph data from ${dataUrl}:`, error);
+        // Retry the next time the figure scrolls into view.
+        isLoading = false;
+        if (!isDisposed) setHasFailed(true);
       }
     };
 
@@ -123,11 +145,12 @@ export const LabGraphGrowth = ({
     const intersectionObserver = new IntersectionObserver(
       ([entry]) => {
         if (!entry) return;
-        if (entry.isIntersecting) void load();
-        isVisible = entry.intersectionRatio >= PLAY_THRESHOLD;
-        if (isVisible) play();
+        isOnScreen = entry.isIntersecting;
+        if (!isOnScreen) return;
+        if (model) startWhenMostlyVisible(entry.intersectionRatio);
+        else void load(entry.intersectionRatio);
       },
-      { threshold: [0, PLAY_THRESHOLD] },
+      { threshold: [0, START_THRESHOLD] },
     );
     intersectionObserver.observe(canvas);
 
@@ -138,7 +161,14 @@ export const LabGraphGrowth = ({
       intersectionObserver.disconnect();
       replayRef.current = null;
     };
-  }, [dataUrl]);
+  }, [dataUrl, pulse, edge]);
+
+  const handleReplay = (): void => {
+    // The button unmounts while the animation plays, so keep focus on the
+    // figure instead of letting it drop to the page.
+    canvasRef.current?.focus();
+    replayRef.current?.();
+  };
 
   return (
     <div className="relative aspect-[4/3] overflow-hidden rounded-lg border border-neutral-dark/10 bg-white shadow-sm">
@@ -146,19 +176,36 @@ export const LabGraphGrowth = ({
         ref={canvasRef}
         role="img"
         aria-label={label}
-        className="absolute inset-0 h-full w-full"
+        tabIndex={-1}
+        className="absolute inset-0 h-full w-full focus:outline-none"
       />
-      <button
-        type="button"
-        onClick={() => replayRef.current?.()}
-        tabIndex={isDone ? 0 : -1}
-        aria-hidden={!isDone}
-        className={`absolute right-3 top-3 rounded-full border border-neutral-dark/15 bg-white/90 px-3 py-1 text-xs font-medium text-neutral-dark/70 transition-opacity hover:text-neutral-dark ${
-          isDone ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
-      >
-        Replay
-      </button>
+      {hasFailed && (
+        <Image
+          src={posterSrc}
+          alt={label}
+          fill
+          className="object-cover"
+          sizes={POSTER_SIZES}
+        />
+      )}
+      <noscript>
+        <Image
+          src={posterSrc}
+          alt={label}
+          fill
+          className="object-cover"
+          sizes={POSTER_SIZES}
+        />
+      </noscript>
+      {isDone && (
+        <button
+          type="button"
+          onClick={handleReplay}
+          className="absolute right-3 top-3 rounded-full border border-neutral-dark/15 bg-white/90 px-3 py-1 text-xs font-medium text-neutral-dark/70 hover:text-neutral-dark"
+        >
+          Replay
+        </button>
+      )}
     </div>
   );
 };

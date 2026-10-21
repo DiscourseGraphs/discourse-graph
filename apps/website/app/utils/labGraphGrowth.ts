@@ -1,6 +1,8 @@
-// The MATSU lab discourse graph growing from its first node to today, drawn on a
-// 2D canvas. Node positions are computed offline (public/lab-graph/), so the
-// browser only draws: no layout runs on the device.
+// The MATSU lab discourse graph growing from its first node to the snapshot
+// date, drawn on a 2D canvas. Node positions come precomputed in the data file
+// (public/lab-graph/), so the browser only draws: no layout runs on the device.
+
+import type { GraphColors } from "./graphBackground/colors";
 
 // Shape of public/lab-graph/matsulab-growth.json. Positions are in a W x H
 // layout space and dates are whole days since t0. Topology only: no titles.
@@ -58,14 +60,20 @@ export const NODE_TYPE_STYLES: Record<string, { label: string; rgb: string }> =
     SRC: { label: "Source", rgb: "140, 140, 140" },
   };
 const FALLBACK_RGB = "140, 140, 140";
-const INK_RGB = "31, 31, 31";
 const DAY_MS = 86_400_000;
 
-// Milliseconds of each phase; the graph grows linearly in calendar time.
-export const GROWTH_TIMELINE = { lead: 500, grow: 10_000 } as const;
-export const GROWTH_DURATION = GROWTH_TIMELINE.lead + GROWTH_TIMELINE.grow;
+// Milliseconds of each phase. The graph grows linearly in calendar time, then
+// settles so the last nodes and links lose their "new" emphasis before the
+// final frame holds.
+export const GROWTH_TIMELINE = {
+  lead: 500,
+  grow: 10_000,
+  settle: 400,
+} as const;
+export const GROWTH_DURATION =
+  GROWTH_TIMELINE.lead + GROWTH_TIMELINE.grow + GROWTH_TIMELINE.settle;
 
-// New links glow in the brand orange for this many days; new nodes pop.
+// New formal links glow in the brand color for this many days; new nodes pop.
 const FRESH_LINK_DAYS = 60;
 const FRESH_NODE_DAYS = 45;
 const NODE_POP = 0.9;
@@ -142,7 +150,11 @@ export const getGrowthDay = ({
 type DrawContext = {
   context: CanvasRenderingContext2D;
   model: GrowthModel;
+  colors: GraphColors;
   day: number;
+  // The day used to age nodes and links. It runs past the last day while the
+  // animation settles, so nothing still looks new in the final frame.
+  ageDay: number;
   // Converts a size in CSS px to layout units.
   px: (cssPx: number) => number;
   compact: boolean;
@@ -150,7 +162,7 @@ type DrawContext = {
 };
 
 const drawGraph = (
-  { context, model, day }: DrawContext,
+  { context, model, colors, day, ageDay }: DrawContext,
   { top, bottom }: { top: number; bottom: number },
 ): void => {
   const { width: W, height: H } = model;
@@ -164,7 +176,7 @@ const drawGraph = (
     for (const edge of model.edges) {
       if (edge.created > day) break;
       if (edge.formal !== formal) continue;
-      const age = day - edge.created;
+      const age = ageDay - edge.created;
       const fresh =
         formal && age < FRESH_LINK_DAYS ? 1 - age / FRESH_LINK_DAYS : 0;
       const base = formal
@@ -176,8 +188,8 @@ const drawGraph = (
           : INFORMAL_ALPHA;
       context.strokeStyle =
         fresh > 0
-          ? `rgba(255, 140, 75, ${base + fresh * FRESH_ALPHA_BOOST})`
-          : `rgba(${INK_RGB}, ${base})`;
+          ? `rgba(${colors.pulse}, ${base + fresh * FRESH_ALPHA_BOOST})`
+          : `rgba(${colors.edge}, ${base})`;
       context.lineWidth = (formal ? 0.8 + fresh * 0.8 : 0.6) * scale;
       context.beginPath();
       context.moveTo(toX(edge.from.x), toY(edge.from.y));
@@ -187,7 +199,7 @@ const drawGraph = (
   }
   for (const node of model.drawOrder) {
     if (node.created > day) continue;
-    const age = day - node.created;
+    const age = ageDay - node.created;
     const pop =
       age < FRESH_NODE_DAYS ? 1 + (1 - age / FRESH_NODE_DAYS) * NODE_POP : 1;
     const rgb =
@@ -210,6 +222,7 @@ const drawGraph = (
 const drawDate = ({
   context,
   model,
+  colors,
   day,
   px,
   compact,
@@ -218,17 +231,22 @@ const drawDate = ({
   const date = new Date(model.t0 + Math.max(0, day) * DAY_MS);
   context.textAlign = "left";
   context.textBaseline = "alphabetic";
-  context.fillStyle = `rgba(${INK_RGB}, 0.92)`;
+  context.fillStyle = `rgba(${colors.edge}, 0.92)`;
   context.font = `700 ${px(compact ? 18 : 22)}px ${fontFamily}`;
   context.fillText(
-    date.toLocaleString("en-US", { month: "short", year: "numeric" }),
+    // Days are counted in UTC, so the month must be too.
+    date.toLocaleString("en-US", {
+      month: "short",
+      year: "numeric",
+      timeZone: "UTC",
+    }),
     px(14),
     px(compact ? 28 : 32),
   );
 };
 
 const drawLegend = (
-  { context, model, px, compact, fontFamily }: DrawContext,
+  { context, model, colors, px, compact, fontFamily }: DrawContext,
   { y }: { y: number },
 ): void => {
   context.font = `500 ${px(compact ? 10 : 11)}px ${fontFamily}`;
@@ -250,7 +268,7 @@ const drawLegend = (
     context.beginPath();
     context.arc(x + dot, itemY, dot, 0, Math.PI * 2);
     context.fill();
-    context.fillStyle = `rgba(${INK_RGB}, 0.68)`;
+    context.fillStyle = `rgba(${colors.edge}, 0.68)`;
     context.fillText(style.label, x + dot * 2 + px(4), itemY);
     x += itemWidth + gap;
   }
@@ -264,12 +282,14 @@ export const drawGrowthFrame = (
   context: CanvasRenderingContext2D,
   {
     model,
+    colors,
     elapsed,
     width,
     height,
     fontFamily,
   }: {
     model: GrowthModel;
+    colors: GraphColors;
     elapsed: number;
     width: number;
     height: number;
@@ -280,10 +300,21 @@ export const drawGrowthFrame = (
   const compact = width < COMPACT_WIDTH;
   const px = (cssPx: number): number => cssPx / scale;
   const layoutHeight = height / scale;
+  const day = getGrowthDay({ model, elapsed });
+  const settled = Math.min(
+    1,
+    Math.max(
+      0,
+      (elapsed - GROWTH_TIMELINE.lead - GROWTH_TIMELINE.grow) /
+        GROWTH_TIMELINE.settle,
+    ),
+  );
   const frame: DrawContext = {
     context,
     model,
-    day: getGrowthDay({ model, elapsed }),
+    colors,
+    day,
+    ageDay: day + settled * Math.max(FRESH_LINK_DAYS, FRESH_NODE_DAYS),
     px,
     compact,
     fontFamily,

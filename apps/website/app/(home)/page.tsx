@@ -409,11 +409,13 @@ const Home = async (): Promise<ReactElement> => {
             <figure>
               <LabGraphGrowth
                 dataUrl="/lab-graph/matsulab-growth.json"
-                label="Animation of the MATSU lab Discourse Graph growing from its first nodes in 2022 to over 3,400 nodes and 3,100 links today, colored by node type."
+                posterSrc="/lab-graph/matsulab-growth-poster.webp"
+                label="Animation of the MATSU lab Discourse Graph growing from its first nodes in 2022 to over 2,100 linked nodes and 3,100 links by October 2026, colored by node type."
+                colors={graphColors}
               />
               <figcaption className="mt-3 text-sm text-neutral-dark/65">
                 Growth of the <Link href={MATSU_LAB_URL}>MATSU lab</Link>{" "}
-                Discourse Graph, 2022 to today
+                Discourse Graph, 2022 to 2026
               </figcaption>
             </figure>
           </div>
