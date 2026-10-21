@@ -144,6 +144,13 @@ describe("populated state", () => {
     click(plus() ?? undefined);
     click(button("Create new"));
     expect(dialog()).not.toBeNull();
+    expect(button("Add existing…")).toBeUndefined();
+    click(
+      [...(dialog()?.querySelectorAll("button") ?? [])].find(
+        (b) => b.textContent === "Cancel",
+      ),
+    );
+    click(plus() ?? undefined);
     click(button("Add existing…"));
     expect(container.textContent).toContain("Evidence → Claim");
   });
