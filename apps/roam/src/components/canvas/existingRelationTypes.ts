@@ -13,7 +13,7 @@ import {
 } from "~/utils/relationSchemaAcceptance";
 import { isRelationSchemaDeleted } from "~/utils/relationSchemaChanges";
 
-// Roam stores triplets only; a relation type is identified by label + complement.
+// Roam stores triplets only; a relation type is identified by label + complement, in either order.
 export type RelationType = { label: string; complement: string };
 
 export const getNodeTypeText = (type: string): string =>
@@ -43,7 +43,8 @@ export const deriveRelationTypes = ({
       continue;
     const { label, complement } = relation;
     if (shown.has(label) || shown.has(complement)) continue;
-    const key = JSON.stringify([label, complement]);
+    // A mirrored pair (Informs / Informed By vs Informed By / Informs) is one type; the drag sets direction.
+    const key = JSON.stringify([label, complement].sort());
     if (!types.has(key)) types.set(key, { label, complement });
   }
   return [...types.values()];
