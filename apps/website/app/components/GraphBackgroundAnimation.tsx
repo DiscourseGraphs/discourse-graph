@@ -14,6 +14,9 @@ type GraphBackgroundAnimationProps = {
   followPointer?: boolean;
   // "lab" draws the MATSU lab graph instead of random nodes and links.
   graph?: GraphKind;
+  // Accessible description. Without one the canvas is hidden from assistive
+  // technology as decoration.
+  label?: string;
 };
 
 // Renders an absolutely positioned canvas that fills its parent, so the parent
@@ -24,6 +27,7 @@ export const GraphBackgroundAnimation = ({
   colors,
   followPointer = true,
   graph = "random",
+  label,
 }: GraphBackgroundAnimationProps): ReactElement => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // Depend on the strings, not the `colors` object: a new object identity
@@ -198,7 +202,9 @@ export const GraphBackgroundAnimation = ({
   return (
     <canvas
       ref={canvasRef}
-      aria-hidden="true"
+      {...(label
+        ? { role: "img", "aria-label": label }
+        : { "aria-hidden": true })}
       className="pointer-events-none absolute inset-0 h-full w-full"
     />
   );
