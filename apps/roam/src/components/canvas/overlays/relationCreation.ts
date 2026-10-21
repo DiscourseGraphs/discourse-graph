@@ -13,10 +13,10 @@ import {
 import { createOrUpdateArrowBinding } from "~/components/canvas/DiscourseRelationShape/helpers";
 import { getDiscourseNodeTypeId } from "~/components/canvas/DiscourseNodeUtil";
 import {
-  checkConnectionType,
   getCreatableRelations,
   isDiscourseNodeShape,
 } from "~/components/canvas/canvasUtils";
+import { checkConnectionType } from "~/utils/findRelationForPair";
 import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
 import { isRelationComplete } from "~/utils/isRelationComplete";
 
