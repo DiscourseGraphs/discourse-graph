@@ -194,6 +194,8 @@ describe("existing relation picker", () => {
   it("lists only types the pair does not already show", () => {
     openPicker(vi.fn<AddExisting>());
     expect(plus()).toBeNull();
+    // Opening the picker closes the actions popover.
+    expect(button("Create new")).toBeUndefined();
     expect(button("opposes / is opposed by")).toBeDefined();
     expect(button("supports / is supported by")).toBeUndefined();
   });

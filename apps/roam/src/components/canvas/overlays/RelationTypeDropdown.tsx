@@ -154,7 +154,10 @@ export const RelationTypeDropdown = ({
         onAddExisting && {
           key: "add-existing",
           label: "Add existing…",
-          run: () => setIsPickerOpen(true),
+          run: () => {
+            setIsActionMenuOpen(false);
+            setIsPickerOpen(true);
+          },
         },
         onCreateNew && {
           key: "create-new",
@@ -208,7 +211,7 @@ export const RelationTypeDropdown = ({
         </div>
         {isPickerOpen && pair ? (
           <>
-            <div className="flex items-center gap-1 px-2 py-1 text-[13px] text-gray-500">
+            <div className="flex items-center gap-1 px-2 py-1 text-sm text-gray-500">
               <button
                 aria-label="Back to relation types"
                 onClick={() => setIsPickerOpen(false)}
@@ -223,7 +226,7 @@ export const RelationTypeDropdown = ({
             </div>
             {existingRelationTypes.length === 0 ? (
               <>
-                <div className="px-3 py-2 text-[13px] text-gray-500">
+                <div className="px-3 py-2 text-sm text-gray-500">
                   No other relation types
                 </div>
                 {createNewItem}
