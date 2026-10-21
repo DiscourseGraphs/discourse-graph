@@ -51,6 +51,7 @@ export const deriveRelationTypes = ({
 
 const SCHEMA_WRITE_POLL_MS = 50;
 const SCHEMA_WRITE_TIMEOUT_MS = 3000;
+const SCHEMA_WRITE_RECONCILE_MS = 30000;
 
 // createRelationSchema doesn't await its settings write, so poll until the triplet is readable.
 // The legacy store reads the cached config tree, hence the refresh on each pass.
@@ -59,15 +60,21 @@ const isRelationReadable = (id: string): boolean => {
   return getDiscourseRelations().some((r) => r.id === id);
 };
 
-const waitForRelation = async (id: string): Promise<void> => {
-  const deadline = Date.now() + SCHEMA_WRITE_TIMEOUT_MS;
+const waitForRelation = async ({
+  id,
+  timeoutMs,
+}: {
+  id: string;
+  timeoutMs: number;
+}): Promise<boolean> => {
+  const deadline = Date.now() + timeoutMs;
   while (!isRelationReadable(id)) {
-    if (Date.now() > deadline)
-      throw new Error(`Relation ${id} was not readable after saving`);
+    if (Date.now() > deadline) return false;
     await new Promise<void>((resolve) =>
       setTimeout(resolve, SCHEMA_WRITE_POLL_MS),
     );
   }
+  return true;
 };
 
 // Saves in drag direction; reuses a matching triplet so repeat picks add nothing.
@@ -103,7 +110,15 @@ export const createTripletForPair = async ({
     source: sourceType,
     destination: destinationType,
   });
-  await waitForRelation(id);
-  refreshCanvasRelations();
+  if (await waitForRelation({ id, timeoutMs: SCHEMA_WRITE_TIMEOUT_MS })) {
+    refreshCanvasRelations();
+    return id;
+  }
+  // The block exists, so a slow settings write is still a save: refresh once it lands.
+  void waitForRelation({ id, timeoutMs: SCHEMA_WRITE_RECONCILE_MS }).then(
+    (isReadable) => {
+      if (isReadable) refreshCanvasRelations();
+    },
+  );
   return id;
 };
