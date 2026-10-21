@@ -416,7 +416,7 @@ export const DragHandleOverlay = () => {
           dropdownPos={pending.dropdownPos}
           onSelect={handleDropdownSelect}
           onDismiss={handleDropdownDismiss}
-          // Legacy mode can't show new triplets; Create new stays a no-op until ENG-2244.
+          // Legacy mode drops triplets without if-conditions, so an added or created type would never appear.
           onAddExisting={
             pending.storedRelationsEnabled
               ? (args) => saveRelationTypeForPair({ ...args, isNew: false })

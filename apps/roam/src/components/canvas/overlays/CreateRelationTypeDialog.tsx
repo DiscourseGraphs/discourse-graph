@@ -59,7 +59,7 @@ export const CreateRelationTypeDialog = ({
         complement: complement.trim(),
       });
     } finally {
-      // A successful save unmounts the dialog.
+      // On success onClose unmounts the dialog, so only a failure resets the flag.
       if (!saved) setIsSaving(false);
     }
     if (saved) onClose();
