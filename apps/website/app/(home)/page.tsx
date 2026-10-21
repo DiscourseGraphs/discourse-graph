@@ -15,6 +15,7 @@ import {
 import { getAllBlogs } from "~/(home)/blog/readBlogs";
 import { FoundationsSection } from "~/components/FoundationsSection";
 import { GraphBackgroundAnimation } from "~/components/GraphBackgroundAnimation";
+import { LabGraphGrowth } from "~/components/LabGraphGrowth";
 import { Logo } from "~/components/Logo";
 import { PlatformBadge } from "~/components/PlatformBadge";
 import { SectionHeader } from "~/components/SectionHeader";
@@ -406,18 +407,13 @@ const Home = async (): Promise<ReactElement> => {
             </div>
 
             <figure>
-              <div className="relative aspect-[4/3] overflow-hidden rounded-lg border border-neutral-dark/10 bg-white shadow-sm">
-                <Image
-                  src="/section6.webp"
-                  alt="MATSU lab Discourse Graph snapshot"
-                  fill
-                  className="object-cover"
-                  sizes="(min-width: 1024px) 58vw, 100vw"
-                />
-              </div>
+              <LabGraphGrowth
+                dataUrl="/lab-graph/matsulab-growth.json"
+                label="Animation of the MATSU lab Discourse Graph growing from its first nodes in 2022 to over 3,400 nodes and 3,100 links today, colored by node type."
+              />
               <figcaption className="mt-3 text-sm text-neutral-dark/65">
-                Snapshot of <Link href={MATSU_LAB_URL}>MATSU lab</Link>{" "}
-                Discourse Graph
+                Growth of the <Link href={MATSU_LAB_URL}>MATSU lab</Link>{" "}
+                Discourse Graph, 2022 to today
               </figcaption>
             </figure>
           </div>
