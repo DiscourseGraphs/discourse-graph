@@ -57,12 +57,12 @@ import tldrawStyles from "./tldrawStyles";
 import { DragHandleOverlay } from "./overlays/DragHandleOverlay";
 import { ImageConvertOverlay } from "./overlays/ImageConvertOverlay";
 import { TextLinkOverlay } from "./overlays/TextLinkOverlay";
-import { groupRelationsByLabel } from "./refreshCanvasRelations";
 import { hasAcceptedRelationSchema, isDiscourseNodeShape } from "./canvasUtils";
 import getDiscourseNodes, { DiscourseNode } from "~/utils/getDiscourseNodes";
 import getDiscourseRelations, {
   DiscourseRelation,
 } from "~/utils/getDiscourseRelations";
+import { groupRelationsByLabel } from "./refreshCanvasRelations";
 import {
   CustomContextMenu,
   createUiComponents,
