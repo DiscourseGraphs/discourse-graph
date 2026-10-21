@@ -31,6 +31,7 @@ vi.mock("~/utils/createRelationSchema", () => ({
 vi.mock("~/utils/relationSchemaChanges", () => ({
   notifyRelationSchemaChange: () => mocks.calls.push("notify"),
   isRelationSchemaDeleted: () => false,
+  markRelationSchemaDeleted: (id: string) => mocks.calls.push(`deleted:${id}`),
 }));
 vi.mock("~/utils/relationSchemaAcceptance", () => ({
   isAcceptedRelationSchema: ({ id }: { id: string }) =>
@@ -171,17 +172,17 @@ describe("createTripletForPair", () => {
     await expect(createTripletForPair(args)).resolves.toBe("new-uid");
   });
 
-  it("rejects without refreshing the canvas when the saved triplet never becomes readable", async () => {
+  it("resolves on a slow settings write and refreshes the canvas once it lands", async () => {
     vi.useFakeTimers();
     try {
-      mocks.createRelationSchema.mockResolvedValue("lost-uid");
+      mocks.createRelationSchema.mockResolvedValue("slow-uid");
       const result = createTripletForPair(args);
-      const assertion = expect(result).rejects.toThrow(
-        "Relation lost-uid was not readable after saving",
-      );
       await vi.advanceTimersByTimeAsync(3100);
-      await assertion;
+      await expect(result).resolves.toBe("slow-uid");
       expect(mocks.calls).not.toContain("notify");
+      mocks.relations.push(triplet({ id: "slow-uid" }));
+      await vi.advanceTimersByTimeAsync(100);
+      expect(mocks.calls.at(-1)).toBe("notify");
     } finally {
       vi.useRealTimers();
     }
@@ -221,5 +222,8 @@ describe("refreshCanvasRelations", () => {
       supports: [triplet({ id: "a" })],
       opposes: [deleted],
     });
+    // Kept for rendering, but marked so creation paths skip it.
+    expect(mocks.calls).toContain("deleted:deleted");
+    expect(mocks.calls).not.toContain("deleted:a");
   });
 });

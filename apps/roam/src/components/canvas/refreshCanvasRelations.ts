@@ -3,7 +3,10 @@ import getDiscourseRelations, {
   type DiscourseRelation,
 } from "~/utils/getDiscourseRelations";
 import refreshConfigTree from "~/utils/refreshConfigTree";
-import { notifyRelationSchemaChange } from "~/utils/relationSchemaChanges";
+import {
+  markRelationSchemaDeleted,
+  notifyRelationSchemaChange,
+} from "~/utils/relationSchemaChanges";
 
 export const groupRelationsByLabel = (
   relations: DiscourseRelation[],
@@ -21,7 +24,8 @@ export const groupRelationsByLabel = (
   );
 
 // Mounted canvases read discourseContext.relations, so a new triplet is invisible until this runs.
-// Relations gone from settings are kept so existing arrows that use them still render.
+// Relations gone from settings are kept so existing arrows still render, but marked deleted
+// so creation paths skip them; not every deletion path marks its schema.
 export const refreshCanvasRelations = (): void => {
   refreshConfigTree();
   const fresh = getDiscourseRelations();
@@ -30,5 +34,6 @@ export const refreshCanvasRelations = (): void => {
     .flat()
     .filter((r) => !freshIds.has(r.id));
   discourseContext.relations = groupRelationsByLabel([...fresh, ...removed]);
+  new Set(removed.map((r) => r.id)).forEach(markRelationSchemaDeleted);
   notifyRelationSchemaChange();
 };
