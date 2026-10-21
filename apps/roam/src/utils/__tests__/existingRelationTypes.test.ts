@@ -63,6 +63,17 @@ beforeEach(() => {
 });
 
 describe("deriveRelationTypes", () => {
+  it("treats a mirrored label / complement pair as one type, keeping the first-seen reading", () => {
+    const types = deriveRelationTypes({
+      relations: [
+        triplet({ id: "a", label: "Informs", complement: "Informed By" }),
+        triplet({ id: "b", label: "Informed By", complement: "Informs" }),
+      ],
+      shownLabels: [],
+    });
+    expect(types).toEqual([{ label: "Informs", complement: "Informed By" }]);
+  });
+
   it("groups triplets by label + complement and removes repeated ids", () => {
     const types = deriveRelationTypes({
       relations: [
