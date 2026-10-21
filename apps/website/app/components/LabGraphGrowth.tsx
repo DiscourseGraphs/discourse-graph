@@ -12,8 +12,11 @@ import {
   type GrowthModel,
 } from "~/utils/labGraphGrowth";
 
-// Share of the figure that must be on screen before the animation first plays.
+// Share of the figure that must be on screen before the animation first plays,
+// unless the viewport is too short to show that much (see getStartRatio).
 const START_THRESHOLD = 0.6;
+// Observer thresholds every 10%, so a lowered start ratio still gets a callback.
+const VISIBILITY_STEPS = Array.from({ length: 11 }, (_, index) => index / 10);
 // Longest step one frame may advance. Frames stop in a background tab, so
 // without a cap the time away would count as playback.
 const MAX_FRAME_MS = 50;
@@ -22,6 +25,7 @@ const POSTER_SIZES = "(min-width: 1024px) 58vw, 100vw";
 type LabGraphGrowthProps = {
   dataUrl: string;
   // The finished graph, shown when the data can't load or JavaScript is off.
+  // Its alt text is empty because the canvas already carries `label`.
   posterSrc: string;
   label: string;
   colors: GraphColors;
@@ -57,6 +61,7 @@ export const LabGraphGrowth = ({
     let isLoading = false;
     let isDisposed = false;
     let isOnScreen = false;
+    let visibleRatio = 0;
     let hasStarted = false;
     let elapsed = reducedMotion ? GROWTH_DURATION : 0;
     let lastTime: number | null = null;
@@ -111,16 +116,24 @@ export const LabGraphGrowth = ({
     };
     replayRef.current = replay;
 
-    const startWhenMostlyVisible = (ratio: number): void => {
+    // A sideways phone may never show 60% of the card, so ask for no more than
+    // the viewport can show, rounded down to a VISIBILITY_STEPS boundary.
+    const getStartRatio = (): number => {
+      const reachable =
+        (0.9 * window.innerHeight) / Math.max(1, canvas.clientHeight);
+      return Math.floor(Math.min(START_THRESHOLD, reachable) * 10) / 10;
+    };
+
+    const startWhenMostlyVisible = (): void => {
       if (!model || reducedMotion) return;
       if (hasStarted) {
         if (isOnScreen) resume();
-      } else if (ratio >= START_THRESHOLD) {
+      } else if (visibleRatio >= getStartRatio()) {
         replay();
       }
     };
 
-    const load = async (ratio: number): Promise<void> => {
+    const load = async (): Promise<void> => {
       if (isLoading || model) return;
       isLoading = true;
       try {
@@ -131,7 +144,9 @@ export const LabGraphGrowth = ({
         model = prepareGrowth(data);
         setHasFailed(false);
         resize();
-        startWhenMostlyVisible(ratio);
+        // Reads the latest visibility: the figure may have scrolled further in
+        // while the data loaded.
+        startWhenMostlyVisible();
       } catch (error) {
         console.error(`Error loading lab graph data from ${dataUrl}:`, error);
         // Retry the next time the figure scrolls into view.
@@ -143,14 +158,16 @@ export const LabGraphGrowth = ({
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(canvas);
     const intersectionObserver = new IntersectionObserver(
-      ([entry]) => {
+      (entries) => {
+        const entry = entries[entries.length - 1];
         if (!entry) return;
         isOnScreen = entry.isIntersecting;
+        visibleRatio = entry.intersectionRatio;
         if (!isOnScreen) return;
-        if (model) startWhenMostlyVisible(entry.intersectionRatio);
-        else void load(entry.intersectionRatio);
+        if (model) startWhenMostlyVisible();
+        else void load();
       },
-      { threshold: [0, START_THRESHOLD] },
+      { threshold: VISIBILITY_STEPS },
     );
     intersectionObserver.observe(canvas);
 
@@ -166,7 +183,7 @@ export const LabGraphGrowth = ({
   const handleReplay = (): void => {
     // The button unmounts while the animation plays, so keep focus on the
     // figure instead of letting it drop to the page.
-    canvasRef.current?.focus();
+    canvasRef.current?.focus({ preventScroll: true });
     replayRef.current?.();
   };
 
@@ -182,7 +199,7 @@ export const LabGraphGrowth = ({
       {hasFailed && (
         <Image
           src={posterSrc}
-          alt={label}
+          alt=""
           fill
           className="object-cover"
           sizes={POSTER_SIZES}
@@ -191,7 +208,7 @@ export const LabGraphGrowth = ({
       <noscript>
         <Image
           src={posterSrc}
-          alt={label}
+          alt=""
           fill
           className="object-cover"
           sizes={POSTER_SIZES}
