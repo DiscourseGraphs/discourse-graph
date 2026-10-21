@@ -1,0 +1,166 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5EMCFTM21W3H2QVH32FVSNT",
+  "session_id": "bd664b56-2665-494f-9570-f2722b8a4070",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-21T07:04:09.528676151Z",
+  "branch": "main",
+  "checkpoints_count": 4,
+  "save_step_count": 2,
+  "files_touched": [
+    "openspec/changes/archive/.gitkeep",
+    "openspec/changes/eng-2061-refactor-roamfullcontentnode-to-use-crossappnode-contract/.openspec.yaml",
+    "openspec/changes/eng-2061-refactor-roamfullcontentnode-to-use-crossappnode-contract/design.md",
+    "openspec/changes/eng-2061-refactor-roamfullcontentnode-to-use-crossappnode-contract/proposal.md",
+    "openspec/changes/eng-2061-refactor-roamfullcontentnode-to-use-crossappnode-contract/tasks.md",
+    "openspec/config.yaml",
+    "openspec/specs/.gitkeep"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "1e38c608d2d9",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 118,
+    "cache_creation_tokens": 412964,
+    "cache_read_tokens": 10818826,
+    "output_tokens": 111266,
+    "api_call_count": 58,
+    "subagent_tokens": {
+      "input_tokens": 46,
+      "cache_creation_tokens": 147305,
+      "cache_read_tokens": 2141429,
+      "output_tokens": 156,
+      "api_call_count": 23
+    }
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_01EC3DetVgWzR1YH1quZZctF",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "decision-review"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "1e38c608d2d9",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 38,
+        "end": 39,
+        "entry_ids": [
+          "b241cfdb-075e-44d5-b9f1-c79849e5a5a4"
+        ],
+        "tool_use_id": "toolu_01EC3DetVgWzR1YH1quZZctF"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01EC3DetVgWzR1YH1quZZctF"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: decision-review",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01EsXfmsQ4VSUzuTfAxhVs8G",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-engineering-writing-style"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "1e38c608d2d9",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 328,
+        "end": 329,
+        "entry_ids": [
+          "d5381e84-2fbc-40c2-a9d1-3fe43c4db91d"
+        ],
+        "tool_use_id": "toolu_01EsXfmsQ4VSUzuTfAxhVs8G"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01EsXfmsQ4VSUzuTfAxhVs8G"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-engineering-writing-style",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 4
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-21T07:04:09.428815638Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 122,
+    "total_committed": 122,
+    "total_lines_changed": 122,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 158,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".agents/skills/discourse-engineering-writing-style/SKILL.md": 37,
+        ".agents/skills/discourse-engineering-writing-style/agents/openai.yaml": 9,
+        ".agents/skills/roam-load-extension/SKILL.md": 45,
+        ".agents/skills/roam-playwright-session/SKILL.md": 51,
+        ".husky/commit-msg": 3,
+        ".husky/post-commit": 3,
+        ".husky/post-rewrite": 3,
+        ".husky/pre-push": 3,
+        ".husky/prepare-commit-msg": 3,
+        ".lsp/.cache/db.transit.json": 1
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 20,
+      "user_lines_removed": 0,
+      "agent_lines_added": 32,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".husky/_/commit-msg": 4,
+        ".husky/_/post-commit": 4,
+        ".husky/_/post-rewrite": 4,
+        ".husky/_/pre-push": 5,
+        ".husky/_/prepare-commit-msg": 3
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 20,
+      "user_lines_removed": 0,
+      "agent_lines_added": 122,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".husky/_/commit-msg": 4,
+        ".husky/_/post-commit": 4,
+        ".husky/_/post-rewrite": 4,
+        ".husky/_/pre-push": 5,
+        ".husky/_/prepare-commit-msg": 3
+      }
+    }
+  ]
+}
