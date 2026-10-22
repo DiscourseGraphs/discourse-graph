@@ -1,9 +1,14 @@
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 import { ScaledStage } from "~/components/ScaledStage";
 import { SectionHeader } from "~/components/SectionHeader";
-import { MATSU_LAB_URL, MATT_AKAMATSU_GITHUB_URL } from "~/data/constants";
+import {
+  MATSU_LAB_URL,
+  MATT_AKAMATSU_GITHUB_URL,
+  MIRA_URL,
+} from "~/data/constants";
 
 // Card size in the Figma frame; positions below use these coordinates.
 const CARD_WIDTH = 570;
@@ -32,14 +37,27 @@ const FoundationCard = ({
   children,
   description,
   headerHeight,
+  href,
   title,
 }: {
   children: ReactNode;
   description: string;
   headerHeight: number;
+  href?: string;
   title: string;
 }): ReactElement => (
-  <div className="overflow-hidden rounded-2xl bg-[#f1f1f1] leading-[normal]">
+  <div className="group relative overflow-hidden rounded-2xl bg-[#f1f1f1] leading-[normal]">
+    {href && (
+      <Link
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="absolute right-4 top-4 z-10 inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium text-black opacity-0 transition-[opacity,background-color] hover:bg-white focus-visible:bg-white focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary group-hover:opacity-100"
+      >
+        Learn more
+        <ArrowUpRight size={16} aria-hidden="true" />
+      </Link>
+    )}
     <div className="px-6 pb-3 pt-6" style={{ minHeight: headerHeight }}>
       <h3 className="text-2xl font-semibold text-black">{title}</h3>
       <p className="mt-3 max-w-[520px] text-base leading-7 text-black">
@@ -462,6 +480,7 @@ const ProtocolCard = (): ReactElement => (
     title="Protocol"
     description="Decentralized knowledge exchange with discourse graphs is supported and enabled by an expanding set of platforms."
     headerHeight={PROTOCOL_OFFSET}
+    href={MIRA_URL}
   >
     <ScaledStage
       width={CARD_WIDTH}
