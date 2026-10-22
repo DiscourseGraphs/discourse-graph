@@ -7,7 +7,7 @@ context: |
   Linear tickets stay the unit of work. Every requirement, scenario and decision cites the tickets it comes
   from, by ID and link.
   A decision the team hasn't made stays open in design.md, with its owner. Don't settle it in the artifact.
-  Shared CrossApp contracts and converters live in packages/database; apps/roam and apps/obsidian call them.
+  Shared CrossApp contracts and converters live in packages/database; apps/roam and apps/obsidian use them instead of defining their own.
 
 rules:
   proposal:
