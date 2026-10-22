@@ -31,6 +31,7 @@ Each task is an existing Linear ticket. It names the requirements (from `specs/`
 
 - [ ] 4.1 [ENG-2394] Choose how Obsidian retrieves relations made elsewhere between its own nodes. Carries: decision "How does Obsidian find relations made elsewhere between its own nodes?". Verify: the reproducible scenario is documented (origin app or vault, publishing space, group access, both endpoint identities); the decision records the trigger, the notice, the duplicate handling and the place in the project's scope; and it separates the own-node gap from the merged imported-endpoint work, with acceptance criteria for the trigger (in [ENG-2427]).
 - [ ] 4.2 [ENG-2427] Obsidian imports relations made elsewhere between its own nodes on import and refresh. Carries: `cross-space-relation-import` (all requirements). Verify: the user A and user B scenario imports the relation once and shows the notice.
+- [ ] 4.4 [ENG-2428] Decide whether refresh-all checks for new relations when the user has no imported nodes (Product Decisions, Michael). Carries: `cross-space-relation-import` "Refresh with nothing imported". Verify: a `Decision:` comment records Michael's answer; if yes, the scenario holds in Roam and Obsidian.
 - [ ] 4.3 [ENG-1866] Validate Obsidian relation export against the shared contract: close it. Carries: decision "Do we still need ENG-1866?" (no). Verify: the ticket is closed and no longer blocks [ENG-1874].
 
 ## 5. Upsert route, when someone picks up FEE-890
@@ -43,7 +44,6 @@ Each task is an existing Linear ticket. It names the requirements (from `specs/`
 ## Not covered by a ticket
 
 - Moving Roam sync, Obsidian sync and Roam publish onto the upsert route. Tickets get created after [FEE-890] is built.
-- Roam's refresh looking for relations when nothing is imported. Open for Sid: extend [ENG-2427] or create a Roam ticket.
 - Obsidian sync checking the per-row ids that `upsert_concepts` returns, and batching its call, as Roam sync does. Neither is in [ENG-1823] yet.
 - Confirming that the 2026-10-08 report matches the code reading for [ENG-2394] (Michael).
 - The relation fixtures [ENG-1863] promised. Only if a regression test is wanted.
@@ -74,5 +74,6 @@ Each task is an existing Linear ticket. It names the requirements (from `specs/`
 [ENG-2425]: https://linear.app/discourse-graphs/issue/ENG-2425
 [ENG-2426]: https://linear.app/discourse-graphs/issue/ENG-2426
 [ENG-2427]: https://linear.app/discourse-graphs/issue/ENG-2427
+[ENG-2428]: https://linear.app/discourse-graphs/issue/ENG-2428
 [FEE-890]: https://linear.app/discourse-graphs/issue/FEE-890
 [FEE-891]: https://linear.app/discourse-graphs/issue/FEE-891

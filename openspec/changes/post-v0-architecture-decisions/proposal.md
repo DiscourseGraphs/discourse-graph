@@ -36,7 +36,7 @@ Still open:
 
 - Michael: the upsert route's details in [FEE-890] and [FEE-891] (reject or look up a missing relation type, the name, what a user does with an error, who computes embeddings, how the tests run). Michael also reviews the [ENG-2165] split.
 - Marc-Antoine: for the three listing fields the first field list missed, add them to `CrossAppNode` or change their callers ([ENG-2091]); the field questions in [ENG-1986].
-- Sid: whether Roam's refresh also looks for relations when nothing is imported, and which ticket carries it ([ENG-2394]).
+- Michael: whether refresh-all checks for relations when the user has no imported nodes, in both apps ([ENG-2428], Product Decisions).
 
 `design.md` has one entry per decision. The specs state Sid's answers as requirements; review of this change is where Michael and Marc-Antoine weigh in.
 
@@ -76,6 +76,7 @@ None. The project has no specs yet.
 [ENG-2166]: https://linear.app/discourse-graphs/issue/ENG-2166
 [ENG-2394]: https://linear.app/discourse-graphs/issue/ENG-2394
 [ENG-2412]: https://linear.app/discourse-graphs/issue/ENG-2412
+[ENG-2428]: https://linear.app/discourse-graphs/issue/ENG-2428
 [ENG-2416]: https://linear.app/discourse-graphs/issue/ENG-2416
 [FEE-890]: https://linear.app/discourse-graphs/issue/FEE-890
 [FEE-891]: https://linear.app/discourse-graphs/issue/FEE-891

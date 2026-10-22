@@ -184,7 +184,7 @@ Each entry gives the question and the answer, the options on record with who pro
 - **Reason:** No new command to learn, the two apps behave the same, and Obsidian already skips relations it holds.
 - **Details (Confirmed):** in Obsidian, the lookup runs once per refresh, even when nothing is imported; a notice says how many relations were imported; the smallest change adds the vault's own published nodes to the existing "relations that reference these nodes" query. This is [ENG-2427].
 - **Reproduction, from reading the code:** once user A has imported anything, Roam's lookup covers every visible relation, while Obsidian's covers only the spaces of the nodes in that import. So Obsidian misses the relation whenever user A has imported nothing from user B's space. Roam misses it only when user A has imported nothing at all: its refresh returns before the relation lookup when no imported node was refreshed (`refreshAllImportedNodes.ts:34`). Michael can confirm that the 2026-10-08 report matches.
-- **Open, needs Sid:** whether Roam's refresh also runs the lookup when nothing is imported, and which ticket carries that. [ENG-2427] covers Obsidian only.
+- **Open, needs Michael:** whether refresh-all checks for relations when the user has no imported nodes, in both apps. Asked in [ENG-2428] (Product Decisions), with a proposed default of yes.
 
 ## Risks / Trade-offs
 
@@ -237,6 +237,7 @@ No schema change and no data migration. Order of work:
 [ENG-2425]: https://linear.app/discourse-graphs/issue/ENG-2425
 [ENG-2426]: https://linear.app/discourse-graphs/issue/ENG-2426
 [ENG-2427]: https://linear.app/discourse-graphs/issue/ENG-2427
+[ENG-2428]: https://linear.app/discourse-graphs/issue/ENG-2428
 [ENG-2412]: https://linear.app/discourse-graphs/issue/ENG-2412
 [ENG-2413]: https://linear.app/discourse-graphs/issue/ENG-2413
 [FEE-890]: https://linear.app/discourse-graphs/issue/FEE-890
