@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5HE0NAHM4EGTV5HREJJ9PYR",
+  "strategy": "manual-commit",
+  "branch": "eng-2416-research-test-openspec-with-milestone-1",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "openspec/changes/post-v0-architecture-decisions/design.md",
+    "openspec/changes/post-v0-architecture-decisions/proposal.md",
+    "openspec/changes/post-v0-architecture-decisions/tasks.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 74,
+    "cache_creation_tokens": 212001,
+    "cache_read_tokens": 5456243,
+    "output_tokens": 43013,
+    "api_call_count": 37
+  }
+}
