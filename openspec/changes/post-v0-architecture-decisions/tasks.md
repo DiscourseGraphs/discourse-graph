@@ -2,11 +2,16 @@
 
 Each task is an existing Linear ticket. It names the requirements (from `specs/`) and the decisions (from `design.md`) it carries, and how its completion is verified, taken from the ticket's Done When. Groups follow the order of work in `design.md`.
 
+## 0. Decision tickets
+
+- [ ] 0.1 [ENG-2412] Decide the upsert path for Roam and Obsidian writes. Carries: the decisions under "Upsert path" in `design.md`. Verify: every sub-issue has a `Decision:` comment (done on 2026-10-22) and is in Architecture Refactors or closed.
+- [ ] 0.2 [ENG-2413] Decide how Roam and Obsidian move onto the CrossApp types. Carries: the decisions under "CrossApp types" in `design.md`. Verify: every sub-issue has a `Decision:` comment (done on 2026-10-22) and is in Architecture Refactors or closed.
+
 ## 1. One write per node in sync
 
 - [ ] 1.1 [ENG-1823] Use the unified upsert_concepts in Obsidian. Carries: `graph-writes` "One write per node"; decision "Do ENG-1823 and ENG-1824 wait for the route?" (no). Verify: no `upsert_content` call is left in `apps/obsidian`.
 - [ ] 1.2 [ENG-2061] Refactor `RoamFullContentNode` to use `CrossAppNode` contract. Carries: decision "What does ENG-2061 cover?" (only removes the type). Verify: `RoamFullContentNode` is gone from the Roam codebase, including tests.
-- [ ] 1.3 [ENG-1824] Use the unified upsert_concepts in Roam, as a step of [ENG-2165] after 1.2. Carries: `graph-writes` "One write per node"; decisions "Do ENG-1823 and ENG-1824 wait for the route?" and "Is ENG-2165 a step of ENG-1824?". Verify: no `upsert_content` call is left in `apps/roam`, including test harnesses.
+- [ ] 1.3 [ENG-1824] Use the unified upsert_concepts in Roam, as a step of [ENG-2165] after 1.2. Carries: `graph-writes` "One write per node" and "Node type Content goes inside its schema Concept"; decisions "Do ENG-1823 and ENG-1824 wait for the route?" and "Is ENG-2165 a step of ENG-1824?". Verify: no `upsert_content` call is left in `apps/roam`, including test harnesses, the node type Content write and the suggestive-rules setting.
 - [ ] 1.4 [ENG-1794] Atomic upsert of Concept and Content. Carries: decision "Does ENG-1794 need a decision of its own?" (no). Verify: 1.1 and 1.3 are done.
 - [ ] 1.5 [ENG-2165] Refactor Roam Sync to use crossAppNodes: the remaining steps of the PR #1333 split, written when someone picks it up, with Michael reviewing. Carries: `graph-writes` "Roam sync and Roam publish store the same values"; decision "How does PR #1333 split?". Verify: both publish-then-sync scenarios hold, and the old sync path is removed.
 - [ ] 1.6 [ENG-2166] Make upsertConcepts more like a PATCH than PUT: close it once 1.5 is done. Carries: decision "Is PATCH behaviour in upsert_concepts still needed?" (no). Verify: the ticket is closed with a comment that points to [ENG-2165].
@@ -20,11 +25,11 @@ Each task is an existing Linear ticket. It names the requirements (from `specs/`
 
 - [ ] 3.1 [ENG-1985] Define converters between database schemas and cross-app schemas: add the database-to-`CrossAppNode` converter for nodes. Carries: decision "Which ticket builds the database-to-CrossAppNode converter?". Verify: the converters cover all schemas, nodes included.
 - [ ] 3.2 [ENG-2091] Unify SharedNode and CrossAppNode, after 3.1. Carries: `shared-node-discovery` (all requirements); decisions "What does discovery return?" and "Which fields does CrossAppNode gain?". Verify: `SharedNode` is gone without loss of functionality, and the discover dialog filter scenario holds.
-- [ ] 3.3 [ENG-2045] Remove Obsidian getPublishedNodesForGroups wrapper, after 3.2. Carries: decision "Does ENG-2045 wait for ENG-2091?". Verify: `getPublishedNodesForGroups` and `PublishedNode` are gone, and Obsidian import uses the type from 3.2.
+- [ ] 3.3 [ENG-2045] Remove Obsidian getPublishedNodesForGroups wrapper, consume shared SharedNode directly, after 3.2. Carries: decision "Does ENG-2045 wait for ENG-2091?". Verify: `getPublishedNodesForGroups` and `PublishedNode` are gone, and Obsidian import uses the type from 3.2.
 
 ## 4. Relations
 
-- [ ] 4.1 [ENG-2394] Choose how Obsidian retrieves relations made elsewhere between its own nodes. Carries: decision "How does Obsidian find relations made elsewhere between its own nodes?". Verify: the decision comment records the trigger, the notice, the duplicate handling and the reproduction.
+- [ ] 4.1 [ENG-2394] Choose how Obsidian retrieves relations made elsewhere between its own nodes. Carries: decision "How does Obsidian find relations made elsewhere between its own nodes?". Verify: the reproducible scenario is documented (origin app or vault, publishing space, group access, both endpoint identities); the decision records the trigger, the notice, the duplicate handling and the place in the project's scope; and it separates the own-node gap from the merged imported-endpoint work, with acceptance criteria for the trigger (in [ENG-2427]).
 - [ ] 4.2 [ENG-2427] Obsidian imports relations made elsewhere between its own nodes on import and refresh. Carries: `cross-space-relation-import` (all requirements). Verify: the user A and user B scenario imports the relation once and shows the notice.
 - [ ] 4.3 [ENG-1866] Validate Obsidian relation export against the shared contract: close it. Carries: decision "Do we still need ENG-1866?" (no). Verify: the ticket is closed and no longer blocks [ENG-1874].
 
@@ -38,7 +43,8 @@ Each task is an existing Linear ticket. It names the requirements (from `specs/`
 ## Not covered by a ticket
 
 - Moving Roam sync, Obsidian sync and Roam publish onto the upsert route. Tickets get created after [FEE-890] is built.
-- The plugin-login requirement. It belongs in [FEE-890]; its description doesn't say so yet, so a decision comment adds it.
+- Roam's refresh looking for relations when nothing is imported. Open for Sid: extend [ENG-2427] or create a Roam ticket.
+- Obsidian sync checking the per-row ids that `upsert_concepts` returns, and batching its call, as Roam sync does. Neither is in [ENG-1823] yet.
 - Confirming that the 2026-10-08 report matches the code reading for [ENG-2394] (Michael).
 - The relation fixtures [ENG-1863] promised. Only if a regression test is wanted.
 - The two Roam relation converters in `conceptConversion.ts` that nothing calls. No ticket, by Sid's call.
@@ -63,6 +69,8 @@ Each task is an existing Linear ticket. It names the requirements (from `specs/`
 [ENG-2165]: https://linear.app/discourse-graphs/issue/ENG-2165
 [ENG-2166]: https://linear.app/discourse-graphs/issue/ENG-2166
 [ENG-2394]: https://linear.app/discourse-graphs/issue/ENG-2394
+[ENG-2412]: https://linear.app/discourse-graphs/issue/ENG-2412
+[ENG-2413]: https://linear.app/discourse-graphs/issue/ENG-2413
 [ENG-2425]: https://linear.app/discourse-graphs/issue/ENG-2425
 [ENG-2426]: https://linear.app/discourse-graphs/issue/ENG-2426
 [ENG-2427]: https://linear.app/discourse-graphs/issue/ENG-2427

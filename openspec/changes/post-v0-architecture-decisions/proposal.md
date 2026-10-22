@@ -19,24 +19,26 @@ Settled by Sid (2026-10-19 to 2026-10-22):
 
 - One upsert route stays the goal. When it gets built isn't decided ([FEE-890]).
 - [ENG-1823] and [ENG-1824] don't wait for the upsert route. This departs from the 2026-07-17 agreement.
-- No data migration is needed for the single write.
+- No data migration is needed for the single write ([ENG-1823], [ENG-1824]).
 - The upsert route's details stay open until someone picks up [FEE-890].
 - [ENG-1824] is a step of [ENG-2165], which becomes the parent and is split into small PRs.
 - Obsidian looks for relations the way Roam does, on import and refresh ([ENG-2394]).
-- Confirmed proposals: the upsert route accepts the plugin's login; [ENG-1794] moves with its children; [ENG-2061] only removes `RoamFullContentNode`; [ENG-2166] closes after [ENG-2165]; [ENG-1986] comes later than [ENG-1823]; the `CrossAppNode` field list; [ENG-1985] builds the node converter; two bug tickets; [ENG-1866] closes; the [ENG-2394] details; the reject-or-look-up question waits for [ENG-1986].
+- Confirmed proposals: the upsert route accepts the plugin's login; [ENG-1794] moves with its children; [ENG-2061] only removes `RoamFullContentNode`; [ENG-2166] closes after [ENG-2165]; [ENG-1986] comes later than [ENG-1823]; the `CrossAppNode` field list (a review of this change found three more fields, in `design.md`); [ENG-1985] builds the node converter; two bug tickets; [ENG-1866] closes; the [ENG-2394] details; the reject-or-look-up question waits for [ENG-1986].
 
 Settled by the tickets or the code:
 
 - Discovery returns `CrossAppNode` and `SharedNode` is removed ([ENG-2091] Solution and Done When). [ENG-2045] follows it.
 - [ENG-1986] is no longer blocked by [ENG-1985]: the CrossApp-to-database converters it needs are on main.
 - [ENG-2005] and [FEE-891] are built with [FEE-890].
+- "sourceId" means `sourceLocalId`, which already maps to `localId` ([ENG-2091]).
 
 Still open:
 
 - Michael: the upsert route's details in [FEE-890] and [FEE-891] (reject or look up a missing relation type, the name, what a user does with an error, who computes embeddings, how the tests run). Michael also reviews the [ENG-2165] split.
-- Marc-Antoine: what "sourceId" means in [ENG-2091]; the field questions in [ENG-1986].
+- Marc-Antoine: for the three listing fields the first field list missed, add them to `CrossAppNode` or change their callers ([ENG-2091]); the field questions in [ENG-1986].
+- Sid: whether Roam's refresh also looks for relations when nothing is imported, and which ticket carries it ([ENG-2394]).
 
-`design.md` has one entry per decision.
+`design.md` has one entry per decision. The specs state Sid's answers as requirements; review of this change is where Michael and Marc-Antoine weigh in.
 
 ## Capabilities
 
@@ -53,8 +55,8 @@ None. The project has no specs yet.
 
 ## Impact
 
-- Roam: `syncDgNodesToSupabase.ts`, `upsertNodesAsContentWithEmbeddings.ts`, `conceptConversion.ts`, `convertRoamNodeToFullContent.ts`, `roamToCrossAppConverters.ts`, and the 9 files that use `SharedNode`.
-- Obsidian: `syncDgNodesToSupabase.ts`, `upsertNodesAsContentWithEmbeddings.ts`, `importNodes.ts`, `importRelations.ts`.
+- Roam: `syncDgNodesToSupabase.ts`, `upsertNodesAsContentWithEmbeddings.ts`, `conceptConversion.ts`, `convertRoamNodeToFullContent.ts`, `roamToCrossAppConverters.ts`, `DiscourseNodeSuggestiveRules.tsx` (a Content-only write), `refreshAllImportedNodes.ts`, and the 8 files that use `SharedNode`.
+- Obsidian: `syncDgNodesToSupabase.ts`, `upsertNodesAsContentWithEmbeddings.ts`, `importNodes.ts`, `importRelations.ts`, `ImportNodesModal.tsx`, `types.ts`.
 - `packages/database`: `crossAppContracts.ts`, `lib/sharedNodes.ts`, `lib/dbToCrossAppConverters.ts`.
 - Website: a new route under `apps/website/app/api/` when [FEE-890] is built.
 - Database: no schema change and no migration.
