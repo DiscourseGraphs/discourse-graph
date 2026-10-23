@@ -75,6 +75,37 @@
         "label": "Skill: dg-engineering-writing-style",
         "default_collapsed": true
       }
+    },
+    {
+      "id": "claude-skill-toolu_01AhdqVyB29RpCCoGeqRQNeT",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "scope-check"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "83bb29f8cffc",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 950,
+        "end": 951,
+        "entry_ids": [
+          "5d075ac8-cb6c-4a67-b196-dd30f7310f8b"
+        ],
+        "tool_use_id": "toolu_01AhdqVyB29RpCCoGeqRQNeT"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01AhdqVyB29RpCCoGeqRQNeT"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: scope-check",
+        "default_collapsed": true
+      }
     }
   ],
   "session_metrics": {
