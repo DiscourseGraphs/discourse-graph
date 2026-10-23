@@ -39,6 +39,7 @@ import {
 import { decorateTitle } from "@repo/database/lib/decorateTitle";
 import { buildSchemaRid, findLocalNodeTypeMatch } from "./schemaMatching";
 import { splitFrontmatter } from "~/utils/splitFrontmatter";
+import { resolveSchemaFormat } from "@repo/utils/resolveSchemaFormat";
 
 type PublishedNode = {
   source_local_id: string;
@@ -1216,7 +1217,10 @@ const parseSchemaLiteralContent = (
   const src = (obj.source_data as Record<string, unknown>) || obj;
   const name = (obj.name as string) || (obj.label as string) || fallbackName;
   const formatFromSchema = normalizeImportedNodeFormat(
-    (src.format as string) || (obj.format as string) || "",
+    resolveSchemaFormat({
+      format: obj.format as string,
+      sourceDataFormat: src.format as string,
+    }),
   );
   const format =
     formatFromSchema ||

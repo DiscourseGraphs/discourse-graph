@@ -304,3 +304,40 @@ describe("mapNodeTypeIdToLocal template import", () => {
     expect(plugin.settings.nodeTypes[0]?.template).toBe(TITLED_TEMPLATE_NAME);
   });
 });
+
+describe("mapNodeTypeIdToLocal format import", () => {
+  it.each([
+    ["the top-level format", { format: "CLM - {content}" }, "CLM - {content}"],
+    [
+      "the source_data format when the top-level format is missing",
+      { source_data: { format: "Claim - {content}" } },
+      "Claim - {content}",
+    ],
+    [
+      "the top-level format over a different source_data format",
+      {
+        format: "CLM - {content}",
+        source_data: { format: "Claim - {content}" },
+      },
+      "CLM - {content}",
+    ],
+    [
+      "a format derived from the name when the schema has neither format",
+      {},
+      "CLA - {content}",
+    ],
+  ])("imports %s", async (_label, literalContent, expected) => {
+    const { vault } = createVault();
+    const plugin = createPlugin({ vault });
+
+    await importNodeType({
+      plugin,
+      schema: {
+        name: "Claim",
+        literal_content: { label: "Claim", ...literalContent },
+      },
+    });
+
+    expect(plugin.settings.nodeTypes[0]?.format).toBe(expected);
+  });
+});
