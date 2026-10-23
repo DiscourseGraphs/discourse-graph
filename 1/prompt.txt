@@ -1,0 +1,19 @@
+so get me a list of issues that we think are already decided on in https://linear.app/discourse-graphs/project/post-v0-roam-obsidian-sync-architecture-1e0070a3bac6/issues and milestone "Architecture refactors" i want to get started on all the issues iff you are clear that they are to be worked on and the problem statement is clear .. so i want you to first check up for me if all the issues are in good latest state and iff all of them can be implemnented independently and iff these require videos for roam product side .. i uesd a new skill or some other thing to get the the issues in "Architecture Decision" to fix the issues i think you can search the memtool for this project and find it ..
+
+---
+
+lets do the decision review on the 4 pending??? lets not do open spec because the decision review will give us the point. 
+
+so for the ones that are ready to start i want to start a new session that will work them out so i think i will give a new opus-max session the orchestraction job and then it can gwork on each one of them in a subagent
+
+---
+
+I think the decision review has to be done by you. And the other session will start working on what we already have. That is what I was saying. Is that what you are carrying forward in this prompt for me?
+
+---
+
+Okay, I passed the prompt to the new session. Now you should be carrying on, correct?
+
+---
+
+Yeah, let's do that.
