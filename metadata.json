@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5KVGPXTE9JH45F7W2MC31R5",
+  "strategy": "manual-commit",
+  "branch": "eng-2207-add-shared-node-type-format-resolver-to-repoutils",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/obsidian/src/utils/__tests__/importNodes.test.ts",
+    "apps/obsidian/src/utils/importNodes.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 34,
+    "cache_creation_tokens": 43012,
+    "cache_read_tokens": 3247613,
+    "output_tokens": 23510,
+    "api_call_count": 16,
+    "subagent_tokens": {
+      "input_tokens": 132,
+      "cache_creation_tokens": 312116,
+      "cache_read_tokens": 4664060,
+      "output_tokens": 61816,
+      "api_call_count": 66
+    }
+  }
+}
