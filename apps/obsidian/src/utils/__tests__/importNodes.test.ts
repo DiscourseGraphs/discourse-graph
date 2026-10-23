@@ -305,21 +305,24 @@ describe("mapNodeTypeIdToLocal template import", () => {
   });
 });
 
+const TOP_LEVEL_FORMAT = "CLM - {content}";
+const SOURCE_DATA_FORMAT = "Claim - {content}";
+
 describe("mapNodeTypeIdToLocal format import", () => {
   it.each([
-    ["the top-level format", { format: "CLM - {content}" }, "CLM - {content}"],
+    ["the top-level format", { format: TOP_LEVEL_FORMAT }, TOP_LEVEL_FORMAT],
     [
       "the source_data format when the top-level format is missing",
-      { source_data: { format: "Claim - {content}" } },
-      "Claim - {content}",
+      { source_data: { format: SOURCE_DATA_FORMAT } },
+      SOURCE_DATA_FORMAT,
     ],
     [
       "the top-level format over a different source_data format",
       {
-        format: "CLM - {content}",
-        source_data: { format: "Claim - {content}" },
+        format: TOP_LEVEL_FORMAT,
+        source_data: { format: SOURCE_DATA_FORMAT },
       },
-      "CLM - {content}",
+      TOP_LEVEL_FORMAT,
     ],
     [
       "a format derived from the name when the schema has neither format",

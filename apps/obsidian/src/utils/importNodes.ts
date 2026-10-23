@@ -1218,8 +1218,8 @@ const parseSchemaLiteralContent = (
   const name = (obj.name as string) || (obj.label as string) || fallbackName;
   const formatFromSchema = normalizeImportedNodeFormat(
     resolveSchemaFormat({
-      format: obj.format as string,
-      sourceDataFormat: src.format as string,
+      format: typeof obj.format === "string" ? obj.format : undefined,
+      sourceDataFormat: typeof src.format === "string" ? src.format : undefined,
     }),
   );
   const format =
