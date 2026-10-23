@@ -3,8 +3,10 @@
   "checkpoint_id": "01M5KWA21XAWQJ2VVQ7J7MPVSB",
   "strategy": "manual-commit",
   "branch": "eng-2208-publish-obsidian-node-type-format-at-literal_contentformat",
-  "checkpoints_count": 1,
-  "files_touched": null,
+  "checkpoints_count": 4,
+  "files_touched": [
+    "packages/utils/src/resolveSchemaFormat.ts"
+  ],
   "sessions": [
     {
       "metadata": "/0/metadata.json",
@@ -12,13 +14,20 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
-    "input_tokens": 26,
-    "cache_creation_tokens": 51324,
-    "cache_read_tokens": 2888457,
-    "output_tokens": 24280,
-    "api_call_count": 12
+    "input_tokens": 62,
+    "cache_creation_tokens": 136645,
+    "cache_read_tokens": 8264152,
+    "output_tokens": 72421,
+    "api_call_count": 29
   }
 }
