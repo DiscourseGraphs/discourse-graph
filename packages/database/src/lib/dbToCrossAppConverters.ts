@@ -100,7 +100,7 @@ export const dbNodeSchemaToCrossApp = ({
     string,
     number
   >;
-  const { template, template_content, roles, ...other } =
+  const { template, template_content, roles, format, ...other } =
     schema.literal_content as Record<string, Json>;
   const authorId = accountMap[schema.author_id || 0];
   if (authorId === undefined) throw new Error("Missing author");
@@ -126,6 +126,7 @@ export const dbNodeSchemaToCrossApp = ({
     metadata: other,
     template: template_content as string | undefined,
     templateTitle: template as string | undefined,
+    format: format as string | undefined,
     authorId,
     slotDefinitions,
   };
