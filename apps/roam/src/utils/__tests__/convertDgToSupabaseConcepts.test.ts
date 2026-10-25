@@ -11,6 +11,9 @@ vi.mock("posthog-js", () => ({ default: { capture: vi.fn() } }));
 vi.mock("~/components/settings/utils/accessors", () => ({
   isSyncEnabled: () => true,
 }));
+vi.mock("@repo/database/lib/pagination", () => ({
+  getAllPages: () => Promise.resolve([]),
+}));
 vi.mock("~/utils/getAllDiscourseNodesSince", () => ({
   getAllDiscourseNodesSince: vi.fn(),
   nodeTypeSince: (_since: number | undefined, nodeTypes: DiscourseNode[]) =>
@@ -69,7 +72,11 @@ const context = { spaceId: 20, userId: 7 } as SupabaseContext;
 
 const makeClient = () => {
   const rpc = vi.fn().mockResolvedValue({ data: [1], error: null });
-  return { rpc, client: { rpc } as unknown as DGSupabaseClient };
+  const query = { select: () => query, eq: () => query, order: () => query };
+  return {
+    rpc,
+    client: { rpc, from: () => query } as unknown as DGSupabaseClient,
+  };
 };
 
 const upsertedConcepts = (rpc: ReturnType<typeof makeClient>["rpc"]) =>

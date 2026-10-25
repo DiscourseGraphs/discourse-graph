@@ -284,6 +284,15 @@ const summarizeFailedConceptUpsertIds = (failedIds: number[]): string => {
     .join(", ");
 };
 
+class ConceptRowFailuresError extends Error {
+  constructor(
+    message: string,
+    readonly sourceLocalIds: ReadonlySet<string>,
+  ) {
+    super(message);
+  }
+}
+
 const upsertConceptBatches = async ({
   concepts,
   supabaseClient,
@@ -294,7 +303,8 @@ const upsertConceptBatches = async ({
   spaceId: number;
 }): Promise<void> => {
   const batches = chunk(concepts, CONCEPT_BATCH_SIZE);
-  const rowFailures: string[] = [];
+  const failureSummaries: string[] = [];
+  const failedSourceLocalIds = new Set<string>();
 
   for (let idx = 0; idx < batches.length; idx++) {
     const batch = batches[idx];
@@ -310,17 +320,22 @@ const upsertConceptBatches = async ({
       );
     }
 
-    const failedIds = (data || []).filter((id) => id < 0);
+    const failedIds = data.filter((id) => id < 0);
     if (failedIds.length > 0) {
-      rowFailures.push(
+      failureSummaries.push(
         `batch ${idx + 1}/${batches.length}: ${summarizeFailedConceptUpsertIds(failedIds)}`,
       );
+      batch.forEach((concept, i) => {
+        if (data[i] < 0 && concept.source_local_id)
+          failedSourceLocalIds.add(concept.source_local_id);
+      });
     }
   }
 
-  if (rowFailures.length > 0) {
-    throw new Error(
-      `upsert_concepts returned row failures for ${rowFailures.join("; ")}`,
+  if (failureSummaries.length > 0) {
+    throw new ConceptRowFailuresError(
+      `upsert_concepts returned row failures for ${failureSummaries.join("; ")}`,
+      failedSourceLocalIds,
     );
   }
 };
@@ -788,11 +803,18 @@ export const upsertNodesWithEmbeddings = async ({
   if (nodes.length === 0) {
     return;
   }
+  const { synced } = await getNodeInstanceSourceLocalIds({
+    supabaseClient,
+    spaceId: context.spaceId,
+  });
   await convertDgToSupabaseConcepts({
-    nodes: await toCrossAppNodesWithEmbeddings({
-      nodes,
-      nodeTypes: [nodeType],
-      nodeIdsToEmbed: new Set(nodes.map((node) => node.source_local_id)),
+    nodes: omitMissingSources({
+      nodes: await toCrossAppNodesWithEmbeddings({
+        nodes,
+        nodeTypes: [nodeType],
+        nodeIdsToEmbed: new Set(nodes.map((node) => node.source_local_id)),
+      }),
+      conceptIds: synced,
     }),
     since: undefined,
     allNodeTypes: [nodeType],
@@ -807,24 +829,36 @@ export const upsertNodesWithAssets = async ({
   ...upsertArgs
 }: Parameters<typeof convertDgToSupabaseConcepts>[0] & {
   phases: SyncPhaseDurations;
-}): Promise<NodeAssetResult[]> => {
-  await measureSyncPhase({
-    phase: "convertConcepts",
-    phases,
-    operation: () => convertDgToSupabaseConcepts(upsertArgs),
-  });
-  // A failed upsert throws above, so every node with full content now has the Content
-  // row that publishNodeAssets requires.
-  return measureSyncPhase({
+}): Promise<{
+  assetResults: NodeAssetResult[];
+  rowFailures?: ConceptRowFailuresError;
+}> => {
+  let rowFailures: ConceptRowFailuresError | undefined;
+  try {
+    await measureSyncPhase({
+      phase: "convertConcepts",
+      phases,
+      operation: () => convertDgToSupabaseConcepts(upsertArgs),
+    });
+  } catch (error) {
+    if (!(error instanceof ConceptRowFailuresError)) throw error;
+    rowFailures = error;
+  }
+  // Any other failure throws above, so every node whose row upserted now has the
+  // Content row that publishNodeAssets requires.
+  const assetResults = await measureSyncPhase({
     phase: "publishSharedNodeAssets",
     phases,
     operation: () =>
       publishNodeAssets({
         client: upsertArgs.supabaseClient,
         spaceId: upsertArgs.context.spaceId,
-        nodes: upsertArgs.nodes,
+        nodes: upsertArgs.nodes.filter(
+          (node) => !rowFailures?.sourceLocalIds.has(node.localId),
+        ),
       }),
   });
+  return { assetResults, rowFailures };
 };
 
 const getAllUsers = async (): Promise<LocalAccountDataInput[]> => {
@@ -1503,7 +1537,7 @@ export const createOrUpdateDiscourseEmbedding = async (
           convertRoamNodeToFullContent({ nodes: sharedFullContentUpdates }),
         ),
     });
-    const sharedNodeAssetResults = await upsertNodesWithAssets({
+    const { assetResults, rowFailures } = await upsertNodesWithAssets({
       nodes: omitMissingSources({
         nodes: withFullContent(nodesToUpsert, sharedNodesWithFullContent),
         conceptIds: syncedSourceLocalIds,
@@ -1517,9 +1551,10 @@ export const createOrUpdateDiscourseEmbedding = async (
       phases,
     });
     reportSharedNodeAssets({
-      results: sharedNodeAssetResults,
-      retried: await requestAssetRetries(sharedNodeAssetResults),
+      results: assetResults,
+      retried: await requestAssetRetries(assetResults),
     });
+    if (rowFailures !== undefined) throw rowFailures;
     if (schemaFormatBackfill !== null) {
       reportSchemaFormatBackfill({
         backfilled: schemaFormatBackfill.nodeTypeIdsToBackfill.size,

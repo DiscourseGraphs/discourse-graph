@@ -27,8 +27,8 @@ const NODE_UID = "tgWb6JozF";
 const SECOND_IMAGE =
   "https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FMAPLab%2FsecondImage.png?alt=media&token=1a2b3c4d";
 
-const sharedNode = (markdown: string): CrossAppNode => ({
-  localId: NODE_UID,
+const sharedNode = (markdown: string, localId = NODE_UID): CrossAppNode => ({
+  localId,
   authorId: "maparent",
   nodeType: "rCLM0schema",
   coreTitle: "Sleep improves memory consolidation",
@@ -36,11 +36,11 @@ const sharedNode = (markdown: string): CrossAppNode => ({
   modifiedAt: new Date("2026-06-12T15:00:00.000Z"),
   content: {
     direct: {
-      localId: NODE_UID,
+      localId,
       value: "[[CLM]] - Sleep improves memory consolidation",
     },
     full: {
-      localId: NODE_UID,
+      localId,
       value: markdown,
       contentType: contentTypes.roamMarkdown,
       scale: "document",
@@ -123,6 +123,29 @@ describe("upsertNodesWithAssets", () => {
     ).toBe(false);
   });
 
+  it("still records references for the nodes whose row upserted", async () => {
+    harness.rpc.mockImplementationOnce(() =>
+      Promise.resolve({ data: [-1, 1], error: null }),
+    );
+
+    const { rowFailures } = await upsertNodesWithAssets({
+      nodes: [
+        sharedNode(withImages(IMAGE), "conflicting-node"),
+        sharedNode(withImages(IMAGE)),
+      ],
+      since: undefined,
+      allNodeTypes: [],
+      supabaseClient: harness.client,
+      context,
+      phases: {},
+    });
+
+    expect(rowFailures?.sourceLocalIds).toEqual(new Set(["conflicting-node"]));
+    expect(harness.rows).toEqual([
+      expect.objectContaining({ source_local_id: NODE_UID, filepath: IMAGE }),
+    ]);
+  });
+
   it("neither adds nor removes references when only the text changes", async () => {
     await syncWithMarkdown(withImages(IMAGE));
     const rowsBefore = [...harness.rows];
@@ -156,7 +179,7 @@ describe("upsertNodesWithAssets", () => {
         context,
         phases,
       }),
-    ).resolves.toEqual([]);
+    ).resolves.toEqual({ assetResults: [] });
 
     expect(harness.rpc).not.toHaveBeenCalled();
     expect(Object.keys(phases)).toEqual([

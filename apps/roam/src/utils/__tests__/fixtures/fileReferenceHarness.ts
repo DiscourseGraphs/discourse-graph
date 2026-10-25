@@ -80,7 +80,10 @@ export const makeClient = () => {
   const rpc = vi.fn((fn: string, { hashvalue }: { hashvalue?: string }) =>
     Promise.resolve(
       fn === "upsert_concepts"
-        ? { data: conceptUpsertError ? null : [], error: conceptUpsertError }
+        ? {
+            data: conceptUpsertError ? null : ([] as number[]),
+            error: conceptUpsertError,
+          }
         : { data: rows.some((row) => row.filehash === hashvalue), error: null },
     ),
   );
