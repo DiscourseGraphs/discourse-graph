@@ -33,7 +33,6 @@ const directContents: SharedNodeRows["directContents"] = [
     author_id: 42,
     created: "2026-06-14T11:00:00",
     last_modified: "2026-06-14T13:00:00",
-    metadata: { source: "obsidian" },
     source_local_id: "node-1",
     space_id: 20,
     text: "EVD - REM sleep and recall",

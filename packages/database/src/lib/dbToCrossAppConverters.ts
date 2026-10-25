@@ -34,7 +34,6 @@ export type DbNodeContent = Pick<
   | "author_id"
   | "created"
   | "last_modified"
-  | "metadata"
   | "source_local_id"
   | "space_id"
   | "text"
