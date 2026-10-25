@@ -1,0 +1,51 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5RVPHF11KCZ0TQ4XT73B0DM",
+  "session_id": "78051d25-a97b-4cbc-8d93-930f62bf4b53",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-25T06:24:22.854230276Z",
+  "branch": "eng-1823-use-the-unified-upsert_concepts-in-obsidian",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/obsidian/src/utils/__tests__/syncDgNodesToSupabase.test.ts",
+    "apps/obsidian/src/utils/syncDgNodesToSupabase.ts",
+    "apps/obsidian/src/utils/upsertNodesAsContentWithEmbeddings.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "8e6f9fa0a428",
+  "checkpoint_transcript_start": 914,
+  "transcript_lines_at_start": 914,
+  "compact_transcript_start": 92,
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-25T06:24:22.766872832Z",
+    "agent_lines": 307,
+    "agent_removed": 123,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 307,
+    "total_lines_changed": 430,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
