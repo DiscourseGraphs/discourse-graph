@@ -580,30 +580,40 @@ describe("dbNodeToCrossApp", () => {
   it.each([
     {
       error: "Missing author",
+      when: "the direct content has no author",
       overrides: { direct: { ...direct, author_id: null } },
     },
     {
       error: "Missing node type",
+      when: "the node type is not in the schema map",
       overrides: { concept: { ...concept, schema_id: 999 } },
     },
     {
       error: "Missing created date",
+      when: "the direct content has no created date",
       overrides: { direct: { ...direct, created: null } },
     },
-    { error: "Missing direct content", overrides: { direct: undefined } },
+    {
+      error: "Missing direct content",
+      when: "there is no direct content",
+      overrides: { direct: undefined },
+    },
     {
       error: "Not a node instance",
+      when: "the concept is a schema",
       overrides: { concept: { ...concept, is_schema: true } },
     },
     {
       error: "Missing node type",
+      when: "the concept has no node type",
       overrides: { concept: { ...concept, schema_id: null } },
     },
     {
       error: "Missing space",
+      when: "the space is not in the space map",
       overrides: { concept: { ...concept, space_id: 999 } },
     },
-  ])("throws $error", ({ error, overrides }) => {
+  ])("throws $error when $when", ({ error, overrides }) => {
     expect(() => convert(overrides)).toThrow(error);
   });
 });
