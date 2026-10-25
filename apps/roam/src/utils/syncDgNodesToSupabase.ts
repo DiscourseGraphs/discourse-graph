@@ -20,7 +20,10 @@ import {
 } from "./conceptConversion";
 import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
-import { convertRoamNodeToFullContent } from "./convertRoamNodeToFullContent";
+import {
+  convertRoamNodeToFullContent,
+  type SharedFullContentUpdate,
+} from "./convertRoamNodeToFullContent";
 import {
   publishNodeAssets,
   summarizeAssetResults,
@@ -810,13 +813,11 @@ const upsertNodesToSupabaseAsContent = async (
 /** The asset stage runs here too, so an asset added after sharing still gets a row. */
 export const upsertSharedNodesFullContentWithAssets = async ({
   nodes,
-  nodeTypes,
   supabaseClient,
   context,
   phases,
 }: {
-  nodes: RoamDiscourseNodeData[];
-  nodeTypes: DiscourseNode[];
+  nodes: SharedFullContentUpdate[];
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
   phases: SyncPhaseDurations;
@@ -827,7 +828,7 @@ export const upsertSharedNodesFullContentWithAssets = async ({
     phase: "upsertFullContent",
     phases,
     operation: async () => {
-      const converted = convertRoamNodeToFullContent({ nodes, nodeTypes });
+      const converted = convertRoamNodeToFullContent({ nodes });
       await uploadContentBatches({
         content: converted.map(({ content }) => content),
         supabaseClient,
@@ -1118,11 +1119,6 @@ type SharedFullContentUpdateRow = {
   text: string;
 };
 
-type SharedFullContentUpdate = {
-  fullContentNode: RoamDiscourseNodeData;
-  nodeTypeId: string;
-};
-
 const getSharedRoamNodesWithFullContentUpdatesSince = async ({
   sourceLocalIds,
   since,
@@ -1184,7 +1180,7 @@ const getSharedRoamNodesWithFullContentUpdatesSince = async ({
           text: row.text,
           type: matchingNodeType.type,
         },
-        nodeTypeId: matchingNodeType.type,
+        nodeType: matchingNodeType,
       },
     ];
   });
@@ -1495,11 +1491,8 @@ export const createOrUpdateDiscourseEmbedding = async (
         return [...refreshed, ...backfilled];
       },
     });
-    const sharedFullContentNodes = sharedFullContentUpdates.map(
-      (update) => update.fullContentNode,
-    );
     const sharedNodeTypeIds = new Set(
-      sharedFullContentUpdates.map((update) => update.nodeTypeId),
+      sharedFullContentUpdates.map((update) => update.nodeType.type),
     );
 
     await measureSyncPhase({
@@ -1526,8 +1519,7 @@ export const createOrUpdateDiscourseEmbedding = async (
     });
     const sharedNodeAssetResults = await upsertSharedNodesFullContentWithAssets(
       {
-        nodes: sharedFullContentNodes,
-        nodeTypes: allDgNodeTypes,
+        nodes: sharedFullContentUpdates,
         supabaseClient: activeSupabaseClient,
         context: activeContext,
         phases,

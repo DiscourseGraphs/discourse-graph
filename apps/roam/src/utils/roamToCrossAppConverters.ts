@@ -73,7 +73,7 @@ const buildFullInlineContent = ({
 
 export const fullContentNodeToCrossApp = (
   node: RoamDiscourseNodeData,
-  schema?: DiscourseNode,
+  schema: DiscourseNode,
 ): CrossAppNode => {
   const title = node.node_title ?? node.text;
 
@@ -83,7 +83,7 @@ export const fullContentNodeToCrossApp = (
     createdAt: new Date(node.created || Date.now()),
     modifiedAt: new Date(node.last_modified || Date.now()),
     nodeType: node.type,
-    coreTitle: extractContentFromTitle(schema?.format ?? "", title),
+    coreTitle: extractContentFromTitle(schema.format, title),
     content: {
       direct: {
         localId: node.source_local_id,
