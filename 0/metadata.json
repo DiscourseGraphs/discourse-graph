@@ -1,0 +1,86 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5RXTPDFYR9XE1MSMH3Q4X4V",
+  "session_id": "78051d25-a97b-4cbc-8d93-930f62bf4b53",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-25T07:01:36.137841393Z",
+  "branch": "eng-1824-use-the-unified-upsert_concepts-in-roam",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/roam/src/components/settings/DiscourseNodeSuggestiveRules.tsx",
+    "apps/roam/src/utils/__tests__/convertDgToSupabaseConcepts.test.ts",
+    "apps/roam/src/utils/syncDgNodesToSupabase.ts",
+    "apps/roam/src/utils/upsertNodesAsContentWithEmbeddings.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "c1d47b025c68",
+  "checkpoint_transcript_start": 1615,
+  "transcript_lines_at_start": 1615,
+  "compact_transcript_start": 158,
+  "token_usage": {
+    "input_tokens": 18,
+    "cache_creation_tokens": 16426,
+    "cache_read_tokens": 4519713,
+    "output_tokens": 8755,
+    "api_call_count": 9
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_01L4R61Ytqi1gBcBwJGFSCQ3",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-engineering-writing-style"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "8e6f9fa0a428",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 1465,
+        "end": 1466,
+        "entry_ids": [
+          "96f65007-f14a-44ed-ac4c-d71b707d00ed"
+        ],
+        "tool_use_id": "toolu_01L4R61Ytqi1gBcBwJGFSCQ3"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01L4R61Ytqi1gBcBwJGFSCQ3"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-engineering-writing-style",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-25T07:01:35.994654577Z",
+    "agent_lines": 601,
+    "agent_removed": 310,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 601,
+    "total_lines_changed": 911,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
