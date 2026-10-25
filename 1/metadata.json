@@ -1,0 +1,50 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5RT4PZGPB3QTMQ1SECYBR48",
+  "session_id": "78051d25-a97b-4cbc-8d93-930f62bf4b53",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-25T05:57:11.628408355Z",
+  "branch": "eng-1985-add-a-database-to-crossappnode-converter-for-nodes",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/database/src/lib/__tests__/dbToCrossAppConverters.test.ts",
+    "packages/database/src/lib/dbToCrossAppConverters.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "8e6f9fa0a428",
+  "checkpoint_transcript_start": 819,
+  "transcript_lines_at_start": 819,
+  "compact_transcript_start": 84,
+  "token_usage": {
+    "input_tokens": 2,
+    "cache_creation_tokens": 8984,
+    "cache_read_tokens": 284125,
+    "output_tokens": 14134,
+    "api_call_count": 1
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-25T05:57:11.542978475Z",
+    "agent_lines": 555,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 555,
+    "total_lines_changed": 555,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
