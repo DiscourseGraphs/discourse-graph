@@ -20,10 +20,7 @@ import {
 } from "./conceptConversion";
 import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
-import {
-  convertRoamNodeToFullContent,
-  type RoamFullContentNode,
-} from "./convertRoamNodeToFullContent";
+import { convertRoamNodeToFullContent } from "./convertRoamNodeToFullContent";
 import {
   publishNodeAssets,
   summarizeAssetResults,
@@ -813,11 +810,13 @@ const upsertNodesToSupabaseAsContent = async (
 /** The asset stage runs here too, so an asset added after sharing still gets a row. */
 export const upsertSharedNodesFullContentWithAssets = async ({
   nodes,
+  nodeTypes,
   supabaseClient,
   context,
   phases,
 }: {
-  nodes: RoamFullContentNode[];
+  nodes: RoamDiscourseNodeData[];
+  nodeTypes: DiscourseNode[];
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
   phases: SyncPhaseDurations;
@@ -828,7 +827,7 @@ export const upsertSharedNodesFullContentWithAssets = async ({
     phase: "upsertFullContent",
     phases,
     operation: async () => {
-      const converted = convertRoamNodeToFullContent({ nodes });
+      const converted = convertRoamNodeToFullContent({ nodes, nodeTypes });
       await uploadContentBatches({
         content: converted.map(({ content }) => content),
         supabaseClient,
@@ -1120,7 +1119,7 @@ type SharedFullContentUpdateRow = {
 };
 
 type SharedFullContentUpdate = {
-  fullContentNode: RoamFullContentNode;
+  fullContentNode: RoamDiscourseNodeData;
   nodeTypeId: string;
 };
 
@@ -1183,8 +1182,7 @@ const getSharedRoamNodesWithFullContentUpdatesSince = async ({
           created: row.created,
           last_modified: Math.max(row.node_edit_time, row.page_edit_time),
           text: row.text,
-          node_type_id: matchingNodeType.type,
-          format: matchingNodeType.format,
+          type: matchingNodeType.type,
         },
         nodeTypeId: matchingNodeType.type,
       },
@@ -1529,6 +1527,7 @@ export const createOrUpdateDiscourseEmbedding = async (
     const sharedNodeAssetResults = await upsertSharedNodesFullContentWithAssets(
       {
         nodes: sharedFullContentNodes,
+        nodeTypes: allDgNodeTypes,
         supabaseClient: activeSupabaseClient,
         context: activeContext,
         phases,

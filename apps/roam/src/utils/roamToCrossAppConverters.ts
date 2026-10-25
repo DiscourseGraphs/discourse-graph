@@ -4,7 +4,7 @@ import type {
   CrossAppRelation,
   CrossAppRelationTripleSchema,
 } from "@repo/database/crossAppContracts";
-import type { RoamFullContentNode } from "./convertRoamNodeToFullContent";
+import type { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 import type { DiscourseNode } from "./getDiscourseNodes";
 import type { TreeNode, ViewType } from "roamjs-components/types";
 import type { NodeUidWithType } from "~/utils/publishNodesToGroups";
@@ -72,7 +72,8 @@ const buildFullInlineContent = ({
 };
 
 export const fullContentNodeToCrossApp = (
-  node: RoamFullContentNode,
+  node: RoamDiscourseNodeData,
+  schema?: DiscourseNode,
 ): CrossAppNode => {
   const title = node.node_title ?? node.text;
 
@@ -81,8 +82,8 @@ export const fullContentNodeToCrossApp = (
     localId: node.source_local_id,
     createdAt: new Date(node.created || Date.now()),
     modifiedAt: new Date(node.last_modified || Date.now()),
-    nodeType: node.node_type_id,
-    coreTitle: extractContentFromTitle(node.format, title),
+    nodeType: node.type,
+    coreTitle: extractContentFromTitle(schema?.format ?? "", title),
     content: {
       direct: {
         localId: node.source_local_id,

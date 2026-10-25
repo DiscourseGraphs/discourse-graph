@@ -9,8 +9,8 @@ const node = (sourceLocalId: string): RoamDiscourseNodeData => ({
   author_local_id: "author",
   author_name: "Author",
   source_local_id: sourceLocalId,
-  created: "1",
-  last_modified: "2",
+  created: 1,
+  last_modified: 2,
   text: `CLM - ${sourceLocalId}`,
   type: "claim-type",
 });
