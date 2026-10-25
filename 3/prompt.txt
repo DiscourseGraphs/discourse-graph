@@ -1,0 +1,17 @@
+<task-notification>
+<task-id>bd0izq6rj</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/tmp/claude-1000/-mnt-data-projects-discourse-graph/f43b0c72-ff72-448c-b288-23ce0dc6af89/tasks/bd0izq6rj.output</output-file>
+<status>completed</status>
+<summary>Background command "Install dependencies in the worktree" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpic0q692</task-id>
+<tool-use-id>toolu_018x2m6o6wKTo2pFtBvVXXDM</tool-use-id>
+<output-file>/tmp/claude-1000/-mnt-data-projects-discourse-graph/f43b0c72-ff72-448c-b288-23ce0dc6af89/tasks/bpic0q692.output</output-file>
+<status>completed</status>
+<summary>Background command "Run repo-wide ci:validate on ENG-1985" completed (exit code 0)</summary>
+</task-notification>
