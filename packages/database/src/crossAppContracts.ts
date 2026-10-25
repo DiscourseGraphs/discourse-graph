@@ -1,4 +1,4 @@
-import type { ContentType } from "@repo/content-model";
+import type { ContentType } from "@repo/content-model/constants";
 import { Enums, type Json } from "./dbTypes";
 
 // An identifier for objects in the platform. Expected to be unique within the platform.
