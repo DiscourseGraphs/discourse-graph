@@ -18,7 +18,10 @@ import {
   crossAppNodeToDbConcept,
 } from "@repo/database/lib/crossAppConverters";
 import { roamOriginNodeExample } from "@repo/database/crossAppNodeContract.example";
-import { getSharedNodeByRid } from "@repo/database/lib/sharedNodes";
+import {
+  getSharedNodeSpace,
+  listGroupSharedNodes,
+} from "@repo/database/lib/sharedNodes";
 import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
 
 import {
@@ -975,23 +978,17 @@ Then(
       assert.fail("readerSpaceId not a number");
     if (typeof publisherSpaceId !== "number")
       assert.fail("publisherSpaceId not a number");
-    const publisherSpace = await getServiceClient()
-      .from("Space")
-      .select("url")
-      .eq("id", publisherSpaceId)
-      .single();
-    assert.equal(publisherSpace.error, null);
-    assert.ok(publisherSpace.data, `space ${publisherSpaceName} not found`);
-    const published = roamOriginNodeExample;
-    const rid = spaceUriAndLocalIdToRid(
-      publisherSpace.data.url,
-      published.localId,
-      "note",
-    );
     const client = await getLoggedinDatabase(readerSpaceId);
-    const discovered = await getSharedNodeByRid({ client, rid });
-    assert.ok(discovered, `${rid} is not visible through discovery`);
-    const { node, space } = discovered;
+    const { nodes, spaces } = await listGroupSharedNodes({
+      client,
+      currentSpaceId: readerSpaceId,
+    });
+    assert.equal(nodes.length, 1);
+    const [node] = nodes;
+    assert.ok(node);
+    const space = getSharedNodeSpace({ node, spaces });
+    assert.equal(space.id, publisherSpaceId);
+    const published = roamOriginNodeExample;
     assert.deepEqual(
       {
         rid: node.rid,
@@ -1004,7 +1001,7 @@ Then(
         modifiedAt: node.modifiedAt,
       },
       {
-        rid,
+        rid: spaceUriAndLocalIdToRid(space.url, published.localId, "note"),
         localId: published.localId,
         authorId: published.authorId,
         nodeType: published.nodeType,
