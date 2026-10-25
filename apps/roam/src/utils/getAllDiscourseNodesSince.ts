@@ -6,7 +6,6 @@ const DEFAULT_TIME = new Date("1970-01-01").getTime();
 
 export type RoamDiscourseNodeData = {
   author_local_id: string;
-  author_name?: string;
   source_local_id: string;
   created: number;
   last_modified: number;
