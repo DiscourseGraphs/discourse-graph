@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
-import type { SharedNode } from "@repo/database/lib/sharedNodes";
+import type { DbCrossAppNode } from "@repo/database/lib/dbToCrossAppConverters";
+import type { SharedNodeSpace } from "@repo/database/lib/sharedNodes";
 import { importNodeAssets } from "../importNodeAssets";
 import { mirrorAssetToRoamStorage } from "../mirrorAssetToRoamStorage";
 
@@ -14,18 +15,23 @@ const IMAGE_REF = "attachments/diagram.png";
 const FILE_REF = "attachments/report.docx";
 const MIRRORED = "https://firebasestorage.googleapis.com/v0/b/f/o/x?alt=media";
 
-const sharedNode = {
+const sharedNode: DbCrossAppNode = {
   rid: "orn:obsidian.note:vault-a/node-1",
-  sourceLocalId: "node-1",
-  spaceId: 20,
-  spaceName: "Vault A",
-  spaceUri: "obsidian:vault-a",
+  localId: "node-1",
+  nodeType: "evd-type",
+  coreTitle: "REM sleep and recall",
+  content: { direct: { value: "REM sleep and recall" } },
+  createdAt: new Date("2026-06-14T12:30:00.000Z"),
+  modifiedAt: new Date("2026-06-14T15:00:00.000Z"),
+  authorId: "account-7",
+};
+
+const space: SharedNodeSpace = {
+  id: 20,
+  name: "Vault A",
   platform: "Obsidian",
-  title: "REM sleep and recall",
-  created: null,
-  lastModified: "2026-06-14T15:00:00.000Z",
-  directMetadata: null,
-} as unknown as SharedNode;
+  url: "obsidian:vault-a",
+};
 
 type Row = { filepath: string; filehash: string; source_path: string | null };
 
@@ -69,6 +75,7 @@ describe("importNodeAssets", () => {
     const result = await importNodeAssets({
       client: clientWithReferences([row(IMAGE_REF, "h1")]).client,
       sharedNode,
+      space,
       markdown: `![](${IMAGE_REF})`,
     });
 
@@ -91,6 +98,7 @@ describe("importNodeAssets", () => {
     const { report } = await importNodeAssets({
       client: clientWithReferences([row(IMAGE_REF, "h1")]).client,
       sharedNode,
+      space,
       markdown: `![](${IMAGE_REF})`,
     });
 
@@ -107,6 +115,7 @@ describe("importNodeAssets", () => {
     const result = await importNodeAssets({
       client: clientWithReferences([row(FILE_REF, "h2", "report.docx")]).client,
       sharedNode,
+      space,
       markdown: `[](${FILE_REF})`,
     });
 
@@ -130,6 +139,7 @@ describe("importNodeAssets", () => {
       client: clientWithReferences([row(IMAGE_REF, "h1"), row(FILE_REF, "h2")])
         .client,
       sharedNode,
+      space,
       markdown,
     });
 
@@ -155,6 +165,7 @@ describe("importNodeAssets", () => {
     const result = await importNodeAssets({
       client: clientWithReferences([row(IMAGE_REF, "h1")]).client,
       sharedNode,
+      space,
       markdown: `![](${IMAGE_REF})`,
     });
 
@@ -176,6 +187,7 @@ describe("importNodeAssets", () => {
       client: clientWithReferences([row(IMAGE_REF, "h1"), row(FILE_REF, "h2")])
         .client,
       sharedNode,
+      space,
       markdown: `![](${IMAGE_REF}) and [](${FILE_REF})`,
     });
 
@@ -192,6 +204,7 @@ describe("importNodeAssets", () => {
         client: clientWithReferences([], { message: "permission denied" })
           .client,
         sharedNode,
+        space,
         markdown: `![](${IMAGE_REF})`,
       }),
     ).rejects.toMatchObject({ message: "permission denied" });
@@ -222,6 +235,7 @@ describe("importNodeAssets", () => {
         row("c/third.pdf", "h3"),
       ]).client,
       sharedNode,
+      space,
       markdown: `![[a/first.png]] ![the second](b/second.png) [[c/third.pdf|the paper]]`,
     });
 
@@ -246,6 +260,7 @@ describe("importNodeAssets", () => {
         row(originUrl, "h1", "CleanShot 2025-11-16 at 17.14.44@2x.png"),
       ]).client,
       sharedNode,
+      space,
       markdown: `![](${originUrl})`,
     });
 
@@ -260,6 +275,7 @@ describe("importNodeAssets", () => {
     const result = await importNodeAssets({
       client: clientWithReferences([]).client,
       sharedNode,
+      space,
       markdown,
     });
 
@@ -277,11 +293,13 @@ describe("importNodeAssets", () => {
     const first = await importNodeAssets({
       client: clientWithReferences([]).client,
       sharedNode,
+      space,
       markdown: "no assets here",
     });
     const second = await importNodeAssets({
       client: clientWithReferences([]).client,
       sharedNode,
+      space,
       markdown: "none here either",
     });
 
@@ -305,6 +323,7 @@ describe("importNodeAssets", () => {
         row("attachments/copy.png", "h1"),
       ]).client,
       sharedNode,
+      space,
       markdown: `![](${IMAGE_REF}) ![](attachments/copy.png)`,
     });
 
@@ -330,6 +349,7 @@ describe("importNodeAssets", () => {
         row("attachments/copy.png", "h1"),
       ]).client,
       sharedNode,
+      space,
       markdown,
     });
 
@@ -360,6 +380,7 @@ describe("importNodeAssets", () => {
     const { report } = await importNodeAssets({
       client,
       sharedNode,
+      space,
       markdown: "A body that mentions no assets at all.",
     });
 
@@ -379,6 +400,7 @@ describe("importNodeAssets", () => {
     const result = await importNodeAssets({
       client: clientWithReferences([row("my folder/d.png", "h1")]).client,
       sharedNode,
+      space,
       markdown: `![](my%20folder/d.png)`,
     });
 
@@ -398,6 +420,7 @@ describe("importNodeAssets", () => {
     const result = await importNodeAssets({
       client: clientWithReferences([row("fig#1.png", "h1")]).client,
       sharedNode,
+      space,
       markdown: `![](fig%231.png)`,
     });
 
@@ -407,7 +430,12 @@ describe("importNodeAssets", () => {
 
   it("copies nothing for a node with no content", async () => {
     const { client, from } = clientWithReferences([row(IMAGE_REF, "h1")]);
-    const result = await importNodeAssets({ client, sharedNode, markdown: "" });
+    const result = await importNodeAssets({
+      client,
+      sharedNode,
+      space,
+      markdown: "",
+    });
 
     expect(result.markdown).toBe("");
     // Not even the reference query runs: there is nothing a rewrite could apply to.

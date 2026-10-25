@@ -1,4 +1,7 @@
-import { getSharedNodeByRid } from "@repo/database/lib/sharedNodes";
+import {
+  getNodeTypeRid,
+  getSharedNodeByRid,
+} from "@repo/database/lib/sharedNodes";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { readImportedSourceIdentity } from "./importedSourceIdentity";
 import internalError from "./internalError";
@@ -75,24 +78,27 @@ export const refreshImportedNode = async ({
         message: "Could not connect to shared persistence.",
       };
 
-    const sharedNode = await getSharedNodeByRid({
+    const shared = await getSharedNodeByRid({
       client,
       rid: identity.sourceNodeRid,
     });
-    if (!sharedNode)
+    if (!shared)
       return {
         status: "failed",
         message: `The source of "${title}" is no longer shared with your groups, so it cannot be refreshed.`,
       };
+    const { node: sharedNode, space } = shared;
 
-    const nodeTypesBySchemaId = await resolveSharedNodeTypes({
+    const nodeTypesBySchemaRid = await resolveSharedNodeTypes({
       client,
       sharedNodes: [sharedNode],
+      spaces: { [space.url]: space },
     });
     const result = await materializeSharedNode({
       client,
       sharedNode,
-      nodeType: nodeTypesBySchemaId.get(sharedNode.schemaId),
+      space,
+      nodeType: nodeTypesBySchemaRid.get(getNodeTypeRid(sharedNode)),
       force,
     });
     if (!result.success) {
@@ -119,12 +125,12 @@ export const refreshImportedNode = async ({
     if (result.action === "skipped")
       return {
         status: "skipped",
-        message: `"${sharedNode.title}" is already up to date.`,
+        message: `"${sharedNode.content.direct.value}" is already up to date.`,
         ...joinWarnings(relationWarning),
       };
     return {
       status: "refreshed",
-      message: `Refreshed "${sharedNode.title}" from ${sharedNode.spaceName}.`,
+      message: `Refreshed "${sharedNode.content.direct.value}" from ${space.name}.`,
       ...joinWarnings(result.warning, relationWarning),
     };
   } catch (error) {

@@ -1,6 +1,12 @@
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
-import type { SharedNode } from "@repo/database/lib/sharedNodes";
+import type { DbCrossAppNode } from "@repo/database/lib/dbToCrossAppConverters";
+import { ridToSpaceUriAndLocalId } from "@repo/database/lib/rid";
+import {
+  getNodeTypeRid,
+  getSharedNodeSpace,
+  type SharedNodeListing,
+} from "@repo/database/lib/sharedNodes";
 import { orderConceptsByDependency } from "./conceptConversion";
 import { sharedReferenceRid } from "./findTargetUid";
 import { getErrorMessage } from "./getErrorMessage";
@@ -10,14 +16,14 @@ import { resolveSharedNodeTypes } from "./resolveSharedNodeTypes";
 import { SOURCE_SLOT } from "./sourceSlot";
 
 export type FailedSharedNodeImport = {
-  sharedNode: SharedNode;
+  sharedNode: DbCrossAppNode;
   status: "failed";
   message: string;
 };
 
 export type SharedNodeImportItem =
   | {
-      sharedNode: SharedNode;
+      sharedNode: DbCrossAppNode;
       status: "imported" | "skipped";
       pageUid: string;
       warning?: string;
@@ -30,21 +36,24 @@ export const isFailedSharedNodeImport = (
 
 // Normalize references to RIDs before reusing the publish/sync dependency sorter:
 // bare IDs from different spaces must not collide in a shared-node batch.
-const asConcept = (node: SharedNode): LocalConceptDataInput => {
+const asConcept = (node: DbCrossAppNode): LocalConceptDataInput => {
   const source = node.slots?.[SOURCE_SLOT];
   return {
     source_local_id: node.rid,
     ...(source
       ? {
           local_reference_content: {
-            [SOURCE_SLOT]: sharedReferenceRid(source, node.spaceUri),
+            [SOURCE_SLOT]: sharedReferenceRid(
+              source,
+              ridToSpaceUriAndLocalId(node.rid).spaceUri,
+            ),
           },
         }
       : {}),
   };
 };
 
-const orderSourcesFirst = (sharedNodes: SharedNode[]): SharedNode[] => {
+const orderSourcesFirst = (sharedNodes: DbCrossAppNode[]): DbCrossAppNode[] => {
   const nodesByRid = new Map(sharedNodes.map((node) => [node.rid, node]));
   const { ordered } = orderConceptsByDependency(sharedNodes.map(asConcept));
   return ordered.map((concept) => nodesByRid.get(concept.source_local_id!)!);
@@ -54,14 +63,14 @@ const discoveredSourcesToImport = async ({
   sharedNodes,
   discoveredNodes,
 }: {
-  sharedNodes: SharedNode[];
-  discoveredNodes: SharedNode[];
-}): Promise<SharedNode[]> => {
+  sharedNodes: DbCrossAppNode[];
+  discoveredNodes: DbCrossAppNode[];
+}): Promise<DbCrossAppNode[]> => {
   const { missing } = orderConceptsByDependency(sharedNodes.map(asConcept));
   const discoveredByRid = new Map(
     discoveredNodes.map((node) => [node.rid, node]),
   );
-  const sources: SharedNode[] = [];
+  const sources: DbCrossAppNode[] = [];
   for (const rid of missing) {
     const source = discoveredByRid.get(rid);
     if (!source) continue;
@@ -77,20 +86,23 @@ export const importSharedNodes = async ({
   client,
   sharedNodes,
   discoveredNodes,
+  spaces,
   onProgress,
 }: {
   client: DGSupabaseClient;
-  sharedNodes: SharedNode[];
-  discoveredNodes: SharedNode[];
+  sharedNodes: DbCrossAppNode[];
+  discoveredNodes: DbCrossAppNode[];
+  spaces: SharedNodeListing["spaces"];
   onProgress: (current: number, total: number) => void;
 }): Promise<SharedNodeImportItem[]> => {
   const batch = [
     ...sharedNodes,
     ...(await discoveredSourcesToImport({ sharedNodes, discoveredNodes })),
   ];
-  const nodeTypesBySchemaId = await resolveSharedNodeTypes({
+  const nodeTypesBySchemaRid = await resolveSharedNodeTypes({
     client,
     sharedNodes: batch,
+    spaces,
   });
   const items: SharedNodeImportItem[] = [];
   for (const sharedNode of orderSourcesFirst(batch)) {
@@ -98,7 +110,8 @@ export const importSharedNodes = async ({
       const result = await materializeSharedNode({
         client,
         sharedNode,
-        nodeType: nodeTypesBySchemaId.get(sharedNode.schemaId),
+        space: getSharedNodeSpace({ node: sharedNode, spaces }),
+        nodeType: nodeTypesBySchemaRid.get(getNodeTypeRid(sharedNode)),
       });
       items.push(
         result.success

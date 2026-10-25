@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrossAppNode } from "@repo/database/crossAppContracts";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { contentTypes } from "@repo/content-model";
-import type { SharedNode } from "@repo/database/lib/sharedNodes";
+import type { SharedNodeSpace } from "@repo/database/lib/sharedNodes";
 import { MAX_ASSET_BYTES } from "@repo/database/lib/assetLimits";
 import { publishNodeAssets, summarizeAssetResults } from "../publishNodeAssets";
 import { importNodeAssets } from "../importNodeAssets";
@@ -61,17 +61,17 @@ const node: CrossAppNode = {
 };
 
 const sharedNode = {
+  ...node,
   rid: "orn:roam.node:MAPLab/tgWb6JozF",
-  sourceLocalId: SOURCE_LOCAL_ID,
-  spaceId: 20,
-  spaceName: "MAPLab",
-  spaceUri: "roam:MAPLab",
+  modifiedAt: new Date("2026-06-12T15:00:00.000Z"),
+};
+
+const space: SharedNodeSpace = {
+  id: 20,
+  name: "MAPLab",
   platform: "Roam",
-  title: "Sleep improves memory consolidation",
-  created: null,
-  lastModified: "2026-06-12T15:00:00.000Z",
-  directMetadata: null,
-} as unknown as SharedNode;
+  url: "roam:MAPLab",
+};
 
 type Row = {
   filepath: string;
@@ -229,6 +229,7 @@ describe("asset degradation across both transfers", () => {
     const { markdown, report } = await importNodeAssets({
       client: storage.client,
       sharedNode,
+      space,
       markdown: MARKDOWN,
     });
 
@@ -252,6 +253,7 @@ describe("asset degradation across both transfers", () => {
     const { markdown, report } = await importNodeAssets({
       client: storage.client,
       sharedNode,
+      space,
       markdown: MARKDOWN,
     });
 
