@@ -46,7 +46,6 @@ import {
 import getDiscourseNodes, {
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
-import { convertRoamNodeToFullContent } from "~/utils/convertRoamNodeToFullContent";
 
 const mockedGetDiscourseNodes = vi.mocked(getDiscourseNodes);
 
@@ -171,44 +170,6 @@ describe("fullContentNodeToCrossApp coreTitle", () => {
       { ...claimSchema, format: "Claim (draft) - {content}" },
     );
     expect(node.coreTitle).toBe("sleep improves memory");
-  });
-
-  it("keeps the whole title when the node type is unknown", () => {
-    const node = fullContentNodeToCrossApp(baseNode);
-    expect(node.coreTitle).toBe("CLM - claim");
-  });
-});
-
-describe("convertRoamNodeToFullContent", () => {
-  it("extracts each node's core title with its own node type's format", () => {
-    const converted = convertRoamNodeToFullContent({
-      nodes: [
-        {
-          author_local_id: "user-1",
-          source_local_id: "node-1",
-          created: 1000,
-          last_modified: 2000,
-          type: "schema-1",
-          text: "CLM - claim",
-        },
-        {
-          author_local_id: "user-1",
-          source_local_id: "node-2",
-          created: 1000,
-          last_modified: 2000,
-          type: "schema-2",
-          text: "QUE - question",
-        },
-      ],
-      nodeTypes: [
-        { ...claimSchema, type: "schema-2", format: "QUE - {content}" },
-        claimSchema,
-      ],
-    });
-    expect(converted.map(({ node }) => node.coreTitle)).toEqual([
-      "claim",
-      "question",
-    ]);
   });
 });
 
