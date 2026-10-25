@@ -4,13 +4,15 @@ import { StrictMode, useState, useEffect, useCallback } from "react";
 import type DiscourseGraphPlugin from "../index";
 import type { ImportableNode, GroupWithNodes } from "~/types";
 import type { Enums } from "@repo/database/dbTypes";
-import { getUserNameById } from "~/utils/typeUtils";
 import { getAvailableGroupIds } from "@repo/database/lib/groups";
 import {
+  getSharedNodeSpace,
+  listGroupSharedCrossAppNodes,
+} from "@repo/database/lib/sharedNodes";
+import {
   fetchUserNames,
-  getPublishedNodesForGroups,
+  fetchUserNamesByLocalId,
   getLocalNodeInstanceIds,
-  getSpaceInfoFromIds,
   importSelectedNodes,
 } from "~/utils/importNodes";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
@@ -39,6 +41,9 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
     null,
   );
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [userNamesByLocalId, setUserNamesByLocalId] = useState<
+    Record<string, string>
+  >({});
 
   const loadImportableNodes = useCallback(async () => {
     setIsLoading(true);
@@ -65,8 +70,9 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
       }
 
       await fetchUserNames(plugin, client);
+      setUserNamesByLocalId(await fetchUserNamesByLocalId(client));
 
-      const publishedNodes = await getPublishedNodesForGroups({
+      const { nodes, spaces } = await listGroupSharedCrossAppNodes({
         client,
         currentSpaceId: context.spaceId,
       });
@@ -74,24 +80,23 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
       const localNodeInstanceIds = getLocalNodeInstanceIds(plugin);
 
       // Filter out nodes that already exist locally
-      const importableNodes = publishedNodes.filter(
-        (node) => !localNodeInstanceIds.has(node.source_local_id),
+      const importableNodes = nodes.filter(
+        (node) => !localNodeInstanceIds.has(node.localId),
       );
 
-      const uniqueSpaceIds = [
-        ...new Set(importableNodes.map((n) => n.space_id)),
-      ];
-      const spaceInfoById = await getSpaceInfoFromIds(client, uniqueSpaceIds);
+      const importableSpaces = new Map(
+        importableNodes.map((node) => {
+          const space = getSharedNodeSpace({ node, spaces });
+          return [space.id, space];
+        }),
+      );
 
       // Keep spaceNames in settings up to date for UI display (formatImportSource reads it)
-      if (uniqueSpaceIds.length > 0) {
+      if (importableSpaces.size > 0) {
         if (!plugin.settings.spaceNames) plugin.settings.spaceNames = {};
 
-        for (const spaceId of uniqueSpaceIds) {
-          const spaceInfo = spaceInfoById.get(spaceId);
-          if (spaceInfo) {
-            plugin.settings.spaceNames[spaceInfo.url] = spaceInfo.name;
-          }
+        for (const space of importableSpaces.values()) {
+          plugin.settings.spaceNames[space.url] = space.name;
         }
         await plugin.saveSettings();
       }
@@ -99,35 +104,31 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
       const grouped: Map<string, GroupWithNodes> = new Map();
 
       for (const node of importableNodes) {
-        const groupId = String(node.space_id);
+        const space = getSharedNodeSpace({ node, spaces });
+        const groupId = String(space.id);
         if (!grouped.has(groupId)) {
           grouped.set(groupId, {
             groupId,
-            groupName:
-              spaceInfoById.get(node.space_id)?.name ??
-              `Space ${node.space_id}`,
+            groupName: space.name,
             nodes: [],
             authorIds: new Set(),
-            spacePlatform: spaceInfoById.get(node.space_id)?.platform,
+            spacePlatform: space.platform,
           });
         }
 
         const group = grouped.get(groupId)!;
-        const spaceName =
-          spaceInfoById.get(node.space_id)?.name ?? `Space ${node.space_id}`;
         group.nodes.push({
-          nodeInstanceId: node.source_local_id,
-          title: node.text,
-          spaceId: node.space_id,
-          spaceName,
+          nodeInstanceId: node.localId,
+          title: node.content.direct.value,
+          spaceId: space.id,
+          spaceName: space.name,
           groupId,
           selected: false,
-          createdAt: node.createdAt,
-          modifiedAt: node.modifiedAt,
-          filePath: node.filePath,
+          createdAt: node.createdAt.valueOf(),
+          modifiedAt: node.modifiedAt.valueOf(),
           authorId: node.authorId,
         });
-        if (node.authorId) group.authorIds.add(node.authorId);
+        group.authorIds.add(node.authorId);
       }
 
       setGroupsWithNodes(Array.from(grouped.values()));
@@ -265,8 +266,8 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
       number,
       {
         spaceName: string;
-        authorIds: Set<number>;
-        spacePlatform?: Enums<"Platform">;
+        authorIds: Set<string>;
+        spacePlatform: Enums<"Platform">;
         nodes: Array<{
           node: ImportableNode;
           groupId: string;
@@ -346,7 +347,10 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
                     </span>
                     {headerAuthorId !== undefined && (
                       <span>
-                        &nbsp;({getUserNameById(plugin, headerAuthorId)})
+                        &nbsp;(
+                        {userNamesByLocalId[headerAuthorId] ??
+                          `user ${headerAuthorId}`}
+                        )
                       </span>
                     )}
                     <span className="text-muted ml-2 text-sm">
@@ -370,7 +374,10 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
                           {node.title}
                           {node.authorId && authorPlacement === "nodes" && (
                             <span className="font-light">
-                              &nbsp;({getUserNameById(plugin, node.authorId)})
+                              &nbsp;(
+                              {userNamesByLocalId[node.authorId] ??
+                                `user ${node.authorId}`}
+                              )
                             </span>
                           )}
                         </div>
