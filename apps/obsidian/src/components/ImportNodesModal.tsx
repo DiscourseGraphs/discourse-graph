@@ -7,7 +7,7 @@ import type { Enums } from "@repo/database/dbTypes";
 import { getAvailableGroupIds } from "@repo/database/lib/groups";
 import {
   getSharedNodeSpace,
-  listGroupSharedCrossAppNodes,
+  listGroupSharedNodes,
 } from "@repo/database/lib/sharedNodes";
 import {
   fetchUserNames,
@@ -72,7 +72,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
 
       setUserNamesByLocalId(await fetchUserNames(plugin, client));
 
-      const { nodes, spaces } = await listGroupSharedCrossAppNodes({
+      const { nodes, spaces } = await listGroupSharedNodes({
         client,
         currentSpaceId: context.spaceId,
       });

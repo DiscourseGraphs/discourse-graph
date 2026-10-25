@@ -130,7 +130,7 @@ const toSharedNodeListing = async ({
   };
 };
 
-export const listGroupSharedCrossAppNodes = async ({
+export const listGroupSharedNodes = async ({
   client,
   currentSpaceId,
 }: {
