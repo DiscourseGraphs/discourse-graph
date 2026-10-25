@@ -77,10 +77,12 @@ describe("upsertConceptBatches", () => {
     ["a name conflict", -1],
     ["a failed write", -2],
   ])(
-    "throws when a row comes back as %s and sends no later batch",
+    "still sends the later batches when a row comes back as %s, then throws",
     async (_case, failedId) => {
       const rpc = fakeRpc(({ data }) => ({
-        data: data.map((_, i) => (i === 3 ? failedId : i + 1)),
+        data: data.map((concept, i) =>
+          concept.source_local_id === "c3" ? failedId : i + 1,
+        ),
         error: null,
       }));
 
@@ -93,23 +95,35 @@ describe("upsertConceptBatches", () => {
       ).rejects.toThrow(
         `upsert_concepts returned row failures for batch 1/3: ${failedId}: 1`,
       );
-      expect(rpc).toHaveBeenCalledTimes(1);
+      expect(rpc).toHaveBeenCalledTimes(3);
     },
   );
 
-  it("throws when the call fails", async () => {
-    const rpc = fakeRpc(() => ({
-      data: null,
-      error: { message: "permission denied" },
-    }));
+  it("still sends the later batches when a call fails, then throws with every failure", async () => {
+    const rpc = fakeRpc(({ data }) =>
+      data[0]?.source_local_id === "c200"
+        ? { data: null, error: { message: "statement timeout" } }
+        : {
+            data: data.map((concept) =>
+              concept.source_local_id === "c401" ? -2 : 1,
+            ),
+            error: null,
+          },
+    );
 
-    await expect(
-      upsertConceptBatches({
-        concepts: concepts(1),
-        supabaseClient: { rpc } as unknown as DGSupabaseClient,
-        spaceId: SPACE_ID,
-      }),
-    ).rejects.toThrow("upsert_concepts failed for batch 1/1");
+    const upsert = upsertConceptBatches({
+      concepts: concepts(450),
+      supabaseClient: { rpc } as unknown as DGSupabaseClient,
+      spaceId: SPACE_ID,
+    });
+
+    await expect(upsert).rejects.toThrow(
+      "upsert_concepts failed for batch 2/3",
+    );
+    await expect(upsert).rejects.toThrow(
+      "upsert_concepts returned row failures for batch 3/3: -2: 1",
+    );
+    expect(rpc).toHaveBeenCalledTimes(3);
   });
 });
 

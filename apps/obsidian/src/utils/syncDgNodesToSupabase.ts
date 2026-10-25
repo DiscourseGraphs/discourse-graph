@@ -648,6 +648,7 @@ export const upsertConceptBatches = async ({
   spaceId: number;
 }): Promise<void> => {
   const batchCount = Math.ceil(concepts.length / CONCEPT_BATCH_SIZE);
+  const failures: string[] = [];
   for (let idx = 0; idx < batchCount; idx++) {
     const { data, error } = await supabaseClient.rpc("upsert_concepts", {
       data: concepts.slice(
@@ -658,17 +659,22 @@ export const upsertConceptBatches = async ({
     });
 
     if (error) {
-      throw new Error(
+      failures.push(
         `upsert_concepts failed for batch ${idx + 1}/${batchCount}: ${JSON.stringify(error, null, 2)}`,
       );
+      continue;
     }
 
     const failedIds = data.filter((id) => id < 0);
     if (failedIds.length > 0) {
-      throw new Error(
+      failures.push(
         `upsert_concepts returned row failures for batch ${idx + 1}/${batchCount}: ${summarizeFailedConceptUpsertIds(failedIds)}`,
       );
     }
+  }
+
+  if (failures.length > 0) {
+    throw new Error(failures.join("\n"));
   }
 };
 
