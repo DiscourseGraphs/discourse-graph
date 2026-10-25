@@ -2,11 +2,11 @@ Feature: Shared node round trip
   User story:
   * As a user of the Roam plugin
   * I want a node another space published to read back through discovery as it was published
-  * So that the publish and discovery sides of sharing can't drift apart unnoticed
+  * So that what I import from another space is what that space published
 
   Acceptance criteria:
   * The example Roam node, written with the shared converters, reads back through discovery with the same
-  direct content, full content, node type and source identity
+  direct content, node type and source identity, and its full content row holds the published body and content type
 
   Background:
     Given the database is blank
