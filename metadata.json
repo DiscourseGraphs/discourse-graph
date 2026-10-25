@@ -3,7 +3,7 @@
   "checkpoint_id": "01M5RS6DF2W4N196HTQY1Y045X",
   "strategy": "manual-commit",
   "branch": "eng-2061-refactor-roamfullcontentnode-to-use-crossappnode-contract",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": null,
   "sessions": [
     {
@@ -12,13 +12,20 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
-    "input_tokens": 70,
-    "cache_creation_tokens": 135049,
-    "cache_read_tokens": 3797384,
-    "output_tokens": 40913,
-    "api_call_count": 35
+    "input_tokens": 140,
+    "cache_creation_tokens": 299025,
+    "cache_read_tokens": 8515450,
+    "output_tokens": 82052,
+    "api_call_count": 70
   }
 }
