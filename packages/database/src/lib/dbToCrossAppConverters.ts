@@ -59,7 +59,7 @@ export type DbNodeRow = {
 
 export type DbCrossAppNode = CrossAppNode & { rid: string; modifiedAt: Date };
 
-export type ResolvedDbNode = {
+type ResolvedDbNode = {
   rid: string;
   localId: string;
   schemaId: number;
@@ -259,7 +259,7 @@ const getLatestTimestamp = (timestamps: (string | null)[]): string | null => {
   );
 };
 
-export const groupDbNodeRows = ({
+const groupDbNodeRows = ({
   nodes,
   directContents,
   fullContentSummaries,
@@ -293,7 +293,7 @@ export const groupDbNodeRows = ({
   }));
 };
 
-export const resolveDbNode = ({
+const resolveDbNode = ({
   row: { concept, direct, fullLastModified },
   spaceMap,
 }: {

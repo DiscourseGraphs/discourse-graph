@@ -2,14 +2,11 @@ import type { DGSupabaseClient } from "./client";
 import { ridToSpaceUriAndLocalId, spaceUriAndLocalIdToRid } from "./rid";
 import {
   dbNodesToCrossApp,
-  groupDbNodeRows,
-  resolveDbNode,
   type DbCrossAppNode,
   type DbNodeConcept,
   type DbNodeRows,
-  type ResolvedDbNode,
 } from "./dbToCrossAppConverters";
-import type { Enums, Json, Tables } from "../dbTypes";
+import type { Enums, Tables } from "../dbTypes";
 
 type SharedSpace = Pick<
   Tables<"my_spaces">,
@@ -27,23 +24,6 @@ export type SharedNodeSpace = {
 export type SharedNodeListing = {
   nodes: DbCrossAppNode[];
   spaces: Record<string, SharedNodeSpace>;
-};
-
-export type SharedNode = {
-  rid: string;
-  sourceLocalId: string;
-  schemaId: number;
-  spaceId: number;
-  spaceName: string;
-  spaceUri: string;
-  platform: Platform;
-  title: string;
-  coreTitle?: string;
-  created: string | null;
-  lastModified: string;
-  authorId?: number;
-  directMetadata: Json;
-  slots?: Record<string, string>;
 };
 
 export type SharedNodeRows = DbNodeRows & {
@@ -75,55 +55,6 @@ const getValidSpaces = (spaces: SharedSpace[]): SharedNodeSpace[] =>
       },
     ];
   });
-
-export const buildSharedNodes = ({
-  nodes,
-  directContents,
-  fullContentSummaries,
-  spaces,
-}: SharedNodeRows): SharedNode[] => {
-  const spacesById = new Map(
-    getValidSpaces(spaces).map((space) => [space.id, space]),
-  );
-  const spaceMap = Object.fromEntries(
-    [...spacesById].map(([id, space]) => [id, space.url]),
-  );
-
-  return groupDbNodeRows({ nodes, directContents, fullContentSummaries })
-    .flatMap((row): SharedNode[] => {
-      let resolved: ResolvedDbNode;
-      try {
-        resolved = resolveDbNode({ row, spaceMap });
-      } catch {
-        return [];
-      }
-      const space = spacesById.get(resolved.spaceId)!;
-
-      return [
-        {
-          rid: resolved.rid,
-          sourceLocalId: resolved.localId,
-          schemaId: resolved.schemaId,
-          spaceId: resolved.spaceId,
-          spaceName: space.name,
-          spaceUri: space.url,
-          platform: space.platform,
-          title: resolved.title,
-          coreTitle: row.concept.core_title ?? undefined,
-          created: resolved.created,
-          lastModified: resolved.modifiedAt,
-          authorId: resolved.direct.author_id ?? undefined,
-          directMetadata: resolved.direct.metadata,
-          slots: resolved.slots,
-        },
-      ];
-    })
-    .sort(
-      (left, right) =>
-        Date.parse(right.lastModified) - Date.parse(left.lastModified) ||
-        left.title.localeCompare(right.title),
-    );
-};
 
 const getAssociatedSpaces = async ({
   client,
@@ -204,17 +135,6 @@ const getSharedNodeRows = async ({
     fullContentSummaries: fullResponse.data,
     spaces,
   };
-};
-
-export const listGroupSharedNodes = async ({
-  client,
-  currentSpaceId,
-}: {
-  client: DGSupabaseClient;
-  currentSpaceId: number;
-}): Promise<SharedNode[]> => {
-  const rows = await getSharedNodeRows({ client, currentSpaceId });
-  return buildSharedNodes(rows);
 };
 
 const toSharedNodeListing = async ({
