@@ -1,0 +1,73 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5RT4PZGPB3QTMQ1SECYBR48",
+  "session_id": "f43b0c72-ff72-448c-b288-23ce0dc6af89",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-25T05:57:15.002642968Z",
+  "branch": "eng-1985-add-a-database-to-crossappnode-converter-for-nodes",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/database/src/lib/__tests__/dbToCrossAppConverters.test.ts",
+    "packages/database/src/lib/dbToCrossAppConverters.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "7abb4d4f94cc",
+  "checkpoint_transcript_start": 1222,
+  "transcript_lines_at_start": 1222,
+  "compact_transcript_start": 101,
+  "token_usage": {
+    "input_tokens": 10,
+    "cache_creation_tokens": 10080,
+    "cache_read_tokens": 1792625,
+    "output_tokens": 5306,
+    "api_call_count": 5
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-25T05:57:14.907499549Z",
+    "agent_lines": 69,
+    "agent_removed": 17,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 2,
+    "total_committed": 69,
+    "total_lines_changed": 88,
+    "agent_percentage": 97.72727272727273,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 481,
+      "user_lines_removed": 253,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "apps/roam/src/components/DiscoverSharedNodesDialog.tsx": 38,
+        "apps/roam/src/utils/__tests__/materializeSharedNode.test.ts": 168,
+        "apps/roam/src/utils/discoverSharedNodes.ts": 10,
+        "apps/roam/src/utils/importNodeAssets.ts": 11,
+        "apps/roam/src/utils/importSharedNodes.ts": 30,
+        "apps/roam/src/utils/materializeSharedNode.ts": 37,
+        "apps/roam/src/utils/refreshImportedNode.ts": 13,
+        "apps/roam/src/utils/resolveSharedNodeTypes.ts": 47,
+        "apps/roam/src/utils/sortSharedNodes.ts": 41,
+        "packages/database/src/lib/dbToCrossAppConverters.ts": 4,
+        "packages/database/src/lib/sharedNodes.ts": 82
+      },
+      "user_removed_per_file": {
+        "apps/roam/src/components/DiscoverSharedNodesDialog.tsx": 23,
+        "apps/roam/src/utils/__tests__/materializeSharedNode.test.ts": 104,
+        "apps/roam/src/utils/discoverSharedNodes.ts": 9,
+        "apps/roam/src/utils/importNodeAssets.ts": 6,
+        "apps/roam/src/utils/importSharedNodes.ts": 15,
+        "apps/roam/src/utils/materializeSharedNode.ts": 35,
+        "apps/roam/src/utils/refreshImportedNode.ts": 7,
+        "apps/roam/src/utils/resolveSharedNodeTypes.ts": 14,
+        "apps/roam/src/utils/sortSharedNodes.ts": 14,
+        "packages/database/src/lib/dbToCrossAppConverters.ts": 2,
+        "packages/database/src/lib/sharedNodes.ts": 24
+      }
+    }
+  ]
+}
