@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5RVPHF11KCZ0TQ4XT73B0DM",
+  "strategy": "manual-commit",
+  "branch": "eng-1823-use-the-unified-upsert_concepts-in-obsidian",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/obsidian/src/utils/__tests__/syncDgNodesToSupabase.test.ts",
+    "apps/obsidian/src/utils/syncDgNodesToSupabase.ts",
+    "apps/obsidian/src/utils/upsertNodesAsContentWithEmbeddings.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2,
+    "cache_creation_tokens": 1548,
+    "cache_read_tokens": 260013,
+    "output_tokens": 511,
+    "api_call_count": 1
+  }
+}

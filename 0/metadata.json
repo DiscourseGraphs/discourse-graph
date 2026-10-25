@@ -1,0 +1,147 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5RVPHF11KCZ0TQ4XT73B0DM",
+  "session_id": "454c97ce-6c52-4e97-8b24-5628e6108a3d",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-25T06:24:22.699032658Z",
+  "branch": "eng-1823-use-the-unified-upsert_concepts-in-obsidian",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/obsidian/src/utils/__tests__/syncDgNodesToSupabase.test.ts",
+    "apps/obsidian/src/utils/syncDgNodesToSupabase.ts",
+    "apps/obsidian/src/utils/upsertNodesAsContentWithEmbeddings.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "55719d87bd85",
+  "checkpoint_transcript_start": 981,
+  "transcript_lines_at_start": 981,
+  "compact_transcript_start": 102,
+  "token_usage": {
+    "input_tokens": 2,
+    "cache_creation_tokens": 1548,
+    "cache_read_tokens": 260013,
+    "output_tokens": 511,
+    "api_call_count": 1
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_01Q3acfW8kqsfikUFgEo3hX8",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "pre-pr-review"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "cc7b6ee50f90",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 722,
+        "end": 723,
+        "entry_ids": [
+          "d3017891-55be-471a-8af3-96b5bb3cc172"
+        ],
+        "tool_use_id": "toolu_01Q3acfW8kqsfikUFgEo3hX8"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01Q3acfW8kqsfikUFgEo3hX8"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: pre-pr-review",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_014zHsect2wQ4HttUqXpLyJ8",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "scope-check"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "cc7b6ee50f90",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 755,
+        "end": 756,
+        "entry_ids": [
+          "9ea3497d-4877-440d-a878-68622b28f3d6"
+        ],
+        "tool_use_id": "toolu_014zHsect2wQ4HttUqXpLyJ8"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_014zHsect2wQ4HttUqXpLyJ8"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: scope-check",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01X7FEyTmWKvqbWPEoVQqVE7",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-engineering-writing-style"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "cc7b6ee50f90",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 808,
+        "end": 809,
+        "entry_ids": [
+          "e1e1478c-e3e9-4dba-8dda-c4be748a8954"
+        ],
+        "tool_use_id": "toolu_01X7FEyTmWKvqbWPEoVQqVE7"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01X7FEyTmWKvqbWPEoVQqVE7"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-engineering-writing-style",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-25T06:24:22.614626828Z",
+    "agent_lines": 32,
+    "agent_removed": 30,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 32,
+    "total_lines_changed": 62,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
