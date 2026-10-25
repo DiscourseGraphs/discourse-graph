@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrossAppNode } from "@repo/database/crossAppContracts";
 import { contentTypes } from "@repo/content-model";
-import type { RoamFullContentNode } from "~/utils/convertRoamNodeToFullContent";
+import type { RoamDiscourseNodeData } from "~/utils/getAllDiscourseNodesSince";
 import type { SupabaseContext } from "~/utils/supabaseContext";
 import {
   IMAGE,
@@ -25,10 +25,10 @@ vi.mock("~/components/settings/utils/accessors", () => ({
 }));
 
 vi.mock("~/utils/roamToCrossAppConverters", () => ({
-  fullContentNodeToCrossApp: (node: RoamFullContentNode): CrossAppNode => ({
+  fullContentNodeToCrossApp: (node: RoamDiscourseNodeData): CrossAppNode => ({
     localId: node.source_local_id,
     authorId: node.author_local_id,
-    nodeType: node.node_type_id,
+    nodeType: node.type,
     coreTitle: node.text,
     createdAt: new Date(node.created),
     modifiedAt: new Date(node.last_modified),
@@ -53,14 +53,13 @@ const NODE_UID = "tgWb6JozF";
 const SECOND_IMAGE =
   "https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FMAPLab%2FsecondImage.png?alt=media&token=1a2b3c4d";
 
-const sharedNode: RoamFullContentNode = {
+const sharedNode: RoamDiscourseNodeData = {
   author_local_id: "maparent",
   source_local_id: NODE_UID,
   created: Date.parse("2026-06-12T14:00:00.000Z"),
   last_modified: Date.parse("2026-06-12T15:00:00.000Z"),
   text: "[[CLM]] - Sleep improves memory consolidation",
-  node_type_id: "rCLM0schema",
-  format: "[[CLM]] - {content}",
+  type: "rCLM0schema",
 };
 
 const context = { spaceId: 20, userId: 7 } as SupabaseContext;
@@ -79,6 +78,7 @@ describe("upsertSharedNodesFullContentWithAssets", () => {
     mocks.markdownByUid.set(NODE_UID, markdown);
     return upsertSharedNodesFullContentWithAssets({
       nodes: [sharedNode],
+      nodeTypes: [],
       supabaseClient: harness.client,
       context,
       phases: {},
@@ -163,6 +163,7 @@ describe("upsertSharedNodesFullContentWithAssets", () => {
     await expect(
       upsertSharedNodesFullContentWithAssets({
         nodes: [],
+        nodeTypes: [],
         supabaseClient: harness.client,
         context,
         phases,

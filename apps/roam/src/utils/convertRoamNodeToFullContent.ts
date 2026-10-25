@@ -2,17 +2,8 @@ import type { CrossAppNode } from "@repo/database/crossAppContracts";
 import { crossAppNodeToDbContent } from "@repo/database/lib/crossAppConverters";
 import { fullContentNodeToCrossApp } from "./roamToCrossAppConverters";
 import type { LocalContentDataInput } from "@repo/database/inputTypes";
-
-export type RoamFullContentNode = {
-  author_local_id: string;
-  source_local_id: string;
-  created: string | number;
-  last_modified: string | number;
-  text: string;
-  node_type_id: string;
-  format: string;
-  node_title?: string;
-};
+import type { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
+import type { DiscourseNode } from "./getDiscourseNodes";
 
 /** Paired so the asset stage reuses the markdown rather than rebuilding it from Roam. */
 export type ConvertedFullContent = {
@@ -22,12 +13,17 @@ export type ConvertedFullContent = {
 
 export const convertRoamNodeToFullContent = ({
   nodes,
+  nodeTypes,
 }: {
-  nodes: RoamFullContentNode[];
+  nodes: RoamDiscourseNodeData[];
+  nodeTypes: DiscourseNode[];
 }): ConvertedFullContent[] =>
   nodes.flatMap((node) => {
     try {
-      const crossAppNode = fullContentNodeToCrossApp(node);
+      const crossAppNode = fullContentNodeToCrossApp(
+        node,
+        nodeTypes.find((nodeType) => nodeType.type === node.type),
+      );
       const fullContent = crossAppNodeToDbContent(crossAppNode, "full");
       return fullContent === undefined
         ? []
