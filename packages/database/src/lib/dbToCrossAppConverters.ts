@@ -6,7 +6,9 @@ import {
   CrossAppRelation,
 } from "../crossAppContracts";
 import { Tables, Json } from "../dbTypes";
+import { resolveSchemaFormat } from "@repo/utils/resolveSchemaFormat";
 import type { DGSupabaseClient } from "./client";
+import { extractContentFromTitle } from "./extractContentFromTitle";
 import { ridToSpaceUriAndLocalId, spaceUriAndLocalIdToRid, isRid } from "./rid";
 
 type Concept = Tables<"Concept">;
@@ -96,6 +98,27 @@ const getConceptMap = async (
         ];
       })
       .filter(([, rid]) => rid !== undefined) as [number, string][],
+  );
+};
+
+const getSchemaFormatMap = async (
+  client: DGSupabaseClient,
+  schemaIds: number[],
+): Promise<Record<number, string>> => {
+  if (schemaIds.length === 0) return {};
+  const { data, error } = await client
+    .from("my_concepts")
+    .select(
+      "id, format:literal_content->>format, source_data_format:literal_content->source_data->>format",
+    )
+    .in("id", schemaIds);
+  if (error) throw error;
+  return Object.fromEntries(
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    data.map(({ id, format, source_data_format }) => [
+      id!,
+      resolveSchemaFormat({ format, sourceDataFormat: source_data_format }),
+    ]),
   );
 };
 
@@ -343,11 +366,13 @@ export const dbNodeToCrossApp = ({
   spaceMap,
   accountMap,
   schemaMap,
+  formatMap,
 }: {
   row: DbNodeRow;
   spaceMap: Record<number, string>;
   accountMap: Record<number, string>;
   schemaMap: Record<number, string>;
+  formatMap: Record<number, string>;
 }): CrossAppNode => {
   const {
     rid,
@@ -363,8 +388,9 @@ export const dbNodeToCrossApp = ({
   if (created === null) throw new Error("Missing created date");
   const authorId = accountMap[direct.author_id || 0];
   if (authorId === undefined) throw new Error("Missing author");
-  const coreTitle = row.concept.core_title;
-  if (coreTitle === null) throw new Error("Missing core title");
+  const coreTitle =
+    row.concept.core_title ??
+    extractContentFromTitle(formatMap[schemaId] ?? "", title);
   const nodeType = asSimpleLocalId(schemaMap[schemaId], spaceMap[spaceId]);
   if (nodeType === undefined) throw new Error("Missing node type");
   return {
@@ -388,11 +414,13 @@ export const dbNodesToCrossApp = async ({
   spaceMap,
   accountMap,
   schemaMap,
+  formatMap,
 }: DbNodeRows & {
   client: DGSupabaseClient;
   spaceMap?: Record<number, string>;
   accountMap?: Record<number, string>;
   schemaMap?: Record<number, string>;
+  formatMap?: Record<number, string>;
 }): Promise<CrossAppNode[]> => {
   if (spaceMap === undefined) spaceMap = await getSpaceMap(client);
   if (accountMap === undefined) {
@@ -403,19 +431,24 @@ export const dbNodesToCrossApp = async ({
     );
     accountMap = await getAccountMap(client, [...authorIds]);
   }
-  if (schemaMap === undefined) {
-    const schemaIds = new Set<number>(
+  const schemaIds = [
+    ...new Set<number>(
       nodes.map((n) => n.schema_id).filter((id) => typeof id === "number"),
-    );
-    schemaMap = await getConceptMap(client, [...schemaIds], spaceMap);
-  }
+    ),
+  ];
+  if (schemaMap === undefined)
+    schemaMap = await getConceptMap(client, schemaIds, spaceMap);
+  if (formatMap === undefined)
+    formatMap = await getSchemaFormatMap(client, schemaIds);
   return groupDbNodeRows({
     nodes,
     directContents,
     fullContentSummaries,
   }).flatMap((row) => {
     try {
-      return [dbNodeToCrossApp({ row, spaceMap, accountMap, schemaMap })];
+      return [
+        dbNodeToCrossApp({ row, spaceMap, accountMap, schemaMap, formatMap }),
+      ];
     } catch (error) {
       console.warn(
         `Skipped node ${row.concept.source_local_id} of space ${row.concept.space_id}:`,

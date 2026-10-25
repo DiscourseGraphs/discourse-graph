@@ -424,12 +424,16 @@ describe("dbNodeToCrossApp", () => {
     direct,
     fullLastModified: "2026-06-14T15:00:00",
   };
-  const convert = (overrides: Partial<DbNodeRow> = {}) =>
+  const convert = (
+    overrides: Partial<DbNodeRow> = {},
+    formatMap: Record<number, string> = { 200: "EVD - {content}" },
+  ) =>
     dbNodeToCrossApp({
       row: { ...row, ...overrides },
       spaceMap: nodeSpaceMap,
       accountMap,
       schemaMap,
+      formatMap,
     });
 
   it("converts a node with local ids for its author and node type", () => {
@@ -489,14 +493,23 @@ describe("dbNodeToCrossApp", () => {
     },
   );
 
+  it("derives the core title from the node type's format when none was published", () => {
+    expect(
+      convert({ concept: { ...concept, core_title: null } }).coreTitle,
+    ).toBe("REM sleep and recall");
+  });
+
+  it("uses the title as the core title when the node type has no format", () => {
+    expect(
+      convert({ concept: { ...concept, core_title: null } }, { 200: "" })
+        .coreTitle,
+    ).toBe("EVD - REM sleep and recall");
+  });
+
   it.each([
     {
       error: "Missing author",
       overrides: { direct: { ...direct, author_id: null } },
-    },
-    {
-      error: "Missing core title",
-      overrides: { concept: { ...concept, core_title: null } },
     },
     {
       error: "Missing node type",
@@ -551,16 +564,18 @@ describe("dbNodesToCrossApp", () => {
           source_local_id: "evd-type",
           is_schema: true,
           is_relation: false,
+          format: null,
+          source_data_format: "EVD - {content}",
         },
       ],
     };
-    const inCalls: Record<string, unknown[]> = {};
+    const inCalls: Record<string, unknown[][]> = {};
     const from = vi.fn((table: string) => {
       const result = { data: rowsByTable[table], error: null };
       const builder = {
         select: vi.fn(),
         in: vi.fn((column: string, values: unknown[]) => {
-          inCalls[table] = values;
+          (inCalls[table] ??= []).push(values);
           return builder;
         }),
         not: vi.fn(),
@@ -576,18 +591,26 @@ describe("dbNodesToCrossApp", () => {
     return { client: { from } as unknown as DGSupabaseClient, inCalls };
   };
 
-  it("looks up the author and node type of each node", async () => {
+  it("looks up the author, node type and node type format of each node", async () => {
     const { client, inCalls } = makeClient();
     const converted = await dbNodesToCrossApp({
       client,
-      nodes: [concept("node-1")],
+      nodes: [{ ...concept("node-1"), core_title: null }],
       directContents: [direct("node-1", 42)],
       fullContentSummaries: [],
       spaceMap: { 20: "obsidian:vault-a" },
     });
-    expect(inCalls).toEqual({ my_accounts: [42], my_concepts: [200] });
+    expect(inCalls).toEqual({
+      my_accounts: [[42]],
+      my_concepts: [[200], [200]],
+    });
     expect(converted).toMatchObject([
-      { localId: "node-1", authorId: "account-local-1", nodeType: "evd-type" },
+      {
+        localId: "node-1",
+        authorId: "account-local-1",
+        nodeType: "evd-type",
+        coreTitle: "Title of node-1",
+      },
     ]);
   });
 
