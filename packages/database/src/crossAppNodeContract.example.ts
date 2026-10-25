@@ -1,4 +1,4 @@
-import { contentTypes } from "@repo/content-model";
+import { contentTypes } from "@repo/content-model/constants";
 import type { CrossAppNode } from "./crossAppContracts";
 
 // const ROAM_SOURCE_SPACE_ID = "https://roamresearch.com/#/app/MAPLab";
@@ -14,12 +14,8 @@ const ROAM_STORED_ASSET_URL =
 const ROAM_UNRESOLVABLE_ASSET_URL =
   "https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FMAPLab%2FGVfB6XBcMR.pdf?alt=media&token=3a5d81b6-7c24-4e19-b0f8-52ca9e3d1f07";
 
-const roamFullMarkdown = `# Sleep improves memory consolidation
-
-Multiple studies show that sleep after learning strengthens memory traces.
-
-![](${ROAM_STORED_ASSET_URL})
-
+const roamFullMarkdown = `- Multiple studies show that sleep after learning strengthens memory traces.
+- ![](${ROAM_STORED_ASSET_URL})
 - Supported by [[EVD]] - Rasch & Born 2013
 - Protocol: {{[[pdf]]: ${ROAM_UNRESOLVABLE_ASSET_URL}}}
 `;
@@ -30,13 +26,14 @@ export const roamOriginNodeExample: CrossAppNode = {
   coreTitle: "Sleep improves memory consolidation",
   content: {
     direct: {
-      value: "Sleep improves memory consolidation",
-      authorId: "someone",
+      localId: ROAM_SOURCE_NODE_ID,
+      value: "[[CLM]] - Sleep improves memory consolidation",
     },
     full: {
-      contentType: contentTypes.markdown,
+      localId: ROAM_SOURCE_NODE_ID,
       value: roamFullMarkdown,
-      authorId: "someone",
+      contentType: contentTypes.roamMarkdown,
+      scale: "document",
     },
   },
   assets: [
