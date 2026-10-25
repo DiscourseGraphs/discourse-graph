@@ -8,6 +8,7 @@ import { getAllDiscourseNodesSince } from "~/utils/getAllDiscourseNodesSince";
 import { getImportedNodeUids } from "~/utils/importedSourceIdentity";
 import { upsertNodesWithEmbeddings } from "~/utils/syncDgNodesToSupabase";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
+import internalError from "~/utils/internalError";
 import {
   DiscourseNodeFlagPanel,
   DiscourseNodeTextPanel,
@@ -67,6 +68,8 @@ const DiscourseNodeSuggestiveRules = ({
           context,
         });
       }
+    } catch (error) {
+      internalError({ error, userMessage: "Failed to update embeddings" });
     } finally {
       setIsUpdating(false);
     }

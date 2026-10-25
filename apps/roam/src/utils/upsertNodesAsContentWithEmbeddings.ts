@@ -21,17 +21,13 @@ export const convertRoamNodeToLocalContent = ({
   nodes: RoamDiscourseNodeData[];
 }): LocalContentDataInput[] => {
   return nodes.map((node) => {
-    const variant = node.node_title ? "direct_and_description" : "direct";
-    const text = node.node_title
-      ? `${node.node_title} ${node.text}`
-      : node.text;
     return {
       author_local_id: node.author_local_id,
       source_local_id: node.source_local_id,
       created: new Date(node.created || Date.now()).toISOString(),
       last_modified: new Date(node.last_modified || Date.now()).toISOString(),
-      text: text,
-      variant: variant,
+      text: node.text,
+      variant: "direct",
       scale: "document",
       // use the default text/plain content type
     };

@@ -33,6 +33,7 @@ vi.mock("~/utils/conceptConversion", () => ({
 
 import {
   convertDgToSupabaseConcepts,
+  omitMissingSources,
   upsertNodesWithEmbeddings,
   withFullContent,
 } from "~/utils/syncDgNodesToSupabase";
@@ -215,6 +216,54 @@ describe("convertDgToSupabaseConcepts nodes", () => {
     expect(upsertedConcepts(rpc).map(([, data]) => data.length)).toEqual([
       50, 1,
     ]);
+  });
+
+  it("sends every batch before failing on a row that did not upsert", async () => {
+    stubRoam();
+    const { rpc, client } = makeClient();
+    rpc
+      .mockResolvedValueOnce({ data: [-2], error: null })
+      .mockResolvedValueOnce({ data: [1], error: null });
+
+    await expect(
+      convertDgToSupabaseConcepts({
+        nodes: Array.from({ length: 51 }, (_, i) => crossAppNode(`node-${i}`)),
+        since: undefined,
+        allNodeTypes: [],
+        supabaseClient: client,
+        context,
+      }),
+    ).rejects.toThrow("batch 1/2: -2: 1");
+    expect(rpc).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("omitMissingSources", () => {
+  const withSource = (localId: string, sourceId: string) => ({
+    ...crossAppNode(localId),
+    slots: { sourceDocument: sourceId },
+  });
+
+  it("keeps a Source that is a RID, in the same upsert, or already a Concept", () => {
+    const nodes = [
+      withSource("node-1", "orn:obsidian.note:vault-a/source-1"),
+      withSource("node-2", "node-3"),
+      crossAppNode("node-3"),
+      withSource("node-4", "synced-source"),
+    ];
+
+    expect(
+      omitMissingSources({ nodes, conceptIds: new Set(["synced-source"]) }),
+    ).toEqual(nodes);
+  });
+
+  it("drops a Source that is not in the space, so the node still upserts", () => {
+    const [node] = omitMissingSources({
+      nodes: [withSource("node-1", "unsynced-source")],
+      conceptIds: new Set(),
+    });
+
+    expect(node.slots).toBeUndefined();
   });
 });
 
