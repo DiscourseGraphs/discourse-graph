@@ -3,11 +3,12 @@
   "checkpoint_id": "01M5RYFFW37V1PFGJJKEPAF0CD",
   "session_id": "eade768f-020e-4915-86f1-5f3a22e40081",
   "strategy": "manual-commit",
-  "created_at": "2026-10-25T07:12:57.859127203Z",
+  "created_at": "2026-10-25T07:13:29.223738454Z",
   "branch": "eng-1824-use-the-unified-upsert_concepts-in-roam",
   "checkpoints_count": 1,
   "files_touched": [
     "apps/roam/src/utils/__tests__/convertDgToSupabaseConcepts.test.ts",
+    "apps/roam/src/utils/__tests__/fixtures/fileReferenceHarness.ts",
     "apps/roam/src/utils/__tests__/syncSharedNodeAssets.test.ts",
     "apps/roam/src/utils/syncDgNodesToSupabase.ts"
   ],
@@ -62,14 +63,14 @@
     "turn_count": 1
   },
   "initial_attribution": {
-    "calculated_at": "2026-10-25T07:12:57.754290699Z",
-    "agent_lines": 678,
-    "agent_removed": 270,
+    "calculated_at": "2026-10-25T07:13:29.119997567Z",
+    "agent_lines": 687,
+    "agent_removed": 276,
     "human_added": 0,
     "human_modified": 0,
     "human_removed": 0,
-    "total_committed": 678,
-    "total_lines_changed": 948,
+    "total_committed": 687,
+    "total_lines_changed": 963,
     "agent_percentage": 100,
     "metric_version": 2
   },
