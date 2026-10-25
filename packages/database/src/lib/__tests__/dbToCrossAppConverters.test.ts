@@ -582,6 +582,24 @@ describe("dbNodeToCrossApp", () => {
     },
   );
 
+  it("takes modifiedAt from the direct content when there is no full content", () => {
+    expect(convert({ fullLastModified: null }).modifiedAt).toEqual(
+      new Date("2026-06-14T13:00:00Z"),
+    );
+  });
+
+  it("falls back to the created date when nothing has a last-modified date", () => {
+    // The columns are NOT NULL; the casts exercise the fallback anyway.
+    const noDate = null as unknown as string;
+    expect(
+      convert({
+        concept: { ...concept, last_modified: noDate },
+        direct: { ...direct, last_modified: noDate },
+        fullLastModified: null,
+      }).modifiedAt,
+    ).toEqual(new Date("2026-06-14T11:00:00Z"));
+  });
+
   it("derives the core title from the node type's format when none was published", () => {
     expect(
       convert({ concept: { ...concept, core_title: null } }).coreTitle,
@@ -609,6 +627,14 @@ describe("dbNodeToCrossApp", () => {
       overrides: { direct: { ...direct, created: "" } },
     },
     { error: "Missing direct content", overrides: { direct: undefined } },
+    {
+      error: "Not a node instance",
+      overrides: { concept: { ...concept, is_schema: true } },
+    },
+    {
+      error: "Missing node type",
+      overrides: { concept: { ...concept, schema_id: null } },
+    },
     {
       error: "Missing space",
       overrides: { concept: { ...concept, space_id: 999 } },
