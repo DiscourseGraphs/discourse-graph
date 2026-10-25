@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5RTS27S94S47M51JXPF5VJJ",
+  "strategy": "manual-commit",
+  "branch": "eng-1824-part-2-node-type-content-in-schema-concept",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/roam/src/utils/__tests__/convertDgToSupabaseConcepts.test.ts",
+    "apps/roam/src/utils/syncDgNodesToSupabase.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 12,
+    "cache_creation_tokens": 8344,
+    "cache_read_tokens": 1363201,
+    "output_tokens": 5958,
+    "api_call_count": 6
+  }
+}
