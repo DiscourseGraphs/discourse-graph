@@ -435,7 +435,7 @@ describe("getSharedNodeByRid", () => {
       const { client } = makeClient({ space: spaces[0]!, direct });
 
       await expect(getSharedNodeByRid({ client, rid })).rejects.toThrow(
-        "its source is shared but could not be read",
+        `${rid} is shared but could not be read`,
       );
     },
   );
