@@ -3,7 +3,7 @@
   "checkpoint_id": "01M5RTS27S94S47M51JXPF5VJJ",
   "strategy": "manual-commit",
   "branch": "eng-1824-part-2-node-type-content-in-schema-concept",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "apps/roam/src/utils/__tests__/convertDgToSupabaseConcepts.test.ts",
     "apps/roam/src/utils/syncDgNodesToSupabase.ts"
@@ -22,6 +22,13 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
