@@ -104,6 +104,7 @@ export type CrossAppNode = CrossAppBase & {
   slots?: Record<string, LocalId>;
   content: {
     direct: InlineCrossAppContent;
+    directAndDescription?: InlineCrossAppContent;
     full?: InlineCrossAppTypedContent;
   };
   // The assets referenced by `content.full` whose bytes are stored. One that could not
