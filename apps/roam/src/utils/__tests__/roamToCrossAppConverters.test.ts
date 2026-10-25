@@ -46,6 +46,7 @@ import {
 import getDiscourseNodes, {
   type DiscourseNode,
 } from "~/utils/getDiscourseNodes";
+import { convertRoamNodeToFullContent } from "~/utils/convertRoamNodeToFullContent";
 
 const mockedGetDiscourseNodes = vi.mocked(getDiscourseNodes);
 
@@ -129,40 +130,85 @@ describe("fullContentNodeToCrossApp coreTitle", () => {
     source_local_id: "node-1",
     created: 1000,
     last_modified: 2000,
-    node_type_id: "schema-1",
-    format: "CLM - {content}",
+    type: "schema-1",
     text: "CLM - claim",
   };
 
   it("extracts the content from the title", () => {
-    const node = fullContentNodeToCrossApp(baseNode);
+    const node = fullContentNodeToCrossApp(baseNode, claimSchema);
     expect(node.coreTitle).toBe("claim");
   });
 
   it("extracts from the page title when node_title is present", () => {
-    const node = fullContentNodeToCrossApp({
-      ...baseNode,
-      text: "some block text",
-      node_title: "CLM - claim",
-    });
+    const node = fullContentNodeToCrossApp(
+      {
+        ...baseNode,
+        text: "some block text",
+        node_title: "CLM - claim",
+      },
+      claimSchema,
+    );
     expect(node.coreTitle).toBe("claim");
   });
 
   it("keeps the whole title when it does not match the format", () => {
-    const node = fullContentNodeToCrossApp({
-      ...baseNode,
-      text: "unrelated title",
-    });
+    const node = fullContentNodeToCrossApp(
+      {
+        ...baseNode,
+        text: "unrelated title",
+      },
+      claimSchema,
+    );
     expect(node.coreTitle).toBe("unrelated title");
   });
 
   it("extracts the content from a format with regex metacharacters", () => {
-    const node = fullContentNodeToCrossApp({
-      ...baseNode,
-      format: "Claim (draft) - {content}",
-      text: "Claim (draft) - sleep improves memory",
-    });
+    const node = fullContentNodeToCrossApp(
+      {
+        ...baseNode,
+        text: "Claim (draft) - sleep improves memory",
+      },
+      { ...claimSchema, format: "Claim (draft) - {content}" },
+    );
     expect(node.coreTitle).toBe("sleep improves memory");
+  });
+
+  it("keeps the whole title when the node type is unknown", () => {
+    const node = fullContentNodeToCrossApp(baseNode);
+    expect(node.coreTitle).toBe("CLM - claim");
+  });
+});
+
+describe("convertRoamNodeToFullContent", () => {
+  it("extracts each node's core title with its own node type's format", () => {
+    const converted = convertRoamNodeToFullContent({
+      nodes: [
+        {
+          author_local_id: "user-1",
+          source_local_id: "node-1",
+          created: 1000,
+          last_modified: 2000,
+          type: "schema-1",
+          text: "CLM - claim",
+        },
+        {
+          author_local_id: "user-1",
+          source_local_id: "node-2",
+          created: 1000,
+          last_modified: 2000,
+          type: "schema-2",
+          text: "QUE - question",
+        },
+      ],
+      nodeTypes: [
+        { ...claimSchema, type: "schema-2", format: "QUE - {content}" },
+        claimSchema,
+      ],
+    });
+    expect(converted.map(({ node }) => node.coreTitle)).toEqual([
+      "claim",
+      "question",
+    ]);
   });
 });
 
