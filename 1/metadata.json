@@ -1,0 +1,56 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5RZDRPQZ9B6RMDS5M7G04W2",
+  "session_id": "f43b0c72-ff72-448c-b288-23ce0dc6af89",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-25T07:29:28.870600126Z",
+  "branch": "eng-2091-unify-sharednode-and-crossappnode",
+  "checkpoints_count": 1,
+  "save_step_count": 1,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "6c08420c0d81",
+  "checkpoint_transcript_start": 3350,
+  "transcript_lines_at_start": 3350,
+  "compact_transcript_start": 293,
+  "token_usage": {
+    "input_tokens": 10,
+    "cache_creation_tokens": 7092,
+    "cache_read_tokens": 2921804,
+    "output_tokens": 2380,
+    "api_call_count": 4,
+    "subagent_tokens": {
+      "input_tokens": 498,
+      "cache_creation_tokens": 990423,
+      "cache_read_tokens": 34509356,
+      "output_tokens": 275839,
+      "api_call_count": 249
+    }
+  },
+  "session_metrics": {
+    "turn_count": 7
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 7,
+      "user_lines_removed": 10,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "packages/database/src/crossAppNodeContract.example.ts": 7
+      },
+      "user_removed_per_file": {
+        "packages/database/src/crossAppNodeContract.example.ts": 10
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 9,
+      "agent_lines_removed": 9
+    }
+  ]
+}

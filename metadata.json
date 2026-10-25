@@ -3,7 +3,7 @@
   "checkpoint_id": "01M5RZDRPQZ9B6RMDS5M7G04W2",
   "strategy": "manual-commit",
   "branch": "eng-2091-unify-sharednode-and-crossappnode",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "packages/database/src/lib/__tests__/sharedNodes.test.ts",
     "packages/database/src/lib/sharedNodes.ts"
@@ -15,13 +15,27 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 8,
-    "cache_creation_tokens": 4161,
-    "cache_read_tokens": 1350041,
-    "output_tokens": 4247,
-    "api_call_count": 3
+    "input_tokens": 18,
+    "cache_creation_tokens": 11253,
+    "cache_read_tokens": 4271845,
+    "output_tokens": 6627,
+    "api_call_count": 7,
+    "subagent_tokens": {
+      "input_tokens": 498,
+      "cache_creation_tokens": 990423,
+      "cache_read_tokens": 34509356,
+      "output_tokens": 275839,
+      "api_call_count": 249
+    }
   }
 }
