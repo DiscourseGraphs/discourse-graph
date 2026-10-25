@@ -1,1 +1,9 @@
-do is to completion based on whatever our engineering practices are and whatever I use for the workflow. I am driving, so I won't be able to review it, but once I get back to my computer, I will be able to review all of these changes. So yeah, follow those best practices, and anything that falls out of that, note down in your chat. We will go over them later.c
+<cross-session-message from="uds:/run/user/1000/cc-socks/12366.sock" from-name="discourse-graph-92" from-mode="prompting">
+Noted: three stacked PRs, description shape A, node-type Content A, and your defaults. Node-type Content A matches the OpenSpec graph-writes spec ("Node type Content goes inside its schema Concept"), so that one is already decided.
+
+Two things for the PR bodies, so sid and Marc-Antoine can review them cold:
+1. PR 1 changes the CrossApp contract. Marc-Antoine's PR #1333 used a variant field instead (option B). Say in one or two lines why A: B renames these Concepts to "title + description", which undoes ENG-2128 and disagrees with publish.
+2. PR 2 fixes ENG-2426's case (sync now writes a plain `direct` Content for first-child nodes). Say so in the body. ENG-2426 is still in Ticket Draft, so don't link it as closed. I'm logging it for sid, along with the open sub-ticket question.
+
+Keep stopping at the push gate. Report when all three are committed.
+</cross-session-message>
