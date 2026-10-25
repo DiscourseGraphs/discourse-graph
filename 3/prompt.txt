@@ -1,0 +1,3 @@
+<cross-session-message from="uds:/run/user/1000/cc-socks/12366.sock" from-name="discourse-graph-92" from-mode="prompting">
+Leave the 4 old eslint warnings in importNodes.ts. CI's lint job (lint-changed-files in .github/workflows/ci.yaml) sends eslint's output through reviewdog with filter-mode=added, so warnings on lines a PR doesn't touch never fail it. Fixing them here would be unrelated cleanup. Before you push, just confirm none of them sit on a line your diff adds or changes. Carry on with ENG-2091's last PR.
+</cross-session-message>

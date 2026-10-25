@@ -3,7 +3,7 @@
   "checkpoint_id": "01M5RVNHT6940ES1R0CW0B5SPJ",
   "strategy": "manual-commit",
   "branch": "eng-2091-remove-sharednode",
-  "checkpoints_count": 3,
+  "checkpoints_count": 4,
   "files_touched": [
     "packages/database/src/lib/__tests__/dbToCrossAppConverters.test.ts",
     "packages/database/src/lib/__tests__/sharedNodes.test.ts",
@@ -31,13 +31,20 @@
       "compact_transcript": "/2/transcript.jsonl",
       "content_hash": "/2/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/3/metadata.json",
+      "transcript": "/3/full.jsonl",
+      "compact_transcript": "/3/transcript.jsonl",
+      "content_hash": "/3/content_hash.txt",
+      "prompt": "/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 30,
-    "cache_creation_tokens": 38337,
-    "cache_read_tokens": 3738191,
-    "output_tokens": 23065,
-    "api_call_count": 11
+    "input_tokens": 178,
+    "cache_creation_tokens": 178043,
+    "cache_read_tokens": 36601486,
+    "output_tokens": 92800,
+    "api_call_count": 85
   }
 }
