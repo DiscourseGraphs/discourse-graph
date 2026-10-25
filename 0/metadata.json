@@ -83,6 +83,37 @@
         "label": "Skill: scope-check",
         "default_collapsed": true
       }
+    },
+    {
+      "id": "claude-skill-toolu_01X7FEyTmWKvqbWPEoVQqVE7",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-engineering-writing-style"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "cc7b6ee50f90",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 808,
+        "end": 809,
+        "entry_ids": [
+          "e1e1478c-e3e9-4dba-8dda-c4be748a8954"
+        ],
+        "tool_use_id": "toolu_01X7FEyTmWKvqbWPEoVQqVE7"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01X7FEyTmWKvqbWPEoVQqVE7"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-engineering-writing-style",
+        "default_collapsed": true
+      }
     }
   ],
   "prompt_attributions": [
