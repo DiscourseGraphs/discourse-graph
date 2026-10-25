@@ -4,7 +4,7 @@ import {
   getNodeTypeRid,
   getSharedNodeByRid,
   getSharedNodeSpace,
-  listGroupSharedCrossAppNodes,
+  listGroupSharedNodes,
   type SharedNodeRows,
 } from "../sharedNodes";
 
@@ -235,7 +235,7 @@ describe("getSharedNodeByRid", () => {
   });
 });
 
-describe("listGroupSharedCrossAppNodes", () => {
+describe("listGroupSharedNodes", () => {
   const makeListingClient = (
     rowsByTable: Record<string, (filters: Record<string, unknown>) => unknown>,
   ): DGSupabaseClient => {
@@ -293,7 +293,7 @@ describe("listGroupSharedCrossAppNodes", () => {
       my_accounts: () => accountRows,
     });
 
-    const listing = await listGroupSharedCrossAppNodes({
+    const listing = await listGroupSharedNodes({
       client,
       currentSpaceId: 10,
     });
