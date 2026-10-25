@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import type { DGSupabaseClient } from "../client";
-import { buildSharedNodes, getSharedNodeByRid } from "../sharedNodes";
+import {
+  buildSharedNodes,
+  getNodeTypeRid,
+  getSharedNodeByRid,
+  getSharedNodeSpace,
+  listGroupSharedCrossAppNodes,
+} from "../sharedNodes";
 
 type BuildArgs = Parameters<typeof buildSharedNodes>[0];
 
@@ -269,6 +275,8 @@ const makeQueryBuilder = (result: QueryResult) => {
   const builder = {
     select: vi.fn(),
     eq: vi.fn(),
+    in: vi.fn(),
+    not: vi.fn(),
     maybeSingle: vi.fn().mockResolvedValue(result),
     then: (
       resolve: (value: QueryResult) => unknown,
@@ -277,8 +285,23 @@ const makeQueryBuilder = (result: QueryResult) => {
   };
   builder.select.mockReturnValue(builder);
   builder.eq.mockReturnValue(builder);
+  builder.in.mockReturnValue(builder);
+  builder.not.mockReturnValue(builder);
   return builder;
 };
+
+const schemaRows = [
+  {
+    id: 200,
+    space_id: 20,
+    source_local_id: "evd-type",
+    is_schema: true,
+    is_relation: false,
+    format: "EVD - {content}",
+    source_data_format: null,
+  },
+];
+const accountRows = [{ id: 42, account_local_id: "account-42" }];
 
 const makeClient = ({
   space,
@@ -293,6 +316,9 @@ const makeClient = ({
 }) => {
   const spacesBuilder = makeQueryBuilder({ data: space, error: null });
   const conceptsBuilder = makeQueryBuilder({ data: concepts, error: null });
+  const schemasBuilder = makeQueryBuilder({ data: schemaRows, error: null });
+  const accountsBuilder = makeQueryBuilder({ data: accountRows, error: null });
+  let conceptQueries = 0;
   const makeContentsBuilder = () => {
     let variant = "";
     const builder = {
@@ -317,9 +343,13 @@ const makeClient = ({
   const from = vi.fn((table: string) =>
     table === "my_spaces"
       ? spacesBuilder
-      : table === "my_concepts"
-        ? conceptsBuilder
-        : makeContentsBuilder(),
+      : table === "my_accounts"
+        ? accountsBuilder
+        : table === "my_concepts"
+          ? conceptQueries++ === 0
+            ? conceptsBuilder
+            : schemasBuilder
+          : makeContentsBuilder(),
   );
   return {
     client: { from } as unknown as DGSupabaseClient,
@@ -335,19 +365,22 @@ describe("getSharedNodeByRid", () => {
     });
 
     await expect(getSharedNodeByRid({ client, rid })).resolves.toEqual({
-      rid,
-      sourceLocalId: "node-1",
-      schemaId: 200,
-      spaceId: 20,
-      spaceName: "Research vault",
-      spaceUri: "obsidian:vault-a",
-      platform: "Obsidian",
-      title: "EVD - REM sleep and recall",
-      coreTitle: "REM sleep and recall",
-      created: "2026-06-14T11:00:00.000Z",
-      lastModified: "2026-06-14T15:00:00.000Z",
-      authorId: 42,
-      directMetadata: { source: "obsidian" },
+      node: {
+        rid,
+        localId: "node-1",
+        createdAt: new Date("2026-06-14T11:00:00.000Z"),
+        modifiedAt: new Date("2026-06-14T15:00:00.000Z"),
+        authorId: "account-42",
+        nodeType: "evd-type",
+        coreTitle: "REM sleep and recall",
+        content: { direct: { value: "EVD - REM sleep and recall" } },
+      },
+      space: {
+        id: 20,
+        name: "Research vault",
+        platform: "Obsidian",
+        url: "obsidian:vault-a",
+      },
     });
     expect(spacesBuilder.eq).toHaveBeenCalledWith("url", "obsidian:vault-a");
     expect(conceptsBuilder.eq).toHaveBeenCalledWith("space_id", 20);
@@ -411,4 +444,137 @@ describe("getSharedNodeByRid", () => {
       message: "permission denied",
     });
   });
+});
+
+describe("listGroupSharedCrossAppNodes", () => {
+  const makeListingClient = (
+    rowsByTable: Record<string, (filters: Record<string, unknown>) => unknown>,
+  ): DGSupabaseClient => {
+    const from = vi.fn((table: string) => {
+      const filters: Record<string, unknown> = {};
+      const builder = {
+        select: () => builder,
+        neq: () => builder,
+        not: () => builder,
+        eq: (column: string, value: unknown) => {
+          filters[column] = value;
+          return builder;
+        },
+        in: (column: string, value: unknown) => {
+          filters[`in ${column}`] = value;
+          return builder;
+        },
+        then: (
+          resolve: (value: QueryResult) => unknown,
+          reject?: (reason: unknown) => unknown,
+        ) =>
+          Promise.resolve({
+            data: rowsByTable[table]!(filters),
+            error: null,
+          }).then(resolve, reject),
+      };
+      return builder;
+    });
+    return { from } as unknown as DGSupabaseClient;
+  };
+
+  it("lists nodes newest first, with their visible spaces by url", async () => {
+    const olderNode = {
+      ...nodes[0]!,
+      last_modified: "2026-06-10T12:00:00",
+      source_local_id: "node-2",
+    };
+    const olderDirect = {
+      ...directContents[0]!,
+      last_modified: "2026-06-10T12:00:00",
+      source_local_id: "node-2",
+      text: "EVD - Older shared node",
+    };
+    const client = makeListingClient({
+      my_concepts: (filters) =>
+        "in id" in filters ? schemaRows : [olderNode, nodes[0]!],
+      my_contents: (filters) =>
+        filters.variant === "direct"
+          ? [olderDirect, ...directContents]
+          : fullContentSummaries,
+      my_spaces: () => [
+        ...spaces,
+        { id: 21, name: null, platform: "Obsidian", url: "obsidian:vault-b" },
+      ],
+      my_accounts: () => accountRows,
+    });
+
+    const listing = await listGroupSharedCrossAppNodes({
+      client,
+      currentSpaceId: 10,
+    });
+
+    expect(listing.nodes.map(({ localId }) => localId)).toEqual([
+      "node-1",
+      "node-2",
+    ]);
+    expect(listing.spaces).toEqual({
+      "obsidian:vault-a": {
+        id: 20,
+        name: "Research vault",
+        platform: "Obsidian",
+        url: "obsidian:vault-a",
+      },
+    });
+  });
+});
+
+const crossAppNode = {
+  rid,
+  localId: "node-1",
+  nodeType: "evd-type",
+  coreTitle: "REM sleep and recall",
+  content: { direct: { value: "EVD - REM sleep and recall" } },
+  createdAt: new Date("2026-06-14T11:00:00.000Z"),
+  modifiedAt: new Date("2026-06-14T15:00:00.000Z"),
+  authorId: "account-42",
+};
+
+describe("getSharedNodeSpace", () => {
+  const space = {
+    id: 20,
+    name: "Research vault",
+    platform: "Obsidian" as const,
+    url: "obsidian:vault-a",
+  };
+
+  it("finds a node's space by the space in its rid", () => {
+    expect(
+      getSharedNodeSpace({
+        node: crossAppNode,
+        spaces: { [space.url]: space },
+      }),
+    ).toEqual(space);
+  });
+
+  it("throws when the node's space is not listed", () => {
+    expect(() =>
+      getSharedNodeSpace({ node: crossAppNode, spaces: {} }),
+    ).toThrow(`Missing the space of ${rid}`);
+  });
+});
+
+describe("getNodeTypeRid", () => {
+  it.each([
+    {
+      platform: "Obsidian",
+      nodeRid: rid,
+      schemaRid: "orn:obsidian.schema:vault-a/evd-type",
+    },
+    {
+      platform: "Roam",
+      nodeRid: "https://roamresearch.com/#/app/research-graph/roam-uid-1",
+      schemaRid: "https://roamresearch.com/#/app/research-graph/evd-type",
+    },
+  ])(
+    "gives the rid of a $platform node's type in the node's space",
+    ({ nodeRid, schemaRid }) => {
+      expect(getNodeTypeRid({ ...crossAppNode, rid: nodeRid })).toBe(schemaRid);
+    },
+  );
 });
