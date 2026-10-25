@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5RZDRPQZ9B6RMDS5M7G04W2",
+  "strategy": "manual-commit",
+  "branch": "eng-2091-unify-sharednode-and-crossappnode",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/database/src/lib/__tests__/sharedNodes.test.ts",
+    "packages/database/src/lib/sharedNodes.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 8,
+    "cache_creation_tokens": 4161,
+    "cache_read_tokens": 1350041,
+    "output_tokens": 4247,
+    "api_call_count": 3
+  }
+}
