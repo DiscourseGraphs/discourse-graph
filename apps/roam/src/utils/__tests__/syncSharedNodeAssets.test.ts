@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrossAppNode } from "@repo/database/crossAppContracts";
 import { contentTypes } from "@repo/content-model";
 import type { RoamDiscourseNodeData } from "~/utils/getAllDiscourseNodesSince";
+import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import type { SupabaseContext } from "~/utils/supabaseContext";
 import {
   IMAGE,
@@ -62,6 +63,16 @@ const sharedNode: RoamDiscourseNodeData = {
   type: "rCLM0schema",
 };
 
+const claimType: DiscourseNode = {
+  type: "rCLM0schema",
+  text: "Claim",
+  shortcut: "C",
+  specification: [],
+  backedBy: "user",
+  canvasSettings: {},
+  format: "[[CLM]] - {content}",
+};
+
 const context = { spaceId: 20, userId: 7 } as SupabaseContext;
 
 const withImages = (...images: string[]): string =>
@@ -77,8 +88,7 @@ describe("upsertSharedNodesFullContentWithAssets", () => {
   const syncWithMarkdown = async (markdown: string) => {
     mocks.markdownByUid.set(NODE_UID, markdown);
     return upsertSharedNodesFullContentWithAssets({
-      nodes: [sharedNode],
-      nodeTypes: [],
+      nodes: [{ fullContentNode: sharedNode, nodeType: claimType }],
       supabaseClient: harness.client,
       context,
       phases: {},
@@ -163,7 +173,6 @@ describe("upsertSharedNodesFullContentWithAssets", () => {
     await expect(
       upsertSharedNodesFullContentWithAssets({
         nodes: [],
-        nodeTypes: [],
         supabaseClient: harness.client,
         context,
         phases,
