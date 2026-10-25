@@ -599,17 +599,9 @@ export const proposeSyncTask = async ({
   }
 };
 
-const upsertNodeSchemaToContent = async ({
-  nodeTypesUids,
-  spaceId,
-  userId,
-  supabaseClient,
-}: {
-  nodeTypesUids: string[];
-  spaceId: number;
-  userId: number;
-  supabaseClient: DGSupabaseClient;
-}) => {
+const getNodeSchemaContents = async (
+  nodeTypesUids: string[],
+): Promise<LocalContentDataInput[]> => {
   const query = `[
     :find     ?uid    ?create-time    ?edit-time    ?user-uuid    ?title ?author-name
     :keys     source_local_id    created    last_modified    author_local_id    text author_name
@@ -632,19 +624,7 @@ const upsertNodeSchemaToContent = async ({
     nodeTypesUids,
   )) as unknown[] as RoamDiscourseNodeData[];
 
-  const contentData: LocalContentDataInput[] = convertRoamNodeToLocalContent({
-    nodes: result,
-  });
-  const { error } = await supabaseClient.rpc("upsert_content", {
-    data: contentData as Json,
-    v_space_id: spaceId,
-    v_creator_id: userId,
-    content_as_document: true,
-  });
-  if (error) {
-    console.error("upsert_content failed:", error);
-    throw new Error(error.message);
-  }
+  return convertRoamNodeToLocalContent({ nodes: result });
 };
 
 export const convertDgToSupabaseConcepts = async ({
@@ -679,16 +659,16 @@ export const convertDgToSupabaseConcepts = async ({
   });
   const nodeTypes = Array.from(nodeTypesByUid.values());
 
-  await upsertNodeSchemaToContent({
-    nodeTypesUids: nodeTypes.map((node) => node.type),
-    spaceId: context.spaceId,
-    userId: context.userId,
-    supabaseClient,
-  });
+  const nodeSchemaContents = await getNodeSchemaContents(
+    nodeTypes.map((node) => node.type),
+  );
 
-  const nodesTypesToLocalConcepts = nodeTypes.map((node) => {
-    return discourseNodeSchemaToLocalConcept(context, node);
-  });
+  const nodesTypesToLocalConcepts = nodeTypes.map((node) => ({
+    ...discourseNodeSchemaToLocalConcept(context, node),
+    contents_inline: nodeSchemaContents.filter(
+      (content) => content.source_local_id === node.type,
+    ),
+  }));
 
   const schemasByUid = new Map(
     allNodeTypes.map((nodeType) => [nodeType.type, nodeType]),
