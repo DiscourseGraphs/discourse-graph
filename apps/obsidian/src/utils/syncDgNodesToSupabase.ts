@@ -13,7 +13,7 @@ import {
 } from "./supabaseContext";
 import { default as DiscourseGraphPlugin } from "~/index";
 import { ensurePublishedRelationsAccuracy } from "./publishNode";
-import { upsertNodesToSupabaseAsContentWithEmbeddings } from "./upsertNodesAsContentWithEmbeddings";
+import { buildNodeContentsWithEmbeddings } from "./upsertNodesAsContentWithEmbeddings";
 import {
   orderConceptsByDependency,
   discourseNodeInstanceToLocalConcept,
@@ -47,6 +47,7 @@ import {
 } from "@repo/database/lib/coreTitleBackfill";
 
 const DEFAULT_TIME = "1970-01-01";
+const CONCEPT_BATCH_SIZE = 200;
 export type ChangeType = "title" | "content";
 
 export type ObsidianDiscourseNodeData = {
@@ -603,19 +604,12 @@ export const syncAllNodesAndRelations = async (
       throw new Error("accountLocalId not found in plugin settings");
     }
 
-    await upsertNodesToSupabaseAsContentWithEmbeddings({
-      obsidianNodes: changedNodeInstances,
-      supabaseClient,
-      context,
-      accountLocalId,
-      plugin,
-    });
-
     await convertDgToSupabaseConcepts({
       nodesSince: changedNodeInstances,
       supabaseClient,
       context,
       plugin,
+      accountLocalId,
       allNodes,
       fullSync: true,
       relationInstancesData,
@@ -633,11 +627,52 @@ export const syncAllNodesAndRelations = async (
   }
 };
 
+export const upsertConceptBatches = async ({
+  concepts,
+  supabaseClient,
+  spaceId,
+}: {
+  concepts: LocalConceptDataInput[];
+  supabaseClient: DGSupabaseClient;
+  spaceId: number;
+}): Promise<void> => {
+  const batchCount = Math.ceil(concepts.length / CONCEPT_BATCH_SIZE);
+  for (let idx = 0; idx < batchCount; idx++) {
+    const { data, error } = await supabaseClient.rpc("upsert_concepts", {
+      data: concepts.slice(
+        idx * CONCEPT_BATCH_SIZE,
+        (idx + 1) * CONCEPT_BATCH_SIZE,
+      ) as Json,
+      v_space_id: spaceId,
+    });
+
+    if (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : typeof error === "string"
+            ? error
+            : JSON.stringify(error, null, 2);
+      throw new Error(
+        `upsert_concepts failed for batch ${idx + 1}/${batchCount}: ${errorMessage}`,
+      );
+    }
+
+    const failedCount = (data ?? []).filter((id) => id < 0).length;
+    if (failedCount > 0) {
+      throw new Error(
+        `upsert_concepts returned ${failedCount} failed rows for batch ${idx + 1}/${batchCount}`,
+      );
+    }
+  }
+};
+
 const convertDgToSupabaseConcepts = async ({
   nodesSince,
   supabaseClient,
   context,
   plugin,
+  accountLocalId,
   allNodes,
   fullSync,
   relationInstancesData,
@@ -647,6 +682,7 @@ const convertDgToSupabaseConcepts = async ({
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
   plugin: DiscourseGraphPlugin;
+  accountLocalId: string;
   allNodes?: DiscourseNodeInVault[];
   fullSync?: boolean;
   relationInstancesData?: RelationsFile;
@@ -807,15 +843,23 @@ const convertDgToSupabaseConcepts = async ({
     spaceId: context.spaceId,
     pendingNodeIds: new Set(nodesSince.map((node) => node.nodeInstanceId)),
   });
+  const contentsByNodeId = await buildNodeContentsWithEmbeddings({
+    obsidianNodes: nodesSince,
+    accountLocalId,
+    plugin,
+  });
   const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
-    return discourseNodeInstanceToLocalConcept({
-      context,
-      nodeData: {
-        ...node,
-        sourceDocument: sourceSlotByNodeId[node.nodeInstanceId],
-      },
-      nodeTypesById,
-    });
+    return {
+      ...discourseNodeInstanceToLocalConcept({
+        context,
+        nodeData: {
+          ...node,
+          sourceDocument: sourceSlotByNodeId[node.nodeInstanceId],
+        },
+        nodeTypesById,
+      }),
+      contents_inline: contentsByNodeId[node.nodeInstanceId],
+    };
   });
 
   const relationInstanceToLocalConcepts = relationInstances
@@ -848,20 +892,11 @@ const convertDgToSupabaseConcepts = async ({
   if (conceptsToUpsert.length > 0) {
     const { ordered } = orderConceptsByDependency(conceptsToUpsert);
 
-    const { error } = await supabaseClient.rpc("upsert_concepts", {
-      data: ordered as Json,
-      v_space_id: context.spaceId,
+    await upsertConceptBatches({
+      concepts: ordered,
+      supabaseClient,
+      spaceId: context.spaceId,
     });
-
-    if (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : typeof error === "string"
-            ? error
-            : JSON.stringify(error, null, 2);
-      throw new Error(`upsert_concepts failed: ${errorMessage}`);
-    }
   }
   if (fullSync === true) {
     // occasional extra work: Make sure relations that should be published are.
@@ -1048,27 +1083,12 @@ const syncChangedNodesToSupabase = async ({
   context: SupabaseContext;
   accountLocalId: string;
 }): Promise<void> => {
-  if (changedNodes.length > 0) {
-    await upsertNodesToSupabaseAsContentWithEmbeddings({
-      obsidianNodes: changedNodes,
-      supabaseClient,
-      context,
-      accountLocalId,
-      plugin,
-    });
-  }
-
-  // Only upsert concepts for nodes with title changes or new files
-  // (concepts store the title, so content-only changes don't affect them)
-  const nodesNeedingConceptUpsert = changedNodes.filter((node) =>
-    node.changeTypes.includes("title"),
-  );
-
   await convertDgToSupabaseConcepts({
-    nodesSince: nodesNeedingConceptUpsert,
+    nodesSince: changedNodes,
     supabaseClient,
     context,
     plugin,
+    accountLocalId,
   });
 
   // When file changes affect an already-published node, ensure new non-text
