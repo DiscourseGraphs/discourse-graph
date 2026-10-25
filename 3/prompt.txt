@@ -1,0 +1,39 @@
+<cross-session-message from="uds:/run/user/1000/cc-socks/12366.sock" from-name="discourse-graph-92" from-mode="prompting">
+Discovery chain for the Post-V0 Roam–Obsidian sync architecture project: implement ENG-1985, then ENG-2091's first PR, then ENG-2045, then ENG-2091's last PR, each stacked on the previous one. Sent by the orchestrating session discourse-graph-92 on sid's go.
+
+GOAL
+Shared-node discovery returns `CrossAppNode` instead of `SharedNode`, and `SharedNode` goes away. Read ENG-2091, ENG-1985 and ENG-2045 in Linear with all comments. Their 2026-10-25 Decision comments override the descriptions: Marc-Antoine's -1 on 2026-10-23 changed the approach, and the descriptions still say "add the missing fields". They no longer apply.
+
+APPROACH (from those comments)
+`CrossAppNode` gains no fields. It follows the schema and relation converters in packages/database/src/lib/dbToCrossAppConverters.ts: `rid` on every node, local ids, `authorId` set to the account local id, and slot targets as a local id, or as a rid when the target is in another space. Space details come from a separate lookup returned next to the nodes, like Roam relation discovery's `getSpaceMap` (apps/roam/src/utils/discoverSharedRelations.ts:81). Node types resolve by the schema's rid, as relation discovery does with `dbNodeSchemasToCrossApp`. `directMetadata` is dropped: Obsidian import re-reads `filePath` with each node's content (apps/obsidian/src/utils/importNodes.ts:1767-1774, importedNodeContent.ts:51).
+
+ORDER
+1. ENG-1985 (branch eng-1985-add-a-database-to-crossappnode-converter-for-nodes): the database-to-`CrossAppNode` converter, single and bulk, in dbToCrossAppConverters.ts. Build it by refactoring the row logic out of `buildSharedNodes` (packages/database/src/lib/sharedNodes.ts), so the two can't diverge. Discovery's output doesn't change in this PR. The bulk converter skips and logs each row the contract can't represent, including nodes with no author (discovery keeps those today); the PR states this. Unit tests: slots in the same space and across spaces, `modifiedAt` as the latest of the Concept, the direct Content and the full Content, and the skip rule.
+2. ENG-2091 first PR (branch eng-2091-unify-sharednode-and-crossappnode): discovery returns `CrossAppNode` plus the spaces, and the Roam callers switch (DiscoverSharedNodesDialog.tsx, discoverSharedNodes.ts, importNodeAssets.ts, importSharedNodes.ts, materializeSharedNode.ts, resolveSharedNodeTypes.ts, sortSharedNodes.ts, and their tests). Obsidian stays on the old function for now.
+3. ENG-2045 (branch eng-2045-remove-obsidians-getpublishednodesforgroups-wrapper-and-read): Obsidian import reads `CrossAppNode`. Remove `getPublishedNodesForGroups` and `PublishedNode`. Look author names up by the account local id. Drop the listing's `filePath`.
+4. ENG-2091 last PR: delete `SharedNode`, `buildSharedNodes` and the old discovery functions.
+ENG-2091's Done When: `SharedNode` is removed without loss of functionality. The discover dialog shows and filters the same spaces, Roam import resolves the same node types, and Obsidian import lists the same nodes, titles, dates and author names. Write sid a manual-check runbook for the dialogs; don't launch the apps.
+
+OVERLAPS
+sid's open PRs: #1572 (ENG-2209) changes dbToCrossAppConverters.ts (+2 -1), and #1574 (ENG-2207) changes apps/obsidian/src/utils/importNodes.ts (+5 -1). Rebase if they merge first.
+
+OWNERSHIP
+ENG-1985 is still assigned to Marc-Antoine; sid will coordinate with him. Don't reassign tickets.
+
+OUT OF SCOPE
+ENG-1879 (after ENG-2091; stop and report when you get there), ENG-1986, and adding fields to any CrossApp type.
+
+These branches touch packages/database, so use `pnpm install --frozen-lockfile` (rule 3).
+
+STANDING RULES (sid's)
+1. Base on origin/main. The main checkout at /mnt/data/projects/discourse-graph is on an old local `main`; don't change its branch or files. Make your own worktree: `git -C /mnt/data/projects/discourse-graph fetch origin`, then `git -C /mnt/data/projects/discourse-graph worktree add -b <branch> /mnt/data/projects/discourse-graph/.claude/worktrees/<eng-xxxx> origin/main`. Stack later branches on your previous branch's tip.
+2. Stay inside your worktree. Every Edit/Write path starts with the worktree path; an edit to /mnt/data/projects/discourse-graph/apps/... or packages/... lands on main. Run commands in `(cd <worktree>/<dir> && ...)` subshells. Print `git rev-parse --abbrev-ref HEAD` before builds and checks.
+3. node_modules: if the branch touches only apps/*, symlink the root and each package's node_modules from the main checkout. If it touches packages/*, run `pnpm install --frozen-lockfile` at the worktree root, then confirm `git config core.hooksPath` is still `/mnt/data/projects/discourse-graph/.husky/_` and restore it if not. Never use `--no-frozen-lockfile`.
+4. The Linear ticket is the spec: its description and all its comments. Where they differ, the newest `Decision (Sid, ...)` comment wins. The code on origin/main is the source of truth for current behavior. If neither settles a question, ask sid with a proposed default. Don't read Roam pages to fill gaps.
+5. Never edit a Linear ticket's description. Don't write to Linear at all unless sid asks.
+6. Read STYLE_GUIDE.md, PR_GUIDELINES.md and the nested AGENTS.md for the files you change. Keep the diff to what the ticket needs: no opportunistic cleanups, no moving code around, no comments in code.
+7. After changes, from the app or package dir: `npx eslint --max-warnings 0 <changed files>`, `npx prettier --check <changed files>`, `npx tsc --noEmit --skipLibCheck`. All must pass. Add or update unit tests for what you change.
+8. Never: `git stash` (the stash is shared by all worktrees and sessions), `git reset --hard`, force push, Co-Authored-By lines, launching Roam or Obsidian. Tests never touch the production database. For a live check, write sid a short runbook.
+9. Commit locally. Don't push or open a PR until sid says so. Before you report a PR as ready, run .agents/skills/dg-pr-adherence-check/SKILL.md against your diff. When sid says push: push the branch, open the PR titled `ENG-#### <exact Linear title>` with the body from .github/pull_request_template.md, then run /pre-pr-review as an independent pass and the scope-check skill.
+10. Report: when each PR is committed locally, or when you're blocked, send session `discourse-graph-92` a short message (branch, commit, checks, open questions). Tell sid in your own session too.
+</cross-session-message>
