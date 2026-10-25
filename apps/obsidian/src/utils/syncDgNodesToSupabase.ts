@@ -627,6 +627,17 @@ export const syncAllNodesAndRelations = async (
   }
 };
 
+const summarizeFailedConceptUpsertIds = (failedIds: number[]): string => {
+  const counts = failedIds.reduce<Record<string, number>>((acc, id) => {
+    acc[id] = (acc[id] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  return Object.entries(counts)
+    .map(([id, count]) => `${id}: ${count}`)
+    .join(", ");
+};
+
 export const upsertConceptBatches = async ({
   concepts,
   supabaseClient,
@@ -647,21 +658,15 @@ export const upsertConceptBatches = async ({
     });
 
     if (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : typeof error === "string"
-            ? error
-            : JSON.stringify(error, null, 2);
       throw new Error(
-        `upsert_concepts failed for batch ${idx + 1}/${batchCount}: ${errorMessage}`,
+        `upsert_concepts failed for batch ${idx + 1}/${batchCount}: ${JSON.stringify(error, null, 2)}`,
       );
     }
 
-    const failedCount = (data ?? []).filter((id) => id < 0).length;
-    if (failedCount > 0) {
+    const failedIds = data.filter((id) => id < 0);
+    if (failedIds.length > 0) {
       throw new Error(
-        `upsert_concepts returned ${failedCount} failed rows for batch ${idx + 1}/${batchCount}`,
+        `upsert_concepts returned row failures for batch ${idx + 1}/${batchCount}: ${summarizeFailedConceptUpsertIds(failedIds)}`,
       );
     }
   }

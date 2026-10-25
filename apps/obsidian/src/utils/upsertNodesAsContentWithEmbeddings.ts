@@ -4,6 +4,8 @@ import type { LocalContentDataInput } from "@repo/database/inputTypes";
 import { ObsidianDiscourseNodeData, ChangeType } from "./syncDgNodesToSupabase";
 import { default as DiscourseGraphPlugin } from "~/index";
 
+type NodeContentEntry = LocalContentDataInput & { source_local_id: string };
+
 type ContentVariant = "direct" | "full";
 
 const EMBEDDING_BATCH_SIZE = 200;
@@ -36,7 +38,7 @@ const createNodeContentEntries = async (
   node: ObsidianDiscourseNodeData,
   accountLocalId: string,
   plugin: DiscourseGraphPlugin,
-): Promise<LocalContentDataInput[]> => {
+): Promise<NodeContentEntry[]> => {
   const variantsToCreate = getVariantsToCreate(node.changeTypes);
 
   if (variantsToCreate.length === 0) {
@@ -52,7 +54,7 @@ const createNodeContentEntries = async (
     scale: "document" as const,
   };
 
-  const entries: LocalContentDataInput[] = [];
+  const entries: NodeContentEntry[] = [];
 
   // Create direct entry (title) if needed - will get embeddings
   if (variantsToCreate.includes("direct")) {
@@ -92,16 +94,16 @@ export const convertObsidianNodeToLocalContent = async ({
   nodes: ObsidianDiscourseNodeData[];
   accountLocalId: string;
   plugin: DiscourseGraphPlugin;
-}): Promise<LocalContentDataInput[]> => {
+}): Promise<NodeContentEntry[]> => {
   const entriesPerNode = await Promise.all(
     nodes.map((node) => createNodeContentEntries(node, accountLocalId, plugin)),
   );
   return entriesPerNode.flat();
 };
 
-export const fetchEmbeddingsForNodes = async (
-  nodes: LocalContentDataInput[],
-): Promise<LocalContentDataInput[]> => {
+export const fetchEmbeddingsForNodes = async <T extends LocalContentDataInput>(
+  nodes: T[],
+): Promise<T[]> => {
   const allEmbeddings: number[][] = [];
   const allNodesTexts = nodes.map((node) => node.text || "");
 
@@ -183,31 +185,24 @@ export const buildNodeContentsWithEmbeddings = async ({
     (entry) => entry.variant === "full",
   );
 
-  let directEntriesWithEmbeddings: LocalContentDataInput[];
+  let directEntriesWithEmbeddings: NodeContentEntry[];
   try {
     directEntriesWithEmbeddings =
       await fetchEmbeddingsForNodes(directVariantEntries);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(
-      `upsertNodesToSupabaseAsContentWithEmbeddings: Embedding service failed – ${errorMessage}`,
+      `buildNodeContentsWithEmbeddings: Embedding service failed – ${errorMessage}`,
     );
     throw new Error(errorMessage);
   }
 
-  if (directEntriesWithEmbeddings.length !== directVariantEntries.length) {
-    console.error(
-      "upsertNodesToSupabaseAsContentWithEmbeddings: Mismatch between direct variant entries and embedding counts.",
-    );
-    throw new Error(
-      "upsertNodesToSupabaseAsContentWithEmbeddings: Mismatch between direct variant entries and embedding counts.",
-    );
-  }
-
   const contentsByNodeId: Record<string, LocalContentDataInput[]> = {};
   for (const entry of [...directEntriesWithEmbeddings, ...fullVariantEntries]) {
-    const nodeId = entry.source_local_id!;
-    contentsByNodeId[nodeId] = [...(contentsByNodeId[nodeId] ?? []), entry];
+    contentsByNodeId[entry.source_local_id] = [
+      ...(contentsByNodeId[entry.source_local_id] ?? []),
+      entry,
+    ];
   }
   return contentsByNodeId;
 };

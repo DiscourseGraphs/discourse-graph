@@ -90,7 +90,9 @@ describe("upsertConceptBatches", () => {
           supabaseClient: { rpc } as unknown as DGSupabaseClient,
           spaceId: SPACE_ID,
         }),
-      ).rejects.toThrow("upsert_concepts returned 1 failed rows for batch 1/3");
+      ).rejects.toThrow(
+        `upsert_concepts returned row failures for batch 1/3: ${failedId}: 1`,
+      );
       expect(rpc).toHaveBeenCalledTimes(1);
     },
   );
