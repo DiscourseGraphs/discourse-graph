@@ -42,6 +42,23 @@ const claimType: DiscourseNode = {
   format: "[[CLM]] - {content}",
 };
 
+const questionType: DiscourseNode = {
+  ...claimType,
+  type: "question-type",
+  text: "Question",
+  shortcut: "Q",
+  format: "[[QUE]] - {content}",
+};
+
+const nodeTypeRow = (sourceLocalId: string, title: string) => ({
+  source_local_id: sourceLocalId,
+  created: 1000,
+  last_modified: 2000,
+  author_local_id: "user-1",
+  text: title,
+  author_name: "User",
+});
+
 const context = { spaceId: 20, userId: 7 } as SupabaseContext;
 
 const makeClient = () => {
@@ -54,21 +71,15 @@ describe("convertDgToSupabaseConcepts node types", () => {
     vi.unstubAllGlobals();
   });
 
-  it("sends each node type's Content inside its schema Concept", async () => {
+  it("sends each node type's Content inside its own schema Concept", async () => {
     vi.stubGlobal("window", {
       roamAlphaAPI: {
         data: {
           backend: {
             q: () =>
               Promise.resolve([
-                {
-                  source_local_id: "claim-type",
-                  created: 1000,
-                  last_modified: 2000,
-                  author_local_id: "user-1",
-                  text: "discourse-graph/nodes/Claim",
-                  author_name: "User",
-                },
+                nodeTypeRow("claim-type", "discourse-graph/nodes/Claim"),
+                nodeTypeRow("question-type", "discourse-graph/nodes/Question"),
               ]),
           },
         },
@@ -79,7 +90,7 @@ describe("convertDgToSupabaseConcepts node types", () => {
     await convertDgToSupabaseConcepts({
       nodesSince: [],
       since: undefined,
-      allNodeTypes: [claimType],
+      allNodeTypes: [claimType, questionType],
       supabaseClient: client,
       context,
     });
@@ -101,6 +112,16 @@ describe("convertDgToSupabaseConcepts node types", () => {
             text: "discourse-graph/nodes/Claim",
             variant: "direct",
             author_local_id: "user-1",
+          }),
+        ],
+      }),
+      expect.objectContaining({
+        source_local_id: "question-type",
+        is_schema: true,
+        contents_inline: [
+          expect.objectContaining({
+            source_local_id: "question-type",
+            text: "discourse-graph/nodes/Question",
           }),
         ],
       }),
