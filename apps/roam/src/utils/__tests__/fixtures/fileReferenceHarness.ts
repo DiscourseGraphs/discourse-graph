@@ -74,13 +74,13 @@ export const makeClient = () => {
     },
   });
 
-  /** Set to make the content upload fail, so what follows it can be asserted. */
-  let contentUploadError: { message: string } | null = null;
+  /** Set to make the concept upsert fail, so what follows it can be asserted. */
+  let conceptUpsertError: { message: string } | null = null;
 
   const rpc = vi.fn((fn: string, { hashvalue }: { hashvalue?: string }) =>
     Promise.resolve(
-      fn === "upsert_content" && contentUploadError
-        ? { data: null, error: contentUploadError }
+      fn === "upsert_concepts"
+        ? { data: conceptUpsertError ? null : [], error: conceptUpsertError }
         : { data: rows.some((row) => row.filehash === hashvalue), error: null },
     ),
   );
@@ -122,8 +122,8 @@ export const makeClient = () => {
     failReferenceRead: (message: string) => {
       selectError = { message };
     },
-    failContentUpload: (message: string) => {
-      contentUploadError = { message };
+    failConceptUpsert: (message: string) => {
+      conceptUpsertError = { message };
     },
   };
 };

@@ -1,19 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrossAppNode } from "@repo/database/crossAppContracts";
 import { contentTypes } from "@repo/content-model";
-import type { RoamDiscourseNodeData } from "~/utils/getAllDiscourseNodesSince";
-import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import type { SupabaseContext } from "~/utils/supabaseContext";
 import {
   IMAGE,
   makeClient,
   mockAssetReads,
 } from "./fixtures/fileReferenceHarness";
-
-const mocks = vi.hoisted(() => ({
-  /** The markdown Roam would render for each node, keyed by uid. */
-  markdownByUid: new Map<string, string>(),
-}));
 
 // The sync module reads Roam globals when these load. None of them is on the path
 // under test.
@@ -25,53 +18,35 @@ vi.mock("~/components/settings/utils/accessors", () => ({
   isSyncEnabled: () => false,
 }));
 
-vi.mock("~/utils/roamToCrossAppConverters", () => ({
-  fullContentNodeToCrossApp: (node: RoamDiscourseNodeData): CrossAppNode => ({
-    localId: node.source_local_id,
-    authorId: node.author_local_id,
-    nodeType: node.type,
-    coreTitle: node.text,
-    createdAt: new Date(node.created),
-    modifiedAt: new Date(node.last_modified),
-    content: {
-      direct: { localId: node.source_local_id, value: node.text },
-      full: {
-        localId: node.source_local_id,
-        value: mocks.markdownByUid.get(node.source_local_id) ?? "",
-        contentType: contentTypes.roamMarkdown,
-        scale: "document",
-      },
-    },
-  }),
-}));
-
 import {
   reportSharedNodeAssets,
-  upsertSharedNodesFullContentWithAssets,
+  upsertNodesWithAssets,
 } from "~/utils/syncDgNodesToSupabase";
 
 const NODE_UID = "tgWb6JozF";
 const SECOND_IMAGE =
   "https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2FMAPLab%2FsecondImage.png?alt=media&token=1a2b3c4d";
 
-const sharedNode: RoamDiscourseNodeData = {
-  author_local_id: "maparent",
-  source_local_id: NODE_UID,
-  created: Date.parse("2026-06-12T14:00:00.000Z"),
-  last_modified: Date.parse("2026-06-12T15:00:00.000Z"),
-  text: "[[CLM]] - Sleep improves memory consolidation",
-  type: "rCLM0schema",
-};
-
-const claimType: DiscourseNode = {
-  type: "rCLM0schema",
-  text: "Claim",
-  shortcut: "C",
-  specification: [],
-  backedBy: "user",
-  canvasSettings: {},
-  format: "[[CLM]] - {content}",
-};
+const sharedNode = (markdown: string): CrossAppNode => ({
+  localId: NODE_UID,
+  authorId: "maparent",
+  nodeType: "rCLM0schema",
+  coreTitle: "Sleep improves memory consolidation",
+  createdAt: new Date("2026-06-12T14:00:00.000Z"),
+  modifiedAt: new Date("2026-06-12T15:00:00.000Z"),
+  content: {
+    direct: {
+      localId: NODE_UID,
+      value: "[[CLM]] - Sleep improves memory consolidation",
+    },
+    full: {
+      localId: NODE_UID,
+      value: markdown,
+      contentType: contentTypes.roamMarkdown,
+      scale: "document",
+    },
+  },
+});
 
 const context = { spaceId: 20, userId: 7 } as SupabaseContext;
 
@@ -82,23 +57,25 @@ const withImages = (...images: string[]): string =>
     "- Supported by [[EVD]] - Rasch & Born 2013",
   ].join("\n\n");
 
-describe("upsertSharedNodesFullContentWithAssets", () => {
+describe("upsertNodesWithAssets", () => {
   let harness: ReturnType<typeof makeClient>;
 
-  const syncWithMarkdown = async (markdown: string) => {
-    mocks.markdownByUid.set(NODE_UID, markdown);
-    return upsertSharedNodesFullContentWithAssets({
-      nodes: [{ fullContentNode: sharedNode, nodeType: claimType }],
+  const syncWithMarkdown = (markdown: string) =>
+    upsertNodesWithAssets({
+      nodes: [sharedNode(markdown)],
+      since: undefined,
+      allNodeTypes: [],
       supabaseClient: harness.client,
       context,
       phases: {},
     });
-  };
 
   beforeEach(() => {
     harness = makeClient();
-    mocks.markdownByUid.clear();
     mockAssetReads({});
+    (
+      window as unknown as { roamAlphaAPI: Record<string, unknown> }
+    ).roamAlphaAPI.data = { backend: { q: () => Promise.resolve([]) } };
   });
 
   afterEach(() => {
@@ -116,12 +93,12 @@ describe("upsertSharedNodesFullContentWithAssets", () => {
     ]);
   });
 
-  it("uploads the full content before recording references", async () => {
+  it("upserts the node's Concept and Content before recording references", async () => {
     await syncWithMarkdown(withImages(IMAGE));
 
     const { rpc, from } = harness;
     const contentUpload = rpc.mock.calls.findIndex(
-      ([fn]) => fn === "upsert_content",
+      ([fn]) => fn === "upsert_concepts",
     );
     const referenceWrite = from.mock.calls.findIndex(
       ([table]) => table === "FileReference",
@@ -133,10 +110,10 @@ describe("upsertSharedNodesFullContentWithAssets", () => {
     );
   });
 
-  it("records no reference when the content upload fails", async () => {
+  it("records no reference when the concept upsert fails", async () => {
     // FileReference has a foreign key to Content, so a reference must never outlive a
     // failed content upload.
-    harness.failContentUpload("upsert_content failed");
+    harness.failConceptUpsert("upsert_concepts failed");
 
     await expect(syncWithMarkdown(withImages(IMAGE))).rejects.toThrow();
 
@@ -165,14 +142,16 @@ describe("upsertSharedNodesFullContentWithAssets", () => {
     expect(harness.filepaths()).toEqual([SECOND_IMAGE]);
   });
 
-  it("does nothing when no shared node changed", async () => {
+  it("does nothing when there is no node to send", async () => {
     // Timed even when empty, so a sync with no shared changes still reports both
     // phases rather than dropping them from the series.
     const phases: Record<string, number> = {};
 
     await expect(
-      upsertSharedNodesFullContentWithAssets({
+      upsertNodesWithAssets({
         nodes: [],
+        since: undefined,
+        allNodeTypes: [],
         supabaseClient: harness.client,
         context,
         phases,
@@ -181,7 +160,7 @@ describe("upsertSharedNodesFullContentWithAssets", () => {
 
     expect(harness.rpc).not.toHaveBeenCalled();
     expect(Object.keys(phases)).toEqual([
-      "upsertFullContent",
+      "convertConcepts",
       "publishSharedNodeAssets",
     ]);
   });
