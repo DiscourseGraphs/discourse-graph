@@ -1,0 +1,27 @@
+<cross-session-message from="uds:/run/user/1000/cc-socks/12366.sock" from-name="discourse-graph-92" from-mode="prompting">
+Review task for the Post-V0 Roam–Obsidian sync architecture project: review Marc-Antoine's draft PR #1334 (ENG-2166, make `upsert_concepts` act like PATCH) and draft review comments for sid. Post nothing until sid approves. Sent by the orchestrating session discourse-graph-92 on sid's go.
+
+SPEC
+Read ENG-2166 in Linear with all comments, especially the 2026-10-25 Decision comment. We do PATCH, in two steps. First, callers send explicit empty values where they mean "clear". Then #1334 merges, with its migration, after the plugin releases that carry the caller change.
+
+READ
+`gh pr view 1334` and `gh pr diff 1334` (packages/database/supabase/schemas/concept.sql and packages/database/features/addConcepts.feature). Compare with origin/main. Don't commit to or push Marc-Antoine's branch. If you need the code locally, fetch it into your own worktree: `git -C /mnt/data/projects/discourse-graph fetch origin pull/1334/head:review-1334`, then `git worktree add` under /mnt/data/projects/discourse-graph/.claude/worktrees/. Don't run the database tests unless sid asks, and never against production.
+
+CHECK AT LEAST
+- Caller audit on origin/main. Find every caller of `upsert_concepts`: Roam sync, Roam publish, Obsidian sync, packages/database tests and docs, website routes, and anything else `git grep` finds. For each field the PR changes (reference_content and local_reference_content, description, epistemic_status, author_id, schema_id, literal_content), list where a caller leaves it out when it means "clear". The 2026-10-25 comment names the known places.
+- Migration: the PR has none. Say what's needed and where it goes after the migrations on main.
+- addConcepts.feature: does it cover missing vs explicit-empty for each field, and the insert defaults?
+- Open decision 2 (which fields) and open decision 4 (schema_id: keep the stored schema or refuse a node whose schema can't be resolved). On FEE-890, Marc-Antoine said to reject only when the schema is missing in the database.
+- Interaction with embedded Content (ENG-1822) in the same function.
+- Whether it still applies cleanly on origin/main.
+
+OUTPUT
+A short summary for sid, plus draft inline comments (file:line and text), written with the dg-engineering-writing-style skill. Post nothing to GitHub or Linear until sid approves in your session. Never edit a Linear ticket's description. When the draft is ready, send session `discourse-graph-92` a 3-line summary.
+
+RULES
+No `git stash` (shared by all worktrees), no `git reset --hard`, no edits in the main checkout at /mnt/data/projects/discourse-graph (it's on an old local `main`).
+</cross-session-message>
+
+---
+
+do is to completion based on whatever our engineering practices are and whatever I use for the workflow. I am driving, so I won't be able to review it, but once I get back to my computer, I will be able to review all of these changes. So yeah, follow those best practices, and anything that falls out of that, note down in your chat. We will go over them later.c
