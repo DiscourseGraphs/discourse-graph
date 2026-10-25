@@ -355,9 +355,10 @@ describe("fetchUserNames", () => {
       error: { message: "permission denied" },
     });
     const plugin = makePlugin();
+    plugin.settings.userNames = { 1: "Bob" };
 
     await expect(fetchUserNames(plugin, client)).resolves.toEqual({});
-    expect(plugin.settings.userNames).toBeUndefined();
+    expect(plugin.settings.userNames).toEqual({ 1: "Bob" });
     consoleError.mockRestore();
   });
 });
