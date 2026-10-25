@@ -120,35 +120,22 @@ export const getSpaceInfoFromIds = async (
 export const fetchUserNames = async (
   plugin: DiscourseGraphPlugin,
   client: DGSupabaseClient,
-) => {
+): Promise<Record<string, string>> => {
   const result = await client
     .from("my_accounts")
-    .select("id, name")
+    .select("id, name, account_local_id")
     .eq("agent_type", "person");
   if (result.error || !result.data) {
     console.error(result.error);
-    return;
+    return {};
   }
   const nameById = Object.fromEntries(
     result.data.map(({ id, name }) => [id, name]) as [number, string][],
   );
   plugin.settings.userNames = nameById;
   await plugin.saveSettings();
-};
-
-export const fetchUserNamesByLocalId = async (
-  client: DGSupabaseClient,
-): Promise<Record<string, string>> => {
-  const { data, error } = await client
-    .from("my_accounts")
-    .select("account_local_id, name")
-    .eq("agent_type", "person");
-  if (error) {
-    console.error(error);
-    return {};
-  }
   return Object.fromEntries(
-    data.flatMap(({ account_local_id, name }) =>
+    result.data.flatMap(({ account_local_id, name }) =>
       account_local_id !== null && name !== null
         ? [[account_local_id, name]]
         : [],
@@ -1735,13 +1722,11 @@ const importNodes = async ({
           content,
           createdAt: contentCreatedAt,
           modifiedAt: contentModifiedAt,
-          filePath: contentFilePath,
+          filePath: originalNodePath,
           authorId,
         } = nodeContent;
         const createdAt = node.createdAt ?? contentCreatedAt;
         const modifiedAt = node.modifiedAt ?? contentModifiedAt;
-        // Use source vault path from Content direct variant metadata for wikilink rewriting and asset placement
-        const originalNodePath: string | undefined = contentFilePath;
 
         const nodeImportInfo = nodeImportInfoByInstance.get(
           node.nodeInstanceId,
@@ -1790,8 +1775,8 @@ const importNodes = async ({
         } else {
           // Preserve source vault folder structure under import/{vaultName} when we have filePath from Content
           const sourceFolder =
-            contentFilePath && contentFilePath.includes("/")
-              ? sanitizePathForImport(contentFilePath.replace(/\/[^/]*$/, ""))
+            originalNodePath && originalNodePath.includes("/")
+              ? sanitizePathForImport(originalNodePath.replace(/\/[^/]*$/, ""))
               : "";
           const pathUnderImport = sourceFolder
             ? `${sourceFolder}/${sanitizedFileName}.md`

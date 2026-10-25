@@ -108,7 +108,6 @@ export type ImportableNode = {
 
 export type GroupWithNodes = {
   groupId: string;
-  groupName?: string;
   nodes: ImportableNode[];
   authorIds: Set<string>;
   spacePlatform: Enums<"Platform">;

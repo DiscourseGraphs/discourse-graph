@@ -11,7 +11,6 @@ import {
 } from "@repo/database/lib/sharedNodes";
 import {
   fetchUserNames,
-  fetchUserNamesByLocalId,
   getLocalNodeInstanceIds,
   importSelectedNodes,
 } from "~/utils/importNodes";
@@ -44,6 +43,8 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
   const [userNamesByLocalId, setUserNamesByLocalId] = useState<
     Record<string, string>
   >({});
+  const getAuthorName = (authorLocalId: string): string =>
+    userNamesByLocalId[authorLocalId] ?? `user ${authorLocalId}`;
 
   const loadImportableNodes = useCallback(async () => {
     setIsLoading(true);
@@ -69,8 +70,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
         return;
       }
 
-      await fetchUserNames(plugin, client);
-      setUserNamesByLocalId(await fetchUserNamesByLocalId(client));
+      setUserNamesByLocalId(await fetchUserNames(plugin, client));
 
       const { nodes, spaces } = await listGroupSharedCrossAppNodes({
         client,
@@ -80,15 +80,12 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
       const localNodeInstanceIds = getLocalNodeInstanceIds(plugin);
 
       // Filter out nodes that already exist locally
-      const importableNodes = nodes.filter(
-        (node) => !localNodeInstanceIds.has(node.localId),
-      );
+      const importableNodes = nodes
+        .filter((node) => !localNodeInstanceIds.has(node.localId))
+        .map((node) => ({ node, space: getSharedNodeSpace({ node, spaces }) }));
 
       const importableSpaces = new Map(
-        importableNodes.map((node) => {
-          const space = getSharedNodeSpace({ node, spaces });
-          return [space.id, space];
-        }),
+        importableNodes.map(({ space }) => [space.id, space]),
       );
 
       // Keep spaceNames in settings up to date for UI display (formatImportSource reads it)
@@ -103,13 +100,11 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
 
       const grouped: Map<string, GroupWithNodes> = new Map();
 
-      for (const node of importableNodes) {
-        const space = getSharedNodeSpace({ node, spaces });
+      for (const { node, space } of importableNodes) {
         const groupId = String(space.id);
         if (!grouped.has(groupId)) {
           grouped.set(groupId, {
             groupId,
-            groupName: space.name,
             nodes: [],
             authorIds: new Set(),
             spacePlatform: space.platform,
@@ -346,12 +341,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
                       {spaceName}
                     </span>
                     {headerAuthorId !== undefined && (
-                      <span>
-                        &nbsp;(
-                        {userNamesByLocalId[headerAuthorId] ??
-                          `user ${headerAuthorId}`}
-                        )
-                      </span>
+                      <span>&nbsp;({getAuthorName(headerAuthorId)})</span>
                     )}
                     <span className="text-muted ml-2 text-sm">
                       ({nodes.length} node{nodes.length !== 1 ? "s" : ""})
@@ -374,10 +364,7 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
                           {node.title}
                           {node.authorId && authorPlacement === "nodes" && (
                             <span className="font-light">
-                              &nbsp;(
-                              {userNamesByLocalId[node.authorId] ??
-                                `user ${node.authorId}`}
-                              )
+                              &nbsp;({getAuthorName(node.authorId)})
                             </span>
                           )}
                         </div>

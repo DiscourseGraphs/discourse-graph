@@ -3,7 +3,7 @@ import { TFile, TFolder, type App } from "obsidian";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type DiscourseGraphPlugin from "~/index";
 import {
-  fetchUserNamesByLocalId,
+  fetchUserNames,
   getUntitledTemplateFileName,
   mapNodeTypeIdToLocal,
 } from "~/utils/importNodes";
@@ -306,9 +306,15 @@ describe("mapNodeTypeIdToLocal template import", () => {
   });
 });
 
-describe("fetchUserNamesByLocalId", () => {
+describe("fetchUserNames", () => {
   const makeClient = (result: {
-    data: { account_local_id: string | null; name: string | null }[] | null;
+    data:
+      | {
+          id: number;
+          name: string | null;
+          account_local_id: string | null;
+        }[]
+      | null;
     error: { message: string } | null;
   }) => {
     const eq = vi.fn().mockResolvedValue(result);
@@ -316,25 +322,31 @@ describe("fetchUserNamesByLocalId", () => {
     const from = vi.fn().mockReturnValue({ select });
     return { client: { from } as unknown as DGSupabaseClient, from, eq };
   };
+  const makePlugin = () =>
+    ({
+      settings: {},
+      saveSettings: vi.fn(),
+    }) as unknown as DiscourseGraphPlugin;
 
-  it("names each person account by its local id", async () => {
+  it("stores names by account id and returns them by account local id", async () => {
     const { client, from, eq } = makeClient({
       data: [
-        { account_local_id: "alice-local", name: "Alice" },
-        { account_local_id: null, name: "No local id" },
-        { account_local_id: "nameless-local", name: null },
+        { id: 7, account_local_id: "alice-local", name: "Alice" },
+        { id: 8, account_local_id: null, name: "No local id" },
       ],
       error: null,
     });
+    const plugin = makePlugin();
 
-    await expect(fetchUserNamesByLocalId(client)).resolves.toEqual({
+    await expect(fetchUserNames(plugin, client)).resolves.toEqual({
       "alice-local": "Alice",
     });
+    expect(plugin.settings.userNames).toEqual({ 7: "Alice", 8: "No local id" });
     expect(from).toHaveBeenCalledWith("my_accounts");
     expect(eq).toHaveBeenCalledWith("agent_type", "person");
   });
 
-  it("returns no names when the lookup fails", async () => {
+  it("returns no names and keeps the stored ones when the lookup fails", async () => {
     const consoleError = vi
       .spyOn(console, "error")
       .mockImplementation(() => {});
@@ -342,8 +354,10 @@ describe("fetchUserNamesByLocalId", () => {
       data: null,
       error: { message: "permission denied" },
     });
+    const plugin = makePlugin();
 
-    await expect(fetchUserNamesByLocalId(client)).resolves.toEqual({});
+    await expect(fetchUserNames(plugin, client)).resolves.toEqual({});
+    expect(plugin.settings.userNames).toBeUndefined();
     consoleError.mockRestore();
   });
 });
