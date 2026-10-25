@@ -78,16 +78,16 @@ export const refreshImportedNode = async ({
         message: "Could not connect to shared persistence.",
       };
 
-    const shared = await getSharedNodeByRid({
+    const sharedNodeWithSpace = await getSharedNodeByRid({
       client,
       rid: identity.sourceNodeRid,
     });
-    if (!shared)
+    if (!sharedNodeWithSpace)
       return {
         status: "failed",
         message: `The source of "${title}" is no longer shared with your groups, so it cannot be refreshed.`,
       };
-    const { node: sharedNode, space } = shared;
+    const { node: sharedNode, space } = sharedNodeWithSpace;
 
     const nodeTypesBySchemaRid = await resolveSharedNodeTypes({
       client,

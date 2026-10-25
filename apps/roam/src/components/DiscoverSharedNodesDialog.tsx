@@ -50,9 +50,6 @@ const IMPORT_ERROR_OPERATION = "import-shared-nodes";
 const RELATIONS_IMPORT_ERROR_OPERATION = "import-shared-relations";
 const CONNECTION_ERROR_MESSAGE = "Could not connect to shared persistence.";
 
-const formatModifiedAt = (modifiedAt: Date): string =>
-  modifiedAt.toLocaleString();
-
 const SharedNodeRow = ({
   node,
   space,
@@ -97,7 +94,7 @@ const SharedNodeRow = ({
       </div>
     </td>
     <td className="whitespace-nowrap" title={node.modifiedAt.toISOString()}>
-      {formatModifiedAt(node.modifiedAt)}
+      {node.modifiedAt.toLocaleString()}
     </td>
   </tr>
 );
@@ -250,8 +247,10 @@ const RelationFailuresSummary = ({ failures }: { failures: string[] }) => (
 );
 
 const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
-  const [nodes, setNodes] = useState<DbCrossAppNode[]>([]);
-  const [spaces, setSpaces] = useState<SharedNodeListing["spaces"]>({});
+  const [{ nodes, spaces }, setListing] = useState<SharedNodeListing>({
+    nodes: [],
+    spaces: {},
+  });
   const [importedRids, setImportedRids] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -287,8 +286,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
         client,
         currentSpaceId: context.spaceId,
       });
-      setNodes(listing.nodes);
-      setSpaces(listing.spaces);
+      setListing({ nodes: listing.nodes, spaces: listing.spaces });
       setImportedRids(listing.importedSourceRids);
     } catch (loadError) {
       internalError({

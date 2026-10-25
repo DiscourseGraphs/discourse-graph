@@ -325,6 +325,9 @@ export const getSharedNodeByRid = async ({
     spaces,
   });
   const [node] = listing.nodes;
-  if (!node) return null;
+  if (!node) {
+    if (conceptsResponse.data.length === 0) return null;
+    throw new Error("its source is shared but could not be read");
+  }
   return { node, space: getSharedNodeSpace({ node, spaces: listing.spaces }) };
 };

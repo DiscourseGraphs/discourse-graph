@@ -425,11 +425,22 @@ describe("getSharedNodeByRid", () => {
     await expect(getSharedNodeByRid({ client, rid })).resolves.toBeNull();
   });
 
-  it("returns null when the node has no direct content", async () => {
-    const { client } = makeClient({ space: spaces[0]!, direct: [] });
+  it.each([
+    { reason: "has no direct content", direct: [] },
+    {
+      reason: "has an author the group can't see",
+      direct: [{ ...directContents[0]!, author_id: 99 }],
+    },
+  ])(
+    "throws when the shared node $reason, rather than report it unshared",
+    async ({ direct }) => {
+      const { client } = makeClient({ space: spaces[0]!, direct });
 
-    await expect(getSharedNodeByRid({ client, rid })).resolves.toBeNull();
-  });
+      await expect(getSharedNodeByRid({ client, rid })).rejects.toThrow(
+        "its source is shared but could not be read",
+      );
+    },
+  );
 
   it("throws when the space lookup fails", async () => {
     const failingBuilder = makeQueryBuilder({
