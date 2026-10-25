@@ -1,0 +1,7 @@
+<task-notification>
+<task-id>bd0izq6rj</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/tmp/claude-1000/-mnt-data-projects-discourse-graph/f43b0c72-ff72-448c-b288-23ce0dc6af89/tasks/bd0izq6rj.output</output-file>
+<status>completed</status>
+<summary>Background command "Install dependencies in the worktree" completed (exit code 0)</summary>
+</task-notification>
