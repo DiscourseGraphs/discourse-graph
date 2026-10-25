@@ -6,6 +6,7 @@
   "checkpoints_count": 2,
   "files_touched": [
     "apps/roam/src/utils/__tests__/convertDgToSupabaseConcepts.test.ts",
+    "apps/roam/src/utils/__tests__/fixtures/fileReferenceHarness.ts",
     "apps/roam/src/utils/__tests__/syncSharedNodeAssets.test.ts",
     "apps/roam/src/utils/syncDgNodesToSupabase.ts"
   ],
@@ -26,10 +27,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 16,
-    "cache_creation_tokens": 20972,
-    "cache_read_tokens": 3718028,
-    "output_tokens": 13137,
-    "api_call_count": 7
+    "input_tokens": 2,
+    "cache_creation_tokens": 1771,
+    "cache_read_tokens": 542261,
+    "output_tokens": 1231,
+    "api_call_count": 1
   }
 }
