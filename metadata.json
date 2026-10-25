@@ -3,7 +3,7 @@
   "checkpoint_id": "01M5RS6DF2W4N196HTQY1Y045X",
   "strategy": "manual-commit",
   "branch": "eng-2061-refactor-roamfullcontentnode-to-use-crossappnode-contract",
-  "checkpoints_count": 3,
+  "checkpoints_count": 4,
   "files_touched": [
     "apps/roam/src/utils/__tests__/coreTitleBackfill.test.ts",
     "apps/roam/src/utils/__tests__/roamToCrossAppConverters.test.ts",
@@ -34,13 +34,20 @@
       "compact_transcript": "/2/transcript.jsonl",
       "content_hash": "/2/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/3/metadata.json",
+      "transcript": "/3/full.jsonl",
+      "compact_transcript": "/3/transcript.jsonl",
+      "content_hash": "/3/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
-    "input_tokens": 260,
-    "cache_creation_tokens": 631628,
-    "cache_read_tokens": 20855046,
-    "output_tokens": 228543,
-    "api_call_count": 129
+    "input_tokens": 330,
+    "cache_creation_tokens": 794966,
+    "cache_read_tokens": 25544514,
+    "output_tokens": 283567,
+    "api_call_count": 164
   }
 }
