@@ -98,4 +98,44 @@ describe("crossAppNodeToDbConcept", () => {
       "local_reference_content",
     );
   });
+
+  it("writes the description as a direct_and_description content beside direct", () => {
+    const concept = crossAppNodeToDbConcept({
+      ...baseNode,
+      content: {
+        direct: { value: "EVD - REM sleep and recall" },
+        directAndDescription: {
+          value: "EVD - REM sleep and recall Subjects recalled more",
+          authorId: "account-local-2",
+        },
+      },
+    });
+    expect(concept.name).toBe("EVD - REM sleep and recall");
+    expect(
+      concept.contents_inline?.map(({ variant, text, author_local_id }) => ({
+        variant,
+        text,
+        author_local_id,
+      })),
+    ).toEqual([
+      {
+        variant: "direct",
+        text: "EVD - REM sleep and recall",
+        author_local_id: "account-local-1",
+      },
+      {
+        variant: "direct_and_description",
+        text: "EVD - REM sleep and recall Subjects recalled more",
+        author_local_id: "account-local-2",
+      },
+    ]);
+  });
+
+  it("writes only the direct content when the node has no description", () => {
+    expect(
+      crossAppNodeToDbConcept(baseNode).contents_inline?.map(
+        ({ variant }) => variant,
+      ),
+    ).toEqual(["direct"]);
+  });
 });
