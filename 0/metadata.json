@@ -1,0 +1,112 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5RT4PZGPB3QTMQ1SECYBR48",
+  "session_id": "454c97ce-6c52-4e97-8b24-5628e6108a3d",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-25T05:57:09.911260736Z",
+  "branch": "eng-1985-add-a-database-to-crossappnode-converter-for-nodes",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/database/src/lib/__tests__/dbToCrossAppConverters.test.ts",
+    "packages/database/src/lib/dbToCrossAppConverters.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "cc7b6ee50f90",
+  "checkpoint_transcript_start": 680,
+  "transcript_lines_at_start": 680,
+  "compact_transcript_start": 65,
+  "token_usage": {
+    "input_tokens": 12,
+    "cache_creation_tokens": 17062,
+    "cache_read_tokens": 1217551,
+    "output_tokens": 4933,
+    "api_call_count": 6
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_01Q3acfW8kqsfikUFgEo3hX8",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "pre-pr-review"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "cc7b6ee50f90",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 722,
+        "end": 723,
+        "entry_ids": [
+          "d3017891-55be-471a-8af3-96b5bb3cc172"
+        ],
+        "tool_use_id": "toolu_01Q3acfW8kqsfikUFgEo3hX8"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01Q3acfW8kqsfikUFgEo3hX8"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: pre-pr-review",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_014zHsect2wQ4HttUqXpLyJ8",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "scope-check"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "cc7b6ee50f90",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 755,
+        "end": 756,
+        "entry_ids": [
+          "9ea3497d-4877-440d-a878-68622b28f3d6"
+        ],
+        "tool_use_id": "toolu_014zHsect2wQ4HttUqXpLyJ8"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_014zHsect2wQ4HttUqXpLyJ8"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: scope-check",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "initial_attribution": {
+    "calculated_at": "2026-10-25T05:57:09.847176146Z",
+    "agent_lines": 555,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 555,
+    "total_lines_changed": 555,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}

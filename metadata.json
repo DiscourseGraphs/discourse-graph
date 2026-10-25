@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5RT4PZGPB3QTMQ1SECYBR48",
+  "strategy": "manual-commit",
+  "branch": "eng-1985-add-a-database-to-crossappnode-converter-for-nodes",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/database/src/lib/__tests__/dbToCrossAppConverters.test.ts",
+    "packages/database/src/lib/dbToCrossAppConverters.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 12,
+    "cache_creation_tokens": 17062,
+    "cache_read_tokens": 1217551,
+    "output_tokens": 4933,
+    "api_call_count": 6
+  }
+}
