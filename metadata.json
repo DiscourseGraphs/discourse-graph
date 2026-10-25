@@ -1,0 +1,29 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5RYWVRHEYRE8T8JSGAX8MGD",
+  "strategy": "manual-commit",
+  "branch": "eng-1824-use-the-unified-upsert_concepts-in-roam",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/roam/src/utils/__tests__/convertDgToSupabaseConcepts.test.ts",
+    "apps/roam/src/utils/__tests__/fixtures/fileReferenceHarness.ts",
+    "apps/roam/src/utils/__tests__/syncSharedNodeAssets.test.ts",
+    "apps/roam/src/utils/syncDgNodesToSupabase.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 6,
+    "cache_creation_tokens": 5399,
+    "cache_read_tokens": 1103072,
+    "output_tokens": 1653,
+    "api_call_count": 2
+  }
+}
