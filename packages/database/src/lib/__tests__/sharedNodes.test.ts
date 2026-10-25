@@ -297,8 +297,6 @@ const schemaRows = [
     source_local_id: "evd-type",
     is_schema: true,
     is_relation: false,
-    format: "EVD - {content}",
-    source_data_format: null,
   },
 ];
 const accountRows = [{ id: 42, account_local_id: "account-42" }];
