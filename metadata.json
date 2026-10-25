@@ -1,0 +1,29 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5RXCM3871CDSTW66GP9DJY1",
+  "strategy": "manual-commit",
+  "branch": "eng-2091-remove-sharednode",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/obsidian/src/components/ImportNodesModal.tsx",
+    "apps/roam/src/utils/discoverSharedNodes.ts",
+    "packages/database/src/lib/__tests__/sharedNodes.test.ts",
+    "packages/database/src/lib/sharedNodes.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2,
+    "cache_creation_tokens": 984,
+    "cache_read_tokens": 473203,
+    "output_tokens": 1501,
+    "api_call_count": 1
+  }
+}
