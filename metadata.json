@@ -3,8 +3,16 @@
   "checkpoint_id": "01M5RS6DF2W4N196HTQY1Y045X",
   "strategy": "manual-commit",
   "branch": "eng-2061-refactor-roamfullcontentnode-to-use-crossappnode-contract",
-  "checkpoints_count": 2,
-  "files_touched": null,
+  "checkpoints_count": 3,
+  "files_touched": [
+    "apps/roam/src/utils/__tests__/coreTitleBackfill.test.ts",
+    "apps/roam/src/utils/__tests__/roamToCrossAppConverters.test.ts",
+    "apps/roam/src/utils/__tests__/syncSharedNodeAssets.test.ts",
+    "apps/roam/src/utils/convertRoamNodeToFullContent.ts",
+    "apps/roam/src/utils/getAllDiscourseNodesSince.ts",
+    "apps/roam/src/utils/roamToCrossAppConverters.ts",
+    "apps/roam/src/utils/syncDgNodesToSupabase.ts"
+  ],
   "sessions": [
     {
       "metadata": "/0/metadata.json",
@@ -19,13 +27,20 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
-    "input_tokens": 140,
-    "cache_creation_tokens": 299025,
-    "cache_read_tokens": 8515450,
-    "output_tokens": 82052,
-    "api_call_count": 70
+    "input_tokens": 260,
+    "cache_creation_tokens": 631628,
+    "cache_read_tokens": 20855046,
+    "output_tokens": 228543,
+    "api_call_count": 129
   }
 }
