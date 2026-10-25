@@ -25,6 +25,40 @@
     "output_tokens": 0,
     "api_call_count": 0
   },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_01L4R61Ytqi1gBcBwJGFSCQ3",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-engineering-writing-style"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "8e6f9fa0a428",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 1465,
+        "end": 1466,
+        "entry_ids": [
+          "96f65007-f14a-44ed-ac4c-d71b707d00ed"
+        ],
+        "tool_use_id": "toolu_01L4R61Ytqi1gBcBwJGFSCQ3"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01L4R61Ytqi1gBcBwJGFSCQ3"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-engineering-writing-style",
+        "default_collapsed": true
+      }
+    }
+  ],
   "session_metrics": {
     "turn_count": 1
   },
