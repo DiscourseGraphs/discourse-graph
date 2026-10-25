@@ -3,7 +3,7 @@
   "checkpoint_id": "01M5RSYDYF8RST55FEVH0703K7",
   "strategy": "manual-commit",
   "branch": "eng-1824-part-1-crossapp-direct-and-description",
-  "checkpoints_count": 4,
+  "checkpoints_count": 5,
   "files_touched": [
     "packages/database/src/crossAppContracts.ts",
     "packages/database/src/lib/__tests__/crossAppConverters.test.ts",
@@ -37,13 +37,20 @@
       "compact_transcript": "/3/transcript.jsonl",
       "content_hash": "/3/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/4/metadata.json",
+      "transcript": "/4/full.jsonl",
+      "compact_transcript": "/4/transcript.jsonl",
+      "content_hash": "/4/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
-    "input_tokens": 100,
-    "cache_creation_tokens": 166011,
-    "cache_read_tokens": 13357616,
-    "output_tokens": 97155,
-    "api_call_count": 50
+    "input_tokens": 198,
+    "cache_creation_tokens": 349757,
+    "cache_read_tokens": 20264083,
+    "output_tokens": 160396,
+    "api_call_count": 99
   }
 }

@@ -1,0 +1,92 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5RSYDYF8RST55FEVH0703K7",
+  "session_id": "fdfe833a-5f86-4013-bfba-442fe074256b",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-25T05:53:51.58153946Z",
+  "branch": "eng-1824-part-1-crossapp-direct-and-description",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/database/src/crossAppContracts.ts",
+    "packages/database/src/lib/__tests__/crossAppConverters.test.ts",
+    "packages/database/src/lib/crossAppConverters.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "59561f413d4d",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 98,
+    "cache_creation_tokens": 183746,
+    "cache_read_tokens": 6906467,
+    "output_tokens": 63241,
+    "api_call_count": 49
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_01Q9aDyXU16Xk781gZ4yednY",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-engineering-writing-style"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "59561f413d4d",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 516,
+        "end": 517,
+        "entry_ids": [
+          "c69038d2-d5b6-46e0-87c1-48bc41de7bf0"
+        ],
+        "tool_use_id": "toolu_01Q9aDyXU16Xk781gZ4yednY"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01Q9aDyXU16Xk781gZ4yednY"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-engineering-writing-style",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "initial_attribution": {
+    "calculated_at": "2026-10-25T05:53:51.515205736Z",
+    "agent_lines": 50,
+    "agent_removed": 2,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 50,
+    "total_lines_changed": 52,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 158,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".agents/skills/discourse-engineering-writing-style/SKILL.md": 37,
+        ".agents/skills/discourse-engineering-writing-style/agents/openai.yaml": 9,
+        ".agents/skills/roam-load-extension/SKILL.md": 45,
+        ".agents/skills/roam-playwright-session/SKILL.md": 51,
+        ".husky/commit-msg": 3,
+        ".husky/post-commit": 3,
+        ".husky/post-rewrite": 3,
+        ".husky/pre-push": 3,
+        ".husky/prepare-commit-msg": 3,
+        ".lsp/.cache/db.transit.json": 1
+      }
+    }
+  ]
+}
