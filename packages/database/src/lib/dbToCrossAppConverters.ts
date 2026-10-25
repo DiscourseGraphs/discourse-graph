@@ -58,17 +58,6 @@ export type DbNodeRow = {
 
 export type DbCrossAppNode = CrossAppNode & { rid: string; modifiedAt: Date };
 
-type ResolvedDbNode = {
-  rid: string;
-  localId: string;
-  schemaId: number;
-  spaceId: number;
-  direct: DbNodeContent;
-  created: string | null;
-  modifiedAt: string;
-  slots?: Record<string, string>;
-};
-
 const getConceptMap = async (
   client: DGSupabaseClient,
   conceptIds: number[],
@@ -291,13 +280,19 @@ const groupDbNodeRows = ({
   }));
 };
 
-const resolveDbNode = ({
+export const dbNodeToCrossApp = ({
   row: { concept, direct, fullLastModified },
   spaceMap,
+  accountMap,
+  schemaMap,
+  formatMap,
 }: {
   row: DbNodeRow;
   spaceMap: Record<number, string>;
-}): ResolvedDbNode => {
+  accountMap: Record<number, string>;
+  schemaMap: Record<number, string>;
+  formatMap: Record<number, string>;
+}): DbCrossAppNode => {
   if (concept.is_schema !== false) throw new Error("Not a node instance");
   if (concept.schema_id === null) throw new Error("Missing node type");
   if (typeof concept.source_local_id !== "string")
@@ -307,13 +302,13 @@ const resolveDbNode = ({
   if (direct === undefined) throw new Error("Missing direct content");
 
   const created = normalizeUtcTimestamp(direct.created);
+  if (created === null) throw new Error("Missing created date");
   const modifiedAt =
     getLatestTimestamp([
       concept.last_modified,
       direct.last_modified,
       fullLastModified,
     ]) ?? created;
-  if (!modifiedAt) throw new Error("Missing modified date");
 
   const rid = spaceUriAndLocalIdToRid(
     spaceUrl,
@@ -341,59 +336,23 @@ const resolveDbNode = ({
       .filter(([, v]) => v !== undefined) as [string, string][],
   );
 
-  return {
-    rid,
-    localId: concept.source_local_id,
-    schemaId: concept.schema_id,
-    spaceId: concept.space_id,
-    direct,
-    created,
-    modifiedAt,
-    slots: Object.keys(slots).length > 0 ? slots : undefined,
-  };
-};
-
-export const dbNodeToCrossApp = ({
-  row,
-  spaceMap,
-  accountMap,
-  schemaMap,
-  formatMap,
-}: {
-  row: DbNodeRow;
-  spaceMap: Record<number, string>;
-  accountMap: Record<number, string>;
-  schemaMap: Record<number, string>;
-  formatMap: Record<number, string>;
-}): DbCrossAppNode => {
-  const {
-    rid,
-    localId,
-    schemaId,
-    spaceId,
-    direct,
-    created,
-    modifiedAt,
-    slots,
-  } = resolveDbNode({ row, spaceMap });
-  if (created === null) throw new Error("Missing created date");
   const authorId = accountMap[direct.author_id || 0];
   if (authorId === undefined) throw new Error("Missing author");
   const coreTitle =
-    row.concept.core_title ??
-    extractContentFromTitle(formatMap[schemaId] ?? "", direct.text);
-  const nodeType = asSimpleLocalId(schemaMap[schemaId], spaceMap[spaceId]);
+    concept.core_title ??
+    extractContentFromTitle(formatMap[concept.schema_id] ?? "", direct.text);
+  const nodeType = asSimpleLocalId(schemaMap[concept.schema_id], spaceUrl);
   if (nodeType === undefined) throw new Error("Missing node type");
   return {
     rid,
-    localId,
+    localId: concept.source_local_id,
     createdAt: new Date(created),
     modifiedAt: new Date(modifiedAt),
     authorId,
     nodeType,
     coreTitle,
     content: { direct: { value: direct.text } },
-    slots,
+    slots: Object.keys(slots).length > 0 ? slots : undefined,
   };
 };
 
