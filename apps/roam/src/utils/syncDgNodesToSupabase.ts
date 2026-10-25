@@ -51,6 +51,8 @@ import internalError from "~/utils/internalError";
 import { isSyncEnabled } from "~/components/settings/utils/accessors";
 import { FatalError } from "@repo/database/lib/contextFunctions";
 import { getAllPages } from "@repo/database/lib/pagination";
+import { isRid } from "@repo/database/lib/rid";
+import { SOURCE_SLOT } from "./sourceSlot";
 import type {
   LocalConceptDataInput,
   LocalContentDataInput,
@@ -292,6 +294,7 @@ const upsertConceptBatches = async ({
   spaceId: number;
 }): Promise<void> => {
   const batches = chunk(concepts, CONCEPT_BATCH_SIZE);
+  const rowFailures: string[] = [];
 
   for (let idx = 0; idx < batches.length; idx++) {
     const batch = batches[idx];
@@ -309,10 +312,16 @@ const upsertConceptBatches = async ({
 
     const failedIds = (data || []).filter((id) => id < 0);
     if (failedIds.length > 0) {
-      throw new Error(
-        `upsert_concepts returned row failures for batch ${idx + 1}/${batches.length}: ${summarizeFailedConceptUpsertIds(failedIds)}`,
+      rowFailures.push(
+        `batch ${idx + 1}/${batches.length}: ${summarizeFailedConceptUpsertIds(failedIds)}`,
       );
     }
+  }
+
+  if (rowFailures.length > 0) {
+    throw new Error(
+      `upsert_concepts returned row failures for ${rowFailures.join("; ")}`,
+    );
   }
 };
 
@@ -691,7 +700,7 @@ export const convertDgToSupabaseConcepts = async ({
   });
 };
 
-const discourseNodesToCrossApp = async ({
+const toCrossAppNodesWithEmbeddings = async ({
   nodes,
   nodeTypes,
   nodeIdsToEmbed,
@@ -745,6 +754,25 @@ export const withFullContent = (
   ];
 };
 
+export const omitMissingSources = ({
+  nodes,
+  conceptIds,
+}: {
+  nodes: CrossAppNode[];
+  conceptIds: ReadonlySet<string>;
+}): CrossAppNode[] => {
+  const nodeIds = new Set(nodes.map((node) => node.localId));
+  return nodes.map((node) => {
+    const sourceId = node.slots?.[SOURCE_SLOT];
+    return sourceId === undefined ||
+      isRid(sourceId) ||
+      nodeIds.has(sourceId) ||
+      conceptIds.has(sourceId)
+      ? node
+      : { ...node, slots: undefined };
+  });
+};
+
 /** Recomputes the embeddings of a node type's nodes, on demand from its settings. */
 export const upsertNodesWithEmbeddings = async ({
   nodes,
@@ -761,7 +789,7 @@ export const upsertNodesWithEmbeddings = async ({
     return;
   }
   await convertDgToSupabaseConcepts({
-    nodes: await discourseNodesToCrossApp({
+    nodes: await toCrossAppNodesWithEmbeddings({
       nodes,
       nodeTypes: [nodeType],
       nodeIdsToEmbed: new Set(nodes.map((node) => node.source_local_id)),
@@ -776,14 +804,14 @@ export const upsertNodesWithEmbeddings = async ({
 /** The asset stage runs here too, so an asset added after sharing still gets a row. */
 export const upsertNodesWithAssets = async ({
   phases,
-  ...concepts
+  ...upsertArgs
 }: Parameters<typeof convertDgToSupabaseConcepts>[0] & {
   phases: SyncPhaseDurations;
 }): Promise<NodeAssetResult[]> => {
   await measureSyncPhase({
     phase: "convertConcepts",
     phases,
-    operation: () => convertDgToSupabaseConcepts(concepts),
+    operation: () => convertDgToSupabaseConcepts(upsertArgs),
   });
   // A failed upsert throws above, so every node with full content now has the Content
   // row that publishNodeAssets requires.
@@ -792,9 +820,9 @@ export const upsertNodesWithAssets = async ({
     phases,
     operation: () =>
       publishNodeAssets({
-        client: concepts.supabaseClient,
-        spaceId: concepts.context.spaceId,
-        nodes: concepts.nodes,
+        client: upsertArgs.supabaseClient,
+        spaceId: upsertArgs.context.spaceId,
+        nodes: upsertArgs.nodes,
       }),
   });
 };
@@ -980,13 +1008,13 @@ const getAllMissingOrNewDiscourseNodes = async ({
   };
 };
 
-const getSharedNodeInstanceSourceLocalIds = async ({
+const getNodeInstanceSourceLocalIds = async ({
   supabaseClient,
   spaceId,
 }: {
   supabaseClient: DGSupabaseClient;
   spaceId: number;
-}): Promise<Set<string>> => {
+}): Promise<{ synced: Set<string>; shared: Set<string> }> => {
   const sharedResources = await getAllPages(
     supabaseClient
       .from("ResourceAccess")
@@ -1021,7 +1049,10 @@ const getSharedNodeInstanceSourceLocalIds = async ({
       .filter((id): id is string => id !== null),
   );
 
-  return intersection(syncedInstanceSourceLocalIds, sharedSourceLocalIds);
+  return {
+    synced: syncedInstanceSourceLocalIds,
+    shared: intersection(syncedInstanceSourceLocalIds, sharedSourceLocalIds),
+  };
 };
 
 const getSharedSourceLocalIdsMissingFullContent = async ({
@@ -1371,15 +1402,16 @@ export const createOrUpdateDiscourseEmbedding = async (
                 coreTitleBackfill: null,
               },
       });
-    const sharedSourceLocalIds = await measureSyncPhase({
-      phase: "getSharedNodeInstanceSourceLocalIds",
-      phases,
-      operation: () =>
-        getSharedNodeInstanceSourceLocalIds({
-          supabaseClient: activeSupabaseClient,
-          spaceId: activeContext.spaceId,
-        }),
-    });
+    const { synced: syncedSourceLocalIds, shared: sharedSourceLocalIds } =
+      await measureSyncPhase({
+        phase: "getSharedNodeInstanceSourceLocalIds",
+        phases,
+        operation: () =>
+          getNodeInstanceSourceLocalIds({
+            supabaseClient: activeSupabaseClient,
+            spaceId: activeContext.spaceId,
+          }),
+      });
     const importedNodeUids = await measureSyncPhase({
       phase: "getImportedNodeUids",
       phases,
@@ -1453,7 +1485,7 @@ export const createOrUpdateDiscourseEmbedding = async (
       phase: "convertNodes",
       phases,
       operation: () =>
-        discourseNodesToCrossApp({
+        toCrossAppNodesWithEmbeddings({
           nodes: conceptNodesToSync,
           nodeTypes: allDgNodeTypes,
           nodeIdsToEmbed: new Set(
@@ -1472,7 +1504,10 @@ export const createOrUpdateDiscourseEmbedding = async (
         ),
     });
     const sharedNodeAssetResults = await upsertNodesWithAssets({
-      nodes: withFullContent(nodesToUpsert, sharedNodesWithFullContent),
+      nodes: omitMissingSources({
+        nodes: withFullContent(nodesToUpsert, sharedNodesWithFullContent),
+        conceptIds: syncedSourceLocalIds,
+      }),
       since: sinceTime,
       allNodeTypes: allDgNodeTypes,
       sharedNodeTypeIds,
