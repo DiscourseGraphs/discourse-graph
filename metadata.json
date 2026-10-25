@@ -3,7 +3,7 @@
   "checkpoint_id": "01M5S1G9PG9KZWPMVE0FPWZ53S",
   "strategy": "manual-commit",
   "branch": "eng-1879-test-that-a-shared-node-reads-back-through-discovery-as-it",
-  "checkpoints_count": 1,
+  "checkpoints_count": 3,
   "files_touched": [
     "packages/database/features/sharedNodeRoundTrip.feature",
     "packages/database/features/step-definitions/stepdefs.ts"
@@ -15,13 +15,27 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 0,
-    "cache_creation_tokens": 0,
-    "cache_read_tokens": 0,
-    "output_tokens": 0,
-    "api_call_count": 0
+    "input_tokens": 18,
+    "cache_creation_tokens": 21673,
+    "cache_read_tokens": 5283744,
+    "output_tokens": 6758,
+    "api_call_count": 7,
+    "subagent_tokens": {
+      "input_tokens": 106,
+      "cache_creation_tokens": 157919,
+      "cache_read_tokens": 5019494,
+      "output_tokens": 54037,
+      "api_call_count": 53
+    }
   }
 }
