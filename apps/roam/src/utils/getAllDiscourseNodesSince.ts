@@ -12,6 +12,7 @@ export type RoamDiscourseNodeData = {
   text: string;
   type: string;
   node_title?: string;
+  node_author_local_id?: string;
 };
 /* eslint-enable @typescript-eslint/naming-convention */
 
@@ -27,8 +28,8 @@ export const getDiscourseNodeTypeWithSettingsBlockNodes = async (
   const regex = getDiscourseNodeFormatExpression(node.format);
   const regexPattern = regex.source.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
   const queryBlock = `[
-      :find ?childString ?nodeUid ?nodeCreateTime ?nodeEditTime ?author_local_id ?author_name ?node-title
-      :keys text source_local_id created last_modified author_local_id author_name node_title
+      :find ?childString ?nodeUid ?nodeCreateTime ?nodeEditTime ?author_local_id ?author_name ?node-title ?node_author_local_id
+      :keys text source_local_id created last_modified author_local_id author_name node_title node_author_local_id
       :in $ ?firstChildUid ?since
       :where
         [(re-pattern "${regexPattern}") ?title-regex]
@@ -47,6 +48,8 @@ export const getDiscourseNodeTypeWithSettingsBlockNodes = async (
         [(get-else $ ?child :edit/time ?nodeCreateTime) ?childEditTime]
         [?child :create/user ?user-eid]
         [?user-eid :user/uid ?author_local_id]
+        [(get-else $ ?node :create/user ?user-eid) ?node-user-eid]
+        [?node-user-eid :user/uid ?node_author_local_id]
         [(get-else $ ?child :edit/user ?user-eid) ?eu]
         [(get-else $ ?eu :user/display-name "Anonymous User") ?author_name]
         [or

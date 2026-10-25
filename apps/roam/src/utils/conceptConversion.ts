@@ -4,9 +4,7 @@ import {
   SOURCE_SLOT,
   schemaHasSourceSlot,
   sourceSlotSchemaId,
-  sourceIdOfNode,
 } from "./sourceSlot";
-import { extractContentFromTitle } from "@repo/database/lib/extractContentFromTitle";
 import { nodeTemplateContent } from "./nodeTemplateContent";
 import getDiscourseRelations from "./getDiscourseRelations";
 import type { DiscourseRelation } from "./getDiscourseRelations";
@@ -89,38 +87,6 @@ export const discourseNodeSchemaToLocalConcept = (
       : {}),
     /* eslint-enable @typescript-eslint/naming-convention */
     ...getNodeExtraData(node.type),
-  };
-};
-
-export const discourseNodeBlockToLocalConcept = (
-  context: SupabaseContext,
-  {
-    nodeUid,
-    schemaUid,
-    title,
-    schema,
-  }: {
-    nodeUid: string;
-    schemaUid: string;
-    title?: string;
-    schema?: DiscourseNode;
-  },
-): LocalConceptDataInput => {
-  const sourceId = title ? sourceIdOfNode(title, schema) : undefined;
-  return {
-    space_id: context.spaceId,
-    name: title,
-    source_local_id: nodeUid,
-    schema_represented_by_local_id: schemaUid,
-    is_schema: false,
-    literal_content: {
-      core_title: extractContentFromTitle(schema?.format ?? "", title ?? ""),
-    },
-    ...(sourceId
-      ? { local_reference_content: { [SOURCE_SLOT]: sourceId } }
-      : {}),
-    /* eslint-enable @typescript-eslint/naming-convention */
-    ...getNodeExtraData(nodeUid),
   };
 };
 
