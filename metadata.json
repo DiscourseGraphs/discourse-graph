@@ -3,8 +3,11 @@
   "checkpoint_id": "01M5RWR3PNRG2Q93TCFNWVXSGN",
   "strategy": "manual-commit",
   "branch": "eng-1823-use-the-unified-upsert_concepts-in-obsidian",
-  "checkpoints_count": 1,
-  "files_touched": null,
+  "checkpoints_count": 2,
+  "files_touched": [
+    "apps/obsidian/src/utils/__tests__/syncDgNodesToSupabase.test.ts",
+    "apps/obsidian/src/utils/syncDgNodesToSupabase.ts"
+  ],
   "sessions": [
     {
       "metadata": "/0/metadata.json",
@@ -12,13 +15,20 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": "/0/prompt.txt"
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
-    "input_tokens": 22,
-    "cache_creation_tokens": 17382,
-    "cache_read_tokens": 2964823,
-    "output_tokens": 11351,
-    "api_call_count": 10
+    "input_tokens": 48,
+    "cache_creation_tokens": 41664,
+    "cache_read_tokens": 8635630,
+    "output_tokens": 25714,
+    "api_call_count": 23
   }
 }
