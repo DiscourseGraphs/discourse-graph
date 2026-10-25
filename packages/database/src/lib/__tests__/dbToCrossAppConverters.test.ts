@@ -449,6 +449,62 @@ describe("dbNodeToCrossApp", () => {
     });
   });
 
+  it("gives a Roam node and a slot target in a Roam space url rids without a subtype", () => {
+    const roamGraph = "https://roamresearch.com/#/app/research-graph";
+    const converted = dbNodeToCrossApp({
+      row: {
+        ...row,
+        concept: {
+          ...concept,
+          space_id: 22,
+          reference_content: { sourceDocument: 8 },
+          concepts_of_relation: [
+            { id: 8, space_id: 22, source_local_id: "roam-uid-8" },
+          ],
+        },
+      },
+      spaceMap: { 22: roamGraph },
+      accountMap,
+      schemaMap: { 200: `${roamGraph}/evd-type` },
+      formatMap: {},
+    });
+    expect(converted.rid).toBe(`${roamGraph}/node-1`);
+    expect(converted.nodeType).toBe("evd-type");
+    expect(converted.slots).toEqual({ sourceDocument: "roam-uid-8" });
+    expect(
+      dbNodeToCrossApp({
+        row: {
+          ...row,
+          concept: {
+            ...concept,
+            reference_content: { sourceDocument: 8 },
+            concepts_of_relation: [
+              { id: 8, space_id: 22, source_local_id: "roam-uid-8" },
+            ],
+          },
+        },
+        spaceMap: { ...nodeSpaceMap, 22: roamGraph },
+        accountMap,
+        schemaMap,
+        formatMap: {},
+      }).slots,
+    ).toEqual({ sourceDocument: `${roamGraph}/roam-uid-8` });
+  });
+
+  it("leaves out a slot whose target has no local id", () => {
+    expect(
+      convert({
+        concept: {
+          ...concept,
+          reference_content: { evidence: 5 },
+          concepts_of_relation: [
+            { id: 5, space_id: 20, source_local_id: null },
+          ],
+        },
+      }).slots,
+    ).toBeUndefined();
+  });
+
   it("gives a slot target as a local id in the same space and as a rid in another space", () => {
     expect(
       convert({
@@ -565,7 +621,7 @@ describe("dbNodesToCrossApp", () => {
           is_schema: true,
           is_relation: false,
           format: null,
-          source_data_format: "EVD - {content}",
+          sourceDataFormat: "EVD - {content}",
         },
       ],
     };
@@ -612,6 +668,18 @@ describe("dbNodesToCrossApp", () => {
         coreTitle: "Title of node-1",
       },
     ]);
+  });
+
+  it("looks up node type formats only for nodes published without a core title", async () => {
+    const { client, inCalls } = makeClient();
+    await dbNodesToCrossApp({
+      client,
+      nodes: [concept("node-1")],
+      directContents: [direct("node-1", 42)],
+      fullContentSummaries: [],
+      spaceMap: { 20: "obsidian:vault-a" },
+    });
+    expect(inCalls.my_concepts).toEqual([[200]]);
   });
 
   it("skips and logs a node the contract cannot represent", async () => {

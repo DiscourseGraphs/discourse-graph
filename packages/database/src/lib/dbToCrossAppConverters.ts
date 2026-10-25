@@ -109,16 +109,16 @@ const getSchemaFormatMap = async (
   const { data, error } = await client
     .from("my_concepts")
     .select(
-      "id, format:literal_content->>format, source_data_format:literal_content->source_data->>format",
+      "id, format:literal_content->>format, sourceDataFormat:literal_content->source_data->>format",
     )
     .in("id", schemaIds);
   if (error) throw error;
   return Object.fromEntries(
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    data.map(({ id, format, source_data_format }) => [
-      id!,
-      resolveSchemaFormat({ format, sourceDataFormat: source_data_format }),
-    ]),
+    data.flatMap(({ id, format, sourceDataFormat }) =>
+      id === null
+        ? []
+        : [[id, resolveSchemaFormat({ format, sourceDataFormat })]],
+    ),
   );
 };
 
@@ -327,7 +327,8 @@ export const resolveDbNode = ({
     concept.concepts_of_relation
       .filter((c) => c.id !== null)
       .map((c) => {
-        if (c.space_id === concept.space_id) return [c.id, c.source_local_id];
+        if (c.space_id === concept.space_id)
+          return [c.id, c.source_local_id ?? undefined];
         const slotSpaceUrl = spaceMap[c.space_id || 0];
         if (!slotSpaceUrl || !c.source_local_id || !c.id)
           return [c.id, undefined];
@@ -412,34 +413,28 @@ export const dbNodesToCrossApp = async ({
   directContents,
   fullContentSummaries,
   spaceMap,
-  accountMap,
-  schemaMap,
-  formatMap,
 }: DbNodeRows & {
   client: DGSupabaseClient;
-  spaceMap?: Record<number, string>;
-  accountMap?: Record<number, string>;
-  schemaMap?: Record<number, string>;
-  formatMap?: Record<number, string>;
+  spaceMap: Record<number, string>;
 }): Promise<CrossAppNode[]> => {
-  if (spaceMap === undefined) spaceMap = await getSpaceMap(client);
-  if (accountMap === undefined) {
-    const authorIds = new Set<number>(
-      directContents
-        .map((c) => c.author_id)
-        .filter((id) => typeof id === "number"),
-    );
-    accountMap = await getAccountMap(client, [...authorIds]);
-  }
-  const schemaIds = [
+  const authorIds = new Set<number>(
+    directContents
+      .map((c) => c.author_id)
+      .filter((id) => typeof id === "number"),
+  );
+  const getSchemaIds = (concepts: DbNodeConcept[]): number[] => [
     ...new Set<number>(
-      nodes.map((n) => n.schema_id).filter((id) => typeof id === "number"),
+      concepts.map((c) => c.schema_id).filter((id) => typeof id === "number"),
     ),
   ];
-  if (schemaMap === undefined)
-    schemaMap = await getConceptMap(client, schemaIds, spaceMap);
-  if (formatMap === undefined)
-    formatMap = await getSchemaFormatMap(client, schemaIds);
+  const [accountMap, schemaMap, formatMap] = await Promise.all([
+    getAccountMap(client, [...authorIds]),
+    getConceptMap(client, getSchemaIds(nodes), spaceMap),
+    getSchemaFormatMap(
+      client,
+      getSchemaIds(nodes.filter((n) => n.core_title === null)),
+    ),
+  ]);
   return groupDbNodeRows({
     nodes,
     directContents,
