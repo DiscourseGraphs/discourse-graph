@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5RWG2MBGGE24JKPYB5DSW9G",
+  "session_id": "78051d25-a97b-4cbc-8d93-930f62bf4b53",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-25T06:38:21.404874654Z",
+  "branch": "eng-1985-add-a-database-to-crossappnode-converter-for-nodes",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "8e6f9fa0a428",
+  "checkpoint_transcript_start": 914,
+  "transcript_lines_at_start": 914,
+  "compact_transcript_start": 92,
+  "token_usage": {
+    "input_tokens": 52,
+    "cache_creation_tokens": 79802,
+    "cache_read_tokens": 9474227,
+    "output_tokens": 41752,
+    "api_call_count": 26
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
