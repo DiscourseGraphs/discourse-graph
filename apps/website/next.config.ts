@@ -18,6 +18,10 @@ const withNextra = nextra({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // The tutorial route reads the Obsidian docs at runtime to put them in its prompt.
+  outputFileTracingIncludes: {
+    "/api/obsidian/tutorial": ["./content/obsidian/**/*"],
+  },
   async redirects() {
     return DOCS_REDIRECTS;
   },

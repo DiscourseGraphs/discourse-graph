@@ -18,6 +18,10 @@ import type { DiscourseNode } from "~/types";
 import { TldrawView } from "~/components/canvas/TldrawView";
 import { createBaseForNodeType } from "./baseForNodeType";
 import { openImportSpecsModal } from "~/components/ImportSpecsModal";
+import { TutorialManager } from "~/components/tutorial/TutorialManager";
+import { SAMPLE_TUTORIAL } from "~/components/tutorial/sampleTour";
+import { resolveTutorialSteps } from "~/components/tutorial/blocks";
+import { GenerateTutorialModal } from "~/components/tutorial/GenerateTutorialModal";
 
 type ModifyNodeSubmitParams = {
   nodeType: DiscourseNode;
@@ -355,4 +359,32 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
       return true;
     },
   });
+
+  // Exercises the tutorial engine until AI-generated tutorials replace the sample.
+  if (process.env.NODE_ENV !== "production") {
+    const tutorialManager = new TutorialManager(plugin);
+    plugin.register(() => tutorialManager.stop());
+    plugin.addCommand({
+      id: "play-sample-tutorial",
+      name: "Play sample tutorial (dev)",
+      callback: () =>
+        tutorialManager.start({
+          steps: resolveTutorialSteps({ plugin, steps: SAMPLE_TUTORIAL }),
+          includeBasics: true,
+        }),
+    });
+    plugin.addCommand({
+      id: "generate-tutorial",
+      name: "Generate a tutorial (dev)",
+      callback: () =>
+        new GenerateTutorialModal({
+          plugin,
+          onGenerated: ({ steps, newToObsidian }) =>
+            tutorialManager.start({
+              steps: resolveTutorialSteps({ plugin, steps }),
+              includeBasics: newToObsidian,
+            }),
+        }).open(),
+    });
+  }
 };
