@@ -13,7 +13,10 @@ import {
   recordOutcome,
   type StepOutcome,
 } from "./tourState";
+import type { TFile } from "obsidian";
+import { usePlugin } from "~/components/PluginContext";
 import type { TourStep } from "./tourSteps";
+import { useCreatedNotes } from "./useCreatedNotes";
 import { useTargetRect } from "./useTargetRect";
 
 const DEFAULT_CARD_SIZE = { width: 300, height: 150 };
@@ -111,6 +114,69 @@ const StepCard = ({
   );
 };
 
+const SummaryCard = ({
+  notes,
+  finished,
+  onClose,
+}: {
+  notes: TFile[];
+  finished: boolean;
+  onClose: () => void;
+}) => {
+  const plugin = usePlugin();
+  const [confirmingTrash, setConfirmingTrash] = useState(false);
+
+  const openNote = (note: TFile): void =>
+    void plugin.app.workspace.getLeaf(false).openFile(note);
+
+  const trashNotes = async (): Promise<void> => {
+    // trashFile follows the user's "Deleted files" setting, so nothing is removed permanently.
+    await Promise.all(
+      notes.map((note) => plugin.app.fileManager.trashFile(note)),
+    );
+    onClose();
+  };
+
+  return (
+    <div className="dg-tutorial-card dg-tutorial-card--floating">
+      <div className="mb-1 font-semibold">
+        {finished ? "Tutorial complete" : "Tutorial ended"}
+      </div>
+      <div className="text-muted mb-2 text-sm">
+        {notes.length === 1
+          ? "You created this note along the way. Keep it to build on, or move it to the trash."
+          : "You created these notes along the way. Keep them to build on, or move them to the trash."}
+      </div>
+      <ul className="mb-3 mt-0 pl-4 text-sm">
+        {notes.map((note) => (
+          <li key={note.path}>
+            <a onClick={() => openNote(note)}>{note.basename}</a>
+          </li>
+        ))}
+      </ul>
+      <div className="flex justify-end gap-2">
+        {confirmingTrash ? (
+          <>
+            <button onClick={() => setConfirmingTrash(false)}>Cancel</button>
+            <button className="mod-warning" onClick={() => void trashNotes()}>
+              Move {notes.length} to trash
+            </button>
+          </>
+        ) : (
+          <>
+            <button onClick={() => setConfirmingTrash(true)}>
+              Move to trash
+            </button>
+            <button className="mod-cta" onClick={onClose}>
+              {notes.length === 1 ? "Keep it" : "Keep them"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const TutorialOverlay = ({
   steps,
   includeBasics,
@@ -123,7 +189,12 @@ export const TutorialOverlay = ({
   const [tour, setTour] = useState(() =>
     createTourState({ steps, includeBasics }),
   );
-  const step = getCurrentStep(tour);
+  const plugin = usePlugin();
+  const getCreatedNotes = useCreatedNotes(plugin.app);
+  const [endedEarly, setEndedEarly] = useState(false);
+  const [summaryNotes, setSummaryNotes] = useState<TFile[] | null>(null);
+  const finished = isTourFinished(tour);
+  const step = summaryNotes || endedEarly ? undefined : getCurrentStep(tour);
   const { rect, missing } = useTargetRect(step?.target);
 
   const advance = useCallback((outcome: StepOutcome) => {
@@ -131,8 +202,11 @@ export const TutorialOverlay = ({
   }, []);
 
   useEffect(() => {
-    if (isTourFinished(tour)) onClose();
-  }, [tour, onClose]);
+    if (!finished && !endedEarly) return;
+    const notes = getCreatedNotes();
+    if (notes.length === 0) onClose();
+    else setSummaryNotes(notes);
+  }, [finished, endedEarly, getCreatedNotes, onClose]);
 
   useEffect(() => {
     if (!step?.watchDone) return;
@@ -144,6 +218,11 @@ export const TutorialOverlay = ({
     });
   }, [step, advance]);
 
+  if (summaryNotes) {
+    return (
+      <SummaryCard notes={summaryNotes} finished={finished} onClose={onClose} />
+    );
+  }
   if (!step) return null;
   // Wait out the grace period rather than flashing a card in the wrong place.
   if (step.target && !rect && !missing) return null;
@@ -158,7 +237,7 @@ export const TutorialOverlay = ({
         targetRect={rect}
         targetMissing={missing}
         onAdvance={advance}
-        onEnd={onClose}
+        onEnd={() => setEndedEarly(true)}
       />
     </>
   );

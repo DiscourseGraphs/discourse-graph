@@ -54,6 +54,13 @@ export const SAMPLE_TUTORIAL: TutorialStep[] = [
   },
   {
     kind: "block",
+    block: "add-relation",
+    params: { relationType: "derived from" },
+    title: "Link it to its source",
+    body: "In the panel, click Add a new relation, choose derived from, pick your Source note and confirm.",
+  },
+  {
+    kind: "block",
     block: "create-base",
     title: "List all your claims",
     body: 'Run "Create Base view for node type" and pick Claim.',

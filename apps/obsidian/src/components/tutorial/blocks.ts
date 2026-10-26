@@ -8,6 +8,7 @@ import {
   doneWhenNoteConverted,
   doneWhenNoteOpens,
   doneWhenPresent,
+  doneWhenRelationAdded,
   doneWhenSettingsTabOpen,
   doneWhenTextSelected,
   doneWhenViewOpen,
@@ -118,6 +119,24 @@ export const BLOCKS: Record<string, BlockDefinition> = {
     completesWhen: "the Base file is created, after the user picks the type",
     params: [],
     resolve: (plugin) => ({ watchDone: doneWhenBaseCreated(plugin.app) }),
+  },
+  "add-relation": {
+    description:
+      "Link two nodes with a relation of a given type, from the discourse context panel's 'Add a new relation'. Use the relation's label, as listed in relationTypes.",
+    completesWhen:
+      "a new relation of that type is saved (after the user confirms it)",
+    params: ["relationType"],
+    resolve: (plugin, { relationType }) => {
+      const wanted = relationType?.trim().toLowerCase();
+      const type = plugin.settings.relationTypes.find(
+        (candidate) =>
+          candidate.label.toLowerCase() === wanted ||
+          candidate.complement.toLowerCase() === wanted,
+      );
+      return type
+        ? { watchDone: doneWhenRelationAdded(plugin, type.id) }
+        : null;
+    },
   },
   "convert-to-node": {
     description:

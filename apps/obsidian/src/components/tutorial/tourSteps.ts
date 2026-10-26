@@ -1,4 +1,6 @@
-import type { App, TFile } from "obsidian";
+import type { App, TAbstractFile, TFile } from "obsidian";
+import type DiscourseGraphPlugin from "~/index";
+import { getRelationsFilePath, loadRelations } from "~/utils/relationsStore";
 
 export type Placement = "top" | "bottom" | "left" | "right";
 
@@ -185,5 +187,34 @@ export const doneWhenNoteConverted =
     return () => {
       app.workspace.offref(openRef);
       app.metadataCache.offref(changedRef);
+    };
+  };
+
+/** Completes when relations.json gains a relation of the type that wasn't there when the step started. */
+export const doneWhenRelationAdded =
+  (plugin: DiscourseGraphPlugin, relationTypeId: string): WatchDone =>
+  (done) => {
+    const { vault } = plugin.app;
+    const existingIds = loadRelations(plugin).then(
+      (file) => new Set(Object.keys(file.relations)),
+    );
+    const check = async (file: TAbstractFile): Promise<void> => {
+      if (file.path !== getRelationsFilePath()) return;
+      const [before, { relations }] = await Promise.all([
+        existingIds,
+        loadRelations(plugin),
+      ]);
+      const added = Object.values(relations).some(
+        (relation) =>
+          !before.has(relation.id) && relation.type === relationTypeId,
+      );
+      if (added) done();
+    };
+    const onChange = (file: TAbstractFile): void => void check(file);
+    const modifyRef = vault.on("modify", onChange);
+    const createRef = vault.on("create", onChange);
+    return () => {
+      vault.offref(modifyRef);
+      vault.offref(createRef);
     };
   };

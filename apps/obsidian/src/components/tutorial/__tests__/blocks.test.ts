@@ -8,7 +8,12 @@ import {
 const KNOWN_COMMAND = "@discourse-graph/obsidian:create-discourse-node";
 
 const plugin = {
-  settings: { nodeTypes: [{ id: "node_claim", name: "Claim" }] },
+  settings: {
+    nodeTypes: [{ id: "node_claim", name: "Claim" }],
+    relationTypes: [
+      { id: "rel_supports", label: "supports", complement: "is supported by" },
+    ],
+  },
   app: {
     setting: {
       settingTabs: [{ id: "editor" }],
@@ -118,6 +123,20 @@ describe("resolveTutorialSteps", () => {
       });
     expect(convert("claim").watchDone).toBeTypeOf("function");
     expect(convert("Hypothesis").watchDone).toBeUndefined();
+  });
+
+  it("matches add-relation by label or complement, and downgrades unknown ones", () => {
+    const addRelation = (relationType: string) =>
+      resolveOne({
+        kind: "block",
+        block: "add-relation",
+        params: { relationType },
+        title: "t",
+        body: "b",
+      });
+    expect(addRelation("Supports").watchDone).toBeTypeOf("function");
+    expect(addRelation("is supported by").watchDone).toBeTypeOf("function");
+    expect(addRelation("contradicts").watchDone).toBeUndefined();
   });
 
   it("backs the parameterless select-text and create-base blocks", () => {
