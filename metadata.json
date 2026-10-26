@@ -1,0 +1,43 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5W70R4RDYPV0PHWN079GW8Z",
+  "strategy": "manual-commit",
+  "branch": "obsidian-ai-tutorial",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/obsidian/src/components/tutorial/TutorialManager.tsx",
+    "apps/obsidian/src/components/tutorial/TutorialOverlay.tsx",
+    "apps/obsidian/src/components/tutorial/__tests__/cardPosition.test.ts",
+    "apps/obsidian/src/components/tutorial/__tests__/tourState.test.ts",
+    "apps/obsidian/src/components/tutorial/cardPosition.ts",
+    "apps/obsidian/src/components/tutorial/sampleTour.ts",
+    "apps/obsidian/src/components/tutorial/tourState.ts",
+    "apps/obsidian/src/components/tutorial/tourSteps.ts",
+    "apps/obsidian/src/components/tutorial/useTargetRect.ts",
+    "apps/obsidian/src/styles/tutorial.css",
+    "apps/obsidian/src/utils/registerCommands.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 204,
+    "cache_creation_tokens": 485854,
+    "cache_read_tokens": 18180433,
+    "output_tokens": 100876,
+    "api_call_count": 101,
+    "subagent_tokens": {
+      "input_tokens": 46,
+      "cache_creation_tokens": 131177,
+      "cache_read_tokens": 886010,
+      "output_tokens": 360,
+      "api_call_count": 23
+    }
+  }
+}
