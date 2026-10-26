@@ -21,6 +21,7 @@ import { openImportSpecsModal } from "~/components/ImportSpecsModal";
 import { TutorialManager } from "~/components/tutorial/TutorialManager";
 import { SAMPLE_TUTORIAL } from "~/components/tutorial/sampleTour";
 import { resolveTutorialSteps } from "~/components/tutorial/blocks";
+import { GenerateTutorialModal } from "~/components/tutorial/GenerateTutorialModal";
 
 type ModifyNodeSubmitParams = {
   nodeType: DiscourseNode;
@@ -371,6 +372,19 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
           steps: resolveTutorialSteps({ plugin, steps: SAMPLE_TUTORIAL }),
           includeBasics: true,
         }),
+    });
+    plugin.addCommand({
+      id: "generate-tutorial",
+      name: "Generate a tutorial (dev)",
+      callback: () =>
+        new GenerateTutorialModal({
+          plugin,
+          onGenerated: ({ steps, newToObsidian }) =>
+            tutorialManager.start({
+              steps: resolveTutorialSteps({ plugin, steps }),
+              includeBasics: newToObsidian,
+            }),
+        }).open(),
     });
   }
 };

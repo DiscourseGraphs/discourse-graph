@@ -19,10 +19,11 @@ declare module "obsidian" {
       open: () => void;
       openTabById: (id: string) => void;
       activeTab: { id: string } | null;
-      settingTabs: { id: string }[];
-      pluginTabs: { id: string }[];
+      settingTabs: { id: string; name: string }[];
+      pluginTabs: { id: string; name: string }[];
     };
     commands: {
+      commands: Record<string, Command>;
       findCommand: (id: string) => Command | undefined;
     };
   }
