@@ -169,6 +169,13 @@ const SUPPORTERS: Supporter[] = [
     width: 546,
     height: 262,
   },
+  {
+    alt: "Astera",
+    href: "https://astera.org/",
+    image: "/supporter-logos/Astera.svg",
+    width: 447,
+    height: 128,
+  },
 ];
 
 const ArrowLink = ({
@@ -225,7 +232,6 @@ const Home = async (): Promise<ReactElement> => {
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               {/* Use hard navigation across the marketing/docs boundary because client-side transitions can leak docs CSS. */}
-              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
               <a
                 href="/docs"
                 className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary/90 hover:text-white"
@@ -335,7 +341,6 @@ const Home = async (): Promise<ReactElement> => {
                     </div>
                     <div className="mt-auto flex flex-wrap gap-3">
                       {/* Use hard navigation across the marketing/docs boundary because client-side transitions can leak docs CSS. */}
-                      {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                       <a
                         href={plugin.docsHref}
                         className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary/90 hover:text-white"
@@ -580,12 +585,12 @@ const Home = async (): Promise<ReactElement> => {
               title="Supported by open science funders and partners"
               description="Organizations helping make modular, reusable scientific communication possible."
             />
-            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="mt-10 flex flex-wrap justify-center gap-4">
               {SUPPORTERS.map((supporter) => (
                 <Link
                   key={supporter.href}
                   href={supporter.href}
-                  className="flex h-32 items-center justify-center gap-3 rounded-lg border border-neutral-dark/10 bg-white p-6 transition-colors hover:border-secondary"
+                  className="flex h-32 w-full items-center justify-center gap-3 rounded-lg border border-neutral-dark/10 bg-white p-6 transition-colors hover:border-secondary sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.7rem)]"
                 >
                   <Image
                     src={supporter.image}
