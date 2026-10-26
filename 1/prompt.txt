@@ -223,3 +223,7 @@ fix first
 ---
 
 what are the missing blocks?
+
+---
+
+build the first four, then rerun the previews. after you're done, start the M4
