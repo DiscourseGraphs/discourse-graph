@@ -32,6 +32,8 @@ type StepBehavior = Pick<
 type BlockDefinition = {
   /** Shown to the model so it knows when to pick this block. */
   description: string;
+  /** Shown to the model so a step doesn't ask for more than its done-check waits for. */
+  completesWhen: string;
   params: readonly string[];
   /** Returns null when the params don't match this vault, so the step falls back to text. */
   resolve: (
@@ -47,12 +49,15 @@ const ribbonSelector = (label: string): string =>
 export const BLOCKS: Record<string, BlockDefinition> = {
   "open-command-palette": {
     description: "Open Obsidian's command palette with Cmd/Ctrl+P.",
+    completesWhen: "the command palette opens",
     params: [],
     resolve: () => ({ basics: true, watchDone: doneWhenPresent(".prompt") }),
   },
   "create-node": {
     description:
       "Create a discourse node of a given type through the 'Create discourse node' command.",
+    completesWhen:
+      "a new node of that type is saved (the user has confirmed the Create discourse node window)",
     params: ["nodeType"],
     resolve: (plugin, { nodeType }) => {
       const type = plugin.settings.nodeTypes.find(
@@ -66,6 +71,8 @@ export const BLOCKS: Record<string, BlockDefinition> = {
   "open-discourse-context": {
     description:
       "Open the discourse context panel, which shows a node's relations.",
+    completesWhen:
+      "the panel is open, immediately if it already is; nothing done inside the panel is detected",
     params: [],
     resolve: (plugin) => ({
       target: ribbonSelector("Toggle discourse context"),
