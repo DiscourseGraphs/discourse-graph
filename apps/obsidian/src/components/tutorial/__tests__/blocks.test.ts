@@ -10,6 +10,10 @@ const KNOWN_COMMAND = "@discourse-graph/obsidian:create-discourse-node";
 const plugin = {
   settings: { nodeTypes: [{ id: "node_claim", name: "Claim" }] },
   app: {
+    setting: {
+      settingTabs: [{ id: "editor" }],
+      pluginTabs: [{ id: "@discourse-graph/obsidian" }],
+    },
     commands: {
       findCommand: (id: string) =>
         id === KNOWN_COMMAND
@@ -76,6 +80,16 @@ describe("resolveTutorialSteps", () => {
     });
     expect(known.watchDone).toBeTypeOf("function");
     expect(unknown.watchDone).toBeUndefined();
+  });
+
+  it("checks settings-tab steps against core and plugin tabs", () => {
+    const resolveTab = (tabId: string) =>
+      resolveOne({ kind: "settings-tab", tabId, title: "t", body: "b" });
+    expect(resolveTab("editor").watchDone).toBeTypeOf("function");
+    expect(resolveTab("@discourse-graph/obsidian").watchDone).toBeTypeOf(
+      "function",
+    );
+    expect(resolveTab("made-up-tab").watchDone).toBeUndefined();
   });
 
   it("marks the command palette block as an Obsidian basic", () => {

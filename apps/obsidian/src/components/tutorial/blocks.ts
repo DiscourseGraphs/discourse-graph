@@ -5,6 +5,7 @@ import {
   doneWhenCommandRuns,
   doneWhenNodeCreated,
   doneWhenPresent,
+  doneWhenSettingsTabOpen,
   doneWhenViewOpen,
   type TourStep,
 } from "./tourSteps";
@@ -18,6 +19,8 @@ export type TutorialStep = {
   | { kind: "block"; block: string; params?: Record<string, string> }
   | { kind: "command"; commandId: string }
   | { kind: "ribbon"; label: string }
+  /** Settings opens in its own window, so the card can't spotlight inside it; the body must say where to click. */
+  | { kind: "settings-tab"; tabId: string }
   | { kind: "text" }
 );
 
@@ -87,6 +90,14 @@ const resolveBehavior = (
       const target = ribbonSelector(step.label);
       return document.querySelector(target)
         ? { target, placement: "right", watchDone: doneOnClick(target) }
+        : null;
+    }
+    case "settings-tab": {
+      const { settingTabs, pluginTabs } = plugin.app.setting;
+      return [...settingTabs, ...pluginTabs].some(
+        (tab) => tab.id === step.tabId,
+      )
+        ? { watchDone: doneWhenSettingsTabOpen(plugin.app, step.tabId) }
         : null;
     }
     case "text":

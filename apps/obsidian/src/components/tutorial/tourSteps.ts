@@ -105,3 +105,15 @@ export const doneWhenViewOpen =
     const ref = app.workspace.on("layout-change", check);
     return () => app.workspace.offref(ref);
   };
+
+const SETTINGS_POLL_MS = 250;
+
+// Settings is a separate window in Obsidian 1.13 with no tab-change event, so poll the active tab.
+export const doneWhenSettingsTabOpen =
+  (app: App, tabId: string): WatchDone =>
+  (done) => {
+    const interval = window.setInterval(() => {
+      if (app.setting.activeTab?.id === tabId) done();
+    }, SETTINGS_POLL_MS);
+    return () => window.clearInterval(interval);
+  };

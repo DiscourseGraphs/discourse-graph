@@ -22,6 +22,12 @@ export const SAMPLE_TUTORIAL: TutorialStep[] = [
     body: "Click the telescope icon to open the discourse context panel. Relations you add will show up here.",
   },
   {
+    kind: "settings-tab",
+    tabId: "@discourse-graph/obsidian",
+    title: "Find your node types",
+    body: "Open Settings (Cmd/Ctrl+,) and choose Discourse Graph in the sidebar. Node types like Claim and Evidence are configured there.",
+  },
+  {
     kind: "text",
     title: "You're set up",
     body: "Next, try linking this claim to the evidence that supports it.",
