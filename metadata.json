@@ -3,8 +3,13 @@
   "checkpoint_id": "01M5WCZGMSMFXTK5ZZVBQFXMKS",
   "strategy": "manual-commit",
   "branch": "obsidian-ai-tutorial",
-  "checkpoints_count": 6,
-  "files_touched": null,
+  "checkpoints_count": 8,
+  "files_touched": [
+    "apps/obsidian/src/components/tutorial/__tests__/blocks.test.ts",
+    "apps/obsidian/src/components/tutorial/blocks.ts",
+    "apps/obsidian/src/components/tutorial/sampleTour.ts",
+    "apps/obsidian/src/components/tutorial/tourSteps.ts"
+  ],
   "sessions": [
     {
       "metadata": "/0/metadata.json",
@@ -12,14 +17,21 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": "/0/prompt.txt"
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 348,
-    "cache_creation_tokens": 1490207,
-    "cache_read_tokens": 43869984,
-    "output_tokens": 161894,
-    "api_call_count": 167,
+    "input_tokens": 376,
+    "cache_creation_tokens": 1515127,
+    "cache_read_tokens": 50525709,
+    "output_tokens": 183677,
+    "api_call_count": 181,
     "subagent_tokens": {
       "input_tokens": 334,
       "cache_creation_tokens": 978221,
