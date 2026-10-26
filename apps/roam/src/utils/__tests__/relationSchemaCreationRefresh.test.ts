@@ -73,7 +73,6 @@ vi.mock("roamjs-components/components/MenuItemSelect", () => ({
 }));
 vi.mock("roamjs-components/util/renderOverlay", () => ({ default: vi.fn() }));
 vi.mock("roamjs-components/components/Toast", () => ({ render: vi.fn() }));
-vi.mock("posthog-js", () => ({ default: { capture: vi.fn() } }));
 
 let container: HTMLDivElement;
 let root: Root;
