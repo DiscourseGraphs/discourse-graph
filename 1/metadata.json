@@ -1,0 +1,63 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5W7Y0D8N6GCPCFS38XQDWJE",
+  "session_id": "e58de466-8a93-4a3c-bdc9-1c2dc30f560d",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-26T13:55:55.396269Z",
+  "branch": "obsidian-ai-tutorial",
+  "checkpoints_count": 1,
+  "save_step_count": 1,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "claude-opus-5",
+  "turn_id": "6a444e0de505",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 356,
+    "cache_creation_tokens": 1142542,
+    "cache_read_tokens": 34077433,
+    "output_tokens": 165012,
+    "api_call_count": 189,
+    "subagent_tokens": {
+      "input_tokens": 22,
+      "cache_creation_tokens": 146010,
+      "cache_read_tokens": 509144,
+      "output_tokens": 5790,
+      "api_call_count": 11
+    }
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 23,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "Default/Cache/No_Vary_Search/journal.baj": 1,
+        "Default/IndexedDB/https_roamresearch.com_0.indexeddb.leveldb/CURRENT": 1,
+        "Default/IndexedDB/https_roamresearch.com_0.indexeddb.leveldb/LOG": 6,
+        "Default/Local Storage/leveldb/CURRENT": 1,
+        "Default/Local Storage/leveldb/LOG": 2,
+        "Default/Service Worker/Database/CURRENT": 1,
+        "Default/Service Worker/Database/LOG": 2,
+        "Default/Session Storage/CURRENT": 1,
+        "Default/Session Storage/LOG": 2,
+        "Default/shared_proto_db/CURRENT": 1,
+        "Default/shared_proto_db/LOG": 2,
+        "Default/shared_proto_db/metadata/CURRENT": 1,
+        "Default/shared_proto_db/metadata/LOG": 2
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 23,
+      "agent_lines_removed": 0
+    }
+  ]
+}

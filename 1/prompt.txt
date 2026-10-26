@@ -1,0 +1,5 @@
+ok, help me understand a few things:
+
+* how do we (or Sid's proofkit) generate tests? what are the criteria? ideally find the prompt that he used to generate tests
+* what are the things we did to adopt this to Obsidian? what's the next step?
+* what's the best way to QA this testing feature?
