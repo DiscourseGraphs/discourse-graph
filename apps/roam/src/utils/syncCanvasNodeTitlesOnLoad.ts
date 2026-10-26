@@ -4,6 +4,7 @@ import {
   getDiscourseNodeTypeId,
   type DiscourseNodeShape,
 } from "~/components/canvas/DiscourseNodeUtil";
+import { DISCOURSE_RELATION_SHAPE_TYPE } from "~/components/canvas/DiscourseRelationShape/DiscourseRelationUtil";
 
 /**
  * Query Roam for current :node/title or :block/string for each uid.
@@ -35,8 +36,12 @@ const deleteNodeShapeAndRelations = (
   shape: DiscourseNodeShape,
   relationIds: Set<string>,
 ): void => {
-  const bindingsToThisShape = Array.from(relationIds).flatMap((typeId) =>
-    editor.getBindingsToShape(shape.id, typeId),
+  const relationBindingTypes = new Set([
+    DISCOURSE_RELATION_SHAPE_TYPE,
+    ...relationIds,
+  ]);
+  const bindingsToThisShape = Array.from(relationBindingTypes).flatMap(
+    (typeId) => editor.getBindingsToShape(shape.id, typeId),
   );
   const relationShapeIdsAndType = bindingsToThisShape.map((b) => ({
     id: b.fromId,
