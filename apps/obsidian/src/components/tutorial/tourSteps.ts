@@ -1,4 +1,4 @@
-import type { App } from "obsidian";
+import type { App, TFile } from "obsidian";
 
 export type Placement = "top" | "bottom" | "left" | "right";
 
@@ -116,4 +116,74 @@ export const doneWhenSettingsTabOpen =
       if (app.setting.activeTab?.id === tabId) done();
     }, SETTINGS_POLL_MS);
     return () => window.clearInterval(interval);
+  };
+
+const nodeTypeIdOf = (app: App, file: TFile): unknown =>
+  app.metadataCache.getFileCache(file)?.frontmatter?.nodeTypeId;
+
+/** Without a node type any note counts, but only one opened during the step. */
+export const doneWhenNoteOpens =
+  (app: App, nodeTypeId?: string): WatchDone =>
+  (done) => {
+    const active = app.workspace.getActiveFile();
+    if (nodeTypeId && active && nodeTypeIdOf(app, active) === nodeTypeId) {
+      done();
+      return () => {};
+    }
+    const ref = app.workspace.on("file-open", (file) => {
+      if (file && (!nodeTypeId || nodeTypeIdOf(app, file) === nodeTypeId)) {
+        done();
+      }
+    });
+    return () => app.workspace.offref(ref);
+  };
+
+export const doneWhenTextSelected =
+  (app: App): WatchDone =>
+  (done) => {
+    const check = (): void => {
+      if (app.workspace.activeEditor?.editor?.somethingSelected()) done();
+    };
+    check();
+    document.addEventListener("selectionchange", check);
+    return () => document.removeEventListener("selectionchange", check);
+  };
+
+export const doneWhenBaseCreated =
+  (app: App): WatchDone =>
+  (done) => {
+    const ref = app.vault.on("create", (file) => {
+      if (file.path.endsWith(".base")) done();
+    });
+    return () => app.vault.offref(ref);
+  };
+
+/**
+ * Completes when a note the user had open during the step gains the node type.
+ * Remembering each note's type on open avoids both a vault scan and firing on edits to existing nodes.
+ */
+export const doneWhenNoteConverted =
+  (app: App, nodeTypeId: string): WatchDone =>
+  (done) => {
+    const typeOnOpen = new Map<string, unknown>();
+    const remember = (file: TFile | null): void => {
+      if (file && !typeOnOpen.has(file.path)) {
+        typeOnOpen.set(file.path, nodeTypeIdOf(app, file));
+      }
+    };
+    remember(app.workspace.getActiveFile());
+    const openRef = app.workspace.on("file-open", remember);
+    const changedRef = app.metadataCache.on("changed", (file, _data, cache) => {
+      if (
+        typeOnOpen.has(file.path) &&
+        typeOnOpen.get(file.path) !== nodeTypeId &&
+        cache.frontmatter?.nodeTypeId === nodeTypeId
+      ) {
+        done();
+      }
+    });
+    return () => {
+      app.workspace.offref(openRef);
+      app.metadataCache.offref(changedRef);
+    };
   };

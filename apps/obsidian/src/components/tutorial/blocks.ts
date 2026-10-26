@@ -1,11 +1,15 @@
 import type DiscourseGraphPlugin from "~/index";
-import { VIEW_TYPE_DISCOURSE_CONTEXT } from "~/types";
+import { VIEW_TYPE_DISCOURSE_CONTEXT, type DiscourseNode } from "~/types";
 import {
   doneOnClick,
+  doneWhenBaseCreated,
   doneWhenCommandRuns,
   doneWhenNodeCreated,
+  doneWhenNoteConverted,
+  doneWhenNoteOpens,
   doneWhenPresent,
   doneWhenSettingsTabOpen,
+  doneWhenTextSelected,
   doneWhenViewOpen,
   type TourStep,
 } from "./tourSteps";
@@ -46,6 +50,14 @@ type BlockDefinition = {
 const ribbonSelector = (label: string): string =>
   `.side-dock-ribbon-action[aria-label="${label.replace(/["\\]/g, "\\$&")}"]`;
 
+const findNodeType = (
+  plugin: DiscourseGraphPlugin,
+  name: string | undefined,
+): DiscourseNode | undefined =>
+  plugin.settings.nodeTypes.find(
+    (candidate) => candidate.name.toLowerCase() === name?.trim().toLowerCase(),
+  );
+
 export const BLOCKS: Record<string, BlockDefinition> = {
   "open-command-palette": {
     description: "Open Obsidian's command palette with Cmd/Ctrl+P.",
@@ -60,10 +72,7 @@ export const BLOCKS: Record<string, BlockDefinition> = {
       "a new node of that type is saved (the user has confirmed the Create discourse node window)",
     params: ["nodeType"],
     resolve: (plugin, { nodeType }) => {
-      const type = plugin.settings.nodeTypes.find(
-        (candidate) =>
-          candidate.name.toLowerCase() === nodeType?.trim().toLowerCase(),
-      );
+      const type = findNodeType(plugin, nodeType);
       if (!type) return null;
       return { watchDone: doneWhenNodeCreated(plugin.app, type.id) };
     },
@@ -79,6 +88,48 @@ export const BLOCKS: Record<string, BlockDefinition> = {
       placement: "right",
       watchDone: doneWhenViewOpen(plugin.app, VIEW_TYPE_DISCOURSE_CONTEXT),
     }),
+  },
+  "open-note": {
+    description:
+      "Open a note, for example a node the user just created. Pass nodeType to require a node of that type; leave it empty for any note.",
+    completesWhen:
+      "a note opens during the step (a node of that type, if given; immediately if one is already the active note)",
+    params: ["nodeType"],
+    resolve: (plugin, { nodeType }) => {
+      if (!nodeType?.trim()) {
+        return { watchDone: doneWhenNoteOpens(plugin.app) };
+      }
+      const type = findNodeType(plugin, nodeType);
+      return type
+        ? { watchDone: doneWhenNoteOpens(plugin.app, type.id) }
+        : null;
+    },
+  },
+  "select-text": {
+    description:
+      "Select text in the open note, for example a sentence to turn into a node.",
+    completesWhen: "any text is selected in the active editor",
+    params: [],
+    resolve: (plugin) => ({ watchDone: doneWhenTextSelected(plugin.app) }),
+  },
+  "create-base": {
+    description:
+      "Make a table of every node of one type: run 'Create Base view for node type' and pick the type.",
+    completesWhen: "the Base file is created, after the user picks the type",
+    params: [],
+    resolve: (plugin) => ({ watchDone: doneWhenBaseCreated(plugin.app) }),
+  },
+  "convert-to-node": {
+    description:
+      "Turn an existing note into a discourse node of a given type: with the note open, run 'Convert current page to discourse node', pick the type and confirm.",
+    completesWhen: "a note the user had open becomes a node of that type",
+    params: ["nodeType"],
+    resolve: (plugin, { nodeType }) => {
+      const type = findNodeType(plugin, nodeType);
+      return type
+        ? { watchDone: doneWhenNoteConverted(plugin.app, type.id) }
+        : null;
+    },
   },
 };
 

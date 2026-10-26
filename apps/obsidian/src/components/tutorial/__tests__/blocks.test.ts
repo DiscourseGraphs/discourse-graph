@@ -92,6 +92,42 @@ describe("resolveTutorialSteps", () => {
     expect(resolveTab("made-up-tab").watchDone).toBeUndefined();
   });
 
+  it("lets open-note match any note, or only a node type this vault has", () => {
+    const openNote = (params?: Record<string, string>) =>
+      resolveOne({
+        kind: "block",
+        block: "open-note",
+        params,
+        title: "t",
+        body: "b",
+      });
+    expect(openNote().watchDone).toBeTypeOf("function");
+    expect(openNote({ nodeType: "" }).watchDone).toBeTypeOf("function");
+    expect(openNote({ nodeType: "Claim" }).watchDone).toBeTypeOf("function");
+    expect(openNote({ nodeType: "Hypothesis" }).watchDone).toBeUndefined();
+  });
+
+  it("downgrades convert-to-node for a node type this vault lacks", () => {
+    const convert = (nodeType: string) =>
+      resolveOne({
+        kind: "block",
+        block: "convert-to-node",
+        params: { nodeType },
+        title: "t",
+        body: "b",
+      });
+    expect(convert("claim").watchDone).toBeTypeOf("function");
+    expect(convert("Hypothesis").watchDone).toBeUndefined();
+  });
+
+  it("backs the parameterless select-text and create-base blocks", () => {
+    for (const block of ["select-text", "create-base"]) {
+      expect(
+        resolveOne({ kind: "block", block, title: "t", body: "b" }).watchDone,
+      ).toBeTypeOf("function");
+    }
+  });
+
   it("marks the command palette block as an Obsidian basic", () => {
     const step = resolveOne({
       kind: "block",
