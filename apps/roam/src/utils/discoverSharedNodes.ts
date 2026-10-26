@@ -1,6 +1,6 @@
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import {
-  listGroupSharedCrossAppNodes,
+  listGroupSharedNodes,
   type SharedNodeListing,
 } from "@repo/database/lib/sharedNodes";
 import { getImportedSourceRids } from "./importedSourceIdentity";
@@ -17,7 +17,7 @@ export const discoverSharedNodes = async ({
   }
 > => {
   const [listing, importedSourceRids] = await Promise.all([
-    listGroupSharedCrossAppNodes({ client, currentSpaceId }),
+    listGroupSharedNodes({ client, currentSpaceId }),
     getImportedSourceRids(),
   ]);
   return { ...listing, importedSourceRids };

@@ -413,7 +413,6 @@ describe("dbNodeToCrossApp", () => {
     author_id: 42,
     created: "2026-06-14T11:00:00",
     last_modified: "2026-06-14T13:00:00",
-    metadata: { filePath: "EVD - REM sleep and recall.md" },
     source_local_id: "node-1",
     space_id: 20,
     text: "EVD - REM sleep and recall",
@@ -549,6 +548,22 @@ describe("dbNodeToCrossApp", () => {
     },
   );
 
+  it("takes modifiedAt from the direct content when there is no full content", () => {
+    expect(convert({ fullLastModified: null }).modifiedAt).toEqual(
+      new Date("2026-06-14T13:00:00Z"),
+    );
+  });
+
+  it("falls back to the created date when nothing has a last-modified date", () => {
+    expect(
+      convert({
+        concept: { ...concept, last_modified: null },
+        direct: { ...direct, last_modified: null },
+        fullLastModified: null,
+      }).modifiedAt,
+    ).toEqual(new Date("2026-06-14T11:00:00Z"));
+  });
+
   it("derives the core title from the node type's format when none was published", () => {
     expect(
       convert({ concept: { ...concept, core_title: null } }).coreTitle,
@@ -565,22 +580,40 @@ describe("dbNodeToCrossApp", () => {
   it.each([
     {
       error: "Missing author",
+      when: "the direct content has no author",
       overrides: { direct: { ...direct, author_id: null } },
     },
     {
       error: "Missing node type",
+      when: "the node type is not in the schema map",
       overrides: { concept: { ...concept, schema_id: 999 } },
     },
     {
       error: "Missing created date",
+      when: "the direct content has no created date",
       overrides: { direct: { ...direct, created: null } },
     },
-    { error: "Missing direct content", overrides: { direct: undefined } },
+    {
+      error: "Missing direct content",
+      when: "there is no direct content",
+      overrides: { direct: undefined },
+    },
+    {
+      error: "Not a node instance",
+      when: "the concept is a schema",
+      overrides: { concept: { ...concept, is_schema: true } },
+    },
+    {
+      error: "Missing node type",
+      when: "the concept has no node type",
+      overrides: { concept: { ...concept, schema_id: null } },
+    },
     {
       error: "Missing space",
+      when: "the space is not in the space map",
       overrides: { concept: { ...concept, space_id: 999 } },
     },
-  ])("throws $error", ({ error, overrides }) => {
+  ])("throws $error when $when", ({ error, overrides }) => {
     expect(() => convert(overrides)).toThrow(error);
   });
 });
@@ -603,7 +636,6 @@ describe("dbNodesToCrossApp", () => {
     author_id: authorId,
     created: "2026-06-14T11:00:00",
     last_modified: "2026-06-14T13:00:00",
-    metadata: {},
     source_local_id: sourceLocalId,
     space_id: 20,
     text: `EVD - Title of ${sourceLocalId}`,
