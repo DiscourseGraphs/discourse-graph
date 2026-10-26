@@ -1,0 +1,323 @@
+/opsx:explore
+
+---
+
+This will be a slow exploration session, we're thinking through a new feature, all its implications, and possibly many variants. Don't rush to solidify things, and help me think of alternatives or opportunities I've missed. The topic is adding personal accounts to DiscourseGraphs. Right now, the database's auth.users table holds pseudo-accounts that correspond to Spaces and groups; and we have person accounts in PlatformAccounts that are not yet tied to auth.users. One of the many use cases for user accounts is that I should be able to associate many PlatformAccounts for many spaces to my personal DG account in auth.users. This would allow me, for example, to search across all the spaces I'm part of without creating an ad-hoc group. Of course, being a member of a Space which is part of a group should also give me access to any information available to that group. We also want people to associate external accounts (Google, ORCID, Github, ATProto...) to their DiscourseGraph accounts, so that their published nodes have visible attribution, and also to allow them to log into their account on the website without going through the platform (after they have connected the two.) They'll need to be able to control how much of their personal information they reveal to the public or to various groups (The ability to control this is currently missing in the database. The notion of public information is sitting in the ENG-1837 branch, as well as some mitigation for how much personal information is public by default.) Most of the account management will be on the site after you have created your account from the platforms, though creating an account on the site should also be possible. Once we have information published on the site, there should be an easy path to create an account to propose a connected node (which will probably have to live in an ad-hoc personal space.) As you see, this is a sprawling change; so goals are making this more systematic, as well as listing all that this unblocks.
+
+---
+
+I should have told you: Some initial notes in https://roamresearch.com/#/app/discourse-graphs/page/Tow9ZlFAi and https://linear.app/discourse-graphs/project/discourse-graph-accounts-e3b585ef3c55/overview
+
+---
+
+Good that it gave you background; but we're thinking through pros and cons, and we should not suppose that decisions in those pages are settled. Specifically: Still thinking through B vs C. Maybe we could use the secret_token table instead of storing the nonce in Roam? Roam has a notion of graph admin, but afaik it's not exposed in API yet, and that's an issue. (Thank you for reminding me of it.) One thing  I can settle: Cross-space search should be possible on the platforms. (Ah and yes Website will be added to Platforms.)
+
+---
+
+Good catch on the ability to create API tokens being an admin function; but not sure I want to require an api token to unlock admin. Could we guess the admin as the first-created user in the graph? (Actually the first created user page, since an old user can join a new graph.) Can be overridden by API-token, of course. Also good catch on the separate claims, but we do care about identity. On where to store the personal session... does it change if we require an oauth-based external account to create a DG account? (Not that I'm that keen to go that route)
+
+---
+
+Ok. I'm convinced we want to keep password accounts, suits me. OAuth gives you cheap re-authentication when you have it. But as for unifying accounts: In my view, just as we open web sessions with secret_token to give space credentials on the web, we could add the Roam uid to that JWT cookie. Then if you authenticate on (say) google with that account active, the link can be made securely. So the link between who you are and which Roam identity is yours would be safe, no?
+
+---
+
+Hmmm... with a Roam API token, the vercel backend could ask the roam backend for the uid-to-email association. But that's very roam-specific.
+
+---
+
+Hmm... server-held roam graph token is not on the table otherwise. Let's keep it open as an option, as we decide on how much security we want, but I agree the lower security path may be acceptable. Still thinking about options... the issue is every graph reader having access to the space password; maybe they could be restricted to a lower-permission agent, giving the space password to admins. But that adds a burden on admins, not great either. And I don't want to force all roam users to create a DG account.
+
+---
+
+In this case at least, I do not want to decide, but I want to keep mapping the options to present to the group, with the cost/benefit of each option.
+
+---
+
+I think it makes sense as a working document on Roam. Can you write to Roam? Do you need a token to do so?
+
+---
+
+I think it's worth working on giving you Roam write access. Are you using ~/OpenSource/dg-team-mcp ? I just updated it.
+
+---
+
+Rebuilt. Where do I find the Write Visibility plugin?
+
+---
+
+Should be good to go
+
+---
+
+Should be good to go. Actually, I created a spec page for you to write in; I know we're not quite writing a spec yet but I think it's still speccing work. https://roamresearch.com/#/app/discourse-graphs/page/H3a0tja8D
+
+---
+
+page. cleared.
+
+---
+
+lgtm
+
+---
+
+I changed the token permissions, you should be able to write directly. Please keep to this page. A detail on L6: You need an active Roam subscription to get an API token, so that becomes a restriction on who can use this solution. We cannot make it required.
+
+---
+
+I added DG_MCP_BASE_TOOLS and reconnected, try again. I changed the token permissions in Roam previously.
+
+---
+
+Forget A, but yes let's compare B and C in detail.
+
+---
+
+Ah, and you can take "Can only graph owners or admins create a Roam backend token?" as proven.
+
+---
+
+I think that groups containing groups adds complexity and query time. I'm not against a single extra join query IF we decide on B, but I'm definitely not keen on a recursive query. I agree the known security hole needs to be closed first. I am also not that keen on inviting someone in a space at the database level; I think that we have two established mechanisms to give access: Invite into the platform, or create a group for sharing. Database invitations do not add to those two, and make the user's mental model more complex.
+
+---
+
+Ok, I did not anwer that last question because I need to understand it better. I would expect it to be easy to make access claims without identity claims; and I think they're useful for cross-space search. Is that what you want to knowL
+
+---
+
+Ah wait... what you call an access claim links a person to a space without going through the PlatformAccount... ok, not so sure anymore. I want to leave this open, and I think I even lean against it.
+
+---
+
+I like that middle variant better, yes. Actually scrap the access without a Platform account.
+
+---
+
+Yes. I think that the admin flag and strength  will have to be added to LocalAccess.
+
+---
+
+I think we will have an admin interface, and we will let proven admins domote guessed admins if they want to. I would not automate this.
+
+---
+
+Right. I guess we can ask an admin to provide an api token as proof without storing it. (Though I think we'll have to bite that bullet and store it, to ask roam to prove identity.)
+
+---
+
+Agreed on all counts. Earlier in the conversation, you had a question about admin powers, I do not find that list on the roam page.
+
+---
+
+Most candidates feel right, except approving identity claims (which feels wrong in general.) I think we should allow admins to name "delegate admins" that can take those actions even if they are not admins from the platform's PoV. Another thing: I lean towards always allowing cross-space search if you have the appropriate read access.
+
+---
+
+Consequence: Yes, record as a cost. Demotion is of lower level; but a delegated admin's level should be... lower than delegating admin, but higher than next level? Should each level have a delegated variant level? I think recording the delegating admin is overthinking. If the delegating admin is demoted, whoever did that should take care of other delegated admins.
+
+---
+
+I think that's all fine. Yes, a delegate can create a delegate of the same level. We're dealing with small teams, and I want to keep the system simple when possible.
+
+---
+
+Personal information: I'm leaning towards:  we could expose the names without the emails, until email is shared explicitly. But it's not unique, which is annoying. Profile visibility: maybe a row like ResourceAccess, with an array of visible fields (vs fetching multiple rows)
+
+---
+
+Agreed, we need to store emails. And yes, PlatformAccount id is appropriate. As for session... Is there any downside to switching from Space to Person account when available? The permissions should be the same.
+
+---
+
+ok so clearly two.
+
+---
+
+Agree we'll sync with the space session. Personal session: I expect to use supabase OAuth. It remains to be seen if we can do this within the plugin.
+
+---
+
+I meant the second. The first will be needed to add identities afterwards. It's possible someone will create the supabase identity with an external identity initially, and would want to keep using it for subsequent logins, without having to remember a Supabase token.
+
+---
+
+From https://supabase.com/docs/guides/auth/oauth-server : There is no separate charge for OAuth 2.1 Server. Users who sign in through your OAuth server count toward your project's Monthly Active Users (MAUs). See the pricing page for the MAU quota on each plan.
+
+---
+
+Yes, that's an added cost we'll have to absorb. IT would be nice to complete the flow inside the plugin but not obligatory.
+
+---
+
+I would use the profile name, it's the one most directly under the user's control. Storage: Is the session duration not determined by the supabase oauth tokens?
+
+---
+
+Hmmm. but if it's only on the website, Roam cannot access the person's session that way, am I right?
+
+---
+
+Let's keep this one pending, I think that the cost/benefit analysis is clear enough.
+
+---
+
+Ok. I want to get back into the nitty-gritty of the RLS. Right now, we seem to have decided on three separate tables: group_membership, LocalAccess and agent_grant. One thing I did not mention: It would make sense for personal accounts to be group members. So... how does the my_user_accounts function look like with all this?
+
+---
+
+1. Putting people in groups is probably preferred, but should not be necessary, at least at first; otherwise how will we promote people? So I think we will have to accept that a person who acts for S is an admin of G. Maybe we could restrict to admins of S, but there may be none initially, so that would be something to set as a second stage. I am not sure what you mean by "the identity set". (also makes 2 hard to parse.) 3 and 4 agreed.
+
+---
+
+Much clearer, thank you! Let me think about the names. What do you think about: space identity set, group identity set, full identity set? (Opinion please, not acting on it!)
+
+---
+
+Counter-proposal: self-and-spaces is good. Then we can go to spaces-and-groups and groups-and-everyone, each time leaving the previous level implicit. What do you think?
+
+---
+
+I like that rename. Cost: Correct, but it seems not to be used outside of sql RLS code, so not a big issue.
+
+---
+
+Looking at things to verify. I remember looking into ORCID OAuth: https://info.orcid.org/documentation/integration-guide/orcid-oauth-sign-in-guidelines/ . Is that not enough? The Obsidian PlatformAccounts are created by us, iirc. The first question should be easy to verify with a JS stanza.
+
+---
+
+<pasted_content id="0291">
+{
+    "me": "sR22zZ470dNPkIf9PpjQXXdTBjG2",
+    "victim": "REDACTED",
+    "pulled": {
+        ":create/user": {
+            ":user/uid": "sR22zZ470dNPkIf9PpjQXXdTBjG2"
+        },
+        ":edit/user": {
+            ":user/uid": "sR22zZ470dNPkIf9PpjQXXdTBjG2"
+        }
+    },
+    "forged": false
+}
+</pasted_content id="0291">
+
+---
+
+roamDatomicAlphaAPI: undefined
+
+---
+
+Look at https://supabase.com/docs/guides/auth/custom-oauth-providers
+
+---
+
+The fact about ATProto is worth recording.
+
+---
+
+Another detail: The layers discussion should include the case where your email is confirmed by a trusted external identity (google, github...). Probably same layer as L1?
+
+---
+
+Hey just a thought... we can sign into roam on the website at https://roamresearch.com/#/signin . Can that be used?
+
+---
+
+Does this have to be checked in the browser, or can I check it on the roam app?
+
+---
+
+Promise {status: "pending", gj: function, Ym: function, Zm: function, Sm: function, …}
+
+---
+
+Still returns a promise that resolves to undefined. (Tested on a private window in  browser fwiw)(
+
+---
+
+I did sign in. But then tried in the app:
+
+
+<pasted_content id="0291">
+databases: (29) ['ZOTERO_ROAM_AICS-Lumenoids', 'ZOTERO_ROAM_akamatsulab', 'ZOTERO_ROAM_discourse-graphs', 'birdEatsBugSdk', 'firebase-app-check-database', 'firebase-heartbeat-database', 'firebaseLocalStorageDb', 'marketplaceCache', 'v10_SLASH_dbs_SLASH_AI-assisted-benchmarking', 'v10_SLASH_dbs_SLASH_AICS-Lumenoids', 'v10_SLASH_dbs_SLASH_ProtocolTheory', 'v10_SLASH_dbs_SLASH_TopicQuests', 'v10_SLASH_dbs_SLASH_akamatsulab', 'v10_SLASH_dbs_SLASH_cellular-memory-adaptation', 'v10_SLASH_dbs_SLASH_conversence', 'v10_SLASH_dbs_SLASH_developer-documentation', 'v10_SLASH_dbs_SLASH_discourse-dev-graph', 'v10_SLASH_dbs_SLASH_discourse-graphs', 'v10_SLASH_dbs_SLASH_help', 'v10_SLASH_dbs_SLASH_megacoglab', 'v10_SLASH_dbs_SLASH_plugin-testing-Penn-HCI', 'v10_SLASH_dbs_SLASH_plugin-testing-akamatsulab', 'v10_SLASH_dbs_SLASH_plugin-testing-akamatsulab2', 'v10_SLASH_dbs_SLASH_plugin-testing-discourse-graphs', 'v10_SLASH_dbs_SLASH_plugin-testing-megacoglab', 'v10_SLASH_dbs_SLASH_template-lab', 'v10_SLASH_dbs_SLASH_test-3-graph', 'v10_SLASH_dbs_SLASH_tldraw-real-time-sync', 'workbox-expiration']
+VM254:14 stores: ['firebaseLocalStorage']
+VM254:23 rows: 2
+VM254:33 {key: 'firebase:authUser:REDACTED:[DEFAULT]', iss: 'https://securetoken.google.com/firescript-577a2', aud: 'firescript-577a2', sub: 'sR22zZ470dNPkIf9PpjQXXdTBjG2', email: 'maparent@acm.org', …}
+VM254:33 {key: 'firebase:authUser:REDACTED:[DEFAULT]-tx-writer', iss: 'https://securetoken.google.com/firescript-577a2', aud: 'firescript-577a2', sub: 'sR22zZ470dNPkIf9PpjQXXdTBjG2', email: 'maparent@acm.org', …}
+</pasted_content id="0291">
+
+---
+
+<pasted_content id="0291">
+{
+    "key": "firebase:authUser:REDACTED:[DEFAULT]-tx-writer",
+    "iss": "https://securetoken.google.com/firescript-577a2",
+    "aud": "firescript-577a2",
+    "sub": "sR22zZ470dNPkIf9PpjQXXdTBjG2",
+    "email": "maparent@acm.org",
+    "email_verified": true,
+    "exp": "2026-10-24T14:31:30.000Z"
+}
+</pasted_content id="0291">
+
+---
+
+I tried again on a non-private window in the browser, same result (undefined). Strange, no?
+
+---
+
+ok, I probably had the wrong stanza. Here it is (non-private)
+
+---
+
+<pasted_content id="0291">
+
+result: Object
+
+databases: ["firebase-app-check-database", "v10_SLASH_dbs_SLASH_developer-documentation", "firebaseLocalStorageDb", "workbox-expiration", "v10_SLASH_dbs_SLASH_discourse-graphs", "ZOTERO_ROAM_discourse-graphs", "marketplaceCache", "firebase-heartbeat-database", "v10_SLASH_dbs_SLASH_AICS-Lumenoids", "v10_SLASH_dbs_SLASH_plugin-testing-megacoglab", …] (24)
+
+entries: Array (1)
+0
+{key: "firebase:authUser:REDACTED:[DEFAULT]", iss: "https://securetoken.google.com/firescript-577a2", aud: "firescript-577a2", sub: "sR22zZ470dNPkIf9PpjQXXdTBjG2", email: "maparent@acm.org", …}
+
+Array Prototype
+
+stores: Array (1)
+0
+"firebaseLocalStorage"
+
+Array Prototype
+</pasted_content id="0291">
+
+---
+
+Ah, and the second stanza also works in a private window. Not sure what I did wrong the first time.
+
+---
+
+Ok I think that 'ask roam before using it' needs to be stronger, saying we should check that it does not violate the Roam ToS.
+
+---
+
+I added a note to the page that this is pre-spec level because of pending decisions. I think we can close now, record anything you need to.
+
+---
+
+Oh, another thought that came to me. If someone usurps an identity, the victim could check that in the DB the next time they load the plugin, correct?
+
+---
+
+yes.
+
+---
+
+Another thing: You say L1 is Roam-only. Why? We could  start an email challenge from Obsidian or the Web, no? Also I think Obsidian gives us an email, not sure it's verified.
+
+---
+
+Yes. Worth making it clear somewhere that you can have a verified identifier which is not tied to a platform account.
+
+---
+
+clearer, thank you!
