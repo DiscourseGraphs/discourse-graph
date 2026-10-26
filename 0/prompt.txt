@@ -207,3 +207,7 @@ go with a, start the block library. pause for me to manually test whenever you'r
 ---
 
 tested, works. commit and start the settings window slice. hmm but this is proof of concept if it takes too much work we can simply skip the settings step. i'm mainly interested in the AI generating tutorials correctly step
+
+---
+
+works, commit and start M3

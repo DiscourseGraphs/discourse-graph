@@ -128,6 +128,37 @@
         "label": "Skill: dg-obsidian-cdp-verify",
         "default_collapsed": true
       }
+    },
+    {
+      "id": "claude-skill-toolu_01SJqoECqN1pXzj83hPEpF9K",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "claude-api"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "6e913da57aa4",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 1485,
+        "end": 1486,
+        "entry_ids": [
+          "a89bfec9-a3fe-4954-9f89-1613ab32f10b"
+        ],
+        "tool_use_id": "toolu_01SJqoECqN1pXzj83hPEpF9K"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01SJqoECqN1pXzj83hPEpF9K"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: claude-api",
+        "default_collapsed": true
+      }
     }
   ],
   "session_metrics": {
