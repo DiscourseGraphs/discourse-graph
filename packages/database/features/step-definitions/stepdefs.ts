@@ -13,6 +13,16 @@ import {
 } from "@repo/database/dbTypes";
 import { getVariant, config } from "@repo/database/dbDotEnv";
 import { getConcepts, initNodeSchemaCache } from "@repo/database/lib/queries";
+import {
+  crossAppNodeSchemaToDbConcept,
+  crossAppNodeToDbConcept,
+} from "@repo/database/lib/crossAppConverters";
+import { roamOriginNodeExample } from "@repo/database/crossAppNodeContract.example";
+import {
+  getSharedNodeSpace,
+  listGroupSharedNodes,
+} from "@repo/database/lib/sharedNodes";
+import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
 
 import {
   spaceAnonUserEmail,
@@ -925,5 +935,94 @@ When(
       member_id: memberId,
     });
     assert.equal(r2.error, null);
+  },
+);
+
+When(
+  "user {word} publishes the example Roam node to space {word}",
+  async (userName: string, spaceName: string) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    const node = roamOriginNodeExample;
+    const client = await getLoggedinDatabaseForUsername(userName);
+    const response = await client.rpc("upsert_concepts", {
+      v_space_id: spaceId,
+      data: [
+        crossAppNodeSchemaToDbConcept({
+          localId: node.nodeType,
+          label: "Claim",
+          format: "[[CLM]] - {content}",
+          authorId: node.authorId,
+          createdAt: node.createdAt,
+          modifiedAt: node.modifiedAt,
+        }),
+        crossAppNodeToDbConcept(node),
+      ],
+    });
+    assert.equal(response.error, null);
+    assert.deepEqual(
+      response.data?.filter((id) => id < 0),
+      [],
+    );
+  },
+);
+
+Then(
+  "a user logged in space {word} reads the example Roam node of space {word} back through discovery",
+  async (readerSpaceName: string, publisherSpaceName: string) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const readerSpaceId = localRefs[readerSpaceName];
+    const publisherSpaceId = localRefs[publisherSpaceName];
+    if (typeof readerSpaceId !== "number")
+      assert.fail("readerSpaceId not a number");
+    if (typeof publisherSpaceId !== "number")
+      assert.fail("publisherSpaceId not a number");
+    const client = await getLoggedinDatabase(readerSpaceId);
+    const { nodes, spaces } = await listGroupSharedNodes({
+      client,
+      currentSpaceId: readerSpaceId,
+    });
+    assert.equal(nodes.length, 1);
+    const [node] = nodes;
+    assert.ok(node);
+    const space = getSharedNodeSpace({ node, spaces });
+    assert.equal(space.id, publisherSpaceId);
+    const published = roamOriginNodeExample;
+    assert.deepEqual(
+      {
+        rid: node.rid,
+        localId: node.localId,
+        authorId: node.authorId,
+        nodeType: node.nodeType,
+        coreTitle: node.coreTitle,
+        direct: node.content.direct.value,
+        createdAt: node.createdAt,
+        modifiedAt: node.modifiedAt,
+      },
+      {
+        rid: spaceUriAndLocalIdToRid(space.url, published.localId, "note"),
+        localId: published.localId,
+        authorId: published.authorId,
+        nodeType: published.nodeType,
+        coreTitle: published.coreTitle,
+        direct: published.content.direct.value,
+        createdAt: published.createdAt,
+        modifiedAt: published.modifiedAt,
+      },
+    );
+    const full = await client
+      .from("my_contents")
+      .select("text, content_type")
+      .eq("space_id", space.id)
+      .eq("source_local_id", node.localId)
+      .eq("variant", "full")
+      .eq("original", true)
+      .maybeSingle();
+    assert.equal(full.error, null);
+    assert.deepEqual(full.data, {
+      text: published.content.full?.value,
+      content_type: published.content.full?.contentType,
+    });
   },
 );
