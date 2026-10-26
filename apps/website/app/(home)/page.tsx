@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { getAllBlogs } from "~/(home)/blog/readBlogs";
 import { FoundationsSection } from "~/components/FoundationsSection";
+import labGraph from "~/data/labGraph.json";
 import { GraphBackgroundAnimation } from "~/components/GraphBackgroundAnimation";
 import { Logo } from "~/components/Logo";
 import { PlatformBadge } from "~/components/PlatformBadge";
@@ -216,7 +217,7 @@ const Home = async (): Promise<ReactElement> => {
         data-translucent-header
         className="relative isolate -mt-[var(--header-height)] flex min-h-[72svh] items-center overflow-hidden border-b border-neutral-dark/10 bg-white px-5 pb-16 pt-[calc(4rem+var(--header-height))] text-neutral-dark sm:px-6 lg:pb-20 lg:pt-[calc(5rem+var(--header-height))]"
       >
-        <GraphBackgroundAnimation colors={graphColors} />
+        <GraphBackgroundAnimation colors={graphColors} topology={labGraph} />
         <div className="relative z-10 mx-auto w-full max-w-7xl">
           <div data-graph-avoid className="max-w-3xl">
             <p className="inline-flex rounded-md border border-neutral-dark/15 bg-neutral-dark/5 px-3 py-1 text-sm font-semibold text-neutral-dark/80 backdrop-blur-sm">
