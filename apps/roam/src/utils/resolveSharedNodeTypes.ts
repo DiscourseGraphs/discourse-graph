@@ -2,7 +2,13 @@ import posthog from "posthog-js";
 import { stripFrontmatter } from "@repo/content-model";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { Tables } from "@repo/database/dbTypes";
-import type { SharedNode } from "@repo/database/lib/sharedNodes";
+import type { DbCrossAppNode } from "@repo/database/lib/dbToCrossAppConverters";
+import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
+import {
+  getNodeTypeRid,
+  getSharedNodeSpace,
+  type SharedNodeListing,
+} from "@repo/database/lib/sharedNodes";
 import { resolveSchemaFormat } from "@repo/utils/resolveSchemaFormat";
 import { createDiscourseNodeType } from "~/components/settings/utils/accessors";
 import getDiscourseNodes, {
@@ -13,7 +19,7 @@ import internalError from "./internalError";
 import refreshConfigTree from "./refreshConfigTree";
 
 const SCHEMA_COLUMNS =
-  "format:literal_content->>format, id, name, source_data_format:literal_content->source_data->>format, source_local_id, template_content:literal_content->>template_content";
+  "format:literal_content->>format, name, source_data_format:literal_content->source_data->>format, source_local_id, space_id, template_content:literal_content->>template_content";
 
 const RESERVED_NODE_TYPE_NAMES = new Set(["Page", "Block", "Any"]);
 
@@ -22,7 +28,7 @@ const RESOLVE_ERROR_OPERATION = "resolve-shared-node-types";
 
 type SharedNodeSchema = Pick<
   Tables<"my_concepts">,
-  "id" | "name" | "source_local_id"
+  "name" | "source_local_id" | "space_id"
 > & {
   format: string | null;
   source_data_format: string | null;
@@ -73,40 +79,58 @@ const findOrCreateNodeType = async (
 export const resolveSharedNodeTypes = async ({
   client,
   sharedNodes,
+  spaces,
 }: {
   client: DGSupabaseClient;
-  sharedNodes: SharedNode[];
-}): Promise<Map<number, DiscourseNode>> => {
-  const schemaIds = [...new Set(sharedNodes.map(({ schemaId }) => schemaId))];
+  sharedNodes: DbCrossAppNode[];
+  spaces: SharedNodeListing["spaces"];
+}): Promise<Map<string, DiscourseNode>> => {
+  const schemaRids = [...new Set(sharedNodes.map(getNodeTypeRid))];
+  const spaceUrlsById = new Map(
+    sharedNodes.map((node) => {
+      const space = getSharedNodeSpace({ node, spaces });
+      return [space.id, space.url];
+    }),
+  );
   const { data, error } = await client
     .from("my_concepts")
     .select(SCHEMA_COLUMNS)
     .eq("is_schema", true)
     .eq("is_relation", false)
-    .in("id", schemaIds);
+    .in("space_id", [...spaceUrlsById.keys()])
+    .in("source_local_id", [
+      ...new Set(sharedNodes.map(({ nodeType }) => nodeType)),
+    ]);
   if (error) {
     internalError({
       error,
       type: RESOLVE_ERROR_TYPE,
-      context: { operation: RESOLVE_ERROR_OPERATION, schemaIds },
+      context: { operation: RESOLVE_ERROR_OPERATION, schemaRids },
       sendEmail: false,
     });
-    return new Map<number, DiscourseNode>();
+    return new Map<string, DiscourseNode>();
   }
 
-  const nodeTypeBySchemaId = new Map<number, DiscourseNode>();
+  const nodeTypeBySchemaRid = new Map<string, DiscourseNode>();
   for (const schema of data) {
-    if (schema.id === null) continue;
+    const spaceUrl = spaceUrlsById.get(schema.space_id ?? 0);
+    if (!spaceUrl || schema.source_local_id === null) continue;
+    const schemaRid = spaceUriAndLocalIdToRid(
+      spaceUrl,
+      schema.source_local_id,
+      "schema",
+    );
+    if (!schemaRids.includes(schemaRid)) continue;
     try {
       const nodeType = await findOrCreateNodeType(schema);
-      if (nodeType) nodeTypeBySchemaId.set(schema.id, nodeType);
+      if (nodeType) nodeTypeBySchemaRid.set(schemaRid, nodeType);
     } catch (error) {
       internalError({
         error,
         type: RESOLVE_ERROR_TYPE,
         context: {
           operation: RESOLVE_ERROR_OPERATION,
-          schemaId: schema.id,
+          schemaRid,
           schemaName: schema.name,
         },
         sendEmail: false,
@@ -114,5 +138,5 @@ export const resolveSharedNodeTypes = async ({
     }
   }
 
-  return nodeTypeBySchemaId;
+  return nodeTypeBySchemaRid;
 };

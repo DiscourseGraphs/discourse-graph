@@ -20,7 +20,12 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import createOverlayRender from "roamjs-components/util/createOverlayRender";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
-import type { SharedNode } from "@repo/database/lib/sharedNodes";
+import type { DbCrossAppNode } from "@repo/database/lib/dbToCrossAppConverters";
+import {
+  getSharedNodeSpace,
+  type SharedNodeListing,
+  type SharedNodeSpace,
+} from "@repo/database/lib/sharedNodes";
 import { discoverSharedNodes } from "~/utils/discoverSharedNodes";
 import { getErrorMessage } from "~/utils/getErrorMessage";
 import {
@@ -45,16 +50,15 @@ const IMPORT_ERROR_OPERATION = "import-shared-nodes";
 const RELATIONS_IMPORT_ERROR_OPERATION = "import-shared-relations";
 const CONNECTION_ERROR_MESSAGE = "Could not connect to shared persistence.";
 
-const formatModifiedAt = (modifiedAt: string): string =>
-  new Date(modifiedAt).toLocaleString();
-
 const SharedNodeRow = ({
   node,
+  space,
   selected,
   selectionDisabled,
   onToggleSelected,
 }: {
-  node: SharedNode;
+  node: DbCrossAppNode;
+  space: SharedNodeSpace;
   selected: boolean;
   selectionDisabled: boolean;
   onToggleSelected: () => void;
@@ -62,7 +66,7 @@ const SharedNodeRow = ({
   <tr>
     <td>
       <Checkbox
-        aria-label={`Select ${node.title}`}
+        aria-label={`Select ${node.content.direct.value}`}
         checked={selected}
         className="m-0"
         disabled={selectionDisabled}
@@ -71,7 +75,7 @@ const SharedNodeRow = ({
     </td>
     <td>
       <div className="max-w-52 font-medium [overflow-wrap:anywhere]">
-        {node.spaceName}
+        {space.name}
       </div>
       <div
         className={[
@@ -79,18 +83,18 @@ const SharedNodeRow = ({
           Classes.TEXT_MUTED,
           "max-w-52 truncate text-xs",
         ].join(" ")}
-        title={node.spaceUri}
+        title={space.url}
       >
-        {node.spaceUri}
+        {space.url}
       </div>
     </td>
     <td>
       <div className="max-w-72 font-medium [overflow-wrap:anywhere]">
-        {node.title}
+        {node.content.direct.value}
       </div>
     </td>
-    <td className="whitespace-nowrap" title={node.lastModified}>
-      {formatModifiedAt(node.lastModified)}
+    <td className="whitespace-nowrap" title={node.modifiedAt.toISOString()}>
+      {node.modifiedAt.toLocaleString()}
     </td>
   </tr>
 );
@@ -196,8 +200,10 @@ const ImportResultsSummary = ({
       <ul className="mb-0 mt-2 max-h-40 list-disc overflow-auto pl-5">
         {failedImports.map((item) => (
           <li key={item.sharedNode.rid}>
-            <span className="font-medium">{item.sharedNode.title}</span>:{" "}
-            {item.message}
+            <span className="font-medium">
+              {item.sharedNode.content.direct.value}
+            </span>
+            : {item.message}
           </li>
         ))}
         {completedImports.map((item) => (
@@ -241,7 +247,10 @@ const RelationFailuresSummary = ({ failures }: { failures: string[] }) => (
 );
 
 const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
-  const [nodes, setNodes] = useState<SharedNode[]>([]);
+  const [{ nodes, spaces }, setListing] = useState<SharedNodeListing>({
+    nodes: [],
+    spaces: {},
+  });
   const [importedRids, setImportedRids] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -273,12 +282,12 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
       setSpaceId(context.spaceId);
       const client = await getLoggedInClient();
       if (!client) throw new Error(CONNECTION_ERROR_MESSAGE);
-      const { sharedNodes, importedSourceRids } = await discoverSharedNodes({
+      const listing = await discoverSharedNodes({
         client,
         currentSpaceId: context.spaceId,
       });
-      setNodes(sharedNodes);
-      setImportedRids(importedSourceRids);
+      setListing({ nodes: listing.nodes, spaces: listing.spaces });
+      setImportedRids(listing.importedSourceRids);
     } catch (loadError) {
       internalError({
         error: loadError,
@@ -304,20 +313,22 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
     () =>
       sortSharedNodes({
         nodes: nodes.filter((node) => !importedRids.has(node.rid)),
+        spaces,
         sort,
       }),
-    [importedRids, nodes, sort],
+    [importedRids, nodes, spaces, sort],
   );
 
   const visibleNodes = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLocaleLowerCase();
     if (!normalizedSearch) return availableNodes;
-    return availableNodes.filter((node) =>
-      [node.spaceName, node.spaceUri, node.title].some((value) =>
+    return availableNodes.filter((node) => {
+      const space = getSharedNodeSpace({ node, spaces });
+      return [space.name, space.url, node.content.direct.value].some((value) =>
         value.toLocaleLowerCase().includes(normalizedSearch),
-      ),
-    );
-  }, [availableNodes, searchTerm]);
+      );
+    });
+  }, [availableNodes, searchTerm, spaces]);
 
   const visibleRids = visibleNodes.map((node) => node.rid);
   const allVisibleSelected =
@@ -398,6 +409,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
         client,
         sharedNodes: selectedNodes,
         discoveredNodes: nodes,
+        spaces,
         onProgress: (current, total) => setImportProgress({ current, total }),
       });
       const newlyImportedRids = results
@@ -578,6 +590,7 @@ const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
                   <SharedNodeRow
                     key={node.rid}
                     node={node}
+                    space={getSharedNodeSpace({ node, spaces })}
                     onToggleSelected={() => toggleNodeSelected(node.rid)}
                     selected={selectedRids.has(node.rid)}
                     selectionDisabled={importing}
