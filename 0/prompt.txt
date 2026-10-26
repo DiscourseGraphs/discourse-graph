@@ -203,3 +203,7 @@ yes, commit M1 and start M2
 ---
 
 go with a, start the block library. pause for me to manually test whenever you're ready. should stop for me to test more frequently than not with this task
+
+---
+
+tested, works. commit and start the settings window slice. hmm but this is proof of concept if it takes too much work we can simply skip the settings step. i'm mainly interested in the AI generating tutorials correctly step
