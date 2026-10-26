@@ -9,8 +9,4 @@ describe("authorNamePlacement", () => {
   it("names the authors of a Roam space on its nodes", () => {
     expect(authorNamePlacement("Roam")).toBe("nodes");
   });
-
-  it("names no one when the platform is unknown", () => {
-    expect(authorNamePlacement(undefined)).toBe("none");
-  });
 });

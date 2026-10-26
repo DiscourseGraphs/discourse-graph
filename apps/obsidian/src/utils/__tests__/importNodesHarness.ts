@@ -140,7 +140,7 @@ export const createHarness = () => {
       const tableRows =
         table === "my_concepts"
           ? concepts
-          : table === "my_contents" || table === "Content"
+          : table === "my_contents"
             ? contentRows
             : table === "my_spaces" || table === "Space"
               ? spaces
