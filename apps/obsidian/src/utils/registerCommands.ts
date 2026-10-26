@@ -19,7 +19,8 @@ import { TldrawView } from "~/components/canvas/TldrawView";
 import { createBaseForNodeType } from "./baseForNodeType";
 import { openImportSpecsModal } from "~/components/ImportSpecsModal";
 import { TutorialManager } from "~/components/tutorial/TutorialManager";
-import { SAMPLE_TOUR } from "~/components/tutorial/sampleTour";
+import { SAMPLE_TUTORIAL } from "~/components/tutorial/sampleTour";
+import { resolveTutorialSteps } from "~/components/tutorial/blocks";
 
 type ModifyNodeSubmitParams = {
   nodeType: DiscourseNode;
@@ -366,7 +367,10 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
       id: "play-sample-tutorial",
       name: "Play sample tutorial (dev)",
       callback: () =>
-        tutorialManager.start({ steps: SAMPLE_TOUR, includeBasics: true }),
+        tutorialManager.start({
+          steps: resolveTutorialSteps({ plugin, steps: SAMPLE_TUTORIAL }),
+          includeBasics: true,
+        }),
     });
   }
 };

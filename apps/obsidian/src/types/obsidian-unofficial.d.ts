@@ -19,6 +19,9 @@ declare module "obsidian" {
       open: () => void;
       openTabById: (id: string) => void;
     };
+    commands: {
+      findCommand: (id: string) => Command | undefined;
+    };
   }
   /* eslint-enable @typescript-eslint/consistent-type-definitions -- end unofficial Obsidian API augmentations */
 }

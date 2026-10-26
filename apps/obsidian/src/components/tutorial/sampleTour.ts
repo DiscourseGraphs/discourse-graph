@@ -1,31 +1,29 @@
-import { doneOnClick, doneWhenPresent, type TourStep } from "./tourSteps";
+import type { TutorialStep } from "./blocks";
 
-const DISCOURSE_CONTEXT_RIBBON =
-  '.side-dock-ribbon-action[aria-label="Toggle discourse context"]';
-const COMMAND_PALETTE = ".prompt";
-
-/** The hand-written tour from eng-1505, kept to exercise the engine before AI generation exists. */
-export const SAMPLE_TOUR: TourStep[] = [
+/** Stands in for a generated tutorial until the endpoint exists; written in the model's step format. */
+export const SAMPLE_TUTORIAL: TutorialStep[] = [
   {
-    id: "open-discourse-context",
-    target: DISCOURSE_CONTEXT_RIBBON,
-    placement: "right",
-    title: "Discourse context panel",
-    body: "Click the telescope icon to open the discourse context sidebar.",
-    watchDone: doneOnClick(DISCOURSE_CONTEXT_RIBBON),
-  },
-  {
-    id: "open-command-palette",
-    basics: true,
+    kind: "block",
+    block: "open-command-palette",
     title: "Open the command palette",
-    body: "Press Cmd+P (Mac) or Ctrl+P (Windows/Linux) to open the command palette.",
-    watchDone: doneWhenPresent(COMMAND_PALETTE),
+    body: "Press Cmd+P (Mac) or Ctrl+P (Windows/Linux). Most Discourse Graph actions start here.",
   },
   {
-    id: "create-discourse-node",
-    target: COMMAND_PALETTE,
-    placement: "bottom",
-    title: "Create a discourse node",
-    body: 'Type "Create discourse node" in the search bar and select it from the list.',
+    kind: "block",
+    block: "create-node",
+    params: { nodeType: "Claim" },
+    title: "Capture your first claim",
+    body: 'Run "Discourse Graph: Create discourse node", pick Claim, and write one claim from something you read.',
+  },
+  {
+    kind: "block",
+    block: "open-discourse-context",
+    title: "See the claim's context",
+    body: "Click the telescope icon to open the discourse context panel. Relations you add will show up here.",
+  },
+  {
+    kind: "text",
+    title: "You're set up",
+    body: "Next, try linking this claim to the evidence that supports it.",
   },
 ];
