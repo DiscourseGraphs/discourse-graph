@@ -195,3 +195,7 @@ Q18 a, shared understanding confirmed, write the plan
 ---
 
 approved, checkpoint it and start M1
+
+---
+
+yes, commit M1 and start M2
