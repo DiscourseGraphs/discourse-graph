@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   migrateGraphLevel: vi.fn(),
   migratePersonalSettings: vi.fn(),
   migratePropsStoreDefault: vi.fn(),
+  getStoredRelationsEnabled: vi.fn(),
 }));
 
 vi.mock("roamjs-components/queries/getPageUidByPageTitle", () => ({
@@ -26,6 +27,9 @@ vi.mock("~/utils/setBlockProps", () => ({
   setBlockPropsAsync: mocks.setBlockPropsAsync,
 }));
 vi.mock("~/utils/internalError", () => ({ default: mocks.internalError }));
+vi.mock("~/utils/storedRelations", () => ({
+  getStoredRelationsEnabled: mocks.getStoredRelationsEnabled,
+}));
 vi.mock("~/utils/refreshConfigTree", () => ({ default: vi.fn() }));
 vi.mock("~/utils/discourseConfigRef", () => ({
   default: { tree: [{ text: "grammar" }] },
@@ -173,4 +177,34 @@ describe("settings initialization before migration", () => {
       expect(mocks.migratePropsStoreDefault).toHaveBeenCalledOnce();
     },
   );
+
+  it.each([false, true])(
+    "seeds an empty personal block with the resolved stored relations choice (%s)",
+    async (storedRelationsEnabled) => {
+      props["user-uid"] = {};
+      mocks.getStoredRelationsEnabled.mockReturnValue(storedRelationsEnabled);
+
+      await initSchema();
+
+      expect(mocks.setBlockPropsAsync).toHaveBeenCalledWith(
+        "user-uid",
+        {
+          ...PersonalSettingsSchema.parse({}),
+          "Reified relation triples": storedRelationsEnabled,
+        },
+        false,
+      );
+    },
+  );
+
+  it("leaves a valid personal block untouched", async () => {
+    await initSchema();
+
+    expect(mocks.getStoredRelationsEnabled).not.toHaveBeenCalled();
+    expect(mocks.setBlockPropsAsync).not.toHaveBeenCalledWith(
+      "user-uid",
+      expect.anything(),
+      false,
+    );
+  });
 });

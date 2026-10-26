@@ -20,22 +20,15 @@ const stubGraph = ({
   vi.stubGlobal("window", {
     roamAlphaAPI: {
       user: { uid: () => "user-uid" },
-      pull: (pattern: string) =>
-        pattern.includes(":create/time")
-          ? { ":create/time": createdAt }
-          : {
-              ":block/children": [
-                { ":block/string": "Global", ":block/props": {} },
-                ...(personalProps
-                  ? [
-                      {
-                        ":block/string": "user-uid",
-                        ":block/props": personalProps,
-                      },
-                    ]
-                  : []),
-              ],
-            },
+      pull: () => ({
+        ":create/time": createdAt,
+        ":block/children": [
+          { ":block/string": "Global", ":block/props": {} },
+          ...(personalProps
+            ? [{ ":block/string": "user-uid", ":block/props": personalProps }]
+            : []),
+        ],
+      }),
     },
   });
 };
