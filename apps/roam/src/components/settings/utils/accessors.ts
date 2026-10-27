@@ -270,35 +270,35 @@ const getLegacyPersonalLeftSidebarSetting = (): unknown[] => {
   }));
 };
 
-const getLegacyPersonalSetting = (keys: string[]): unknown => {
+const getLegacyPersonalSetting = (
+  keys: string[],
+  defaults: Record<string, unknown> = DEFAULT_PERSONAL_SETTINGS,
+): unknown => {
   if (keys.length === 0) return undefined;
 
   const mappedOldKey = PERSONAL_SCHEMA_PATH_TO_LEGACY_KEY.get(pathKey(keys));
   if (mappedOldKey) {
-    return getSetting<unknown>(
-      mappedOldKey,
-      readPathValue(DEFAULT_PERSONAL_SETTINGS, keys),
-    );
+    return getSetting<unknown>(mappedOldKey, readPathValue(defaults, keys));
   }
 
   if (keys.length === 1 && keys[0] === "Query") {
     const querySettings: Record<string, unknown> = {};
-    querySettings["Hide query metadata"] = getLegacyPersonalSetting([
-      "Query",
-      "Hide query metadata",
-    ]);
-    querySettings["Default page size"] = getLegacyPersonalSetting([
-      "Query",
-      "Default page size",
-    ]);
-    querySettings["Query pages"] = getLegacyPersonalSetting([
-      "Query",
-      "Query pages",
-    ]);
-    querySettings["Default filters"] = getLegacyPersonalSetting([
-      "Query",
-      "Default filters",
-    ]);
+    querySettings["Hide query metadata"] = getLegacyPersonalSetting(
+      ["Query", "Hide query metadata"],
+      defaults,
+    );
+    querySettings["Default page size"] = getLegacyPersonalSetting(
+      ["Query", "Default page size"],
+      defaults,
+    );
+    querySettings["Query pages"] = getLegacyPersonalSetting(
+      ["Query", "Query pages"],
+      defaults,
+    );
+    querySettings["Default filters"] = getLegacyPersonalSetting(
+      ["Query", "Default filters"],
+      defaults,
+    );
     return querySettings;
   }
 
@@ -744,10 +744,12 @@ export const readAllLegacyGlobalSettings = (): Record<string, unknown> => {
   return result;
 };
 
-export const readAllLegacyPersonalSettings = (): Record<string, unknown> => {
+export const readAllLegacyPersonalSettings = (
+  defaults?: Record<string, unknown>,
+): Record<string, unknown> => {
   const result: Record<string, unknown> = {};
   for (const key of Object.values(PERSONAL_KEYS)) {
-    result[key] = getLegacyPersonalSetting([key]);
+    result[key] = getLegacyPersonalSetting([key], defaults);
   }
   return result;
 };

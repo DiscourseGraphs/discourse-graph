@@ -12,9 +12,11 @@ import { getSetting } from "~/utils/extensionSettings";
 import {
   bulkReadSettings,
   getPersonalSetting,
+  readAllLegacyPersonalSettings,
 } from "~/components/settings/utils/accessors";
 import { PERSONAL_MIGRATION_MARKER } from "~/components/settings/utils/migrationMarkers";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
+import { PersonalSettingsSchema } from "~/components/settings/utils/zodSchema";
 
 describe("personal settings migration readiness", () => {
   let currentUser: string;
@@ -106,5 +108,21 @@ describe("personal settings migration readiness", () => {
     expect(getPersonalSetting([PERSONAL_KEYS.disableProductDiagnostics])).toBe(
       true,
     );
+  });
+
+  it("fills keys missing from a reset extension store with the given graph values", () => {
+    const graphValues = PersonalSettingsSchema.parse({
+      [PERSONAL_KEYS.reifiedRelationTriples]: false,
+      [PERSONAL_KEYS.query]: { "Default page size": 50 },
+    });
+
+    const legacy = readAllLegacyPersonalSettings(graphValues);
+
+    expect(legacy[PERSONAL_KEYS.reifiedRelationTriples]).toBe(false);
+    expect(legacy[PERSONAL_KEYS.query]).toMatchObject({
+      "Default page size": 50,
+    });
+    // Keys still present in the extension store keep winning.
+    expect(legacy[PERSONAL_KEYS.disableProductDiagnostics]).toBe(true);
   });
 });
