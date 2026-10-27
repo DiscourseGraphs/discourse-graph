@@ -298,10 +298,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
         <DiscourseNodeTextPanel
           nodeType={node.type}
           title="Description"
-          description={withDocsLink(
-            `Describing what the ${node.text} node represents in your graph.`,
-            ROAM_DOCS.grammarNodes,
-          )}
+          description={`Describing what the ${node.text} node represents in your graph.`}
           settingKeys={[DISCOURSE_NODE_KEYS.description]}
           initialValue={node.description}
           multiline
@@ -314,7 +311,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
           title="Tag"
           description={withDocsLink(
             `Designate a hashtag for marking potential ${node.text}.`,
-            ROAM_DOCS.taggingCandidateNodes,
+            ROAM_DOCS.candidateNodeTagSetup,
           )}
           settingKeys={[DISCOURSE_NODE_KEYS.tag]}
           initialValue={node.tag}
@@ -334,10 +331,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
         <DiscourseNodeTextPanel
           nodeType={node.type}
           title="Format"
-          description={withDocsLink(
-            `The format ${node.text} pages should have.`,
-            ROAM_DOCS.grammarNodes,
-          )}
+          description={`The format ${node.text} pages should have.`}
           settingKeys={[DISCOURSE_NODE_KEYS.format]}
           initialValue={node.format}
           error={formatError}
@@ -366,10 +360,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
         />
         <SettingItemRow
           label="Template"
-          description={withDocsLink(
-            `The template that auto fills ${node.text} page when generated.`,
-            ROAM_DOCS.creatingNodes,
-          )}
+          description={`The template that auto fills ${node.text} page when generated.`}
           scope="global"
           settingKeys={TEMPLATE_SETTING_KEYS}
           control={
@@ -398,10 +389,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
       <SettingsGroup title="Legacy">
         <SettingItemRow
           label="Specification"
-          description={withDocsLink(
-            `The conditions specified to identify a ${node.text} node.`,
-            ROAM_DOCS.grammarNodes,
-          )}
+          description={`The conditions specified to identify a ${node.text} node.`}
           scope="global"
           settingKeys={[DISCOURSE_NODE_KEYS.specification]}
           controlPlacement="below"
@@ -444,7 +432,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
           title="Overlay"
           description={withDocsLink(
             "Select which attribute is used for the discourse overlay",
-            ROAM_DOCS.discourseAttributes,
+            ROAM_DOCS.discourseScore,
           )}
           settingKeys={[DISCOURSE_NODE_KEYS.overlay]}
           options={attributeNode.children.map((c) => c.text)}

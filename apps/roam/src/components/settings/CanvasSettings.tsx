@@ -15,7 +15,6 @@ import { GLOBAL_KEYS, PERSONAL_KEYS } from "./utils/settingKeys";
 import { type SettingsSnapshot } from "./utils/accessors";
 import { useLegacyConfigBlocks } from "./utils/useLegacyConfigBlocks";
 import { SettingsSectionHeading } from "./components/SettingsHeadings";
-import { ROAM_DOCS, withDocsLink } from "./utils/docs";
 
 const CanvasSettings = ({
   onloadArgs,
@@ -41,19 +40,13 @@ const CanvasSettings = ({
         settingKey={DISCOURSE_TOOL_SHORTCUT_KEY}
         blockPropKey={PERSONAL_KEYS.discourseToolShortcut}
         label="Discourse tool keyboard shortcut"
-        description={withDocsLink(
-          "Set a single key to activate the discourse tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut.",
-          ROAM_DOCS.creatingNodes,
-        )}
+        description="Set a single key to activate the discourse tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut."
         placeholder="Click to set single key"
         initialValue={personalSettings[PERSONAL_KEYS.discourseToolShortcut]}
       />
       <PersonalFlagPanel
         title="Auto canvas relations"
-        description={withDocsLink(
-          "Automatically add discourse relations to canvas when a node is added",
-          ROAM_DOCS.storedRelations,
-        )}
+        description="Automatically add discourse relations to canvas when a node is added"
         settingKeys={[PERSONAL_KEYS.autoCanvasRelations]}
         initialValue={personalSettings[PERSONAL_KEYS.autoCanvasRelations]}
         onChange={(checked) => {
