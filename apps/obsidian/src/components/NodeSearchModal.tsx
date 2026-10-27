@@ -17,7 +17,6 @@ import {
   type KeyboardEvent,
   type MouseEvent,
   type ReactElement,
-  type RefObject,
 } from "react";
 import { createRoot, Root } from "react-dom/client";
 import type DiscourseGraphPlugin from "~/index";
@@ -56,7 +55,6 @@ import {
   type SortKey,
 } from "~/utils/discourseNodeSort";
 import { findTaggedLineElement } from "~/utils/taggedLineLocator";
-import { setCaretToEnd } from "~/utils/contentEditable";
 
 const MAX_VISIBLE_RESULTS = 50;
 const SEARCH_DEBOUNCE_MS = 250;
@@ -83,20 +81,16 @@ const formatTimestamp = (epochMs: number): string =>
 
 const PREVIEW_FLASH_CLASS = "dg-search-preview-flash";
 
-// Keys the focused result list acts on itself; every other key belongs to the query.
-const RESULT_LIST_KEYS = new Set([
-  "ArrowUp",
-  "ArrowDown",
-  "ArrowLeft",
-  "ArrowRight",
-  "Enter",
-  "Tab",
-  "Escape",
-  "Shift",
-  "Meta",
-  "Control",
-  "Alt",
-]);
+// An editable span has no selectionEnd, so compare the caret against the end of its contents.
+const isCaretAtEnd = (field: HTMLElement | null): boolean => {
+  const selection = field?.ownerDocument.getSelection();
+  if (!field || !selection?.isCollapsed || !selection.anchorNode) return false;
+  if (!field.contains(selection.anchorNode)) return false;
+  const rest = field.ownerDocument.createRange();
+  rest.setStart(selection.anchorNode, selection.anchorOffset);
+  rest.setEnd(field, field.childNodes.length);
+  return rest.toString() === "";
+};
 
 // An image reserves no height until it loads, which would shift a line scrolled to before then.
 const waitForImages = async (container: HTMLElement): Promise<void> => {
@@ -287,20 +281,19 @@ const NodeTypePill = ({
 const ResultList = ({
   results,
   activeIndex,
-  listRef,
   onActivate,
 }: {
   results: SearchResultRow[];
   activeIndex: number;
-  listRef: RefObject<HTMLDivElement | null>;
   onActivate: (index: number) => void;
 }): ReactElement => {
+  const listRef = useRef<HTMLDivElement | null>(null);
   const pointerPositionRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     const active = listRef.current?.children[activeIndex];
     active?.scrollIntoView({ block: "nearest" });
-  }, [activeIndex, listRef]);
+  }, [activeIndex]);
 
   // Scrolling drags rows under a stationary cursor, and the mouseenter that
   // fires is not a choice. Compare coordinates rather than resetting a flag on
@@ -321,12 +314,10 @@ const ResultList = ({
     <div
       ref={listRef}
       role="listbox"
-      // Focusable by click only, so Tab still runs from the query to the footer.
-      tabIndex={-1}
       onMouseMove={(event) => {
         hasPointerMoved(event);
       }}
-      className="flex-1 overflow-y-auto outline-none"
+      className="flex-1 overflow-y-auto"
     >
       {results.map((result, index) => (
         <div
@@ -334,8 +325,10 @@ const ResultList = ({
           role="option"
           aria-selected={index === activeIndex}
           onMouseEnter={(event) => hasPointerMoved(event) && onActivate(index)}
-          // The click also focuses the listbox, which hands ← and → to the preview.
           onClick={() => onActivate(index)}
+          // Keeps focus in the search input, so the keyboard path stays live
+          // after a click.
+          onMouseDown={(event) => event.preventDefault()}
           className={`border-modifier-border flex cursor-pointer items-start gap-2 border-b px-3 py-2 ${
             index === activeIndex ? "bg-modifier-hover" : ""
           }`}
@@ -385,15 +378,14 @@ const NodeSearch = ({
   const [sortKey, setSortKey] = useState<SortKey>(DEFAULT_SORT_KEY);
   const [showCandidates, setShowCandidates] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  // Mirrors focus so the footer shows the toggle only when ← and → reach it.
-  const [isResultListFocused, setIsResultListFocused] = useState(false);
+  // Mirrors the caret, so the footer shows the toggle only where ← and → reach it.
+  const [isCaretAtQueryEnd, setIsCaretAtQueryEnd] = useState(true);
   const [tagCandidates, setTagCandidates] = useState<SearchableNode[]>([]);
   const [sortDirection, setSortDirection] = useState<SortDirection>(
     DEFAULT_SORT_DIRECTION,
   );
   // An editable span, so the query shares its line boxes with the filter chips.
   const inputRef = useRef<HTMLSpanElement | null>(null);
-  const listRef = useRef<HTMLDivElement | null>(null);
   const userNames = useAuthorNames({
     app,
     plugin,
@@ -413,6 +405,16 @@ const NodeSearch = ({
 
   useEffect(() => {
     inputRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const field = inputRef.current;
+    if (!field) return;
+    const doc = field.ownerDocument;
+    const update = (): void => setIsCaretAtQueryEnd(isCaretAtEnd(field));
+    update();
+    doc.addEventListener("selectionchange", update);
+    return () => doc.removeEventListener("selectionchange", update);
   }, []);
 
   // The fetch is synchronous today, so there is nothing to await or cancel yet.
@@ -526,15 +528,6 @@ const NodeSearch = ({
     setActiveIndex(0);
   }, [results]);
 
-  // Unmounting a focused list drops focus to <body>, out of reach of the modal's keys.
-  useEffect(() => {
-    const field = inputRef.current;
-    if (results.length || !field) return;
-    if (field.ownerDocument.activeElement !== field.ownerDocument.body) return;
-    field.focus();
-    setCaretToEnd(field);
-  }, [results]);
-
   const moveActiveIndex = (delta: number) => {
     if (!results.length) return;
     setActiveIndex((current) => {
@@ -588,36 +581,27 @@ const NodeSearch = ({
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    // In the query, ← and → stay caret movement; only the focused list toggles the preview.
-    const isListFocused = event.target === listRef.current;
+    // Only at the end of the query, so ← and → still edit the text everywhere else.
     if (
-      isListFocused &&
-      (event.key === "ArrowLeft" || event.key === "ArrowRight")
+      (event.key === "ArrowRight" || event.key === "ArrowLeft") &&
+      !event.defaultPrevented &&
+      !event.shiftKey &&
+      !event.altKey &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      event.target === inputRef.current &&
+      isCaretAtEnd(inputRef.current)
     ) {
-      event.preventDefault();
-      if (event.key === "ArrowLeft") setIsPreviewOpen(false);
-      else if (canAct) setIsPreviewOpen(true);
-      return;
-    }
-
-    // Left unprevented, so typing, paste and IME land in the query focused here.
-    if (isListFocused && !RESULT_LIST_KEYS.has(event.key)) {
-      const field = inputRef.current;
-      if (!field) return;
-      field.focus();
-      setCaretToEnd(field);
-      // This keydown still targets the list, so replay Backspace for the query's highlight-last-chip step.
-      if (event.key === "Backspace" && !query) {
+      if (event.key === "ArrowRight" && !isPreviewOpen && canAct) {
         event.preventDefault();
-        const view = field.ownerDocument.defaultView ?? window;
-        field.dispatchEvent(
-          new view.KeyboardEvent("keydown", {
-            key: "Backspace",
-            bubbles: true,
-          }),
-        );
+        setIsPreviewOpen(true);
+        return;
       }
-      return;
+      if (event.key === "ArrowLeft" && isPreviewOpen) {
+        event.preventDefault();
+        setIsPreviewOpen(false);
+        return;
+      }
     }
 
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -660,15 +644,7 @@ const NodeSearch = ({
   return (
     // Bound here rather than on the input so navigation survives focus moving
     // elsewhere in the modal, and so result actions have one place to live.
-    <div
-      className="flex h-full flex-col"
-      onKeyDown={handleKeyDown}
-      onFocus={(event) =>
-        setIsResultListFocused(event.target === listRef.current)
-      }
-      // Focus can leave to non-focusable modal areas, which fire no focus event here.
-      onBlur={() => setIsResultListFocused(false)}
-    >
+    <div className="flex h-full flex-col" onKeyDown={handleKeyDown}>
       {/* Padded so a trigger's count badge is not clipped by the modal's overflow-hidden content. */}
       {/* Top-aligned: the field grows downwards, so the triggers stay on its first line. */}
       <div className="flex items-start gap-2 px-1 pt-1">
@@ -737,7 +713,6 @@ const NodeSearch = ({
             <ResultList
               results={results}
               activeIndex={activeIndexInRange}
-              listRef={listRef}
               onActivate={setActiveIndex}
             />
           )}
@@ -755,7 +730,7 @@ const NodeSearch = ({
         canInsertLink={!!insertTarget}
         isActiveResultLinkable={isActiveResultLinkable}
         isPreviewOpen={isPreviewOpen}
-        isPreviewToggleVisible={isResultListFocused}
+        isPreviewToggleVisible={isCaretAtQueryEnd}
         onClose={onClose}
         onInsertLink={insertLinkToActiveResult}
         onOpenInNewTab={() => openActiveResult(openFileInNewTab)}

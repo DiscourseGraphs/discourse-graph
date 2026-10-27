@@ -88,7 +88,7 @@ export const NodeSearchFooter = ({
       label="open in split"
       onClick={onOpenInSplit}
     />
-    {/* Only while the result list has focus; elsewhere ← and → move the caret. */}
+    {/* Only with the caret at the end of the query; elsewhere ← and → move the caret. */}
     {isPreviewToggleVisible &&
       (isPreviewOpen ? (
         <FooterAction
