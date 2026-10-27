@@ -143,7 +143,7 @@ const nodePath =
 const AUTHORED_SETTINGS = {
   "GLOBAL_KEYS.trigger": {
     label: "Graph-wide default",
-    group: "Node trigger",
+    group: "Node menu trigger",
     description: "The trigger to create the node menu.",
     docsLink: ROAM_DOCS.creatingNodes,
     keywords: ["trigger", "node menu", "global"],
@@ -151,7 +151,7 @@ const AUTHORED_SETTINGS = {
   },
   "PERSONAL_KEYS.personalNodeMenuTrigger": {
     label: "Personal override",
-    group: "Node trigger",
+    group: "Node menu trigger",
     description: "Override the global trigger for the discourse node menu.",
     docsLink: ROAM_DOCS.creatingNodes,
     keywords: ["trigger", "node menu", "personal"],
@@ -370,8 +370,7 @@ const AUTHORED_SETTINGS = {
   "DISCOURSE_NODE_KEYS.index": {
     label: "Index",
     group: "Identity",
-    description:
-      "The saved list of all pages — which pages appear and which columns show.",
+    description: "A table of all pages.",
     keywords: ["node type", "table", "columns"],
     path: nodePath(),
   },

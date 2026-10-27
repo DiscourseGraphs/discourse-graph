@@ -191,7 +191,7 @@ const PreferencesGeneral = ({
           }
         }}
       />
-      <SettingsGroup title="Node trigger">
+      <SettingsGroup title="Node menu trigger">
         <GlobalTextPanel
           title="Graph-wide default"
           description={withDocsLink(
