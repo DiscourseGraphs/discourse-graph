@@ -20,7 +20,6 @@ import {
 } from "~/components/settings/utils/settingKeys";
 import { RenderRoamBlock } from "~/utils/roamReactComponents";
 import Description from "~/components/settings/SettingsDescription";
-import { ROAM_DOCS, withDocsLink } from "./utils/docs";
 
 const DiscourseNodeSuggestiveRules = ({
   node,
@@ -89,10 +88,7 @@ const DiscourseNodeSuggestiveRules = ({
             onClick={() => setIsTemplateOpen((open) => !open)}
           />
           <Description
-            description={withDocsLink(
-              `The template that auto fills ${node.text} page when generated.`,
-              ROAM_DOCS.creatingNodes,
-            )}
+            description={`The template that auto fills ${node.text} page when generated.`}
           />
         </div>
         {/* Collapse unmounts its children, so the buffer block only exists while open. */}
@@ -100,10 +96,7 @@ const DiscourseNodeSuggestiveRules = ({
           <div className="pl-6 pt-2">
             <DualWriteBlocksPanel
               nodeType={node.type}
-              description={withDocsLink(
-                `The template that auto fills ${node.text} page when generated.`,
-                ROAM_DOCS.creatingNodes,
-              )}
+              description={`The template that auto fills ${node.text} page when generated.`}
               settingKeys={TEMPLATE_SETTING_KEYS}
               uid={templateUid}
               defaultValue={node.template}
