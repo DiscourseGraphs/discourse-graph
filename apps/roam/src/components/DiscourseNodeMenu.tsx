@@ -518,7 +518,7 @@ export const NodeMenuTriggerComponent = ({
       wide
       id={id}
       inputRef={inputRef}
-      placeholder={isActive ? "Press keys" : "Click to set trigger"}
+      placeholder={isActive ? "Press keys" : "Set trigger"}
       value={shortcut}
       onKeyDown={handleKeyDown}
       onFocus={() => setIsActive(true)}
