@@ -84,7 +84,8 @@ const PREVIEW_FLASH_CLASS = "dg-search-preview-flash";
 // An editable span has no selectionEnd, so compare the caret against the end of its contents.
 const isCaretAtEnd = (field: HTMLElement | null): boolean => {
   const selection = field?.ownerDocument.getSelection();
-  if (!field || !selection?.isCollapsed || !selection.anchorNode) return false;
+  if (!field || field.ownerDocument.activeElement !== field) return false;
+  if (!selection?.isCollapsed || !selection.anchorNode) return false;
   if (!field.contains(selection.anchorNode)) return false;
   const rest = field.ownerDocument.createRange();
   rest.setStart(selection.anchorNode, selection.anchorOffset);
@@ -413,8 +414,11 @@ const NodeSearch = ({
     const doc = field.ownerDocument;
     const update = (): void => setIsCaretAtQueryEnd(isCaretAtEnd(field));
     update();
-    doc.addEventListener("selectionchange", update);
-    return () => doc.removeEventListener("selectionchange", update);
+    // Focus moves leave the old selection behind, so they need their own listeners.
+    const events = ["selectionchange", "focusin", "focusout"] as const;
+    events.forEach((name) => doc.addEventListener(name, update));
+    return () =>
+      events.forEach((name) => doc.removeEventListener(name, update));
   }, []);
 
   // The fetch is synchronous today, so there is nothing to await or cancel yet.
