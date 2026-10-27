@@ -5,15 +5,15 @@ import {
   GlobalNumberPanel,
   GlobalMultiTextPanel,
   GlobalSelectPanel,
-} from "./components/BlockPropSettingPanels";
+} from "~/components/settings/components/BlockPropSettingPanels";
 import {
   GLOBAL_KEYS,
   EXPORT_KEYS,
 } from "~/components/settings/utils/settingKeys";
-import { type SettingsSnapshot } from "./utils/accessors";
-import { ROAM_DOCS, withDocsLink } from "./utils/docs";
+import { type SettingsSnapshot } from "~/components/settings/utils/accessors";
+import { ROAM_DOCS, withDocsLink } from "~/components/settings/utils/docs";
 
-const DiscourseGraphExport = ({
+const ExportOptions = ({
   globalSettings,
 }: {
   globalSettings: SettingsSnapshot["globalSettings"];
@@ -30,7 +30,7 @@ const DiscourseGraphExport = ({
           title="remove special characters"
           description={withDocsLink(
             "Whether or not to remove the special characters in a file name.",
-            ROAM_DOCS.sharing,
+            ROAM_DOCS.exportOptions,
           )}
           settingKeys={[
             GLOBAL_KEYS.export,
@@ -40,44 +40,45 @@ const DiscourseGraphExport = ({
           order={1}
           uid={exportSettings.removeSpecialCharacters.uid}
           parentUid={parentUid}
+          inline
         />
 
         <GlobalFlagPanel
           title="resolve block references"
           description={withDocsLink(
             "Replaces block references in the markdown content with the block's content.",
-            ROAM_DOCS.sharing,
+            ROAM_DOCS.exportOptions,
           )}
           settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.resolveBlockReferences]}
           initialValue={exportBlockProps[EXPORT_KEYS.resolveBlockReferences]}
           order={3}
           uid={exportSettings.optsRefs.uid}
           parentUid={parentUid}
+          inline
         />
         <GlobalFlagPanel
           title="resolve block embeds"
           description={withDocsLink(
             "Replaces block embeds in the markdown content with the block's content tree.",
-            ROAM_DOCS.sharing,
+            ROAM_DOCS.exportOptions,
           )}
           settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.resolveBlockEmbeds]}
           initialValue={exportBlockProps[EXPORT_KEYS.resolveBlockEmbeds]}
           order={4}
           uid={exportSettings.optsEmbeds.uid}
           parentUid={parentUid}
+          inline
         />
 
         <GlobalFlagPanel
           title="append referenced node"
-          description={withDocsLink(
-            "If a referenced node is defined in a node's format, it will be appended to the discourse context.",
-            ROAM_DOCS.sharing,
-          )}
+          description="If a referenced node is defined in a node's format, it will be appended to the discourse context."
           settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.appendReferencedNode]}
           initialValue={exportBlockProps[EXPORT_KEYS.appendReferencedNode]}
           order={6}
           uid={exportSettings.appendRefNodeContext.uid}
           parentUid={parentUid}
+          inline
         />
       </div>
       <div className="link-type-select-wrapper">
@@ -85,7 +86,7 @@ const DiscourseGraphExport = ({
           title="link type"
           description={withDocsLink(
             "How to format links that appear in your export.",
-            ROAM_DOCS.sharing,
+            ROAM_DOCS.exportOptions,
           )}
           settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.linkType]}
           initialValue={exportBlockProps[EXPORT_KEYS.linkType]}
@@ -93,34 +94,37 @@ const DiscourseGraphExport = ({
           options={["alias", "wikilinks", "roam url"]}
           uid={exportSettings.linkType.uid}
           parentUid={parentUid}
+          inline
         />
       </div>
       <GlobalNumberPanel
         title="max filename length"
         description={withDocsLink(
           "Set the maximum name length for markdown file exports.",
-          ROAM_DOCS.sharing,
+          ROAM_DOCS.exportOptions,
         )}
         settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.maxFilenameLength]}
         initialValue={exportBlockProps[EXPORT_KEYS.maxFilenameLength]}
         order={0}
         uid={exportSettings.maxFilenameLength.uid}
         parentUid={parentUid}
+        inline
       />
       <GlobalMultiTextPanel
         title="frontmatter"
         description={withDocsLink(
           "Specify all the lines that should go to the Frontmatter of the markdown file.",
-          ROAM_DOCS.sharing,
+          ROAM_DOCS.exportOptions,
         )}
         settingKeys={[GLOBAL_KEYS.export, EXPORT_KEYS.frontmatter]}
         initialValue={exportBlockProps[EXPORT_KEYS.frontmatter]}
         order={2}
         uid={exportSettings.frontmatter.uid}
         parentUid={parentUid}
+        inline
       />
     </div>
   );
 };
 
-export default DiscourseGraphExport;
+export default ExportOptions;
