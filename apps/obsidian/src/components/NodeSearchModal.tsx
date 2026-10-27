@@ -589,6 +589,7 @@ const NodeSearch = ({
     if (
       (event.key === "ArrowRight" || event.key === "ArrowLeft") &&
       !event.defaultPrevented &&
+      !event.nativeEvent.isComposing &&
       !event.shiftKey &&
       !event.altKey &&
       !event.metaKey &&
