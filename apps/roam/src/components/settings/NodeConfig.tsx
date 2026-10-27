@@ -32,6 +32,10 @@ import SettingItemRow from "./components/SettingItemRow";
 import SettingDrillDownSummary from "./components/SettingDrillDownSummary";
 import { useSettingsNav } from "./navigation/SettingsNavContext";
 import { nodeConfigSegmentIds } from "./utils/settingsNavigation";
+import {
+  CollapsedSections,
+  NODE_CONFIG_SECTIONS,
+} from "./utils/nodeConfigSections";
 
 export const getCleanTagText = (tag: string): string => {
   return tag.replace(/^#+/, "").trim().toUpperCase();
@@ -155,7 +159,24 @@ const generateTagPlaceholder = (node: DiscourseNode): string => {
   return `#${nodeTextPrefix}-candidate`; // Evidence = #evi-candidate
 };
 
-const NodeConfig = ({ node }: { node: DiscourseNode }) => {
+const NodeConfig = ({
+  node,
+  collapsedSections,
+  onToggleSection,
+}: {
+  node: DiscourseNode;
+  collapsedSections: CollapsedSections;
+  onToggleSection: (section: string) => void;
+}) => {
+  const sectionProps = (
+    title: string,
+  ): Omit<React.ComponentProps<typeof SettingsGroup>, "children"> => ({
+    title,
+    collapsible: {
+      isOpen: !collapsedSections.has(title),
+      onToggle: () => onToggleSection(title),
+    },
+  });
   const getUid = (key: string) =>
     getSubTree({
       parentUid: node.type,
@@ -282,7 +303,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
 
   return (
     <div className="flex flex-col gap-6 p-1">
-      <SettingsGroup title="Identity">
+      <SettingsGroup {...sectionProps(NODE_CONFIG_SECTIONS.identity)}>
         <SettingItemRow
           label="Index"
           description={`The saved list of all ${node.text} pages \u2014 which pages appear and which columns show.`}
@@ -342,7 +363,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
         />
       </SettingsGroup>
 
-      <SettingsGroup title="Creation">
+      <SettingsGroup {...sectionProps(NODE_CONFIG_SECTIONS.creation)}>
         <DiscourseNodeTextPanel
           nodeType={node.type}
           title="Shortcut"
@@ -372,7 +393,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
         />
       </SettingsGroup>
 
-      <SettingsGroup title="Canvas">
+      <SettingsGroup {...sectionProps(NODE_CONFIG_SECTIONS.canvas)}>
         <DiscourseNodeCanvasSettings nodeType={node.type} uid={canvasUid} />
         <DiscourseNodeFlagPanel
           nodeType={node.type}
@@ -386,7 +407,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
         />
       </SettingsGroup>
 
-      <SettingsGroup title="Legacy">
+      <SettingsGroup {...sectionProps(NODE_CONFIG_SECTIONS.legacy)}>
         <SettingItemRow
           label="Specification"
           description={`The conditions specified to identify a ${node.text} node.`}
@@ -410,7 +431,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
       </SettingsGroup>
 
       {isSyncEnabled() && (
-        <SettingsGroup title="Suggestive mode">
+        <SettingsGroup {...sectionProps(NODE_CONFIG_SECTIONS.suggestiveMode)}>
           <DiscourseNodeSuggestiveRules
             node={node}
             parentUid={suggestiveRulesUid}
@@ -418,7 +439,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
         </SettingsGroup>
       )}
 
-      <SettingsGroup title="Attributes">
+      <SettingsGroup {...sectionProps(NODE_CONFIG_SECTIONS.attributes)}>
         <DiscourseNodeAttributes
           uid={attributeNode.uid}
           nodeType={node.type}
