@@ -31,11 +31,11 @@ catalog:
   react: ^19.1.0
   react-dom: ^19.1.0
   posthog-js: 1.372.10
-  "@supabase/supabase-js": 2.105.4
-  "@supabase/functions-js": 2.105.4
-  "@supabase/storage-js": 2.105.4
-  "@supabase/auth-js": 2.105.4
-  "@supabase/ssr": 0.10.3
+  "@supabase/supabase-js": 2.118.0
+  "@supabase/functions-js": 2.118.0
+  "@supabase/storage-js": 2.118.0
+  "@supabase/auth-js": 2.118.0
+  "@supabase/ssr": 0.12.7
 
 catalogs:
   obsidian:
