@@ -76,6 +76,9 @@ jobs:
       # The incoming webhook is bound to its Slack channel when it is created,
       # so changing the destination channel means replacing this secret.
       - name: Notify Slack
+        # The release is already published and completed here, so a Slack
+        # delivery failure must not mark the run as failed.
+        continue-on-error: true
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_OBSIDIAN_RELEASE_WEBHOOK_URL }}
         run: |
