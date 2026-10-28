@@ -84,9 +84,11 @@ const DiscourseContextSettings = ({
           onClick={() => setPreviewOpen((open) => !open)}
         />
         <p className="text-sm">
-          The tree icon counts {preview.score} discourse relations, the default
-          discourse score. The link icon counts {preview.refs} references to
-          this node. Click the overlay to show or hide its relations.
+          The tree icon counts {preview.score} discourse relation
+          {preview.score === 1 ? "" : "s"}, the default discourse score. The
+          link icon counts {preview.refs} reference
+          {preview.refs === 1 ? "" : "s"} to this node. Click the overlay to
+          show or hide its relations.
         </p>
         <Collapse isOpen={previewOpen}>
           <DiscourseContextOverlayContent

@@ -38,6 +38,7 @@ export const DISCOURSE_CONTEXT_PREVIEW_NODES = {
 export type DiscourseContextPreviewNode =
   keyof typeof DISCOURSE_CONTEXT_PREVIEW_NODES;
 
+// Claim/source connections extend the examples without changing the graph's grammar.
 const PREVIEW_RELATIONS: {
   type: string;
   source: DiscourseContextPreviewNode;
@@ -46,6 +47,7 @@ const PREVIEW_RELATIONS: {
   { type: "_SUPP-rel", source: "evidence", destination: "claim" },
   { type: "_SUPP-rel", source: "supportingClaim", destination: "claim" },
   { type: "_OPPO-rel", source: "opposingEvidence", destination: "claim" },
+  { type: "_INFO-rel", source: "evidence", destination: "question" },
   { type: "_INFO-rel", source: "claim", destination: "question" },
   { type: "_INFO-rel", source: "source", destination: "evidence" },
 ];

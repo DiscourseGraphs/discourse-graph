@@ -41,6 +41,26 @@ describe("discourse context preview", () => {
     ).toEqual(["Evidence", "Claim"]);
   });
 
+  it("demonstrates each default source and destination pairing", () => {
+    Object.values(DEFAULT_RELATIONS_BLOCK_PROPS).forEach((relation) => {
+      const destinationLabel = INITIAL_NODE_VALUES.find(
+        (node) => node.type === relation.destination,
+      )?.text;
+      const hasDefaultPairing = previewNodes.some(
+        (node) =>
+          DISCOURSE_CONTEXT_PREVIEW_NODES[node].type === relation.source &&
+          getDiscourseContextPreview(node).results.some(
+            (group) =>
+              group.label === relation.label &&
+              Object.values(group.results).some(
+                (row) => row.target === destinationLabel,
+              ),
+          ),
+      );
+      expect(hasDefaultPairing).toBe(true);
+    });
+  });
+
   it.each(previewNodes)(
     "keeps %s connected and safe to render without graph entities",
     (node) => {
