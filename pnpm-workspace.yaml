@@ -30,7 +30,7 @@ catalog:
   vitest: ^4.0.0
   react: ^19.1.0
   react-dom: ^19.1.0
-  posthog-js: 1.372.10
+  posthog-js: 1.440.0
   "@supabase/supabase-js": 2.105.4
   "@supabase/functions-js": 2.105.4
   "@supabase/storage-js": 2.105.4
