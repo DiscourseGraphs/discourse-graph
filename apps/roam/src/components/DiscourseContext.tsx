@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Result } from "roamjs-components/types/query-builder";
 import getDiscourseContextResults from "~/utils/getDiscourseContextResults";
 import ResultsView from "./results-view/ResultsView";
+import ResultsTable from "./results-view/ResultsTable";
 import posthog from "posthog-js";
 import { CreateRelationButton } from "./CreateRelationDialog";
 import TentativeRelationInstances from "./TentativeRelationInstances";
@@ -16,6 +17,7 @@ type Props = {
   uid: string;
   results?: DiscourseContextResults;
   overlayRefresh?: (ignoreCache?: boolean) => void;
+  preview?: boolean;
 };
 
 const removeTargetFromResult = (
@@ -31,11 +33,13 @@ const ContextTab = ({
   r,
   groupByTarget,
   onRefresh,
+  preview,
 }: {
   parentUid: string;
   r: DiscourseContextResults[number];
   groupByTarget: boolean;
   onRefresh: (ignoreCache?: boolean) => void;
+  preview: boolean;
 }) => {
   const [subTabId, setSubTabId] = useState(0);
 
@@ -71,12 +75,30 @@ const ContextTab = ({
     ],
     [],
   );
-  const resultsView = (
+  const tableResults = Object.values(results).map(removeTargetFromResult);
+  const resultsView = preview ? (
+    <ResultsTable
+      parentUid={parentUid}
+      results={tableResults}
+      allResults={tableResults}
+      columns={columns}
+      layout={{ mode: "table" }}
+      activeSort={[]}
+      setActiveSort={() => {}}
+      filters={{}}
+      setFilters={() => {}}
+      views={[{ uid: "uid", column: "text", mode: "plain", value: "" }]}
+      onRefresh={onRefresh}
+      preventSavingSettings
+      simplified
+      showInterface={false}
+    />
+  ) : (
     <ResultsView
       // TODO - always save settings, but maybe separate from root `parentUid`?
       preventSavingSettings
       parentUid={parentUid}
-      results={Object.values(results).map(removeTargetFromResult)}
+      results={tableResults}
       columns={columns}
       onRefresh={onRefresh}
       simplified
@@ -103,7 +125,12 @@ const ContextTab = ({
   );
 };
 
-export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
+export const ContextContent = ({
+  uid,
+  results,
+  overlayRefresh,
+  preview = false,
+}: Props): React.ReactElement => {
   const [rawQueryResults, setRawQueryResults] = useState<
     Record<string, DiscourseContextResults[number]>
   >({});
@@ -135,6 +162,8 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
       ignoreCache = true,
       { skipOverlayRefresh = false }: { skipOverlayRefresh?: boolean } = {},
     ) => {
+      // Preview nodes exist only in memory; refreshing must never query their UIDs.
+      if (preview) return;
       setRawQueryResults({});
       void getDiscourseContextResults({
         uid,
@@ -145,7 +174,7 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
         setLoading(false);
       });
     },
-    [uid, setRawQueryResults, setLoading, addLabels, overlayRefresh],
+    [uid, setRawQueryResults, setLoading, addLabels, overlayRefresh, preview],
   );
 
   const delayedRefresh = () => {
@@ -212,6 +241,7 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
                 r={r}
                 groupByTarget={groupByTarget}
                 onRefresh={onRefresh}
+                preview={preview}
               />
             }
           />
@@ -230,11 +260,13 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
               setGroupByTarget((e.target as HTMLInputElement).checked)
             }
           />
-          <CreateRelationButton
-            sourceNodeUid={uid}
-            onCreated={delayedRefresh}
-            fill
-          />
+          {!preview && (
+            <CreateRelationButton
+              sourceNodeUid={uid}
+              onCreated={delayedRefresh}
+              fill
+            />
+          )}
         </div>
       </Tabs>
     </>
@@ -253,14 +285,23 @@ export const ContextContent = ({ uid, results, overlayRefresh }: Props) => {
     </Tabs>
   ) : (
     <div className="flex flex-col items-start">
-      {tentativeCount === 0 && <span>No discourse relations found.</span>}
-      <CreateRelationButton sourceNodeUid={uid} onCreated={delayedRefresh} />
+      {(preview || tentativeCount === 0) && (
+        <span>No discourse relations found.</span>
+      )}
+      {!preview && (
+        <CreateRelationButton sourceNodeUid={uid} onCreated={delayedRefresh} />
+      )}
     </div>
   );
   return (
     <>
       {body}
-      <TentativeRelationInstances uid={uid} onCountChange={setTentativeCount} />
+      {!preview && (
+        <TentativeRelationInstances
+          uid={uid}
+          onCountChange={setTentativeCount}
+        />
+      )}
     </>
   );
 };
