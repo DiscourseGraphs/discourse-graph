@@ -1,0 +1,32 @@
+We worked on the DiscourseGraph account spec (pre-spec because so many open questions!) in roam https://roamresearch.com/#/app/discourse-graphs/page/H3a0tja8D . One answered question: We now have a user.isAdmin flag in roam ( https://roamresearch.com/#/app/developer-documentation/page/U5DkRU6hr )
+
+---
+
+In the api: 
+
+
+<pasted_content id="e84b">
+- `roamAlphaAPI.user.isAdmin`
+    - Description::
+        - Whether the current user is an admin of this graph (the graph owner). Synchronous.
+    - Parameters::
+        - None
+    - Return::
+        - boolean
+</pasted_content id="e84b">
+
+---
+
+I agree it's still forgeable. I expected that entry to be refactored for readability rather than just adding the answered section.
+
+---
+
+Ok I would like to suggest a stylistic improvement. Some of the decision points are long to read. Could we have, for those,  a first paragraph that gives a tldr: Why this decision matters, so readers can focus on decisions that they see as most important? Same thing as first line of the Layers section.
+
+---
+
+Much improved, thank you!
+
+---
+
+Ah, a detail on forgeability of isAdmin: L6 would solve it for the admin's account.
