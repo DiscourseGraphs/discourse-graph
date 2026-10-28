@@ -32,7 +32,7 @@ const asPostgrestFailure = (
   message: string,
   code: string,
   status: number = 400,
-): PostgrestSingleResponse<any> => {
+): PostgrestSingleResponse<never> => {
   return {
     data: null,
     success: false,
@@ -230,6 +230,7 @@ Deno.serve(async (req) => {
 
   // check that we have at least a valid anonymous token with a dummy query.
   // Unfortunately, this seems to be too permissive.
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   const Authorization = req.headers.get("Authorization");
   const apikey = req.headers.get("apikey");
 
