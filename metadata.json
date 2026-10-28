@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M6083764MHV71KZZ82GPSYWY",
+  "strategy": "manual-commit",
+  "branch": "eng-2432-update-supabase-library-in-edge-functions",
+  "checkpoints_count": 8,
+  "files_touched": [
+    "packages/database/src/lib/contextFunctions.ts",
+    "packages/database/supabase/functions/create-space/index.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 84,
+    "cache_creation_tokens": 103798,
+    "cache_read_tokens": 3270263,
+    "output_tokens": 23612,
+    "api_call_count": 32,
+    "subagent_tokens": {
+      "input_tokens": 124,
+      "cache_creation_tokens": 317932,
+      "cache_read_tokens": 4089704,
+      "output_tokens": 30155,
+      "api_call_count": 62
+    }
+  }
+}
