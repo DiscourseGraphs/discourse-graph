@@ -2,16 +2,12 @@ import type { CrossAppNode } from "@repo/database/crossAppContracts";
 import { crossAppNodeToDbContent } from "@repo/database/lib/crossAppConverters";
 import { fullContentNodeToCrossApp } from "./roamToCrossAppConverters";
 import type { LocalContentDataInput } from "@repo/database/inputTypes";
+import type { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
+import type { DiscourseNode } from "./getDiscourseNodes";
 
-export type RoamFullContentNode = {
-  author_local_id: string;
-  source_local_id: string;
-  created: string | number;
-  last_modified: string | number;
-  text: string;
-  node_type_id: string;
-  format: string;
-  node_title?: string;
+export type SharedFullContentUpdate = {
+  fullContentNode: RoamDiscourseNodeData;
+  nodeType: DiscourseNode;
 };
 
 /** Paired so the asset stage reuses the markdown rather than rebuilding it from Roam. */
@@ -23,18 +19,18 @@ export type ConvertedFullContent = {
 export const convertRoamNodeToFullContent = ({
   nodes,
 }: {
-  nodes: RoamFullContentNode[];
+  nodes: SharedFullContentUpdate[];
 }): ConvertedFullContent[] =>
-  nodes.flatMap((node) => {
+  nodes.flatMap(({ fullContentNode, nodeType }) => {
     try {
-      const crossAppNode = fullContentNodeToCrossApp(node);
+      const crossAppNode = fullContentNodeToCrossApp(fullContentNode, nodeType);
       const fullContent = crossAppNodeToDbContent(crossAppNode, "full");
       return fullContent === undefined
         ? []
         : [{ node: crossAppNode, content: fullContent }];
     } catch (error) {
       console.error(
-        `convertRoamNodeToFullContent: failed to build full markdown for ${node.source_local_id}:`,
+        `convertRoamNodeToFullContent: failed to build full markdown for ${fullContentNode.source_local_id}:`,
         error,
       );
       return [];

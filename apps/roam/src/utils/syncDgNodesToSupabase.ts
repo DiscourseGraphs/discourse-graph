@@ -22,7 +22,7 @@ import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
 import {
   convertRoamNodeToFullContent,
-  type RoamFullContentNode,
+  type SharedFullContentUpdate,
 } from "./convertRoamNodeToFullContent";
 import {
   publishNodeAssets,
@@ -817,7 +817,7 @@ export const upsertSharedNodesFullContentWithAssets = async ({
   context,
   phases,
 }: {
-  nodes: RoamFullContentNode[];
+  nodes: SharedFullContentUpdate[];
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
   phases: SyncPhaseDurations;
@@ -1119,11 +1119,6 @@ type SharedFullContentUpdateRow = {
   text: string;
 };
 
-type SharedFullContentUpdate = {
-  fullContentNode: RoamFullContentNode;
-  nodeTypeId: string;
-};
-
 const getSharedRoamNodesWithFullContentUpdatesSince = async ({
   sourceLocalIds,
   since,
@@ -1183,10 +1178,9 @@ const getSharedRoamNodesWithFullContentUpdatesSince = async ({
           created: row.created,
           last_modified: Math.max(row.node_edit_time, row.page_edit_time),
           text: row.text,
-          node_type_id: matchingNodeType.type,
-          format: matchingNodeType.format,
+          type: matchingNodeType.type,
         },
-        nodeTypeId: matchingNodeType.type,
+        nodeType: matchingNodeType,
       },
     ];
   });
@@ -1497,11 +1491,8 @@ export const createOrUpdateDiscourseEmbedding = async (
         return [...refreshed, ...backfilled];
       },
     });
-    const sharedFullContentNodes = sharedFullContentUpdates.map(
-      (update) => update.fullContentNode,
-    );
     const sharedNodeTypeIds = new Set(
-      sharedFullContentUpdates.map((update) => update.nodeTypeId),
+      sharedFullContentUpdates.map((update) => update.nodeType.type),
     );
 
     await measureSyncPhase({
@@ -1528,7 +1519,7 @@ export const createOrUpdateDiscourseEmbedding = async (
     });
     const sharedNodeAssetResults = await upsertSharedNodesFullContentWithAssets(
       {
-        nodes: sharedFullContentNodes,
+        nodes: sharedFullContentUpdates,
         supabaseClient: activeSupabaseClient,
         context: activeContext,
         phases,
