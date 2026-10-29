@@ -1,10 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   dbNodeSchemaToCrossApp,
+  dbNodeToCrossApp,
+  dbNodesToCrossApp,
   dbRelationTypeSchemaToCrossApp,
   dbRelationTripleSchemaToCrossApp,
   dbRelationToCrossApp,
   dbRelationsToCrossApp,
+  type DbNodeConcept,
+  type DbNodeContent,
+  type DbNodeRow,
 } from "../dbToCrossAppConverters";
 import { Tables, Json } from "../../dbTypes";
 import type { DGSupabaseClient } from "../client";
@@ -383,5 +388,320 @@ describe("dbRelationsToCrossApp endpoint rids", () => {
     expect(converted?.destination).toBe(
       "https://roamresearch.com/#/app/research-graph/roam-uid-1",
     );
+  });
+});
+
+describe("dbNodeToCrossApp", () => {
+  const nodeSpaceMap: Record<number, string> = {
+    20: "obsidian:vault-a",
+    21: "obsidian:vault-b",
+  };
+  const schemaMap: Record<number, string> = {
+    200: "orn:obsidian.schema:vault-a/evd-type",
+  };
+  const concept: DbNodeConcept = {
+    core_title: "REM sleep and recall",
+    is_schema: false,
+    last_modified: "2026-06-14T12:00:00",
+    schema_id: 200,
+    source_local_id: "node-1",
+    space_id: 20,
+    reference_content: {},
+    concepts_of_relation: [],
+  };
+  const direct: DbNodeContent = {
+    author_id: 42,
+    created: "2026-06-14T11:00:00",
+    last_modified: "2026-06-14T13:00:00",
+    metadata: { filePath: "EVD - REM sleep and recall.md" },
+    source_local_id: "node-1",
+    space_id: 20,
+    text: "EVD - REM sleep and recall",
+    variant: "direct",
+  };
+  const row: DbNodeRow = {
+    concept,
+    direct,
+    fullLastModified: "2026-06-14T15:00:00",
+  };
+  const convert = (
+    overrides: Partial<DbNodeRow> = {},
+    formatMap: Record<number, string> = { 200: "EVD - {content}" },
+  ) =>
+    dbNodeToCrossApp({
+      row: { ...row, ...overrides },
+      spaceMap: nodeSpaceMap,
+      accountMap,
+      schemaMap,
+      formatMap,
+    });
+
+  it("converts a node with local ids for its author and node type", () => {
+    expect(convert()).toEqual({
+      rid: "orn:obsidian.note:vault-a/node-1",
+      localId: "node-1",
+      createdAt: new Date("2026-06-14T11:00:00Z"),
+      modifiedAt: new Date("2026-06-14T15:00:00Z"),
+      authorId: "account-local-1",
+      nodeType: "evd-type",
+      coreTitle: "REM sleep and recall",
+      content: { direct: { value: "EVD - REM sleep and recall" } },
+    });
+  });
+
+  it("gives a Roam node and a slot target in a Roam space url rids without a subtype", () => {
+    const roamGraph = "https://roamresearch.com/#/app/research-graph";
+    const converted = dbNodeToCrossApp({
+      row: {
+        ...row,
+        concept: {
+          ...concept,
+          space_id: 22,
+          reference_content: { sourceDocument: 8 },
+          concepts_of_relation: [
+            { id: 8, space_id: 22, source_local_id: "roam-uid-8" },
+          ],
+        },
+      },
+      spaceMap: { 22: roamGraph },
+      accountMap,
+      schemaMap: { 200: `${roamGraph}/evd-type` },
+      formatMap: {},
+    });
+    expect(converted.rid).toBe(`${roamGraph}/node-1`);
+    expect(converted.nodeType).toBe("evd-type");
+    expect(converted.slots).toEqual({ sourceDocument: "roam-uid-8" });
+    expect(
+      dbNodeToCrossApp({
+        row: {
+          ...row,
+          concept: {
+            ...concept,
+            reference_content: { sourceDocument: 8 },
+            concepts_of_relation: [
+              { id: 8, space_id: 22, source_local_id: "roam-uid-8" },
+            ],
+          },
+        },
+        spaceMap: { ...nodeSpaceMap, 22: roamGraph },
+        accountMap,
+        schemaMap,
+        formatMap: {},
+      }).slots,
+    ).toEqual({ sourceDocument: `${roamGraph}/roam-uid-8` });
+  });
+
+  it("leaves out a slot whose target has no local id", () => {
+    expect(
+      convert({
+        concept: {
+          ...concept,
+          reference_content: { evidence: 5 },
+          concepts_of_relation: [
+            { id: 5, space_id: 20, source_local_id: null },
+          ],
+        },
+      }).slots,
+    ).toBeUndefined();
+  });
+
+  it("gives a slot target as a local id in the same space and as a rid in another space", () => {
+    expect(
+      convert({
+        concept: {
+          ...concept,
+          reference_content: { evidence: 5, claim: 6, dangling: 7 },
+          concepts_of_relation: [
+            { id: 5, space_id: 20, source_local_id: "node-5" },
+            { id: 6, space_id: 21, source_local_id: "node-6" },
+          ],
+        },
+      }).slots,
+    ).toEqual({
+      evidence: "node-5",
+      claim: "orn:obsidian.note:vault-b/node-6",
+    });
+  });
+
+  it.each([
+    {
+      latest: "concept",
+      overrides: {
+        concept: { ...concept, last_modified: "2026-06-14T16:00:00" },
+      },
+    },
+    {
+      latest: "direct content",
+      overrides: {
+        direct: { ...direct, last_modified: "2026-06-14T16:00:00" },
+      },
+    },
+    {
+      latest: "full content",
+      overrides: { fullLastModified: "2026-06-14T16:00:00" },
+    },
+  ])(
+    "takes modifiedAt from the $latest when it changed last",
+    ({ overrides }) => {
+      expect(convert(overrides).modifiedAt).toEqual(
+        new Date("2026-06-14T16:00:00Z"),
+      );
+    },
+  );
+
+  it("derives the core title from the node type's format when none was published", () => {
+    expect(
+      convert({ concept: { ...concept, core_title: null } }).coreTitle,
+    ).toBe("REM sleep and recall");
+  });
+
+  it("uses the title as the core title when the node type has no format", () => {
+    expect(
+      convert({ concept: { ...concept, core_title: null } }, { 200: "" })
+        .coreTitle,
+    ).toBe("EVD - REM sleep and recall");
+  });
+
+  it.each([
+    {
+      error: "Missing author",
+      overrides: { direct: { ...direct, author_id: null } },
+    },
+    {
+      error: "Missing node type",
+      overrides: { concept: { ...concept, schema_id: 999 } },
+    },
+    {
+      error: "Missing created date",
+      overrides: { direct: { ...direct, created: null } },
+    },
+    { error: "Missing direct content", overrides: { direct: undefined } },
+    {
+      error: "Missing space",
+      overrides: { concept: { ...concept, space_id: 999 } },
+    },
+  ])("throws $error", ({ error, overrides }) => {
+    expect(() => convert(overrides)).toThrow(error);
+  });
+});
+
+describe("dbNodesToCrossApp", () => {
+  const concept = (sourceLocalId: string): DbNodeConcept => ({
+    core_title: `Title of ${sourceLocalId}`,
+    is_schema: false,
+    last_modified: "2026-06-14T12:00:00",
+    schema_id: 200,
+    source_local_id: sourceLocalId,
+    space_id: 20,
+    reference_content: {},
+    concepts_of_relation: [],
+  });
+  const direct = (
+    sourceLocalId: string,
+    authorId: number | null,
+  ): DbNodeContent => ({
+    author_id: authorId,
+    created: "2026-06-14T11:00:00",
+    last_modified: "2026-06-14T13:00:00",
+    metadata: {},
+    source_local_id: sourceLocalId,
+    space_id: 20,
+    text: `EVD - Title of ${sourceLocalId}`,
+    variant: "direct",
+  });
+
+  const makeClient = () => {
+    const rowsByTable: Record<string, unknown[]> = {
+      my_accounts: [{ id: 42, account_local_id: "account-local-1" }],
+      my_concepts: [
+        {
+          id: 200,
+          space_id: 20,
+          source_local_id: "evd-type",
+          is_schema: true,
+          is_relation: false,
+          format: null,
+          sourceDataFormat: "EVD - {content}",
+        },
+      ],
+    };
+    const inCalls: Record<string, unknown[][]> = {};
+    const from = vi.fn((table: string) => {
+      const result = { data: rowsByTable[table], error: null };
+      const builder = {
+        select: vi.fn(),
+        in: vi.fn((column: string, values: unknown[]) => {
+          (inCalls[table] ??= []).push(values);
+          return builder;
+        }),
+        not: vi.fn(),
+        then: (
+          resolve: (value: typeof result) => unknown,
+          reject?: (reason: unknown) => unknown,
+        ) => Promise.resolve(result).then(resolve, reject),
+      };
+      builder.select.mockReturnValue(builder);
+      builder.not.mockReturnValue(builder);
+      return builder;
+    });
+    return { client: { from } as unknown as DGSupabaseClient, inCalls };
+  };
+
+  it("looks up the author, node type and node type format of each node", async () => {
+    const { client, inCalls } = makeClient();
+    const converted = await dbNodesToCrossApp({
+      client,
+      nodes: [{ ...concept("node-1"), core_title: null }],
+      directContents: [direct("node-1", 42)],
+      fullContentSummaries: [],
+      spaceMap: { 20: "obsidian:vault-a" },
+    });
+    expect(inCalls).toEqual({
+      my_accounts: [[42]],
+      my_concepts: [[200], [200]],
+    });
+    expect(converted).toMatchObject([
+      {
+        localId: "node-1",
+        authorId: "account-local-1",
+        nodeType: "evd-type",
+        coreTitle: "Title of node-1",
+      },
+    ]);
+  });
+
+  it("looks up node type formats only for nodes published without a core title", async () => {
+    const { client, inCalls } = makeClient();
+    await dbNodesToCrossApp({
+      client,
+      nodes: [concept("node-1")],
+      directContents: [direct("node-1", 42)],
+      fullContentSummaries: [],
+      spaceMap: { 20: "obsidian:vault-a" },
+    });
+    expect(inCalls.my_concepts).toEqual([[200]]);
+  });
+
+  it("skips and logs a node the contract cannot represent", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { client } = makeClient();
+    const converted = await dbNodesToCrossApp({
+      client,
+      nodes: [concept("node-1"), concept("node-2"), concept("node-3")],
+      directContents: [direct("node-1", 42), direct("node-2", null)],
+      fullContentSummaries: [],
+      spaceMap: { 20: "obsidian:vault-a" },
+    });
+    expect(converted.map(({ localId }) => localId)).toEqual(["node-1"]);
+    expect(warn).toHaveBeenCalledTimes(2);
+    expect(warn).toHaveBeenCalledWith(
+      "Skipped node node-2 of space 20:",
+      new Error("Missing author"),
+    );
+    expect(warn).toHaveBeenCalledWith(
+      "Skipped node node-3 of space 20:",
+      new Error("Missing direct content"),
+    );
+    warn.mockRestore();
   });
 });
