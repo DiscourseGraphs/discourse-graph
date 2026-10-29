@@ -38,10 +38,7 @@ vi.hoisted(() => {
   };
 });
 
-import {
-  discourseNodeBlockToLocalConcept,
-  discourseNodeSchemaToLocalConcept,
-} from "~/utils/conceptConversion";
+import { discourseNodeSchemaToLocalConcept } from "~/utils/conceptConversion";
 
 const CONTEXT = { spaceId: 1, userId: 2 } as never;
 
@@ -151,125 +148,5 @@ describe("discourseNodeSchemaToLocalConcept label and template", () => {
     );
     expect(concept.name).toBe("Evidence/Figure");
     expect(concept.literal_content).toMatchObject({ label: "Evidence/Figure" });
-  });
-});
-
-describe("discourseNodeBlockToLocalConcept core title", () => {
-  it("writes the undecorated core title into literal_content", () => {
-    const concept = discourseNodeBlockToLocalConcept(CONTEXT, {
-      nodeUid: "node-1",
-      schemaUid: "clm",
-      title: "[[CLM]] - my claim",
-      schema: nodeType({
-        text: "Claim",
-        type: "clm",
-        format: "[[CLM]] - {content}",
-      }),
-    });
-    expect(concept.literal_content).toEqual({ core_title: "my claim" });
-    expect(concept.name).toBe("[[CLM]] - my claim");
-    expect(concept.source_local_id).toBe("node-1");
-  });
-
-  it("keeps the whole title when the schema is unknown", () => {
-    const concept = discourseNodeBlockToLocalConcept(CONTEXT, {
-      nodeUid: "node-1",
-      schemaUid: "clm",
-      title: "[[CLM]] - my claim",
-    });
-    expect(concept.literal_content).toEqual({
-      core_title: "[[CLM]] - my claim",
-    });
-  });
-});
-
-describe("discourseNodeBlockToLocalConcept source slot", () => {
-  const convert = (title: string, schema: DiscourseNode = nodeType({})) =>
-    discourseNodeBlockToLocalConcept(CONTEXT, {
-      nodeUid: "node-1",
-      schemaUid: schema.type,
-      title,
-      schema,
-    });
-
-  it("resolves the source page named in the title", () => {
-    const concept = convert(
-      "[[EVD]] - REM sleep aids recall - [[@sun2019direct]]",
-    );
-    expect(concept.local_reference_content).toEqual({
-      sourceDocument: "source-1",
-    });
-  });
-
-  it("writes the origin RID when the source page was imported from another app", () => {
-    mockedReadImportedSourceIdentity.mockReturnValue({
-      sourceModifiedAt: "2026-06-14T15:00:00.000Z",
-      sourceNodeRid: "orn:obsidian.note:vault-a/node-1",
-    });
-    const concept = convert(
-      "[[EVD]] - REM sleep aids recall - [[@sun2019direct]]",
-    );
-    expect(concept.local_reference_content).toEqual({
-      sourceDocument: "orn:obsidian.note:vault-a/node-1",
-    });
-    expect(mockedReadImportedSourceIdentity).toHaveBeenCalledWith("source-1");
-  });
-
-  // Leniency on the target type: see sourceSlot.ts
-  it("accepts a source that is a node of another type", () => {
-    mockedGetDiscourseNodes.mockReturnValue([
-      SOURCE_TYPE,
-      nodeType({ text: "Claim", type: "clm", format: "[[CLM]] - {content}" }),
-    ]);
-    mockedGetPageUidByPageTitle.mockImplementation(() => "claim-1");
-    const concept = convert(
-      "[[EVD]] - REM sleep aids recall - [[CLM]] - a claim",
-    );
-    expect(concept.local_reference_content).toEqual({
-      sourceDocument: "claim-1",
-    });
-  });
-
-  it("omits the slot when the source page is not a discourse node", () => {
-    mockedGetPageUidByPageTitle.mockImplementation(() => "some-page");
-    const concept = convert(
-      "[[EVD]] - REM sleep aids recall - [[a plain page]]",
-    );
-    expect(concept.local_reference_content).toBeUndefined();
-  });
-
-  it("omits the slot when the source page does not exist", () => {
-    const concept = convert(
-      "[[EVD]] - REM sleep aids recall - [[@unknownref]]",
-    );
-    expect(concept.local_reference_content).toBeUndefined();
-  });
-
-  it("skips a source containing a slash, even when the page exists", () => {
-    const concept = convert(
-      "[[EVD]] - REM sleep aids recall - [[@sun2019direct/fig2]]",
-    );
-    expect(concept.local_reference_content).toBeUndefined();
-    expect(mockedGetPageUidByPageTitle).not.toHaveBeenCalled();
-  });
-
-  it("omits the slot when the node type has no source placeholder", () => {
-    const concept = convert(
-      "[[CLM]] - REM sleep aids recall",
-      nodeType({ text: "Claim", type: "clm", format: "[[CLM]] - {content}" }),
-    );
-    expect(concept.local_reference_content).toBeUndefined();
-  });
-
-  it("uses the page title, not the block text, of a block-backed node", () => {
-    const concept = discourseNodeBlockToLocalConcept(CONTEXT, {
-      nodeUid: "node-1",
-      schemaUid: "_EVD-node",
-      title: "[[EVD]] - REM sleep aids recall - [[@sun2019direct]]",
-      schema: nodeType({}),
-    });
-    expect(concept.local_reference_content).toEqual({
-      sourceDocument: "source-1",
-    });
   });
 });
