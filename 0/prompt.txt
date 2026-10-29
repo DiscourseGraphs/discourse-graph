@@ -1,0 +1,98 @@
+Looking one last time at our work on DiscourseGraphs accounts.  https://roamresearch.com/#/app/discourse-graphs/page/H3a0tja8D 
+One thing that I think is missing: What are the UX touchpoints. We have to make people of whether and how they are logged in on each platform, and sometimes in non-obvious places like if they're doing a non-local search, for example. I may be worth enumerating this.
+
+---
+
+I replaced "minimum" with "most likely first target." Otherwise I'll read in details and try to think of what's missing. Meanwhile, another thing I'd like: A diagram showing the relation between all the identities: Space, Person, Agent, group, everyone ... not sure what's the best way to convey the connections, but I want to convey which different logins allow to reach (and maybe how.) So more functionality-centric than database-centric. Please write it locally first, ideally with a text format (dot or plantuml or mermaid, for example.)
+
+---
+
+Ah, maybe we need more than one diagram. One thing that's hard to follow for cold readers is the "How far a claim reaches" (by identity vs attestation). May be worth explaining the difference here.
+
+---
+
+please separate in two diagrams, and stack each option horizontally
+
+---
+
+More readable, yes. A bit jargon heavy: We should have a glossary about what claim and attestation mean. Roam's mermaid rendering does not give space to the text at the top of each block, which is covered by the first sub-block.
+
+---
+
+The second option is back to vertical stacking
+
+---
+
+ok, they're horizontal now. the colours are wrong, but... yes, the Roam mermaid is obviously an ancient version.
+
+---
+
+wrong colours. The section boxes are always yellow; the first box representing the case is always blue; the last boxes representing the cases are the right colour.
+
+---
+
+huh... the boxes are grey now.
+
+---
+
+yes. But one second, are the failure cases not supposed to be a different colour?
+
+---
+
+actually, I said horizontal stacking, but that's now a bit small. Could option 2 be made a 2x2 matrix?
+
+---
+
+I get b, a d, c
+
+---
+
+unchanged. badc
+
+---
+
+still unchanged. I wonder if there's a render limit on roam
+
+---
+
+TEST appears
+
+---
+
+order unchanged
+
+---
+
+Still unchanged. Yes, we'll have to nest
+
+---
+
+that worked. Ok, maybe we should not rely on roam mermaid in the future... How hard is it for you to write tldraw?
+
+---
+
+yes, let's try svg from graphviz.
+
+---
+
+So much better... yes, let's convert the others.
+
+---
+
+yes, please.
+
+---
+
+moved to dg_agent_diagrams/
+
+---
+
+3
+
+---
+
+I was asked to review your performance, hit the wrong key, tried to correct, and here we are. Forget it. Could you go through the Linear projects and tell me which projects are touched by DiscourseGraph accounts? Include past projects where we used space accounts as a workaround, and how we may want to review them.
+
+---
+
+Ok. let's wrap up memory and close this session.
