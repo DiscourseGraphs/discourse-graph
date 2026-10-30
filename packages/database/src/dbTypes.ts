@@ -2093,7 +2093,6 @@ export type Database = {
         };
         Returns: string;
       };
-      group_exists: { Args: { group_id_: string }; Returns: boolean };
       in_group: { Args: { group_id_: string }; Returns: boolean };
       in_space: {
         Args: {

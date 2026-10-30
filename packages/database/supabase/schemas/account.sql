@@ -261,17 +261,6 @@ $$;
 -- group_membership write policies; anon cannot read group_membership.
 REVOKE ALL ON FUNCTION public.is_group_admin FROM anon;
 
-CREATE OR REPLACE FUNCTION public.group_exists(group_id_ UUID) RETURNS BOOLEAN
-STABLE SECURITY DEFINER
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT EXISTS (SELECT true FROM public.group_membership WHERE group_id = group_id_ LIMIT 1);
-$$;
-
--- group_membership insert policy; anon cannot read group_membership.
-REVOKE ALL ON FUNCTION public.group_exists FROM anon;
-
 CREATE OR REPLACE FUNCTION public.my_space_ids(access_level public."SpaceAccessPermissions" = 'reader') RETURNS BIGINT []
 STABLE SECURITY DEFINER
 SET search_path = ''
@@ -615,7 +604,8 @@ DROP POLICY IF EXISTS group_membership_delete_policy ON public.group_membership;
 CREATE POLICY group_membership_delete_policy ON public.group_membership FOR DELETE USING (member_id = (SELECT auth.uid()) OR public.is_group_admin(group_id));
 
 DROP POLICY IF EXISTS group_membership_insert_policy ON public.group_membership;
-CREATE POLICY group_membership_insert_policy ON public.group_membership FOR INSERT WITH CHECK (public.is_group_admin(group_id) OR NOT public.group_exists(group_id));
+CREATE POLICY group_membership_insert_policy ON public.group_membership FOR INSERT WITH CHECK (public.is_group_admin(group_id));
+COMMENT ON POLICY group_membership_insert_policy ON public.group_membership IS 'Only group admins add members. The create-group edge function adds the first admin with the service role, and accept_group_invitation adds invited members as a security definer.';
 
 DROP POLICY IF EXISTS group_membership_update_policy ON public.group_membership;
 CREATE POLICY group_membership_update_policy ON public.group_membership FOR UPDATE USING (public.is_group_admin(group_id));

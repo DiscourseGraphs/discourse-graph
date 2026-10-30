@@ -70,10 +70,12 @@ Given("the database is blank", async () => {
   assert.equal(r.error, null);
   r = await client.from("AgentIdentifier").delete().neq("account_id", -1);
   assert.equal(r.error, null);
-  const r3 = await client.from("group_membership").select("group_id");
+  // Find groups by their flag, not their members: a group can be left without members.
+  const r3 = await client.auth.admin.listUsers({ perPage: 1000 });
   assert.equal(r3.error, null);
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  const groupIds = new Set((r3.data || []).map(({ group_id }) => group_id));
+  const groupIds = r3.data.users
+    .filter((user) => user.user_metadata?.group === true)
+    .map((user) => user.id);
   for (const id of groupIds) {
     const ur = await client.auth.admin.deleteUser(id);
     assert.equal(ur.error, null);
@@ -83,7 +85,7 @@ Given("the database is blank", async () => {
     .select("dg_account")
     .not("dg_account", "is", null);
   assert.equal(r2.error, null);
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+
   for (const { dg_account } of r2.data || []) {
     const r = await client.auth.admin.deleteUser(dg_account);
     assert.equal(r.error, null);
@@ -422,7 +424,7 @@ const expectVisibleConcepts = async ({
     if (typeof id !== "number") assert.fail(`unknown concept ${concept}`);
     return id;
   });
-  const visibleIds = (response.data || []).map(({ id }) => id!);
+  const visibleIds = (response.data || []).map(({ id }) => id);
   const byId = (a: number, b: number): number => a - b;
   assert.deepEqual(visibleIds.sort(byId), expectedIds.sort(byId));
 };
@@ -1643,12 +1645,12 @@ When(
     if (typeof spaceId !== "number") assert.fail("spaceId not a number");
     if (typeof groupId !== "string") assert.fail("groupId not a string");
     const client = await getLoggedinDatabase(spaceId);
-    /* eslint-disable @typescript-eslint/naming-convention */
+
     const { data, error } = await client.rpc("create_secret_token", {
       v_payload: { groupId, type: "groupInvitation", admin: false },
       expiry_interval: "60d",
     });
-    /* eslint-enable @typescript-eslint/naming-convention */
+
     assert.equal(error, null);
     assert.ok(data, "create_secret_token returned no token");
     world.lastInvitationToken = data;
@@ -1819,3 +1821,74 @@ When(
   },
 );
 /* eslint-enable max-params */
+When(
+  "user of space {word} leaves group {word}",
+  async (spaceName: string, groupName: string): Promise<void> => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    const groupId = localRefs[groupName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    if (typeof groupId !== "string") assert.fail("groupId not a string");
+    const client = await getLoggedinDatabase(spaceId);
+    const memberId = (await client.auth.getUser()).data.user?.id;
+    assert.ok(memberId, "user of space not logged in");
+    const response = await client
+      .from("group_membership")
+      .delete()
+      .eq("group_id", groupId)
+      .eq("member_id", memberId)
+      .select();
+    assert.equal(response.error, null);
+    assert.equal(response.data?.length, 1);
+  },
+);
+
+const failToJoinGroup = async (
+  spaceId: number,
+  groupId: string,
+): Promise<void> => {
+  const client = await getLoggedinDatabase(spaceId);
+  const memberId = (await client.auth.getUser()).data.user?.id;
+  assert.ok(memberId, "user of space not logged in");
+  const response = await client
+    .from("group_membership")
+    .insert({ group_id: groupId, member_id: memberId });
+  assert.equal(response.error?.code, INSUFFICIENT_PRIVILEGE);
+};
+
+Then(
+  "user of space {word} fails to add itself to group {word}",
+  async (spaceName: string, groupName: string): Promise<void> => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    const groupId = localRefs[groupName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    if (typeof groupId !== "string") assert.fail("groupId not a string");
+    await failToJoinGroup(spaceId, groupId);
+  },
+);
+
+// The joining user reads the editor's id through its own client,
+// as an attacker with reader access would.
+Then(
+  "user of space {word} fails to join an editor of space {word} as a group",
+  async (space1Name: string, space2Name: string): Promise<void> => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const space1Id = localRefs[space1Name];
+    const space2Id = localRefs[space2Name];
+    if (typeof space1Id !== "number") assert.fail("space1Id not a number");
+    if (typeof space2Id !== "number") assert.fail("space2Id not a number");
+    const client1 = await getLoggedinDatabase(space1Id);
+    const r1 = await client1
+      .from("SpaceAccess")
+      .select("account_uid")
+      .eq("space_id", space2Id)
+      .eq("permissions", "editor")
+      .limit(1)
+      .maybeSingle();
+    assert.equal(r1.error, null);
+    const editorId = r1.data?.account_uid;
+    assert.ok(editorId, `user of space ${space1Name} cannot see an editor`);
+    await failToJoinGroup(space1Id, editorId);
+  },
+);
