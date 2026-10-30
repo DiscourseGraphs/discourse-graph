@@ -891,6 +891,196 @@ const getSpaceClient = async (
   return { spaceId, client: await getLoggedinDatabase(spaceId) };
 };
 
+// Names the anonymous account a space's plugin logs in as, so tables can refer to it.
+Given(
+  "the account of space {word} is called {word}",
+  async (spaceName: string, accountName: string) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    const response = await getServiceClient()
+      .from("PlatformAccount")
+      .select("id")
+      .eq("account_local_id", spaceAnonUserEmail("Roam", spaceId))
+      .single();
+    assert.equal(response.error, null);
+    localRefs[accountName] = response.data!.id;
+    world.localRefs = localRefs;
+  },
+);
+
+const OWN_LOGIN = "own login";
+
+// Each write runs without RETURNING, and its result is read back as the service role,
+// so a denial counts the same whether a privilege, a policy or a filtered row stopped it.
+// Every allowed write is undone afterwards, so the rows of a table do not depend on each other.
+// All rows run before the step fails, and the failure lists every row with an unexpected result.
+Then(
+  "a user logged in space {word} should get these account write results:",
+  async (writerSpaceName: string, table: DataTable) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const { client } = await getSpaceClient(writerSpaceName);
+    const writer = await client.auth.getUser();
+    assert.equal(writer.error, null);
+    const writerUid = writer.data.user!.id;
+    const untypedClient = untyped(client);
+    const service = untyped(getServiceClient());
+    const mismatches: string[] = [];
+    for (const row of table.hashes()) {
+      const { operation, account, column, value, result } = row;
+      const label = `${operation} ${column} of ${account}`;
+      const newValue = value === OWN_LOGIN ? writerUid : value;
+      let written: boolean;
+      if (operation === "update") {
+        const accountId = localRefs[account!];
+        if (typeof accountId !== "number") assert.fail(`unknown ${account}`);
+        const before = await service
+          .from("PlatformAccount")
+          .select("*")
+          .eq("id", accountId)
+          .single();
+        assert.equal(before.error, null, label);
+        const oldValue = (before.data as Record<string, unknown>)[column!];
+        await untypedClient
+          .from("PlatformAccount")
+          .update({ [column!]: newValue })
+          .eq("id", accountId);
+        const after = await service
+          .from("PlatformAccount")
+          .select("*")
+          .eq("id", accountId)
+          .single();
+        assert.equal(after.error, null, label);
+        written = (after.data as Record<string, unknown>)[column!] === newValue;
+        if (written) {
+          const restored = await service
+            .from("PlatformAccount")
+            .update({ [column!]: oldValue })
+            .eq("id", accountId);
+          assert.equal(restored.error, null, label);
+        }
+      } else if (operation === "insert") {
+        // The new account's local id is the account name given in the table.
+        await untypedClient.from("PlatformAccount").insert({
+          name: account,
+          platform: "Roam",
+          account_local_id: account,
+          [column!]: newValue,
+        });
+        const deleted = await service
+          .from("PlatformAccount")
+          .delete()
+          .eq("account_local_id", account!)
+          .select("id");
+        assert.equal(deleted.error, null, label);
+        written = (deleted.data?.length ?? 0) > 0;
+      } else assert.fail(`unknown operation ${operation}`);
+      if (result !== "allowed" && result !== "denied")
+        assert.fail(`unknown result ${result} for ${label}`);
+      if (written !== (result === "allowed"))
+        mismatches.push(`${label}: expected ${result}`);
+    }
+    assert.deepEqual(mismatches, []);
+  },
+);
+
+const localAccessExists = async (
+  accountId: number,
+  spaceId: number,
+): Promise<boolean> => {
+  const response = await getServiceClient()
+    .from("LocalAccess")
+    .select("account_id")
+    .eq("account_id", accountId)
+    .eq("space_id", spaceId);
+  assert.equal(response.error, null);
+  return (response.data?.length ?? 0) > 0;
+};
+
+// Same approach as the account write results: no RETURNING, read back and undone as the service role.
+// An update moves the row from the space to the new space.
+Then(
+  "a user logged in space {word} should get these space membership write results:",
+  async (writerSpaceName: string, table: DataTable) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const { client } = await getSpaceClient(writerSpaceName);
+    const service = getServiceClient();
+    const mismatches: string[] = [];
+    for (const row of table.hashes()) {
+      const { operation, account, space, "new space": newSpace, result } = row;
+      const label = `${operation} ${account} in ${space}`;
+      const accountId = localRefs[account!];
+      const spaceId = localRefs[space!];
+      if (typeof accountId !== "number") assert.fail(`unknown ${account}`);
+      if (typeof spaceId !== "number") assert.fail(`unknown ${space}`);
+      let written: boolean;
+      if (operation === "insert") {
+        await client
+          .from("LocalAccess")
+          .insert({ account_id: accountId, space_id: spaceId });
+        written = await localAccessExists(accountId, spaceId);
+        if (written) {
+          const undone = await service
+            .from("LocalAccess")
+            .delete()
+            .eq("account_id", accountId)
+            .eq("space_id", spaceId);
+          assert.equal(undone.error, null, label);
+        }
+      } else if (operation === "update") {
+        const newSpaceId = localRefs[newSpace!];
+        if (typeof newSpaceId !== "number") assert.fail(`unknown ${newSpace}`);
+        await client
+          .from("LocalAccess")
+          .update({ space_id: newSpaceId })
+          .eq("account_id", accountId)
+          .eq("space_id", spaceId);
+        written = await localAccessExists(accountId, newSpaceId);
+        if (written) {
+          const undone = await service
+            .from("LocalAccess")
+            .update({ space_id: spaceId })
+            .eq("account_id", accountId)
+            .eq("space_id", newSpaceId);
+          assert.equal(undone.error, null, label);
+        }
+      } else if (operation === "delete") {
+        await client
+          .from("LocalAccess")
+          .delete()
+          .eq("account_id", accountId)
+          .eq("space_id", spaceId);
+        written = !(await localAccessExists(accountId, spaceId));
+        if (written) {
+          const undone = await service
+            .from("LocalAccess")
+            .insert({ account_id: accountId, space_id: spaceId });
+          assert.equal(undone.error, null, label);
+        }
+      } else if (operation === "unfiltered delete") {
+        // A filter on a column makes Postgres apply the select policy too, which hides rows of
+        // spaces the writer cannot read. Without a filter, safeupdate rejects the call through
+        // the API. If safeupdate were removed, only the delete policy would decide.
+        const before = await service
+          .from("LocalAccess")
+          .select("account_id, space_id");
+        assert.equal(before.error, null, label);
+        await client.from("LocalAccess").delete();
+        written = !(await localAccessExists(accountId, spaceId));
+        const undone = await service
+          .from("LocalAccess")
+          .upsert(before.data!, { ignoreDuplicates: true });
+        assert.equal(undone.error, null, label);
+      } else assert.fail(`unknown operation ${operation}`);
+      if (result !== "allowed" && result !== "denied")
+        assert.fail(`unknown result ${result} for ${label}`);
+      if (written !== (result === "allowed"))
+        mismatches.push(`${label}: expected ${result}`);
+    }
+    assert.deepEqual(mismatches, []);
+  },
+);
+
 Then(
   "a user logged in space {word} cannot {word} concepts through my_concepts",
   async (spaceName: string, operation: string) => {
