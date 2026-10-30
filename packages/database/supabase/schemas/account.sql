@@ -199,20 +199,6 @@ $$;
 
 COMMENT ON FUNCTION public.is_my_account IS 'security utility: is this my own account?';
 
-CREATE OR REPLACE FUNCTION public.can_access_account(account_uid UUID) RETURNS boolean
-STABLE SECURITY DEFINER
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT account_uid = auth.uid() OR EXISTS (
-        SELECT 1 FROM public.group_membership
-        WHERE member_id = auth.uid() AND group_id=account_uid
-        LIMIT 1
-    );
-$$;
-
-COMMENT ON FUNCTION public.can_access_account IS 'security utility: Is this my account or one of my groups?';
-
 CREATE OR REPLACE FUNCTION public.my_user_accounts() RETURNS SETOF UUID
 STABLE SECURITY DEFINER
 SET search_path = ''
@@ -415,11 +401,11 @@ ALTER TABLE public."Space" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS space_policy ON public."Space";
 DROP POLICY IF EXISTS space_select_policy ON public."Space";
-CREATE POLICY space_select_policy ON public."Space" FOR SELECT USING (public.in_space(id, 'partial'));
+CREATE POLICY space_select_policy ON public."Space" FOR SELECT USING (id = any((SELECT public.my_space_ids('partial'))::bigint []));
 DROP POLICY IF EXISTS space_delete_policy ON public."Space";
-CREATE POLICY space_delete_policy ON public."Space" FOR DELETE USING (public.in_space(id, 'editor'));
+CREATE POLICY space_delete_policy ON public."Space" FOR DELETE USING (id = any((SELECT public.my_space_ids('editor'))::bigint []));
 DROP POLICY IF EXISTS space_update_policy ON public."Space";
-CREATE POLICY space_update_policy ON public."Space" FOR UPDATE USING (public.in_space(id, 'editor'));
+CREATE POLICY space_update_policy ON public."Space" FOR UPDATE USING (id = any((SELECT public.my_space_ids('editor'))::bigint []));
 DROP POLICY IF EXISTS space_insert_policy ON public."Space";
 CREATE POLICY space_insert_policy ON public."Space" FOR INSERT WITH CHECK (true);
 
@@ -534,23 +520,23 @@ ALTER TABLE public."SpaceAccess" ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS space_access_policy ON public."SpaceAccess";
 
 DROP POLICY IF EXISTS space_access_select_policy ON public."SpaceAccess";
-CREATE POLICY space_access_select_policy ON public."SpaceAccess" FOR SELECT USING (public.in_space(space_id));
+CREATE POLICY space_access_select_policy ON public."SpaceAccess" FOR SELECT USING (space_id = any((SELECT public.my_space_ids('reader'))::bigint []));
 
 DROP POLICY IF EXISTS space_access_delete_policy ON public."SpaceAccess";
-CREATE POLICY space_access_delete_policy ON public."SpaceAccess" FOR DELETE USING (public.in_space(space_id, 'editor'));
+CREATE POLICY space_access_delete_policy ON public."SpaceAccess" FOR DELETE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
 
 DROP POLICY IF EXISTS space_access_insert_policy ON public."SpaceAccess";
-CREATE POLICY space_access_insert_policy ON public."SpaceAccess" FOR INSERT WITH CHECK (public.in_space(space_id, 'editor'));
+CREATE POLICY space_access_insert_policy ON public."SpaceAccess" FOR INSERT WITH CHECK (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
 
 DROP POLICY IF EXISTS space_access_update_policy ON public."SpaceAccess";
-CREATE POLICY space_access_update_policy ON public."SpaceAccess" FOR UPDATE USING (public.in_space(space_id, 'editor'));
+CREATE POLICY space_access_update_policy ON public."SpaceAccess" FOR UPDATE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
 
 ALTER TABLE public."LocalAccess" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS local_access_policy ON public."LocalAccess";
 
 DROP POLICY IF EXISTS local_access_select_policy ON public."LocalAccess";
-CREATE POLICY local_access_select_policy ON public."LocalAccess" FOR SELECT USING (public.in_space(space_id));
+CREATE POLICY local_access_select_policy ON public."LocalAccess" FOR SELECT USING (space_id = any((SELECT public.my_space_ids('reader'))::bigint []));
 
 DROP POLICY IF EXISTS local_access_delete_policy ON public."LocalAccess";
 CREATE POLICY local_access_delete_policy ON public."LocalAccess" FOR DELETE USING (public.unowned_account_in_shared_space(account_id, 'editor') OR public.is_my_account(account_id));
