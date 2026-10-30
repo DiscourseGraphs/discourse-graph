@@ -1625,7 +1625,6 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      can_access_account: { Args: { account_uid: string }; Returns: boolean }
       can_view_concept: { Args: { concept_id: number }; Returns: boolean }
       can_view_content: { Args: { content_id: number }; Returns: boolean }
       can_view_specific_resource: {

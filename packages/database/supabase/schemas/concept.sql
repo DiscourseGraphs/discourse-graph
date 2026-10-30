@@ -613,13 +613,19 @@ ALTER TABLE public."Concept" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS concept_policy ON public."Concept";
 DROP POLICY IF EXISTS concept_select_policy ON public."Concept";
-CREATE POLICY concept_select_policy ON public."Concept" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_resource(space_id, source_local_id));
+CREATE POLICY concept_select_policy ON public."Concept" FOR SELECT USING (
+    space_id = any((SELECT public.my_space_ids('reader'))::bigint [])
+    OR (
+        space_id = any((SELECT public.my_space_ids('partial'))::bigint [])
+        AND (space_id, source_local_id) IN (SELECT space_id, source_local_id FROM public.my_accessible_resources())
+    )
+);
 DROP POLICY IF EXISTS concept_delete_policy ON public."Concept";
-CREATE POLICY concept_delete_policy ON public."Concept" FOR DELETE USING (public.in_space(space_id, 'editor'));
+CREATE POLICY concept_delete_policy ON public."Concept" FOR DELETE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
 DROP POLICY IF EXISTS concept_insert_policy ON public."Concept";
-CREATE POLICY concept_insert_policy ON public."Concept" FOR INSERT WITH CHECK (public.in_space(space_id, 'editor'));
+CREATE POLICY concept_insert_policy ON public."Concept" FOR INSERT WITH CHECK (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
 DROP POLICY IF EXISTS concept_update_policy ON public."Concept";
-CREATE POLICY concept_update_policy ON public."Concept" FOR UPDATE USING (public.in_space(space_id, 'editor'));
+CREATE POLICY concept_update_policy ON public."Concept" FOR UPDATE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
 
 -- since ResourceAccess is used for both Content and Concepts,
 -- we cannot count on the usual foreign key delete cascades.
