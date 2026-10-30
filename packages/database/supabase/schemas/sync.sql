@@ -233,14 +233,16 @@ ALTER FUNCTION public.propose_sync_task(
 ) OWNER TO "postgres";
 
 
-GRANT ALL ON TABLE public.sync_info TO "anon";
+-- The sync_info policy calls generic_entity_access, and the plugins log in before syncing.
+REVOKE ALL ON TABLE public.sync_info FROM "anon";
 GRANT ALL ON TABLE public.sync_info TO "authenticated";
 GRANT ALL ON TABLE public.sync_info TO "service_role";
 
-GRANT ALL ON SEQUENCE public.sync_info_id_seq TO "anon";
+REVOKE ALL ON SEQUENCE public.sync_info_id_seq FROM "anon";
 GRANT ALL ON SEQUENCE public.sync_info_id_seq TO "authenticated";
 GRANT ALL ON SEQUENCE public.sync_info_id_seq TO "service_role";
 
+-- Not SECURITY DEFINER: these run as the caller under RLS.
 GRANT ALL ON FUNCTION public.end_sync_task(
     s_target bigint,
     s_function character varying,
@@ -301,6 +303,8 @@ LANGUAGE sql AS $$
 $$;
 
 COMMENT ON FUNCTION public.generic_entity_access IS 'security utility: does current user have access to this generic entity?';
+-- sync_info policy; anon cannot read sync_info.
+REVOKE ALL ON FUNCTION public.generic_entity_access FROM anon;
 
 
 ALTER TABLE public.sync_info ENABLE ROW LEVEL SECURITY;

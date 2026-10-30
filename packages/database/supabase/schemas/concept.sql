@@ -140,6 +140,8 @@ $$;
 
 COMMENT ON FUNCTION public.concept_set_derived_columns
 IS 'Maintains the derived arity and is_relation columns; values supplied by the writer are always overridden.';
+-- Only triggers call it. Postgres checks EXECUTE on a trigger function when the trigger is created, not when it fires.
+REVOKE ALL ON FUNCTION public.concept_set_derived_columns FROM anon, authenticated;
 
 CREATE TRIGGER concept_set_derived_columns_trigger
     BEFORE INSERT OR UPDATE ON public."Concept"
@@ -166,6 +168,8 @@ $$;
 
 COMMENT ON FUNCTION public.concept_propagate_derived_columns
 IS 'Recomputes arity and is_relation of the instances of a schema Concept whose literal_content changed.';
+-- Only triggers call it. Postgres checks EXECUTE on a trigger function when the trigger is created, not when it fires.
+REVOKE ALL ON FUNCTION public.concept_propagate_derived_columns FROM anon, authenticated;
 
 -- The WHEN clause also stops the recursion: the propagated UPDATE does not touch literal_content.
 CREATE TRIGGER concept_propagate_derived_columns_trigger
@@ -634,6 +638,9 @@ AS $$
        AND NOT EXISTS (SELECT id FROM public."Document" WHERE space_id=space_id_ AND source_local_id=source_local_id_ LIMIT 1);
 $$;
 
+-- Only the local reference triggers call it. Called directly, it would reveal whether a row exists in a space the caller can't read.
+REVOKE ALL ON FUNCTION public.is_last_local_reference FROM anon, authenticated;
+
 CREATE OR REPLACE FUNCTION on_delete_local_reference() RETURNS TRIGGER
 SET search_path = ''
 SECURITY DEFINER
@@ -646,6 +653,9 @@ BEGIN
     RETURN OLD;
 END;
 $$;
+
+-- Only triggers call it. Postgres checks EXECUTE on a trigger function when the trigger is created, not when it fires.
+REVOKE ALL ON FUNCTION public.on_delete_local_reference FROM anon, authenticated;
 
 CREATE TRIGGER on_delete_content_trigger AFTER DELETE ON public."Content" FOR EACH ROW EXECUTE FUNCTION public.on_delete_local_reference();
 CREATE TRIGGER on_delete_concept_trigger AFTER DELETE ON public."Concept" FOR EACH ROW EXECUTE FUNCTION public.on_delete_local_reference();
@@ -666,6 +676,9 @@ BEGIN
 END;
 $$;
 
+-- Only triggers call it. Postgres checks EXECUTE on a trigger function when the trigger is created, not when it fires.
+REVOKE ALL ON FUNCTION public.on_update_local_reference FROM anon, authenticated;
+
 CREATE TRIGGER on_update_content_trigger AFTER UPDATE ON public."Content" FOR EACH ROW EXECUTE FUNCTION public.on_update_local_reference();
 CREATE TRIGGER on_update_concept_trigger AFTER UPDATE ON public."Concept" FOR EACH ROW EXECUTE FUNCTION public.on_update_local_reference();
 CREATE TRIGGER on_update_document_trigger AFTER UPDATE ON public."Document" FOR EACH ROW EXECUTE FUNCTION public.on_update_local_reference();
@@ -681,4 +694,27 @@ BEGIN
 END;
 $$;
 
+-- Only triggers call it. Postgres checks EXECUTE on a trigger function when the trigger is created, not when it fires.
+REVOKE ALL ON FUNCTION public.on_delete_space_revoke_local_access FROM anon, authenticated;
+
 CREATE TRIGGER on_delete_space_revoke_access_trigger AFTER DELETE ON public."Space" FOR EACH ROW EXECUTE FUNCTION public.on_delete_space_revoke_local_access();
+
+-- Not SECURITY DEFINER: these run as the caller under RLS.
+GRANT EXECUTE ON FUNCTION public.extract_references TO anon;
+GRANT EXECUTE ON FUNCTION public.compute_arity_local TO anon;
+GRANT EXECUTE ON FUNCTION public.compute_is_relation_local TO anon;
+GRANT EXECUTE ON FUNCTION public.schema_of_concept(public."Concept") TO anon;
+GRANT EXECUTE ON FUNCTION public.schema_of_concept(public.my_concepts) TO anon;
+GRANT EXECUTE ON FUNCTION public.instances_of_schema(public."Concept") TO anon;
+GRANT EXECUTE ON FUNCTION public.instances_of_schema(public.my_concepts) TO anon;
+GRANT EXECUTE ON FUNCTION public.concept_in_relations(public."Concept") TO anon;
+GRANT EXECUTE ON FUNCTION public.concept_in_relations(public.my_concepts) TO anon;
+GRANT EXECUTE ON FUNCTION public.concepts_of_relation(public."Concept") TO anon;
+GRANT EXECUTE ON FUNCTION public.concepts_of_relation(public.my_concepts) TO anon;
+GRANT EXECUTE ON FUNCTION public.content_of_concept TO anon;
+GRANT EXECUTE ON FUNCTION public.author_of_concept TO anon;
+GRANT EXECUTE ON FUNCTION public.rid_to_space_id_and_local_id TO anon;
+GRANT EXECUTE ON FUNCTION public.rid_or_local_id_to_concept_db_id TO anon;
+GRANT EXECUTE ON FUNCTION public._local_concept_to_db_concept TO anon;
+GRANT EXECUTE ON FUNCTION public.upsert_concepts TO anon;
+GRANT EXECUTE ON FUNCTION public.concept_in_space TO anon;

@@ -90,6 +90,9 @@ LANGUAGE sql AS $$
 SELECT EXISTS (SELECT true FROM public."FileReference" WHERE filehash = hashvalue LIMIT 1);
 $$;
 
+-- uploadFile and Roam asset sharing call it after logging in.
+REVOKE ALL ON FUNCTION public.file_exists FROM anon;
+
 CREATE OR REPLACE FUNCTION public.file_access(hashvalue VARCHAR) RETURNS boolean
 SET search_path = ''
 SECURITY DEFINER
@@ -105,6 +108,9 @@ SELECT EXISTS (
     )
     LIMIT 1);
 $$;
+
+-- Public access: storage_select_assets_access policy on the assets bucket.
+GRANT EXECUTE ON FUNCTION public.file_access TO anon;
 
 CREATE OR REPLACE FUNCTION public.after_delete_update_fref() RETURNS TRIGGER
 SET search_path = ''
@@ -124,6 +130,9 @@ BEGIN
 END;
 $$;
 
+-- Only triggers call it. Postgres checks EXECUTE on a trigger function when the trigger is created, not when it fires.
+REVOKE ALL ON FUNCTION public.after_delete_update_fref FROM anon, authenticated;
+
 CREATE OR REPLACE FUNCTION public.after_insert_fref() RETURNS TRIGGER
 SET search_path = ''
 SECURITY DEFINER
@@ -133,6 +142,9 @@ BEGIN
     RETURN NEW;
 END;
 $$;
+
+-- Only triggers call it. Postgres checks EXECUTE on a trigger function when the trigger is created, not when it fires.
+REVOKE ALL ON FUNCTION public.after_insert_fref FROM anon, authenticated;
 
 CREATE TRIGGER on_delete_file_reference_trigger AFTER DELETE ON public."FileReference" FOR EACH ROW EXECUTE FUNCTION public.after_delete_update_fref();
 CREATE TRIGGER on_update_file_reference_trigger AFTER UPDATE ON public."FileReference" FOR EACH ROW EXECUTE FUNCTION public.after_delete_update_fref();

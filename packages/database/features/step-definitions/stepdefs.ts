@@ -92,6 +92,9 @@ Given("the database is blank", async () => {
   assert.equal(r.error, null);
   r = await client.from("Space").delete().neq("id", -1);
   assert.equal(r.error, null);
+  // Deleting the file references above queued their hashes for garbage collection.
+  r = await client.from("file_gc").delete().neq("filehash", "");
+  assert.equal(r.error, null);
   world.localRefs = {};
   // clear the cache
   initNodeSchemaCache();
@@ -1640,3 +1643,89 @@ When(
     assert.equal(r2.error, null);
   },
 );
+
+type FunctionName = keyof Database["public"]["Functions"];
+
+const callFunction = (
+  client: ReturnType<typeof getAnonymousClient>,
+  functionName: string,
+  args: string,
+): PromiseLike<PostgrestSingleResponse<unknown>> =>
+  client.rpc(functionName as FunctionName, JSON.parse(args));
+
+Then(
+  "an anonymous client gets a permission error calling {word} with {string}",
+  async (functionName: string, args: string) => {
+    const response = await callFunction(
+      getAnonymousClient(),
+      functionName,
+      args,
+    );
+    assert.equal(response.error?.code, INSUFFICIENT_PRIVILEGE);
+  },
+);
+
+Then(
+  "an anonymous client can call {word} with {string}",
+  async (functionName: string, args: string) => {
+    const response = await callFunction(
+      getAnonymousClient(),
+      functionName,
+      args,
+    );
+    assert.equal(response.error, null);
+  },
+);
+
+// A row-level security refusal has the same code as a missing privilege, so the message tells them apart.
+Then(
+  "an anonymous client is refused the insert privilege on {word} with {string}",
+  async (tableName: string, values: string) => {
+    const response = await untyped(getAnonymousClient())
+      .from(tableName)
+      .insert(JSON.parse(values) as Record<string, unknown>);
+    assert.equal(response.error?.code, INSUFFICIENT_PRIVILEGE);
+    assert.equal(
+      response.error?.message,
+      `permission denied for table ${tableName}`,
+    );
+  },
+);
+
+Then(
+  "a user logged in space {word} gets a permission error calling {word} with {string}",
+  async (spaceName: string, functionName: string, args: string) => {
+    const { client } = await getSpaceClient(spaceName);
+    const response = await callFunction(client, functionName, args);
+    assert.equal(response.error?.code, INSUFFICIENT_PRIVILEGE);
+  },
+);
+
+Then(
+  "a user logged in space {word} can call {word} with {string}",
+  async (spaceName: string, functionName: string, args: string) => {
+    const { client } = await getSpaceClient(spaceName);
+    const response = await callFunction(client, functionName, args);
+    assert.equal(response.error, null);
+  },
+);
+
+/* eslint-disable max-params -- Cucumber inspects function.length for step arity. */
+When(
+  "a user logged in space {word} deletes the {word} rows with {word} {string}",
+  async (
+    spaceName: string,
+    tableName: TableName,
+    column: string,
+    value: string,
+  ) => {
+    const { client } = await getSpaceClient(spaceName);
+    const response = await client
+      .from(tableName)
+      .delete({ count: "exact" })
+      .eq(column, value);
+    assert.equal(response.error, null);
+    assert.notEqual(response.count || 0, 0);
+  },
+);
+/* eslint-enable max-params */

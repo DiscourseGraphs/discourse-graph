@@ -36,6 +36,9 @@ AS $$
     SELECT concat(lower(platform::text), '-', space_id, '-anon@database.discoursegraphs.com')
 $$;
 
+-- Not SECURITY DEFINER: runs as the caller.
+GRANT EXECUTE ON FUNCTION public.get_space_anonymous_email TO anon;
+
 
 -- on delete trigger anonymous user. Needs to be DEFINER to allow delete on user.auth.
 CREATE OR REPLACE FUNCTION public.after_delete_space()
@@ -52,6 +55,9 @@ BEGIN
     RETURN NEW;
 END;
 $$;
+
+-- Only triggers call it. Postgres checks EXECUTE on a trigger function when the trigger is created, not when it fires.
+REVOKE ALL ON FUNCTION public.after_delete_space FROM anon, authenticated;
 
 CREATE TRIGGER on_delete_space_trigger AFTER DELETE ON public."Space" FOR EACH ROW EXECUTE FUNCTION public.after_delete_space();
 
