@@ -10,52 +10,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      access_token: {
-        Row: {
-          access_token: string
-          code: string | null
-          created_date: string
-          platform_account_id: number | null
-          request_id: string
-        }
-        Insert: {
-          access_token: string
-          code?: string | null
-          created_date?: string
-          platform_account_id?: number | null
-          request_id: string
-        }
-        Update: {
-          access_token?: string
-          code?: string | null
-          created_date?: string
-          platform_account_id?: number | null
-          request_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "access_token_platform_account_id_fkey"
-            columns: ["platform_account_id"]
-            isOneToOne: false
-            referencedRelation: "my_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "access_token_platform_account_id_fkey"
-            columns: ["platform_account_id"]
-            isOneToOne: false
-            referencedRelation: "my_pseudo_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "access_token_platform_account_id_fkey"
-            columns: ["platform_account_id"]
-            isOneToOne: false
-            referencedRelation: "PlatformAccount"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       AgentIdentifier: {
         Row: {
           account_id: number
