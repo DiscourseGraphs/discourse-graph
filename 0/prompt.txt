@@ -1,0 +1,61 @@
+Ok, Michael wants to know how we'll catch potential bugs related to the postgres upgrade in ENG-2437, and we thought we could look at the postgres changelog to see if there's any change that seems likely to touch our functionality; in which case we could add cucumber checks for it. Whether or not we do that last step, verifying if there's a potential issue is another subtask of ENG-2418 that blocks ENG-2437.
+
+---
+
+yes.
+
+---
+
+Yes, put it in backlog, and I assume you can read the changelog yourself.
+
+---
+
+We already ran those tests and they pass. Not sure what you mean about postgrest; our local supabase upgrade should have upgraded the local postgrest as well. And yes, we should have tests that cover changes to postgrest and auth if needed.
+
+---
+
+Ah I see your point. Right now supabase runs postgrest 14.1 in production (?) and Auth 2.197.0.
+
+---
+
+I did run the select and got nothing back. How is the postgrest we get so different from the one supabase specifies?
+
+---
+
+Not sure pinning is the right answer, but... probably. I know I don't want to link, because it makes it more likely that local CLI can affect production.
+
+---
+
+Add that line, I'll read it before you post.
+
+---
+
+One thing: Postgrest and auth are not added scope, it's just that the initial scope was defined too narrowly. We want to know that running the infrastructure update is safe, and this is part of that.
+
+---
+
+No need to say it's worded to narrowly, change the ticket description, it's recent enough.
+
+---
+
+Yes, you could call it DB infrastructure release notes.
+
+---
+
+Do we need a branch here? I thought it was all negative.
+
+---
+
+Go ahead, post the comment.
+
+---
+
+did move to done.
+
+---
+
+thank you. save memories, I'll clear this session
+
+---
+
+Just a note: the reasoning on ticket scope extension is sound, but we should not take it for granted after team approval, and need to mark scope shifts. We could do it here because the description had just been written, and not reviewed by anyone else.
