@@ -718,34 +718,52 @@ ALTER TABLE public."Document" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS document_policy ON public."Document";
 DROP POLICY IF EXISTS document_select_policy ON public."Document";
-CREATE POLICY document_select_policy ON public."Document" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_resource(space_id, source_local_id));
+CREATE POLICY document_select_policy ON public."Document" FOR SELECT USING (
+    space_id = any((SELECT public.my_space_ids('reader'))::bigint [])
+    OR (
+        space_id = any((SELECT public.my_space_ids('partial'))::bigint [])
+        AND (space_id, source_local_id) IN (SELECT space_id, source_local_id FROM public.my_accessible_resources())
+    )
+);
 DROP POLICY IF EXISTS document_delete_policy ON public."Document";
-CREATE POLICY document_delete_policy ON public."Document" FOR DELETE USING (public.in_space(space_id, 'editor'));
+CREATE POLICY document_delete_policy ON public."Document" FOR DELETE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
 DROP POLICY IF EXISTS document_insert_policy ON public."Document";
-CREATE POLICY document_insert_policy ON public."Document" FOR INSERT WITH CHECK (public.in_space(space_id, 'editor'));
+CREATE POLICY document_insert_policy ON public."Document" FOR INSERT WITH CHECK (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
 DROP POLICY IF EXISTS document_update_policy ON public."Document";
-CREATE POLICY document_update_policy ON public."Document" FOR UPDATE USING (public.in_space(space_id, 'editor'));
+CREATE POLICY document_update_policy ON public."Document" FOR UPDATE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
 
 ALTER TABLE public."Content" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS content_policy ON public."Content";
 DROP POLICY IF EXISTS content_select_policy ON public."Content";
-CREATE POLICY content_select_policy ON public."Content" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_resource(space_id, source_local_id));
+CREATE POLICY content_select_policy ON public."Content" FOR SELECT USING (
+    space_id = any((SELECT public.my_space_ids('reader'))::bigint [])
+    OR (
+        space_id = any((SELECT public.my_space_ids('partial'))::bigint [])
+        AND (space_id, source_local_id) IN (SELECT space_id, source_local_id FROM public.my_accessible_resources())
+    )
+);
 DROP POLICY IF EXISTS content_delete_policy ON public."Content";
-CREATE POLICY content_delete_policy ON public."Content" FOR DELETE USING (public.in_space(space_id, 'editor'));
+CREATE POLICY content_delete_policy ON public."Content" FOR DELETE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
 DROP POLICY IF EXISTS content_insert_policy ON public."Content";
-CREATE POLICY content_insert_policy ON public."Content" FOR INSERT WITH CHECK (public.in_space(space_id, 'editor'));
+CREATE POLICY content_insert_policy ON public."Content" FOR INSERT WITH CHECK (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
 DROP POLICY IF EXISTS content_update_policy ON public."Content";
-CREATE POLICY content_update_policy ON public."Content" FOR UPDATE USING (public.in_space(space_id, 'editor'));
+CREATE POLICY content_update_policy ON public."Content" FOR UPDATE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
 
 ALTER TABLE public."ResourceAccess" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS resource_access_policy ON public."ResourceAccess";
 DROP POLICY IF EXISTS resource_access_select_policy ON public."ResourceAccess";
-CREATE POLICY resource_access_select_policy ON public."ResourceAccess" FOR SELECT USING (public.in_space(space_id) OR public.can_access_account(account_uid));
+CREATE POLICY resource_access_select_policy ON public."ResourceAccess" FOR SELECT USING (
+    space_id = any((SELECT public.my_space_ids('reader'))::bigint [])
+    OR account_uid IN (SELECT public.my_user_accounts())
+);
 DROP POLICY IF EXISTS resource_access_delete_policy ON public."ResourceAccess";
-CREATE POLICY resource_access_delete_policy ON public."ResourceAccess" FOR DELETE USING (public.in_space(space_id, 'editor') OR public.can_access_account(account_uid));
+CREATE POLICY resource_access_delete_policy ON public."ResourceAccess" FOR DELETE USING (
+    space_id = any((SELECT public.my_space_ids('editor'))::bigint [])
+    OR account_uid IN (SELECT public.my_user_accounts())
+);
 DROP POLICY IF EXISTS resource_access_insert_policy ON public."ResourceAccess";
-CREATE POLICY resource_access_insert_policy ON public."ResourceAccess" FOR INSERT WITH CHECK (public.in_space(space_id, 'editor'));
+CREATE POLICY resource_access_insert_policy ON public."ResourceAccess" FOR INSERT WITH CHECK (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
 DROP POLICY IF EXISTS resource_access_update_policy ON public."ResourceAccess";
-CREATE POLICY resource_access_update_policy ON public."ResourceAccess" FOR UPDATE USING (public.in_space(space_id, 'editor'));
+CREATE POLICY resource_access_update_policy ON public."ResourceAccess" FOR UPDATE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));

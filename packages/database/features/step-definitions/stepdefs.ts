@@ -4,6 +4,7 @@ import { Given, When, Then, world, type DataTable } from "@cucumber/cucumber";
 import {
   createClient,
   type PostgrestSingleResponse,
+  type SupabaseClient,
 } from "@supabase/supabase-js";
 import {
   Constants,
@@ -359,6 +360,15 @@ const CONTENT_VIEW_KEYS = {
 } as const;
 type ContentView = keyof typeof CONTENT_VIEW_KEYS;
 
+// The same identifying column for the tables behind those views, read directly under RLS.
+const RESOURCE_TABLE_KEYS = {
+  Concept: "id",
+  Document: "id",
+  Content: "id",
+  FileReference: "filepath",
+} as const;
+type ResourceTable = keyof typeof RESOURCE_TABLE_KEYS;
+
 type VisibilityCheck = {
   viewerSpaceName: string;
   filterSpaceName: string;
@@ -421,46 +431,61 @@ Then(
     }),
 );
 
-// Exact list comparison per view, so duplicated rows fail; a view absent from the table must show no rows.
+// The generated types give tables and views separate from() overloads keyed by name,
+// so a query over a union of names resolves none of them.
+const untyped = (
+  client: Awaited<ReturnType<typeof getLoggedinDatabase>>,
+): SupabaseClient => client;
+
+// Exact list comparison per relation, so duplicated rows fail; a relation absent from the table must show no rows.
 // A row is a local reference, or the literal key value when it is not one.
-const expectVisibleContentViewRows = async ({
+const expectVisibleRows = async <Relation extends ContentView | ResourceTable>({
+  keys,
+  column,
   viewerSpaceName,
   filterSpaceName,
   inFilterSpace,
   table,
-}: VisibilityCheck): Promise<void> => {
+}: VisibilityCheck & {
+  keys: Record<Relation, string>;
+  column: "view" | "table";
+}): Promise<void> => {
   const localRefs = (world.localRefs || {}) as LocalRefsType;
   const { filterSpaceId, client } = await getViewerClient(
     viewerSpaceName,
     filterSpaceName,
   );
-  const views = Object.keys(CONTENT_VIEW_KEYS) as ContentView[];
+  const relations = Object.keys(keys) as Relation[];
   const expected = Object.fromEntries(
-    views.map((view) => [view, [] as string[]]),
-  ) as Record<ContentView, string[]>;
-  for (const { view, row } of table.hashes()) {
-    if (!Object.hasOwn(CONTENT_VIEW_KEYS, view!))
-      assert.fail(`unknown view ${view}`);
-    expected[view as ContentView].push(String(localRefs[row!] ?? row));
+    relations.map((relation) => [relation, [] as string[]]),
+  ) as Record<Relation, string[]>;
+  for (const hash of table.hashes()) {
+    const relation = hash[column];
+    if (!Object.hasOwn(keys, relation!))
+      assert.fail(`unknown ${column} ${relation}`);
+    const row = hash.row!;
+    expected[relation as Relation].push(String(localRefs[row] ?? row));
   }
-  for (const view of views) {
-    const key = CONTENT_VIEW_KEYS[view];
-    const query = client.from(view).select(key);
+  const untypedClient = untyped(client);
+  for (const relation of relations) {
+    const key = keys[relation];
+    const query = untypedClient.from(relation).select(key);
     const response = await (inFilterSpace
       ? query.eq("space_id", filterSpaceId)
       : query.neq("space_id", filterSpaceId));
-    assert.equal(response.error, null, view);
-    // With view ranging over four views, the generated select types do not resolve.
-    const rows = (response.data || []) as unknown as Record<string, unknown>[];
+    assert.equal(response.error, null, relation);
+    const rows = (response.data || []) as Record<string, unknown>[];
     const visible = rows.map((row) => String(row[key]));
-    assert.deepEqual(visible.sort(), expected[view].sort(), view);
+    assert.deepEqual(visible.sort(), expected[relation].sort(), relation);
   }
 };
 
 Then(
   "a user logged in space {word} should see these content view rows in space {word}:",
   (viewerSpaceName: string, filterSpaceName: string, table: DataTable) =>
-    expectVisibleContentViewRows({
+    expectVisibleRows({
+      keys: CONTENT_VIEW_KEYS,
+      column: "view",
       viewerSpaceName,
       filterSpaceName,
       inFilterSpace: true,
@@ -471,12 +496,269 @@ Then(
 Then(
   "a user logged in space {word} should see these content view rows outside space {word}:",
   (viewerSpaceName: string, filterSpaceName: string, table: DataTable) =>
-    expectVisibleContentViewRows({
+    expectVisibleRows({
+      keys: CONTENT_VIEW_KEYS,
+      column: "view",
       viewerSpaceName,
       filterSpaceName,
       inFilterSpace: false,
       table,
     }),
+);
+
+Then(
+  "a user logged in space {word} should see these table rows in space {word}:",
+  (viewerSpaceName: string, filterSpaceName: string, table: DataTable) =>
+    expectVisibleRows({
+      keys: RESOURCE_TABLE_KEYS,
+      column: "table",
+      viewerSpaceName,
+      filterSpaceName,
+      inFilterSpace: true,
+      table,
+    }),
+);
+
+Then(
+  "a user logged in space {word} should see these table rows outside space {word}:",
+  (viewerSpaceName: string, filterSpaceName: string, table: DataTable) =>
+    expectVisibleRows({
+      keys: RESOURCE_TABLE_KEYS,
+      column: "table",
+      viewerSpaceName,
+      filterSpaceName,
+      inFilterSpace: false,
+      table,
+    }),
+);
+
+// The column that names the space of a row in each table, for tables whose rows are counted per space.
+const SPACE_TABLE_SPACE_COLUMNS = {
+  Space: "id",
+  SpaceAccess: "space_id",
+  LocalAccess: "space_id",
+} as const;
+type SpaceTable = keyof typeof SPACE_TABLE_SPACE_COLUMNS;
+
+// Exact row counts per table and space, as seen by the user; a space absent from the table must show no rows.
+Then(
+  "a user logged in space {word} should see these rows per space:",
+  async (viewerSpaceName: string, table: DataTable) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const { client } = await getViewerClient(viewerSpaceName, viewerSpaceName);
+    const spaceNames = new Map(
+      Object.entries(localRefs).map(([name, id]) => [id, name]),
+    );
+    const tables = Object.keys(SPACE_TABLE_SPACE_COLUMNS) as SpaceTable[];
+    const expected = Object.fromEntries(
+      tables.map((name): [SpaceTable, Record<string, number>] => [name, {}]),
+    ) as Record<SpaceTable, Record<string, number>>;
+    for (const { table: tableName, space, count } of table.hashes()) {
+      if (!Object.hasOwn(SPACE_TABLE_SPACE_COLUMNS, tableName!))
+        assert.fail(`unknown table ${tableName}`);
+      expected[tableName as SpaceTable][space!] = Number(count);
+    }
+    const untypedClient = untyped(client);
+    for (const name of tables) {
+      const column = SPACE_TABLE_SPACE_COLUMNS[name];
+      const response = await untypedClient.from(name).select(column);
+      assert.equal(response.error, null, name);
+      const visible: Record<string, number> = {};
+      for (const row of (response.data || []) as Record<string, number>[]) {
+        const spaceName = spaceNames.get(row[column]!) ?? `id ${row[column]}`;
+        visible[spaceName] = (visible[spaceName] ?? 0) + 1;
+      }
+      assert.deepEqual(visible, expected[name], name);
+    }
+  },
+);
+
+// The column that names the space of a row in each table.
+const WRITE_TABLE_SPACE_COLUMNS = {
+  FileReference: "space_id",
+  Content: "space_id",
+  Document: "space_id",
+  Concept: "space_id",
+  ResourceAccess: "space_id",
+  SpaceAccess: "space_id",
+  Space: "id",
+} as const;
+type WriteTable = keyof typeof WRITE_TABLE_SPACE_COLUMNS;
+
+// The uid a space's plugin logs in as.
+const spaceUid = async (spaceName: string): Promise<string> => {
+  const localRefs = (world.localRefs || {}) as LocalRefsType;
+  const spaceId = localRefs[spaceName];
+  if (typeof spaceId !== "number") assert.fail(`unknown space ${spaceName}`);
+  const response = await getServiceClient()
+    .from("PlatformAccount")
+    .select("dg_account")
+    .eq("account_local_id", spaceAnonUserEmail("Roam", spaceId))
+    .single();
+  assert.equal(response.error, null);
+  return response.data!.dg_account!;
+};
+
+// A new row in the target space. Rows it depends on are looked up as the service role,
+// so the row is valid whatever the writer can see. The author is user1, which every write scenario creates.
+const newRowInSpace = async ({
+  table,
+  spaceId,
+  writerUid,
+}: {
+  table: WriteTable;
+  spaceId: number;
+  writerUid: string;
+}): Promise<Record<string, unknown>> => {
+  const service = getServiceClient();
+  const now = new Date().toISOString();
+  const localRefs = (world.localRefs || {}) as LocalRefsType;
+  const authorId = localRefs.user1;
+  if (typeof authorId !== "number") assert.fail("user1 is not defined");
+  switch (table) {
+    case "Concept":
+      return {
+        space_id: spaceId,
+        name: "written",
+        source_local_id: "written",
+        author_id: authorId,
+        is_schema: true,
+        created: now,
+        last_modified: now,
+      };
+    case "Document":
+      return {
+        space_id: spaceId,
+        source_local_id: "written",
+        author_id: authorId,
+        created: now,
+        last_modified: now,
+      };
+    case "Content": {
+      const document = await service
+        .from("Document")
+        .select("id")
+        .eq("space_id", spaceId)
+        .limit(1)
+        .single();
+      assert.equal(document.error, null);
+      return {
+        space_id: spaceId,
+        document_id: document.data!.id,
+        source_local_id: "written",
+        author_id: authorId,
+        variant: "direct",
+        scale: "document",
+        text: "written",
+        created: now,
+        last_modified: now,
+      };
+    }
+    case "FileReference": {
+      const content = await service
+        .from("Content")
+        .select("source_local_id")
+        .eq("space_id", spaceId)
+        .eq("variant", "full")
+        .limit(1)
+        .single();
+      assert.equal(content.error, null);
+      return {
+        space_id: spaceId,
+        source_local_id: content.data!.source_local_id,
+        filepath: "written.png",
+        filehash: "written",
+        created: now,
+        last_modified: now,
+      };
+    }
+    case "ResourceAccess":
+      return {
+        space_id: spaceId,
+        source_local_id: "written",
+        account_uid: writerUid,
+      };
+    // Space s3 holds no grant in the write scenarios, so this never collides with an existing row.
+    case "SpaceAccess":
+      return {
+        space_id: spaceId,
+        account_uid: await spaceUid("s3"),
+        permissions: "partial",
+      };
+    // A new space; the target space plays no part.
+    case "Space":
+      return {
+        name: "written",
+        url: "https://roamresearch.com/#/app/written",
+        platform: "Roam",
+      };
+  }
+};
+
+// Runs insert, then update, then delete on each table in the order given, so list dependent tables first.
+// A denied insert fails the row-level security check; a denied update or delete matches no row.
+// The update sets the space column to its current value, so it changes no data.
+// Inserts do not read the row back: a new Space is not visible to its creator, so a read-back would fail.
+Then(
+  "a user logged in space {word} should get these write results in space {word}:",
+  async (
+    writerSpaceName: string,
+    targetSpaceName: string,
+    table: DataTable,
+  ) => {
+    const { filterSpaceId: targetSpaceId, client } = await getViewerClient(
+      writerSpaceName,
+      targetSpaceName,
+    );
+    const writer = await client.auth.getUser();
+    assert.equal(writer.error, null);
+    const untypedClient = untyped(client);
+    for (const { table: tableName, ...expected } of table.hashes()) {
+      if (!Object.hasOwn(WRITE_TABLE_SPACE_COLUMNS, tableName!))
+        assert.fail(`unknown table ${tableName}`);
+      const writeTable = tableName as WriteTable;
+      const spaceColumn = WRITE_TABLE_SPACE_COLUMNS[writeTable];
+      const writes = {
+        insert: async () =>
+          untypedClient.from(writeTable).insert(
+            await newRowInSpace({
+              table: writeTable,
+              spaceId: targetSpaceId,
+              writerUid: writer.data.user!.id,
+            }),
+          ),
+        update: () =>
+          untypedClient
+            .from(writeTable)
+            .update({ [spaceColumn]: targetSpaceId })
+            .eq(spaceColumn, targetSpaceId)
+            .select(spaceColumn),
+        delete: () =>
+          untypedClient
+            .from(writeTable)
+            .delete()
+            .eq(spaceColumn, targetSpaceId)
+            .select(spaceColumn),
+      };
+      for (const operation of ["insert", "update", "delete"] as const) {
+        const result = expected[operation];
+        const label = `${operation} ${writeTable}`;
+        const response = await writes[operation]();
+        if (result === "allowed") {
+          assert.equal(response.error, null, label);
+          if (operation !== "insert")
+            assert.notEqual(response.data?.length ?? 0, 0, label);
+        } else if (result === "denied") {
+          if (operation === "insert")
+            assert.equal(response.error?.code, INSUFFICIENT_PRIVILEGE, label);
+          else {
+            assert.equal(response.error, null, label);
+            assert.equal(response.data?.length ?? 0, 0, label);
+          }
+        } else assert.fail(`unknown result ${result} for ${label}`);
+      }
+    }
+  },
 );
 
 type ViewWrites = Record<

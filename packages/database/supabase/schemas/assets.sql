@@ -55,13 +55,19 @@ ALTER TABLE public."FileReference" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS file_reference_policy ON public."FileReference";
 DROP POLICY IF EXISTS file_reference_select_policy ON public."FileReference";
-CREATE POLICY file_reference_select_policy ON public."FileReference" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_resource(space_id, source_local_id));
+CREATE POLICY file_reference_select_policy ON public."FileReference" FOR SELECT USING (
+    space_id = any((SELECT public.my_space_ids('reader'))::bigint [])
+    OR (
+        space_id = any((SELECT public.my_space_ids('partial'))::bigint [])
+        AND (space_id, source_local_id) IN (SELECT space_id, source_local_id FROM public.my_accessible_resources())
+    )
+);
 DROP POLICY IF EXISTS file_reference_delete_policy ON public."FileReference";
-CREATE POLICY file_reference_delete_policy ON public."FileReference" FOR DELETE USING (public.in_space(space_id, 'editor'));
+CREATE POLICY file_reference_delete_policy ON public."FileReference" FOR DELETE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
 DROP POLICY IF EXISTS file_reference_insert_policy ON public."FileReference";
-CREATE POLICY file_reference_insert_policy ON public."FileReference" FOR INSERT WITH CHECK (public.in_space(space_id, 'editor'));
+CREATE POLICY file_reference_insert_policy ON public."FileReference" FOR INSERT WITH CHECK (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
 DROP POLICY IF EXISTS file_reference_update_policy ON public."FileReference";
-CREATE POLICY file_reference_update_policy ON public."FileReference" FOR UPDATE USING (public.in_space(space_id, 'editor'));
+CREATE POLICY file_reference_update_policy ON public."FileReference" FOR UPDATE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
 
 -- We cannot delete blobs from sql; we'll need to call an edge function with pg_net.
 -- We could pass the name to the edge function, but it's safer to accumulate paths in a table
@@ -91,8 +97,8 @@ LANGUAGE sql AS $$
 SELECT EXISTS (
     SELECT true FROM public."FileReference"
     WHERE filehash = hashvalue AND (
-        public.in_space(space_id) OR
-        public.can_view_specific_resource(space_id, source_local_id)
+        public.in_space(space_id)
+        OR (public.in_space(space_id, 'partial') AND public.can_view_specific_resource(space_id, source_local_id))
     )
     LIMIT 1);
 $$;
