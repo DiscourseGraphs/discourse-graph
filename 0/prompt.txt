@@ -1,0 +1,9 @@
+helped me draft the release notes for the latest release, 1.8.0 for Obsidian, using this part of the skills create release that we have.
+
+---
+
+Can you remove the PR numbers?
+
+---
+
+Not yet — draft the #obsidian-plugin Slack announcement first.
