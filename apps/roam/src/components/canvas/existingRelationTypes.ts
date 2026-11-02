@@ -81,25 +81,61 @@ const waitForRelation = async ({
   return true;
 };
 
+// One key for a triplet in either reading: Informs A→B and Informed By B→A are the same triplet.
+const tripletKey = (t: {
+  label: string;
+  complement: string;
+  source: string;
+  destination: string;
+}): string =>
+  JSON.stringify(
+    t.label <= t.complement
+      ? [t.label, t.complement, t.source, t.destination]
+      : [t.complement, t.label, t.destination, t.source],
+  );
+
+// Shared across menu instances so a reopened menu can't start a second save of the same triplet.
+const pendingSaves = new Map<string, Promise<string>>();
+
+type TripletRequest = RelationType & {
+  sourceType: string;
+  destinationType: string;
+};
+
 // Saves in drag direction; reuses a matching triplet so repeat picks add nothing.
-export const createTripletForPair = async ({
+export const createTripletForPair = (
+  request: TripletRequest,
+): Promise<string> => {
+  const key = tripletKey({
+    ...request,
+    source: request.sourceType,
+    destination: request.destinationType,
+  });
+  const pending = pendingSaves.get(key);
+  if (pending) return pending;
+  const save = saveTripletForPair(request).finally(() =>
+    pendingSaves.delete(key),
+  );
+  pendingSaves.set(key, save);
+  return save;
+};
+
+const saveTripletForPair = async ({
   label,
   complement,
   sourceType,
   destinationType,
-}: RelationType & {
-  sourceType: string;
-  destinationType: string;
-}): Promise<string> => {
+}: TripletRequest): Promise<string> => {
   // createRelationSchema finds the grammar blocks in the cached config tree.
   refreshConfigTree();
+  const wanted = tripletKey({
+    label,
+    complement,
+    source: sourceType,
+    destination: destinationType,
+  });
   const existing = getDiscourseRelations().find(
-    (r) =>
-      !isRelationSchemaDeleted(r.id) &&
-      r.label === label &&
-      r.complement === complement &&
-      r.source === sourceType &&
-      r.destination === destinationType,
+    (r) => !isRelationSchemaDeleted(r.id) && tripletKey(r) === wanted,
   );
   if (existing) {
     // A matching imported triplet is accepted rather than duplicated.

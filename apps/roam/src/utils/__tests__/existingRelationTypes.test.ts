@@ -20,6 +20,9 @@ const mocks = vi.hoisted(() => {
 vi.mock("~/components/canvas/Tldraw", () => ({
   discourseContext: mocks.context,
 }));
+vi.mock("~/components/canvas/canvasUtils", () => ({
+  getAllRelations: () => Object.values(mocks.context.relations).flat(),
+}));
 vi.mock("~/components/settings/utils/accessors", () => ({
   isNewSettingsStoreEnabled: () => mocks.newSettingsStore,
 }));
@@ -197,6 +200,35 @@ describe("createTripletForPair", () => {
       mocks.calls.lastIndexOf("refreshConfigTree"),
     );
     expect(waitCalls).not.toContain("refreshConfigTree");
+  });
+
+  it("accepts a provisional triplet stored in the mirrored reading", async () => {
+    mocks.provisional.add("mirrored");
+    mocks.relations = [
+      triplet({
+        id: "mirrored",
+        label: "is supported by",
+        complement: "supports",
+        source: "evidence",
+        destination: "claim",
+      }),
+    ];
+    await expect(createTripletForPair(args)).resolves.toBe("mirrored");
+    expect(mocks.createRelationSchema).not.toHaveBeenCalled();
+    expect(mocks.calls).toContain("accept:mirrored");
+  });
+
+  it("shares one save between concurrent picks of the same triplet", async () => {
+    mocks.createRelationSchema.mockImplementation(() => {
+      mocks.relations.push(triplet({ id: "new-uid" }));
+      return Promise.resolve("new-uid");
+    });
+    const [first, second] = await Promise.all([
+      createTripletForPair(args),
+      createTripletForPair(args),
+    ]);
+    expect([first, second]).toEqual(["new-uid", "new-uid"]);
+    expect(mocks.createRelationSchema).toHaveBeenCalledTimes(1);
   });
 
   it("does not reuse a triplet that runs the other way", async () => {
