@@ -41,7 +41,7 @@ const CanvasSettings = ({
         blockPropKey={PERSONAL_KEYS.discourseToolShortcut}
         label="Discourse tool keyboard shortcut"
         description="Set a single key to activate the discourse tool in tldraw. Only single keys (no modifiers) are supported. Leave empty for no shortcut."
-        placeholder="Click to set single key"
+        placeholder="Set single key"
         initialValue={personalSettings[PERSONAL_KEYS.discourseToolShortcut]}
       />
       <PersonalFlagPanel
