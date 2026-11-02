@@ -24,16 +24,19 @@ type TripletFields = Pick<
   "id" | "label" | "complement" | "source" | "destination"
 >;
 
-// The canvas tells types apart by label, so hide any type whose label or complement
-// the pair already shows in either direction.
+// A mirrored pair (Informs / Informed By vs Informed By / Informs) is one type; the drag sets direction.
+const relationTypeKey = ({ label, complement }: RelationType): string =>
+  JSON.stringify([label, complement].sort());
+
+// Hides only types the pair already has; same-label types with other complements stay listed.
 export const deriveRelationTypes = ({
   relations,
-  shownLabels,
+  pairTypes,
 }: {
   relations: TripletFields[];
-  shownLabels: string[];
+  pairTypes: RelationType[];
 }): RelationType[] => {
-  const shown = new Set(shownLabels);
+  const onPair = new Set(pairTypes.map(relationTypeKey));
   const seenIds = new Set<string>();
   const types = new Map<string, RelationType>();
   for (const relation of relations) {
@@ -41,11 +44,9 @@ export const deriveRelationTypes = ({
     seenIds.add(relation.id);
     if (!isAcceptedRelationSchema(relation) || !isRelationComplete(relation))
       continue;
-    const { label, complement } = relation;
-    if (shown.has(label) || shown.has(complement)) continue;
-    // A mirrored pair (Informs / Informed By vs Informed By / Informs) is one type; the drag sets direction.
-    const key = JSON.stringify([label, complement].sort());
-    if (!types.has(key)) types.set(key, { label, complement });
+    const key = relationTypeKey(relation);
+    if (onPair.has(key) || types.has(key)) continue;
+    types.set(key, { label: relation.label, complement: relation.complement });
   }
   return [...types.values()];
 };

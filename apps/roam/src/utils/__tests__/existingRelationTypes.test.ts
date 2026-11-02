@@ -69,7 +69,7 @@ describe("deriveRelationTypes", () => {
         triplet({ id: "a", label: "Informs", complement: "Informed By" }),
         triplet({ id: "b", label: "Informed By", complement: "Informs" }),
       ],
-      shownLabels: [],
+      pairTypes: [],
     });
     expect(types).toEqual([{ label: "Informs", complement: "Informed By" }]);
   });
@@ -82,7 +82,7 @@ describe("deriveRelationTypes", () => {
         triplet({ id: "b", source: "question" }),
         triplet({ id: "c", complement: "backs" }),
       ],
-      shownLabels: [],
+      pairTypes: [],
     });
     expect(types).toEqual([
       { label: "supports", complement: "is supported by" },
@@ -90,20 +90,25 @@ describe("deriveRelationTypes", () => {
     ]);
   });
 
-  it("hides a type whose label or complement the pair already shows", () => {
+  it("hides only types the pair already has, in either reading", () => {
     const relations = [
       triplet({ id: "a" }),
-      triplet({ id: "b", label: "opposes", complement: "is opposed by" }),
+      triplet({ id: "b", complement: "backs" }),
       triplet({ id: "c", label: "informs", complement: "supports" }),
+      triplet({ id: "d", label: "opposes", complement: "is opposed by" }),
     ];
     expect(
-      deriveRelationTypes({ relations, shownLabels: ["supports"] }),
-    ).toEqual([{ label: "opposes", complement: "is opposed by" }]);
-    expect(
-      deriveRelationTypes({ relations, shownLabels: ["is opposed by"] }).map(
-        (t) => t.label,
-      ),
-    ).toEqual(["supports", "informs"]);
+      deriveRelationTypes({
+        relations,
+        pairTypes: [
+          { label: "supports", complement: "is supported by" },
+          { label: "is opposed by", complement: "opposes" },
+        ],
+      }),
+    ).toEqual([
+      { label: "supports", complement: "backs" },
+      { label: "informs", complement: "supports" },
+    ]);
   });
 
   it("leaves out incomplete and provisional triplets", () => {
@@ -114,7 +119,7 @@ describe("deriveRelationTypes", () => {
         triplet({ id: "i", label: "incomplete", complement: "" }),
         triplet({ id: "q", label: "placeholder", destination: "?" }),
       ],
-      shownLabels: [],
+      pairTypes: [],
     });
     expect(types).toEqual([]);
   });
@@ -122,7 +127,7 @@ describe("deriveRelationTypes", () => {
   it("includes triplets with Any (*) node types", () => {
     const types = deriveRelationTypes({
       relations: [triplet({ id: "a", source: "*" })],
-      shownLabels: [],
+      pairTypes: [],
     });
     expect(types).toEqual([
       { label: "supports", complement: "is supported by" },

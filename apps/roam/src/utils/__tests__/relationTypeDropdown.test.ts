@@ -7,7 +7,13 @@ import type { TLShapeId } from "tldraw";
 import { RelationTypeDropdown } from "~/components/canvas/overlays/RelationTypeDropdown";
 
 const mocks = vi.hoisted(() => ({
-  types: [] as { id: string; label: string; color: string }[],
+  types: [] as {
+    id: string;
+    label: string;
+    complement: string;
+    hasLabelCollision: boolean;
+    color: string;
+  }[],
   relations: [] as {
     id: string;
     label: string;
@@ -120,9 +126,56 @@ describe("empty state", () => {
   });
 });
 
+describe("label collisions", () => {
+  it("shows the complement under rows whose labels collide", () => {
+    mocks.types = [
+      {
+        id: "t1",
+        label: "supports",
+        complement: "is supported by",
+        hasLabelCollision: true,
+        color: "#000",
+      },
+      {
+        id: "t2",
+        label: "supports",
+        complement: "backs",
+        hasLabelCollision: true,
+        color: "#000",
+      },
+      {
+        id: "t3",
+        label: "informs",
+        complement: "is informed by",
+        hasLabelCollision: false,
+        color: "#000",
+      },
+    ];
+    render({});
+    const rows = [...container.querySelectorAll("button")].map(
+      (b) => b.textContent,
+    );
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        "supportsis supported by",
+        "supportsbacks",
+        "informs",
+      ]),
+    );
+  });
+});
+
 describe("populated state", () => {
   beforeEach(() => {
-    mocks.types = [{ id: "rel-1", label: "supports", color: "#000" }];
+    mocks.types = [
+      {
+        id: "rel-1",
+        label: "supports",
+        complement: "is supported by",
+        hasLabelCollision: false,
+        color: "#000",
+      },
+    ];
   });
 
   it("exposes both actions through the + control", () => {
@@ -179,7 +232,15 @@ const escape = (): void =>
 
 describe("existing relation picker", () => {
   beforeEach(() => {
-    mocks.types = [{ id: "rel-1", label: "supports", color: "#000" }];
+    mocks.types = [
+      {
+        id: "rel-1",
+        label: "supports",
+        complement: "is supported by",
+        hasLabelCollision: false,
+        color: "#000",
+      },
+    ];
     mocks.relations = [
       relation("t1", "supports", "is supported by"),
       relation("t2", "opposes", "is opposed by"),
