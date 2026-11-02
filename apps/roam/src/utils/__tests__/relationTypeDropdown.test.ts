@@ -49,6 +49,9 @@ vi.mock("~/utils/createRelationSchema", () => ({
   createRelationSchema: vi.fn(),
 }));
 vi.mock("~/utils/refreshConfigTree", () => ({ default: vi.fn() }));
+vi.mock("~/components/settings/utils/accessors", () => ({
+  isNewSettingsStoreEnabled: () => false,
+}));
 vi.mock("~/utils/getDiscourseRelations", () => ({
   default: () => mocks.relations,
 }));

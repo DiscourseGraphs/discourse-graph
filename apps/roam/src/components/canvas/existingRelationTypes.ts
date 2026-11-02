@@ -6,6 +6,7 @@ import getDiscourseRelations, {
 } from "~/utils/getDiscourseRelations";
 import { isRelationComplete } from "~/utils/isRelationComplete";
 import refreshConfigTree from "~/utils/refreshConfigTree";
+import { isNewSettingsStoreEnabled } from "~/components/settings/utils/accessors";
 import {
   acceptImportedRelationSchema,
   isAcceptedRelationSchema,
@@ -53,28 +54,29 @@ export const deriveRelationTypes = ({
 
 const SCHEMA_WRITE_POLL_MS = 50;
 const SCHEMA_WRITE_TIMEOUT_MS = 3000;
+const SCHEMA_WRITE_RECONCILE_POLL_MS = 500;
 const SCHEMA_WRITE_RECONCILE_MS = 30000;
 
 // createRelationSchema doesn't await its settings write, so poll until the triplet is readable.
-// The legacy store reads the cached config tree, hence the refresh on each pass.
+// Only the legacy store reads the cached config tree, so only it needs the (costly) refresh.
 const isRelationReadable = (id: string): boolean => {
-  refreshConfigTree();
+  if (!isNewSettingsStoreEnabled()) refreshConfigTree();
   return getDiscourseRelations().some((r) => r.id === id);
 };
 
 const waitForRelation = async ({
   id,
   timeoutMs,
+  pollMs,
 }: {
   id: string;
   timeoutMs: number;
+  pollMs: number;
 }): Promise<boolean> => {
   const deadline = Date.now() + timeoutMs;
   while (!isRelationReadable(id)) {
     if (Date.now() > deadline) return false;
-    await new Promise<void>((resolve) =>
-      setTimeout(resolve, SCHEMA_WRITE_POLL_MS),
-    );
+    await new Promise<void>((resolve) => setTimeout(resolve, pollMs));
   }
   return true;
 };
@@ -112,15 +114,23 @@ export const createTripletForPair = async ({
     source: sourceType,
     destination: destinationType,
   });
-  if (await waitForRelation({ id, timeoutMs: SCHEMA_WRITE_TIMEOUT_MS })) {
+  if (
+    await waitForRelation({
+      id,
+      timeoutMs: SCHEMA_WRITE_TIMEOUT_MS,
+      pollMs: SCHEMA_WRITE_POLL_MS,
+    })
+  ) {
     refreshCanvasRelations();
     return id;
   }
   // The block exists, so a slow settings write is still a save: refresh once it lands.
-  void waitForRelation({ id, timeoutMs: SCHEMA_WRITE_RECONCILE_MS }).then(
-    (isReadable) => {
-      if (isReadable) refreshCanvasRelations();
-    },
-  );
+  void waitForRelation({
+    id,
+    timeoutMs: SCHEMA_WRITE_RECONCILE_MS,
+    pollMs: SCHEMA_WRITE_RECONCILE_POLL_MS,
+  }).then((isReadable) => {
+    if (isReadable) refreshCanvasRelations();
+  });
   return id;
 };

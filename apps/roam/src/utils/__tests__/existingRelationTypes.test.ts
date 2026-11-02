@@ -13,11 +13,15 @@ const mocks = vi.hoisted(() => {
     relations: [] as DiscourseRelation[],
     provisional: new Set<string>(),
     createRelationSchema: vi.fn(),
+    newSettingsStore: false,
     context,
   };
 });
 vi.mock("~/components/canvas/Tldraw", () => ({
   discourseContext: mocks.context,
+}));
+vi.mock("~/components/settings/utils/accessors", () => ({
+  isNewSettingsStoreEnabled: () => mocks.newSettingsStore,
 }));
 vi.mock("~/utils/refreshConfigTree", () => ({
   default: () => mocks.calls.push("refreshConfigTree"),
@@ -60,6 +64,7 @@ beforeEach(() => {
   mocks.provisional = new Set();
   mocks.context.relations = {};
   mocks.createRelationSchema.mockReset();
+  mocks.newSettingsStore = false;
 });
 
 describe("deriveRelationTypes", () => {
@@ -179,6 +184,21 @@ describe("createTripletForPair", () => {
     expect(mocks.calls).toContain("accept:imported");
   });
 
+  it("skips the config tree refresh while waiting when the new settings store is on", async () => {
+    mocks.newSettingsStore = true;
+    mocks.createRelationSchema.mockImplementation(() => {
+      mocks.calls.push("create");
+      setTimeout(() => mocks.relations.push(triplet({ id: "new-uid" })), 120);
+      return Promise.resolve("new-uid");
+    });
+    await expect(createTripletForPair(args)).resolves.toBe("new-uid");
+    const waitCalls = mocks.calls.slice(
+      mocks.calls.indexOf("create") + 1,
+      mocks.calls.lastIndexOf("refreshConfigTree"),
+    );
+    expect(waitCalls).not.toContain("refreshConfigTree");
+  });
+
   it("does not reuse a triplet that runs the other way", async () => {
     mocks.relations = [triplet({ id: "reverse" })];
     mocks.createRelationSchema.mockImplementation(() => {
@@ -197,7 +217,7 @@ describe("createTripletForPair", () => {
       await expect(result).resolves.toBe("slow-uid");
       expect(mocks.calls).not.toContain("notify");
       mocks.relations.push(triplet({ id: "slow-uid" }));
-      await vi.advanceTimersByTimeAsync(100);
+      await vi.advanceTimersByTimeAsync(600);
       expect(mocks.calls.at(-1)).toBe("notify");
     } finally {
       vi.useRealTimers();
