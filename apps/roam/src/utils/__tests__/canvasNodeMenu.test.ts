@@ -44,7 +44,6 @@ vi.mock("~/components/settings/DiscourseNodeCanvasSettings", () => ({
 vi.mock("~/components/settings/utils/accessors", () => ({
   setPersonalSetting: vi.fn(),
 }));
-vi.mock("posthog-js", () => ({ default: { capture: vi.fn() } }));
 
 let container: HTMLDivElement;
 let root: Root;
