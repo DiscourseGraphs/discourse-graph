@@ -3,9 +3,8 @@ import { Component, type ErrorInfo, type ReactNode } from "react";
 type Props = { resetKey: string; children: ReactNode };
 type State = { error: Error | null; errorKey: string | null };
 
-// PreviewPane hands a React-owned node to MarkdownRenderer, so Obsidian can mutate
-// children React still owns and a teardown can throw mid-reconciliation. Without a
-// boundary that throw unmounts the modal's whole root.
+// PreviewPane lets Obsidian mutate React-owned DOM, so a teardown can throw
+// mid-reconciliation; uncaught, that unmounts the modal's whole root.
 export class PreviewErrorBoundary extends Component<Props, State> {
   state: State = { error: null, errorKey: null };
 
@@ -13,10 +12,8 @@ export class PreviewErrorBoundary extends Component<Props, State> {
     return { error };
   }
 
-  // Reset on a prop change rather than a `key` change: a new key would unmount this
-  // boundary in the same commit as its children, letting the throw escape upward.
-  // Compare against the key captured in componentDidCatch, not the previous props —
-  // a throw discards the in-progress render, so prop-derived state never committed.
+  // Reset by prop, not `key`, which would unmount this boundary with its children.
+  // Compare the catch-time key: a render-stored one is discarded when that render throws.
   static getDerivedStateFromProps(props: Props, state: State): State | null {
     if (!state.error || state.errorKey === null) return null;
     if (props.resetKey === state.errorKey) return null;
@@ -31,7 +28,7 @@ export class PreviewErrorBoundary extends Component<Props, State> {
   render(): ReactNode {
     if (this.state.error) {
       return (
-        <div className="text-muted flex flex-1 items-center justify-center">
+        <div className="text-error flex flex-1 items-center justify-center">
           Could not render this preview.
         </div>
       );

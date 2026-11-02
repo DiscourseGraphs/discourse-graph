@@ -664,7 +664,7 @@ const NodeSearch = ({
         {/* Keep the boundary outside any conditional around PreviewPane: unmounting
             it with the preview would let a teardown throw blank the modal again. */}
         <PreviewErrorBoundary
-          resetKey={`${activeResult?.file.path ?? ""}:${activeResult?.tagLine?.line ?? ""}`}
+          resetKey={`${activeResult?.file.path ?? ""}:${activeResult?.tagLine?.line ?? ""}:${activeResult?.nodeTypeId ?? ""}`}
         >
           <PreviewPane
             app={app}
