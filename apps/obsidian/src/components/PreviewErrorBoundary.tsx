@@ -21,7 +21,7 @@ export class PreviewErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    console.error("Discourse Graphs: node search preview failed", error, info);
+    console.error("Node search preview failed:", error, info);
     this.setState({ errorKey: this.props.resetKey });
   }
 
