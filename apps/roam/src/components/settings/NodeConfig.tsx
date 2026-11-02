@@ -285,7 +285,7 @@ const NodeConfig = ({ node }: { node: DiscourseNode }) => {
       <SettingsGroup title="Identity">
         <SettingItemRow
           label="Index"
-          description={`The saved list of all ${node.text} pages \u2014 which pages appear and which columns show.`}
+          description={`A table of all ${node.text} pages.`}
           scope="global"
           settingKeys={[DISCOURSE_NODE_KEYS.index]}
           control={

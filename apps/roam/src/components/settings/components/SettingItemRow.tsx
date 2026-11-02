@@ -17,11 +17,11 @@ export type SettingScope = "personal" | "global";
 const SCOPE_INDICATORS = {
   personal: {
     icon: "person",
-    tooltip: "Personal — applies only to you",
+    tooltip: "Personal, applies only to you",
   },
   global: {
     icon: "globe",
-    tooltip: "Graph-wide — applies to everyone in this graph",
+    tooltip: "Graph-wide, applies to everyone in this graph",
   },
 } as const satisfies Record<SettingScope, { icon: IconName; tooltip: string }>;
 
