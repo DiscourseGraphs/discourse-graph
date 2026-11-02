@@ -4,6 +4,6 @@ interface:
   default_prompt: "Use $dg-engineering-writing-style to draft a concise engineering team message."
 policy:
   products:
-    - "CHAT"
+    - "CHATGPT"
     - "CODEX"
   allow_implicit_invocation: true
