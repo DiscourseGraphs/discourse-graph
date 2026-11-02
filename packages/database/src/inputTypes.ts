@@ -1,4 +1,4 @@
-import type { Database } from "@repo/database/dbTypes";
+import type { Tables, Database } from "@repo/database/dbTypes";
 
 export type LocalAccountDataInput = Partial<
   Database["public"]["CompositeTypes"]["account_local_input"]
@@ -29,4 +29,17 @@ export type LocalConceptDataInput = Partial<
     creator_inline: LocalAccountDataInput;
     contents_inline: LocalContentDataInput[];
   }
+>;
+
+type PublicRelations = Database["public"]["Tables"] &
+  Database["public"]["Views"];
+
+/**
+ * A table or view row with its columns only, as `select("*")` returns it.
+ * Computed fields are omitted: generated `Row` types include them, and type
+ * bug marks a `SETOF` field as a single object.
+ */
+export type ColumnRow<T extends keyof PublicRelations> = Omit<
+  Tables<T>,
+  PublicRelations[T]["ComputedFields"]
 >;

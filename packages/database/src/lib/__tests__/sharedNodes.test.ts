@@ -106,7 +106,7 @@ describe("buildSharedNodes", () => {
         ...directContents[0]!,
         space_id: 30,
         source_local_id: "roam-uid-1",
-        metadata: null,
+        metadata: {},
         text: "CLM - Sleep improves memory consolidation",
       },
     ];
@@ -138,7 +138,7 @@ describe("buildSharedNodes", () => {
         created: "2026-06-14T11:00:00.000Z",
         lastModified: "2026-06-14T15:00:00.000Z",
         authorId: 42,
-        directMetadata: null,
+        directMetadata: {},
       },
     ]);
   });
@@ -157,10 +157,12 @@ describe("buildSharedNodes", () => {
   });
 
   it("falls back to the direct created date when no last-modified exists", () => {
+    // The columns are NOT NULL; the casts exercise the fallback anyway.
+    const noDate = null as unknown as string;
     expect(
       build({
-        nodesOverride: [{ ...nodes[0]!, last_modified: null }],
-        directOverride: [{ ...directContents[0]!, last_modified: null }],
+        nodesOverride: [{ ...nodes[0]!, last_modified: noDate }],
+        directOverride: [{ ...directContents[0]!, last_modified: noDate }],
         fullOverride: [],
       })[0]?.lastModified,
     ).toBe("2026-06-14T11:00:00.000Z");
