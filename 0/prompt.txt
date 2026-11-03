@@ -1,0 +1,7 @@
+<task-notification>
+<task-id>bc65f1p1b</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/tmp/claude-1000/-mnt-data-projects-discourse-graph/104b2eaa-a4fa-4079-bba1-7569daa6bc75/tasks/bc65f1p1b.output</output-file>
+<status>completed</status>
+<summary>Background command "Install dependencies from the lockfile in the ENG-2061 worktree" completed (exit code 0)</summary>
+</task-notification>
