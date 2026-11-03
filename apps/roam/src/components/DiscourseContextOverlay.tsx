@@ -132,6 +132,7 @@ export const DiscourseContextButton = ({
       minimal
       disabled={loading}
       onClick={onClick}
+      aria-label={`Discourse score ${score}, ${refs} references`}
     >
       <div className="flex items-center gap-1.5">
         <Icon
@@ -240,6 +241,14 @@ const useDiscourseContext = (uid: string, tag: string) => {
   return { loading, results, refs, score, refresh };
 };
 
+export const DiscourseContextOverlayContent = (
+  props: React.ComponentProps<typeof ContextContent>,
+): React.ReactElement => (
+  <div className="roamjs-discourse-context-popover relative max-w-3xl p-4">
+    <ContextContent {...props} />
+  </div>
+);
+
 const DiscourseContextPopupOverlay = ({
   tag,
   id,
@@ -258,13 +267,11 @@ const DiscourseContextPopupOverlay = ({
     <Popover
       autoFocus={false}
       content={
-        <div className="roamjs-discourse-context-popover relative max-w-3xl p-4">
-          <ContextContent
-            uid={tagUid}
-            results={results}
-            overlayRefresh={refresh}
-          />
-        </div>
+        <DiscourseContextOverlayContent
+          uid={tagUid}
+          results={results}
+          overlayRefresh={refresh}
+        />
       }
       target={
         <DiscourseContextButton
