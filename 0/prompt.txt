@@ -1,0 +1,376 @@
+I'm noticing issues with Roam sync in production. (dev build on main working against production database.) Observed on discourse-graphs graph. Two error messages: Some concept dependencies were not in the current sync batch:  ['Pkaalb6a1', 'zWKvYXHNg', 'P619Exke-', 'oMhUbYqnq', 'EFug-PMI2', 'qInjuMjPm', 'ZXrbgU-ze'] (Those seem to all be UserProfile instances) and upsert_concepts returned row failures (-1: 20, -2: 3) . I'm thinking I could add info to the second error message.
+
+---
+
+Note that UserProfile is in production database, with source_local_id='Nj-GIAhS8'. (I could see an issue if it had been re-created.) I'm surprised to find that none of the relation schema ever got uploaded, but that's possible. Yes I edited UserProfile to try to fix the issue, which was shown before. Both error messages are found in the logs, pasting: 
+
+
+<pasted_content id="8fe3">
+[
+  {
+    "id": "9cf63831-881a-4345-baa6-82eadb54d44f",
+    "timestamp": "2026-11-03T14:03:56.141000",
+    "event_message": "Concept with space_id: 161470 and name Project/Roam - Github sync already exists",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:56.141Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  },
+  {
+    "id": "524d3c53-a52c-4477-b4a0-bee48867e22d",
+    "timestamp": "2026-11-03T14:03:56.121000",
+    "event_message": "Concept with space_id: 161470 and name [[FLO]] - Send nodes from query to canvas already exists",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:56.121Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  },
+  {
+    "id": "80d950ef-8b66-42ee-9911-6bc07d0ec585",
+    "timestamp": "2026-11-03T14:03:56.091000",
+    "event_message": "Concept with space_id: 161470 and name [[ART]] - Roam DG/Query already exists",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:56.091Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  },
+  {
+    "id": "de4f7d12-12d9-4f3c-97a9-874bbaf9e5ab",
+    "timestamp": "2026-11-03T14:03:56.088000",
+    "event_message": "Concept with space_id: 161470 and name [[FLO]] - Reference past research in meeting updates already exists",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:56.088Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  },
+  {
+    "id": "5ca0ff99-fb90-41a6-8413-92a6de4a7503",
+    "timestamp": "2026-11-03T14:03:56.025000",
+    "event_message": "Concept with space_id: 161470 and name [[ISS]] - in-situ, just-in-time prompts to connect to a target hypothesis or question when formalizing a candidate node already exists",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:56.025Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  },
+  {
+    "id": "8f5fe611-2b81-4216-9eac-86dfd028073b",
+    "timestamp": "2026-11-03T14:03:56.022000",
+    "event_message": "Error in concept upsert: (23502) null value in column \"reference_content\" of relation \"Concept\" violates not-null constraint",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:56.022Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  },
+  {
+    "id": "af5635e8-756d-496e-9778-d4df9751e23d",
+    "timestamp": "2026-11-03T14:03:56.019000",
+    "event_message": "Concept with space_id: 161470 and name @blakeCollaborativeInformationSynthesis2006a already exists",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:56.019Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  },
+  {
+    "id": "0da01318-7108-4e96-9529-e2d7449d67b6",
+    "timestamp": "2026-11-03T14:03:56.000000",
+    "event_message": "Error in concept upsert: (23502) null value in column \"reference_content\" of relation \"Concept\" violates not-null constraint",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:56.000Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  },
+  {
+    "id": "67c54640-4337-440f-9247-90cc4e465ed6",
+    "timestamp": "2026-11-03T14:03:55.997000",
+    "event_message": "Concept with space_id: 161470 and name @source already exists",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:55.997Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  },
+  {
+    "id": "802831cd-1f7e-4273-8e63-e204ce879fe9",
+    "timestamp": "2026-11-03T14:03:55.938000",
+    "event_message": "Concept with space_id: 161470 and name [[FLO]] - Formalize past candidate node already exists",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:55.938Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  },
+  {
+    "id": "c4b1fe0d-6464-4e27-8efc-7cdf1d22fb88",
+    "timestamp": "2026-11-03T14:03:55.870000",
+    "event_message": "Concept with space_id: 161470 and name [[FLO]] - Follow context from issue to a specific q/hypothesis within a given meeting (linked references) already exists",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:55.870Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  },
+  {
+    "id": "17ca6c23-455b-4a6e-a331-49bf2c483b51",
+    "timestamp": "2026-11-03T14:03:55.867000",
+    "event_message": "Error in concept upsert: (23502) null value in column \"reference_content\" of relation \"Concept\" violates not-null constraint",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:55.867Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  },
+  {
+    "id": "7a97eda8-9e59-4697-a9e7-73f71bb6b031",
+    "timestamp": "2026-11-03T14:03:55.863000",
+    "event_message": "Concept with space_id: 161470 and name @dora2018accelerate already exists",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:55.863Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  },
+  {
+    "id": "f2e08c18-8372-4db9-8dcd-c022e54a5793",
+    "timestamp": "2026-11-03T14:03:55.827000",
+    "event_message": "Concept with space_id: 161470 and name Project/Custom UI for User Homepage already exists",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:55.827Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  },
+  {
+    "id": "5d3ae3e9-7b20-4179-a630-a84030faffe0",
+    "timestamp": "2026-11-03T14:03:55.796000",
+    "event_message": "Concept with space_id: 161470 and name [[ART]] - Roam DG/Smartblocks/Create Canvas button already exists",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:55.796Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  },
+  {
+    "id": "f57ed507-d75c-4a50-bb4f-53903175e075",
+    "timestamp": "2026-11-03T14:03:55.683000",
+    "event_message": "Concept with space_id: 161470 and name [[ISS]] - the query table should have its own scrolling UI already exists",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:55.683Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  },
+  {
+    "id": "273d4e84-0243-48d1-adf6-eaf4a277a9e1",
+    "timestamp": "2026-11-03T14:03:55.647000",
+    "event_message": "Concept with space_id: 161470 and name [[FLO]] - Preview/view DG node info while on canvas already exists",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:55.647Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  },
+  {
+    "id": "fe75769d-9dcc-4fff-9bc2-9cdfb1ea9157",
+    "timestamp": "2026-11-03T14:03:55.501000",
+    "event_message": "Concept with space_id: 161470 and name [[FLO]] - Make DG literature notes on a research source already exists",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:55.501Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  },
+  {
+    "id": "503413ba-9357-4b0b-8213-de882faed6fa",
+    "timestamp": "2026-11-03T14:03:55.498000",
+    "event_message": "Concept with space_id: 161470 and name [[ART]] - Page frontmatter icons and buttons already exists",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:55.498Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  },
+  {
+    "id": "90cd4ff1-73a7-4a0f-bad2-c052d1dfe8c6",
+    "timestamp": "2026-11-03T14:03:55.397000",
+    "event_message": "Concept with space_id: 161470 and name [[FLO]] - Review project goals and resources already exists",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:55.397Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  },
+  {
+    "id": "706e276d-9e56-404d-a00a-53726a3c7df0",
+    "timestamp": "2026-11-03T14:03:55.357000",
+    "event_message": "Concept with space_id: 161470 and name [[FLO]] - Preview/view DG node info while in outline already exists",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:55.357Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  },
+  {
+    "id": "66fad49d-8faa-4891-8113-6a6ef4c53d19",
+    "timestamp": "2026-11-03T14:03:55.325000",
+    "event_message": "Concept with space_id: 161470 and name [[FLO]] - Make a query/view of nodes already exists",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:55.325Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  },
+  {
+    "id": "9970e916-af81-4ece-8999-43cefd016b73",
+    "timestamp": "2026-11-03T14:03:55.316000",
+    "event_message": "Concept with space_id: 161470 and name [[FLO]] - Create new project from template already exists",
+    "log_type": "postgres",
+    "date": "2026-11-03T14:03:55.316Z",
+    "method": "",
+    "pathname": "",
+    "status": "01000",
+    "level": "warning",
+    "log_count": null,
+    "logs": [],
+    "auth_user": null
+  }
+]
+</pasted_content id="8fe3">
+
+---
+
+null_ids,total
+708,1432
+
+---
+
+First query: 
+is_schema,is_relation,no_schema,count,first_created,last_created,first_modified,last_modified
+false,false,false,708,2022-09-05,2025-10-14,2022-11-30,2025-10-14
+Second query:
+null_rows_with_dependents
+0
+Third query results in missing_local_id.csv
+
+---
+
+First query:
+space_id,count
+161470,708
+
+---
+
+contributor_rows_lost
+0
+
+---
+
+Always a bit reluctant to run a delete in production without a ticket, but I think this is paralyzing enough. BUT I also think we agree that this seems related to the specific graph history. Still I want to be sure: the normal sync path would delete content and concept together, so we would not have these null things. Should we review the "set null" trigger? OR more likely, should we change the error to an update when the concept reference is null? Trying to think about the long-term fix. Also remind me what you mean by reference_content, I was focusing on the diagonstic part.
+
+---
+
+Ok. Let's first have a linear ticket draft just for the delete, explaining what we think happened, and why we think the delete solves it, and why it's safe. Then an issue candidate for the not null, I agree that was a mistake. The client sync code is likely to change a lot, so I think we can make notes about better error handling, but it's not worth an issue candidate.
+
+---
+
+Looked at the first ticket. Pushback on deciding solutions now: We may consider an on delete trigger for references, it should not be that expensive given the reference index. But deciding this is out of scope. Similarly there is an issue with continuing batches, we do not want the time of last success to be updated.
+More important, the ticket explains well what is known about the likely cause but must say more about why you think it's unlikely to recur as-is.
+
+---
+
+Much better. The issue candidate is good. Insert both and cross-reference in both directions.
