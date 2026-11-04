@@ -19,6 +19,8 @@ This helps reviewers understand intent quickly and catches issues earlier
 - Show before/after for bug fixes
 - Narrate key design or dev decisions
 - Paste the Loom link in the PR body
+
+A Loom video is required for every PR. If you intentionally omit it, explain why in this section. Put your explanation in the PR body, outside this HTML comment, so reviewers can read it.
 -->
 
 ## Scope check
