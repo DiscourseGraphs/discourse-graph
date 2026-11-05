@@ -1,4 +1,5 @@
 import { discourseContext } from "~/components/canvas/Tldraw";
+import { getAllRelations } from "~/components/canvas/canvasUtils";
 import getDiscourseRelations, {
   type DiscourseRelation,
 } from "~/utils/getDiscourseRelations";
@@ -24,15 +25,12 @@ export const groupRelationsByLabel = (
   );
 
 // Mounted canvases read discourseContext.relations, so a new triplet is invisible until this runs.
-// Relations gone from settings are kept so existing arrows still render, but marked deleted
-// so creation paths skip them; not every deletion path marks its schema.
+// Relations gone from settings stay for existing arrows but are marked deleted so creation skips them.
 export const refreshCanvasRelations = (): void => {
   refreshConfigTree();
   const fresh = getDiscourseRelations();
   const freshIds = new Set(fresh.map((r) => r.id));
-  const removed = Object.values(discourseContext.relations)
-    .flat()
-    .filter((r) => !freshIds.has(r.id));
+  const removed = getAllRelations().filter((r) => !freshIds.has(r.id));
   discourseContext.relations = groupRelationsByLabel([...fresh, ...removed]);
   new Set(removed.map((r) => r.id)).forEach(markRelationSchemaDeleted);
   notifyRelationSchemaChange();

@@ -14,11 +14,18 @@ const mocks = vi.hoisted(() => {
     relations: [] as DiscourseRelation[],
     provisional: new Set<string>(),
     createRelationSchema: vi.fn(),
+    newSettingsStore: false,
     context,
   };
 });
 vi.mock("~/components/canvas/Tldraw", () => ({
   discourseContext: mocks.context,
+}));
+vi.mock("~/components/canvas/canvasUtils", () => ({
+  getAllRelations: () => Object.values(mocks.context.relations).flat(),
+}));
+vi.mock("~/components/settings/utils/accessors", () => ({
+  isNewSettingsStoreEnabled: () => mocks.newSettingsStore,
 }));
 vi.mock("~/utils/refreshConfigTree", () => ({
   default: () => mocks.calls.push("refreshConfigTree"),
@@ -61,6 +68,7 @@ beforeEach(() => {
   mocks.provisional = new Set();
   mocks.context.relations = {};
   mocks.createRelationSchema.mockReset();
+  mocks.newSettingsStore = false;
 });
 
 describe("deriveRelationTypes", () => {
@@ -70,7 +78,7 @@ describe("deriveRelationTypes", () => {
         triplet({ id: "a", label: "Informs", complement: "Informed By" }),
         triplet({ id: "b", label: "Informed By", complement: "Informs" }),
       ],
-      shownLabels: [],
+      pairTypes: [],
     });
     expect(types).toEqual([{ label: "Informs", complement: "Informed By" }]);
   });
@@ -83,7 +91,7 @@ describe("deriveRelationTypes", () => {
         triplet({ id: "b", source: "question" }),
         triplet({ id: "c", complement: "backs" }),
       ],
-      shownLabels: [],
+      pairTypes: [],
     });
     expect(types).toEqual([
       { label: "supports", complement: "is supported by" },
@@ -91,20 +99,25 @@ describe("deriveRelationTypes", () => {
     ]);
   });
 
-  it("hides a type whose label or complement the pair already shows", () => {
+  it("hides only types the pair already has, in either reading", () => {
     const relations = [
       triplet({ id: "a" }),
-      triplet({ id: "b", label: "opposes", complement: "is opposed by" }),
+      triplet({ id: "b", complement: "backs" }),
       triplet({ id: "c", label: "informs", complement: "supports" }),
+      triplet({ id: "d", label: "opposes", complement: "is opposed by" }),
     ];
     expect(
-      deriveRelationTypes({ relations, shownLabels: ["supports"] }),
-    ).toEqual([{ label: "opposes", complement: "is opposed by" }]);
-    expect(
-      deriveRelationTypes({ relations, shownLabels: ["is opposed by"] }).map(
-        (t) => t.label,
-      ),
-    ).toEqual(["supports", "informs"]);
+      deriveRelationTypes({
+        relations,
+        pairTypes: [
+          { label: "supports", complement: "is supported by" },
+          { label: "is opposed by", complement: "opposes" },
+        ],
+      }),
+    ).toEqual([
+      { label: "supports", complement: "backs" },
+      { label: "informs", complement: "supports" },
+    ]);
   });
 
   it("leaves out incomplete and provisional triplets", () => {
@@ -115,7 +128,7 @@ describe("deriveRelationTypes", () => {
         triplet({ id: "i", label: "incomplete", complement: "" }),
         triplet({ id: "q", label: "placeholder", destination: "?" }),
       ],
-      shownLabels: [],
+      pairTypes: [],
     });
     expect(types).toEqual([]);
   });
@@ -123,7 +136,7 @@ describe("deriveRelationTypes", () => {
   it("includes triplets with Any (*) node types", () => {
     const types = deriveRelationTypes({
       relations: [triplet({ id: "a", source: "*" })],
-      shownLabels: [],
+      pairTypes: [],
     });
     expect(types).toEqual([
       { label: "supports", complement: "is supported by" },
@@ -353,6 +366,50 @@ describe("createTripletForPair", () => {
     expect(mocks.calls).toContain("accept:imported");
   });
 
+  it("skips the config tree refresh while waiting when the new settings store is on", async () => {
+    mocks.newSettingsStore = true;
+    mocks.createRelationSchema.mockImplementation(() => {
+      mocks.calls.push("create");
+      setTimeout(() => mocks.relations.push(triplet({ id: "new-uid" })), 120);
+      return Promise.resolve("new-uid");
+    });
+    await expect(createTripletForPair(args)).resolves.toBe("new-uid");
+    const waitCalls = mocks.calls.slice(
+      mocks.calls.indexOf("create") + 1,
+      mocks.calls.lastIndexOf("refreshConfigTree"),
+    );
+    expect(waitCalls).not.toContain("refreshConfigTree");
+  });
+
+  it("accepts a provisional triplet stored in the mirrored reading", async () => {
+    mocks.provisional.add("mirrored");
+    mocks.relations = [
+      triplet({
+        id: "mirrored",
+        label: "is supported by",
+        complement: "supports",
+        source: "evidence",
+        destination: "claim",
+      }),
+    ];
+    await expect(createTripletForPair(args)).resolves.toBe("mirrored");
+    expect(mocks.createRelationSchema).not.toHaveBeenCalled();
+    expect(mocks.calls).toContain("accept:mirrored");
+  });
+
+  it("shares one save between concurrent picks of the same triplet", async () => {
+    mocks.createRelationSchema.mockImplementation(() => {
+      mocks.relations.push(triplet({ id: "new-uid" }));
+      return Promise.resolve("new-uid");
+    });
+    const [first, second] = await Promise.all([
+      createTripletForPair(args),
+      createTripletForPair(args),
+    ]);
+    expect([first, second]).toEqual(["new-uid", "new-uid"]);
+    expect(mocks.createRelationSchema).toHaveBeenCalledTimes(1);
+  });
+
   it("does not reuse a triplet that runs the other way", async () => {
     mocks.relations = [triplet({ id: "reverse" })];
     mocks.createRelationSchema.mockImplementation(() => {
@@ -371,7 +428,7 @@ describe("createTripletForPair", () => {
       await expect(result).resolves.toBe("slow-uid");
       expect(mocks.calls).not.toContain("notify");
       mocks.relations.push(triplet({ id: "slow-uid" }));
-      await vi.advanceTimersByTimeAsync(100);
+      await vi.advanceTimersByTimeAsync(600);
       expect(mocks.calls.at(-1)).toBe("notify");
     } finally {
       vi.useRealTimers();

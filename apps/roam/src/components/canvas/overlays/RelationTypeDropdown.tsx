@@ -109,7 +109,7 @@ export const RelationTypeDropdown = ({
       deriveRelationTypes({
         // Fresh settings, not discourseContext, which keeps removed relations for existing arrows.
         relations: getDiscourseRelations(),
-        shownLabels: validRelationTypes.map((t) => t.label),
+        pairTypes: validRelationTypes,
       }),
     [validRelationTypes],
   );
@@ -265,7 +265,12 @@ export const RelationTypeDropdown = ({
                 }}
                 className="h-2 w-2 flex-shrink-0 rounded-full bg-gray-800"
               />
-              {rt.label}
+              <span className="flex flex-col">
+                <span>{rt.label}</span>
+                {rt.hasLabelCollision && (
+                  <span className="text-xs text-gray-500">{rt.complement}</span>
+                )}
+              </span>
             </MenuItem>
           ))
         )}
