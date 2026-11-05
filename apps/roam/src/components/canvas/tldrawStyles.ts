@@ -1,12 +1,14 @@
 // tldrawStyles.ts because some of these styles need to be inlined
 export default /* css */ `
-  /* Hide Roam Blocks only when a full-page canvas is present (not embedded) */
-  .roam-article:has(.roamjs-tldraw-canvas-container:not(.dg-canvas-embed *)) .rm-block-children  {
+  /* Hide Roam Blocks only when a full-page canvas is present (not embedded).
+     Every block-embed wrapper class must be excluded here, or mounting that
+     embed hides ALL blocks on the host page. */
+  .roam-article:has(.roamjs-tldraw-canvas-container:not(.dg-canvas-embed *, .dg-frame-embed *)) .rm-block-children  {
     display: none;
   }
 
   /* Hide Roam Blocks in sidebar when a full-page canvas is present (not embedded) */
-  .rm-sidebar-outline:has(.roamjs-tldraw-canvas-container:not(.dg-canvas-embed *)) .rm-block-children {
+  .rm-sidebar-outline:has(.roamjs-tldraw-canvas-container:not(.dg-canvas-embed *, .dg-frame-embed *)) .rm-block-children {
     display: none;
   }
   
