@@ -20,30 +20,6 @@ AS $$
   SELECT COALESCE(array_agg(i::bigint), '{}') FROM (SELECT DISTINCT jsonb_array_elements(jsonb_path_query_array(refs, '$.*[*]')) i) exrefs;
 $$;
 
-CREATE OR REPLACE FUNCTION public.compute_arity_local(schema_id BIGINT, lit_content JSONB)
-RETURNS smallint STABLE
-SET search_path = ''
-LANGUAGE sql
-AS $$
-  SELECT CASE WHEN schema_id IS NULL THEN (
-    SELECT COALESCE(jsonb_array_length(lit_content->'roles'), 0)
-  ) ELSE (
-    SELECT COALESCE(jsonb_array_length(literal_content->'roles'), 0) FROM public."Concept" WHERE id=compute_arity_local.schema_id
-  ) END;
-$$;
-
-CREATE OR REPLACE FUNCTION public.compute_is_relation_local(schema_id BIGINT, lit_content JSONB)
-RETURNS boolean STABLE
-SET search_path = ''
-LANGUAGE sql
-AS $$
-  SELECT CASE WHEN schema_id IS NULL THEN (
-    SELECT lit_content @> '{"roles":["source","destination"]}'::jsonb
-  ) ELSE (
-    SELECT literal_content  @> '{"roles":["source","destination"]}'::jsonb FROM public."Concept" WHERE id=compute_is_relation_local.schema_id
-  ) END;
-$$;
-
 CREATE TABLE IF NOT EXISTS public."Concept" (
     id bigint DEFAULT nextval(
         'public.entity_id_seq'::regclass
@@ -126,6 +102,30 @@ GRANT ALL ON TABLE public."Concept" TO service_role;
 -- 1. a BEFORE trigger (re)computes them on every write of a Concept, and
 -- 2. an AFTER trigger propagates a schema's literal_content change to its instances,
 --    so the columns stay correct whatever the order of writes within a transaction.
+
+CREATE OR REPLACE FUNCTION public.compute_arity_local(schema_id BIGINT, lit_content JSONB)
+RETURNS smallint STABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+  SELECT CASE WHEN schema_id IS NULL THEN (
+    SELECT COALESCE(jsonb_array_length(lit_content->'roles'), 0)
+  ) ELSE (
+    SELECT COALESCE(jsonb_array_length(literal_content->'roles'), 0) FROM public."Concept" WHERE id=compute_arity_local.schema_id
+  ) END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.compute_is_relation_local(schema_id BIGINT, lit_content JSONB)
+RETURNS boolean STABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+  SELECT CASE WHEN schema_id IS NULL THEN (
+    SELECT lit_content @> '{"roles":["source","destination"]}'::jsonb
+  ) ELSE (
+    SELECT literal_content  @> '{"roles":["source","destination"]}'::jsonb FROM public."Concept" WHERE id=compute_is_relation_local.schema_id
+  ) END;
+$$;
 
 CREATE OR REPLACE FUNCTION public.concept_set_derived_columns() RETURNS TRIGGER
 SET search_path = ''
