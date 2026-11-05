@@ -10,6 +10,7 @@ Feature: Account table access
   * Reader access also shows their identifiers and the space's account list
   * Editors of a space can write the identifiers of its unowned accounts, and delete those accounts
   * An account's owner can write its identifiers and delete it
+  * No client can read an account's dg_account or metadata columns, even on their own account
 
   Background:
     Given the database is blank
@@ -37,6 +38,22 @@ Feature: Account table access
       | PlatformAccount | anon2, user1, user2 |
       | AgentIdentifier | user2               |
       | LocalAccess     | user2@s2            |
+
+  Scenario: Clients can't read who owns an account or its metadata
+    When SpaceAccess are added to the database:
+      | _account_uid | _space_id | permissions |
+      | g1           | s1        | partial     |
+    Then a user logged in space s2 should get these column access results:
+      | relation        | operation | columns                                                              | result  |
+      | PlatformAccount | read      | id,name,platform,account_local_id,write_permission,active,agent_type | allowed |
+      | PlatformAccount | read      | *                                                                    | denied  |
+      | PlatformAccount | read      | dg_account                                                           | denied  |
+      | PlatformAccount | read      | metadata                                                             | denied  |
+      | PlatformAccount | filter    | dg_account                                                           | denied  |
+      | PlatformAccount | filter    | metadata                                                             | denied  |
+      | my_accounts     | read      | id,name,platform,account_local_id,write_permission,active,agent_type | allowed |
+      | my_accounts     | read      | dg_account                                                           | absent  |
+      | my_accounts     | read      | metadata                                                             | absent  |
 
   Scenario: Reader access also shows identifiers and the space's account list
     When SpaceAccess are added to the database:

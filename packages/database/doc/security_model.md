@@ -37,6 +37,13 @@ That filter starts at `reader`, but `PlatformAccount` rows are visible from `par
 - `authenticated` can't insert into `PlatformAccount`, and has `UPDATE` on it per column, so clients can't set who owns an account (`dg_account`) or change what identifies it (`agent_type`, `platform`, `account_local_id`). A new column isn't client-writable until it's added to the grant. Clients create and upsert accounts through `upsert_account_in_space`, which also adds the account to the space (ENG-2447).
 - `LocalAccess` says an account belongs to a space and grants nothing. Its writes require editor access to the row's own space (ENG-2447).
 
+### Account reads
+
+- `authenticated` has `SELECT` on `PlatformAccount` per column, without `dg_account` and `metadata`, and `my_accounts` leaves out both columns too (ENG-2441). `dg_account` would show which accounts belong to one person, and nothing uses `metadata` yet.
+- A column grant applies to every row, so clients can't read their own `dg_account` from the table either. They get their own user id from their session, and their own accounts from `my_platform_account_ids`.
+- Clients must name the columns they read from `PlatformAccount`. `select("*")`, and any filter on a hidden column, fails with a permission error.
+- `my_pseudo_accounts` returns `dg_account`, so it has to stay a definer view. Any `anon` grant on `PlatformAccount` has to use the same column list.
+
 ### The `my_*` views
 
 The `my_*` views (`my_spaces`, `my_accounts`, `my_concepts`, `my_contents`, `my_documents`, `my_file_references`, `my_contents_with_embedding_openai_text_embedding_3_small_1536`, `my_pseudo_accounts`, `my_groups`) are the main way clients read data.
@@ -122,7 +129,7 @@ Any other finding from either advisor is new, and should be fixed or added here 
 
 - New table: enable RLS, write policies for each operation, and revoke `anon` unless anonymous readers need it. Add visibility scenarios to `features/`, like `features/conceptAccess.feature`.
 - New policy: wrap calls that don't depend on the row in `(SELECT ...)`. Write `(SELECT auth.uid())`, not `auth.uid()`. Don't pass a row column to a helper that sets `search_path`. If the policy reads another table directly, remember that table's own select policy filters what it sees.
-- New `PlatformAccount` column: decide whether clients may write it, and add it to the per-column grants if so.
+- New `PlatformAccount` column: decide whether clients may read or write it, and add it to the per-column grants if so.
 - New `SECURITY DEFINER` function: set `search_path = ''`, check the caller's access inside it (rule 4), grant it only to the roles that call it, and add a comment saying who that is.
 - New function that `anon` reaches, directly, through a policy or through a view: grant it to `anon` in its schema file and in the migration.
 - New trigger function: revoke it from `anon` and `authenticated`.
@@ -136,6 +143,7 @@ Any other finding from either advisor is new, and should be fixed or added here 
 - ENG-2344, ENG-2359: the views rewritten with InitPlans.
 - ENG-2368: write privileges revoked on the updatable views.
 - ENG-1480, ENG-2436: Supabase findings reviewed and documented.
+- ENG-2441: `dg_account` and `metadata` removed from `my_accounts` and hidden on `PlatformAccount`.
 - ENG-2442: function grants made explicit, and new functions no longer executable by `anon`.
 - ENG-2443, ENG-2446: policies moved to the InitPlan form, and `can_access_account`, `can_view_concept`, `can_view_content`, `account_in_shared_space`, `unowned_account_in_shared_space` and `is_my_account` removed.
 - ENG-2447: account columns granted individually, and `LocalAccess` writes checked against the row's space.

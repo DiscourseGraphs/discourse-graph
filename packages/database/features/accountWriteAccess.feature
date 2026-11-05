@@ -9,6 +9,7 @@ Feature: Account write access
   * A plugin login cannot set the owner of an account, or change what identifies it
   * A plugin login creates accounts only through the account functions, not by inserting them
   * Account names stay editable by editors of the account's space and by the account's owner
+  * A plugin login cannot write an account's metadata, which it also cannot read
   * A space's account list can only be written by editors of that space
 
   Background:
@@ -30,6 +31,7 @@ Feature: Account write access
       | update    | user1   | agent_type       | anonymous | denied |
       | update    | user1   | platform         | Obsidian  | denied |
       | update    | user1   | account_local_id | changed   | denied |
+      | update    | user1   | metadata         | changed   | denied |
       | insert    | user4   | dg_account       | own login | denied |
 
   Scenario: An editor cannot insert an unowned account directly
