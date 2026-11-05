@@ -82,13 +82,14 @@ export const buildSharedNodes = ({
 
   return groupDbNodeRows({ nodes, directContents, fullContentSummaries })
     .flatMap((row): SharedNode[] => {
+      const space = spacesById.get(row.concept.space_id);
+      if (space === undefined) return [];
       let resolved: ResolvedDbNode;
       try {
         resolved = resolveDbNode({ row, spaceMap });
       } catch {
         return [];
       }
-      const space = spacesById.get(resolved.spaceId)!;
 
       return [
         {
@@ -99,7 +100,7 @@ export const buildSharedNodes = ({
           spaceName: space.name,
           spaceUri: space.url,
           platform: space.platform,
-          title: resolved.title,
+          title: resolved.direct.text,
           coreTitle: row.concept.core_title ?? undefined,
           created: resolved.created,
           lastModified: resolved.modifiedAt,
@@ -127,14 +128,12 @@ const getAssociatedSpaces = async ({
   currentSpace?: SharedSpace;
   currentSpaceId?: number;
 }): Promise<SharedSpace[]> => {
-  const associatedSpaceIds = new Set(
-    [
-      ...concepts.map((cpt) => cpt.space_id),
-      ...concepts.flatMap((cpt) =>
-        cpt.concepts_of_relation.map((cr) => cr.space_id),
-      ),
-    ].filter((id) => id !== null),
-  );
+  const associatedSpaceIds = new Set([
+    ...concepts.map((cpt) => cpt.space_id),
+    ...concepts.flatMap((cpt) =>
+      cpt.concepts_of_relation.map((cr) => cr.space_id),
+    ),
+  ]);
   if (currentSpace !== undefined) {
     currentSpaceId = currentSpace.id ?? currentSpaceId;
   } else if (currentSpaceId !== undefined)

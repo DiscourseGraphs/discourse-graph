@@ -24,11 +24,10 @@ export type DbNodeConcept = Pick<
   | "reference_content"
 > & {
   core_title: string | null;
-  concepts_of_relation: {
-    id: number | null;
-    space_id: number | null;
-    source_local_id: string | null;
-  }[];
+  concepts_of_relation: Pick<
+    Tables<"my_concepts">,
+    "id" | "space_id" | "source_local_id"
+  >[];
 };
 export type DbNodeContent = Pick<
   Tables<"my_contents">,
@@ -64,7 +63,6 @@ export type ResolvedDbNode = {
   schemaId: number;
   spaceId: number;
   direct: DbNodeContent;
-  title: string;
   created: string | null;
   modifiedAt: string;
   slots?: Record<string, string>;
@@ -303,11 +301,9 @@ export const resolveDbNode = ({
   if (concept.schema_id === null) throw new Error("Missing node type");
   if (typeof concept.source_local_id !== "string")
     throw new Error("Missing local id");
-  if (typeof concept.space_id !== "number") throw new Error("Missing space");
   const spaceUrl = spaceMap[concept.space_id];
   if (spaceUrl === undefined) throw new Error("Missing space");
-  if (typeof direct?.text !== "string")
-    throw new Error("Missing direct content");
+  if (direct === undefined) throw new Error("Missing direct content");
 
   const created = normalizeUtcTimestamp(direct.created);
   const modifiedAt =
@@ -325,27 +321,21 @@ export const resolveDbNode = ({
   );
 
   const nodeRidById = Object.fromEntries(
-    concept.concepts_of_relation
-      .filter((c) => c.id !== null)
-      .map((c) => {
-        if (c.space_id === concept.space_id)
-          return [c.id, c.source_local_id ?? undefined];
-        const slotSpaceUrl = spaceMap[c.space_id || 0];
-        if (!slotSpaceUrl || !c.source_local_id || !c.id)
-          return [c.id, undefined];
-        return [
-          c.id,
-          // To be reviewed if we have relations of relations
-          spaceUriAndLocalIdToRid(slotSpaceUrl, c.source_local_id, "note"),
-        ];
-      }) as [number, string | undefined][],
+    concept.concepts_of_relation.map((c) => {
+      if (c.space_id === concept.space_id)
+        return [c.id, c.source_local_id ?? undefined];
+      const slotSpaceUrl = spaceMap[c.space_id];
+      if (!slotSpaceUrl || !c.source_local_id) return [c.id, undefined];
+      return [
+        c.id,
+        // To be reviewed if we have relations of relations
+        spaceUriAndLocalIdToRid(slotSpaceUrl, c.source_local_id, "note"),
+      ];
+    }),
   );
-  const referenceContent = (concept.reference_content ?? {}) as Record<
-    string,
-    number
-  >;
+  const referenceContent = concept.reference_content as Record<string, number>;
   const slots = Object.fromEntries(
-    Object.entries(referenceContent ?? {})
+    Object.entries(referenceContent)
       .map(([k, v]) => [k, nodeRidById[v]])
       .filter(([, v]) => v !== undefined) as [string, string][],
   );
@@ -356,7 +346,6 @@ export const resolveDbNode = ({
     schemaId: concept.schema_id,
     spaceId: concept.space_id,
     direct,
-    title: direct.text,
     created,
     modifiedAt,
     slots: Object.keys(slots).length > 0 ? slots : undefined,
@@ -382,7 +371,6 @@ export const dbNodeToCrossApp = ({
     schemaId,
     spaceId,
     direct,
-    title,
     created,
     modifiedAt,
     slots,
@@ -392,7 +380,7 @@ export const dbNodeToCrossApp = ({
   if (authorId === undefined) throw new Error("Missing author");
   const coreTitle =
     row.concept.core_title ??
-    extractContentFromTitle(formatMap[schemaId] ?? "", title);
+    extractContentFromTitle(formatMap[schemaId] ?? "", direct.text);
   const nodeType = asSimpleLocalId(schemaMap[schemaId], spaceMap[spaceId]);
   if (nodeType === undefined) throw new Error("Missing node type");
   return {
@@ -403,7 +391,7 @@ export const dbNodeToCrossApp = ({
     authorId,
     nodeType,
     coreTitle,
-    content: { direct: { value: title } },
+    content: { direct: { value: direct.text } },
     slots,
   };
 };
