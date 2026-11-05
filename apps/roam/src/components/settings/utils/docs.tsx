@@ -4,14 +4,12 @@ const ROAM_DOCS_BASE_URL = "https://discoursegraphs.com/docs/roam";
 
 export const ROAM_DOCS = {
   creatingNodes: `${ROAM_DOCS_BASE_URL}/guides/creating-discourse-nodes`,
-  taggingCandidateNodes: `${ROAM_DOCS_BASE_URL}/guides/tagging-candidate-nodes`,
-  querying: `${ROAM_DOCS_BASE_URL}/guides/querying-discourse-graph`,
-  sharing: `${ROAM_DOCS_BASE_URL}/guides/sharing-discourse-graph`,
+  candidateNodeTagSetup: `${ROAM_DOCS_BASE_URL}/guides/tagging-candidate-nodes#setup---define-candidate-nodes`,
+  exportOptions: `${ROAM_DOCS_BASE_URL}/guides/sharing-discourse-graph#export-options`,
   migrationToStoredRelations: `${ROAM_DOCS_BASE_URL}/guides/migration-to-stored-relations`,
-  storedRelations: `${ROAM_DOCS_BASE_URL}/fundamentals/grammar/stored-relations`,
-  grammarNodes: `${ROAM_DOCS_BASE_URL}/fundamentals/grammar/nodes`,
+  enableStoredRelations: `${ROAM_DOCS_BASE_URL}/guides/migration-to-stored-relations#turn-on-stored-relations-for-an-existing-install`,
   discourseContextOverlay: `${ROAM_DOCS_BASE_URL}/guides/exploring-discourse-graph/discourse-context-overlay`,
-  discourseAttributes: `${ROAM_DOCS_BASE_URL}/guides/exploring-discourse-graph/discourse-attributes`,
+  discourseScore: `${ROAM_DOCS_BASE_URL}/guides/exploring-discourse-graph/discourse-context-overlay#discourse-score`,
 } as const;
 
 export const withDocsLink = (
@@ -27,7 +25,7 @@ export const withDocsLink = (
       onClick={(event) => event.stopPropagation()}
       onMouseDown={(event) => event.stopPropagation()}
     >
-      See more.
+      View docs
     </a>
   </>
 );
