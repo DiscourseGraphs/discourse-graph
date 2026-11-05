@@ -18,6 +18,13 @@ declare module "obsidian" {
     setting: {
       open: () => void;
       openTabById: (id: string) => void;
+      activeTab: { id: string } | null;
+      settingTabs: { id: string; name: string }[];
+      pluginTabs: { id: string; name: string }[];
+    };
+    commands: {
+      commands: Record<string, Command>;
+      findCommand: (id: string) => Command | undefined;
     };
   }
   /* eslint-enable @typescript-eslint/consistent-type-definitions -- end unofficial Obsidian API augmentations */

@@ -1,0 +1,29 @@
+/* Guided tutorial overlay. Sits above modals so it can spotlight the command palette, below notices. */
+.dg-tutorial-spotlight {
+  position: fixed;
+  z-index: calc(var(--layer-notice) - 2);
+  /* The dim is subtle on dark themes, so the accent ring is what marks the target. */
+  border: 2px solid var(--interactive-accent);
+  border-radius: var(--radius-s);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+  /* Clicks must reach the real UI underneath. */
+  pointer-events: none;
+}
+
+.dg-tutorial-card {
+  position: fixed;
+  z-index: calc(var(--layer-notice) - 1);
+  width: max-content;
+  max-width: 320px;
+  padding: var(--size-4-3) var(--size-4-4);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background-color: var(--background-primary);
+  color: var(--text-normal);
+  box-shadow: var(--shadow-l);
+}
+
+.dg-tutorial-card--floating {
+  right: var(--size-4-6);
+  bottom: var(--size-4-6);
+}
