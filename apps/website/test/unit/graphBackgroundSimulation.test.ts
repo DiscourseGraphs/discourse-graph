@@ -1,8 +1,12 @@
 import { afterEach, describe, it, expect, vi } from "vitest";
+import labGraph from "../../app/data/labGraph.json";
+import { drawGraph } from "../../app/utils/graphBackground/draw";
 import {
   createGraphState,
+  createTopology,
   getAvoidance,
   getEdgeVisibility,
+  getNeighbors,
   getVisibilityAt,
   isEdgeSettled,
   resizeGraph,
@@ -334,5 +338,206 @@ describe("edge lifecycle", () => {
     expect(
       getEdgeVisibility({ ...edge, age: 2.3, fadeOverride: 1.5 }),
     ).toBeLessThan(1);
+  });
+});
+
+describe("getNeighbors", () => {
+  it("keeps only links inside a cluster and renumbers nodes cluster by cluster", () => {
+    // 0-1-2 and 3-4 are connected; 2-3 links the two groups.
+    const { neighbors } = getNeighbors({
+      nodeCount: 5,
+      edges: [0, 1, 1, 2, 2, 3, 3, 4],
+      clusterSize: 3,
+    });
+    expect(neighbors).toEqual([[1], [0, 2], [1], [4], [3]]);
+  });
+
+  it("lists links that cross between clusters apart from in-cluster neighbors", () => {
+    const { neighbors, links } = getNeighbors({
+      nodeCount: 5,
+      edges: [0, 1, 1, 2, 2, 3, 3, 4],
+      clusterSize: 3,
+    });
+    expect(neighbors[2]).toEqual([1]);
+    expect(links[2]).toEqual([1, 3]);
+  });
+});
+
+const mulberry32 = (seed: number): (() => number) => {
+  let state = seed;
+  return () => {
+    state = (state + 0x6d2b79f5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+};
+
+const HERO_SIZE = { width: 1440, height: 700 };
+
+const buildLabState = (): GraphState => {
+  const state = createGraphState(createTopology({ data: labGraph }));
+  resizeGraph(state, HERO_SIZE);
+  return state;
+};
+
+// Average distance a node moves per second over `seconds` of drift.
+const measureSpeed = (state: GraphState, seconds: number): number => {
+  const step = 0.05;
+  let travelled = 0;
+  for (let time = 0; time < seconds; time += step) {
+    const before = state.nodes.map((node) => [node.x, node.y]);
+    updateGraph(state, { delta: step, pointer: null });
+    state.nodes.forEach((node, i) => {
+      const [x = 0, y = 0] = before[i] ?? [];
+      travelled += Math.hypot(node.x - x, node.y - y);
+    });
+  }
+  return travelled / state.nodes.length / seconds;
+};
+
+describe("real graph", () => {
+  const data = {
+    types: ["QUE", "EVD", "NEW"],
+    nodes: [0, 1, 2, 1],
+    edges: [0, 1, 1, 2, 2, 3],
+  };
+
+  it("colors nodes by type and draws an unknown type in gray", () => {
+    const { colors } = createTopology({ data, clusterSize: 10 });
+    expect(colors[0]).toBe("70, 90, 160");
+    expect(colors[1]).toBe("181, 52, 60");
+    expect(colors[2]).toBe("120, 120, 120");
+    expect(colors).toHaveLength(4);
+  });
+
+  it("only links nodes that are linked in the data", () => {
+    vi.spyOn(Math, "random").mockImplementation(mulberry32(7));
+    const topology = createTopology({ data: labGraph });
+    const state = createGraphState(topology);
+    resizeGraph(state, HERO_SIZE);
+    for (let i = 0; i < 400; i++) {
+      updateGraph(state, { delta: 0.05, pointer: null });
+    }
+    expect(state.edges.length).toBeGreaterThan(0);
+    for (const edge of state.edges) {
+      expect(topology.links[edge.from.index]).toContain(edge.to.index);
+    }
+  });
+
+  it("keeps every node on the canvas after the first build and while drifting", () => {
+    vi.spyOn(Math, "random").mockImplementation(mulberry32(11));
+    const state = buildLabState();
+    const isInside = (node: { x: number; y: number }): boolean =>
+      node.x >= 0 &&
+      node.x <= HERO_SIZE.width &&
+      node.y >= 0 &&
+      node.y <= HERO_SIZE.height;
+    expect(state.nodes.every(isInside)).toBe(true);
+    for (let i = 0; i < 400; i++) {
+      updateGraph(state, { delta: 0.05, pointer: null });
+    }
+    expect(state.nodes.every(isInside)).toBe(true);
+  });
+
+  it("drifts about as fast as the random graph", () => {
+    vi.spyOn(Math, "random").mockImplementation(mulberry32(3));
+    const random = buildState(HERO_SIZE);
+    const real = buildLabState();
+    const ratio = measureSpeed(real, 60) / measureSpeed(random, 60);
+    expect(ratio).toBeGreaterThan(0.6);
+    expect(ratio).toBeLessThan(1.6);
+  });
+});
+
+describe("drawing nodes over links", () => {
+  const colors = { pulse: "255, 140, 75", edge: "31, 31, 31" };
+
+  const draw = (
+    state: GraphState,
+  ): {
+    operations: string[];
+    strokeStyles: string[];
+    clearStyles: string[];
+  } => {
+    const operations: string[] = [];
+    const strokeStyles: string[] = [];
+    const clearStyles: string[] = [];
+    const gradient = { addColorStop: () => undefined };
+    const properties: Record<string, unknown> = {};
+    const context = new Proxy(properties, {
+      get: (target, name: string) =>
+        name in target
+          ? target[name]
+          : name === "createRadialGradient"
+            ? () => gradient
+            : () => undefined,
+      set: (target, name: string, value: unknown) => {
+        if (name === "globalCompositeOperation") operations.push(String(value));
+        if (name === "strokeStyle") strokeStyles.push(String(value));
+        if (name === "fillStyle" && operations.at(-1) === "destination-out") {
+          clearStyles.push(String(value));
+        }
+        target[name] = value;
+        return true;
+      },
+    }) as unknown as CanvasRenderingContext2D;
+    drawGraph(context, { state, colors, time: 0 });
+    return { operations, strokeStyles, clearStyles };
+  };
+
+  // One settled link between two nodes `distance` apart, and nothing else.
+  const withOneLink = (state: GraphState, distance: number): GraphState => {
+    const [from, to] = state.nodes;
+    if (!from || !to) throw new Error("expected two nodes");
+    for (const node of state.nodes) node.flash = 0;
+    from.x = from.rx = 100;
+    from.y = from.ry = 100;
+    to.x = to.rx = 100 + distance;
+    to.y = to.ry = 100;
+    state.edges = [{ from, to, age: 3, hold: 5, fadeOverride: null }];
+    state.pulses = [];
+    return state;
+  };
+
+  const edgeStrokes = (strokeStyles: string[]): string[] =>
+    strokeStyles.filter((style) => style.startsWith("rgba(31, 31, 31,"));
+
+  it("clears the links under the nodes of the real graph", () => {
+    expect(draw(buildLabState()).operations).toContain("destination-out");
+  });
+
+  it("clears the links under the nodes of the random graph", () => {
+    expect(draw(buildState(HERO_SIZE)).operations).toContain("destination-out");
+  });
+
+  it("clears less under a node that is faded behind text", () => {
+    const state = buildLabState();
+    for (const node of state.nodes) node.visibility = 1;
+    const [hidden] = state.nodes;
+    if (!hidden) throw new Error("expected a node");
+    hidden.visibility = 0;
+    const { clearStyles } = draw(state);
+    expect(clearStyles).toContain("rgba(0, 0, 0, 0)");
+    expect(clearStyles).toContain("rgba(0, 0, 0, 1)");
+  });
+
+  it("clears every node's links in one pass before any node is filled", () => {
+    expect(draw(buildLabState()).operations).toEqual([
+      "destination-out",
+      "source-over",
+    ]);
+  });
+
+  it("keeps a real link visible out to the distance where it breaks", () => {
+    // Real links reach further than the random graph's, so 280px is still
+    // inside their fade range.
+    const { strokeStyles } = draw(withOneLink(buildLabState(), 280));
+    expect(edgeStrokes(strokeStyles)).toHaveLength(1);
+  });
+
+  it("fades the random graph's links out at its own shorter distance", () => {
+    const { strokeStyles } = draw(withOneLink(buildState(HERO_SIZE), 280));
+    expect(edgeStrokes(strokeStyles)).toHaveLength(0);
   });
 });

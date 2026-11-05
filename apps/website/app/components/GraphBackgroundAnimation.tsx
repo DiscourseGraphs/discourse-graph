@@ -6,17 +6,21 @@ import type { GraphColors } from "~/utils/graphBackground/colors";
 import { drawGraph } from "~/utils/graphBackground/draw";
 import {
   createGraphState,
+  createTopology,
   resizeGraph,
   setAvoidRects,
   settleGraph,
   updateGraph,
   type Pointer,
+  type LabGraphData,
   type Rect,
 } from "~/utils/graphBackground/simulation";
 
 type GraphBackgroundAnimationProps = {
   colors: GraphColors;
   followPointer?: boolean;
+  // Links only form between nodes linked in this real graph. Keep it referentially stable: a new object rebuilds the graph.
+  topology?: LabGraphData;
 };
 
 // Renders an absolutely positioned canvas that fills its parent, so the parent
@@ -26,6 +30,7 @@ type GraphBackgroundAnimationProps = {
 export const GraphBackgroundAnimation = ({
   colors,
   followPointer = true,
+  topology,
 }: GraphBackgroundAnimationProps): ReactElement => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // Depend on the strings, not the `colors` object: a new object identity
@@ -39,7 +44,9 @@ export const GraphBackgroundAnimation = ({
 
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     let reducedMotion = motionQuery.matches;
-    const state = createGraphState();
+    const state = createGraphState(
+      topology && createTopology({ data: topology }),
+    );
     const graphColors: GraphColors = { pulse, edge };
     const cursor = { clientX: 0, clientY: 0, isOver: false };
     let frameId = 0;
@@ -195,7 +202,7 @@ export const GraphBackgroundAnimation = ({
       section?.removeEventListener("pointerleave", handlePointerLeave);
       intersectionObserver.disconnect();
     };
-  }, [pulse, edge, followPointer]);
+  }, [pulse, edge, followPointer, topology]);
 
   return (
     <canvas
