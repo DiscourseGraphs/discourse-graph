@@ -25,6 +25,11 @@
   padding: 2px;
 }
 
+/* Keeps a search-jumped row clear of the sticky section heading above it. */
+.dg-settings-tabs [data-setting-id] {
+  scroll-margin-top: 3rem;
+}
+
 /* Row content only: tables, the node index and the specification query editor need full width.
    The cap sits on the content, not the scroll box, so the scrollbar stays at the dialog edge. */
 .dg-settings-row-panel > *,
