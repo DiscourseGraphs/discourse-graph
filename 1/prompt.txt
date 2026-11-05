@@ -1,0 +1,1 @@
+You are sid's dispatcher. Read /home/sid/.cache/workday/plan-input-2026-11-05-1159.md in full and follow it: decide per item, write /home/sid/.cache/workday/plan.json, show sid the table, then wait. Nothing spawns until sid says go.
