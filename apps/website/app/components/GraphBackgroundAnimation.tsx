@@ -3,20 +3,20 @@
 import { useEffect, useRef } from "react";
 import type { ReactElement } from "react";
 import type { GraphColors } from "~/utils/graphBackground/colors";
-import { drawGraph } from "~/utils/graphBackground/draw";
 import {
-  createGraphState,
-  resizeGraph,
-  setAvoidRects,
-  settleGraph,
-  updateGraph,
-  type Pointer,
-  type Rect,
-} from "~/utils/graphBackground/simulation";
+  createGraphEngine,
+  type GraphKind,
+} from "~/utils/graphBackground/engine";
+import type { Pointer, Rect } from "~/utils/graphBackground/simulation";
 
 type GraphBackgroundAnimationProps = {
   colors: GraphColors;
   followPointer?: boolean;
+  // "lab" draws the MATSU lab graph instead of random nodes and links.
+  graph?: GraphKind;
+  // Accessible description. Without one the canvas is hidden from assistive
+  // technology as decoration.
+  label?: string;
 };
 
 // Renders an absolutely positioned canvas that fills its parent, so the parent
@@ -26,6 +26,8 @@ type GraphBackgroundAnimationProps = {
 export const GraphBackgroundAnimation = ({
   colors,
   followPointer = true,
+  graph = "random",
+  label,
 }: GraphBackgroundAnimationProps): ReactElement => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // Depend on the strings, not the `colors` object: a new object identity
@@ -39,7 +41,7 @@ export const GraphBackgroundAnimation = ({
 
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     let reducedMotion = motionQuery.matches;
-    const state = createGraphState();
+    const engine = createGraphEngine(graph);
     const graphColors: GraphColors = { pulse, edge };
     const cursor = { clientX: 0, clientY: 0, isOver: false };
     let frameId = 0;
@@ -48,7 +50,7 @@ export const GraphBackgroundAnimation = ({
     let appliedRatio = 0;
 
     const render = (time: number): void => {
-      drawGraph(context, { state, colors: graphColors, time });
+      engine.draw(context, { colors: graphColors, time });
     };
 
     const getAvoidElements = (): Element[] =>
@@ -73,8 +75,8 @@ export const GraphBackgroundAnimation = ({
       const rect = canvas.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return;
       const ratio = window.devicePixelRatio || 1;
-      setAvoidRects(state, measureAvoidRects());
-      const sizeChanged = resizeGraph(state, {
+      engine.setAvoidRects(measureAvoidRects());
+      const sizeChanged = engine.resize({
         width: rect.width,
         height: rect.height,
       });
@@ -107,7 +109,7 @@ export const GraphBackgroundAnimation = ({
     const step = (time: number): void => {
       const delta = (time - lastTime) / 1000;
       lastTime = time;
-      updateGraph(state, { delta, pointer: getPointer() });
+      engine.update({ delta, pointer: getPointer() });
       render(time);
       frameId = shouldRun() ? requestAnimationFrame(step) : 0;
     };
@@ -128,7 +130,7 @@ export const GraphBackgroundAnimation = ({
       reducedMotion = motionQuery.matches;
       if (reducedMotion) {
         cursor.isOver = false;
-        settleGraph(state);
+        engine.settle();
         render(performance.now());
       }
       syncLoop();
@@ -155,7 +157,7 @@ export const GraphBackgroundAnimation = ({
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(canvas);
     const contentObserver = new ResizeObserver(() => {
-      setAvoidRects(state, measureAvoidRects());
+      engine.setAvoidRects(measureAvoidRects());
       render(performance.now());
     });
     for (const element of getAvoidElements()) contentObserver.observe(element);
@@ -195,12 +197,14 @@ export const GraphBackgroundAnimation = ({
       section?.removeEventListener("pointerleave", handlePointerLeave);
       intersectionObserver.disconnect();
     };
-  }, [pulse, edge, followPointer]);
+  }, [pulse, edge, followPointer, graph]);
 
   return (
     <canvas
       ref={canvasRef}
-      aria-hidden="true"
+      {...(label
+        ? { role: "img", "aria-label": label }
+        : { "aria-hidden": true })}
       className="pointer-events-none absolute inset-0 h-full w-full"
     />
   );
