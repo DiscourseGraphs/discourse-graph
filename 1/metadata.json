@@ -1,0 +1,59 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M6N6PG1RS8NVVCCR8HJVZZD1",
+  "session_id": "d56b8960-893c-43f2-bc0f-8b7e9593dc19",
+  "strategy": "manual-commit",
+  "created_at": "2026-11-05T06:35:21.554428657Z",
+  "branch": "eng-1824-use-the-unified-upsert_concepts-in-roam",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".github/pull_request_template.md",
+    "apps/roam/src/utils/getAllDiscourseNodesSince.ts",
+    "packages/database/src/lib/__tests__/dbToCrossAppConverters.test.ts",
+    "packages/database/src/lib/dbToCrossAppConverters.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-fable-5-1",
+  "turn_id": "5df978e25849",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 386,
+    "cache_creation_tokens": 103836,
+    "cache_read_tokens": 1189400,
+    "output_tokens": 21761,
+    "api_call_count": 13
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-11-05T06:35:21.524789813Z",
+    "agent_lines": 53,
+    "agent_removed": 17,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 53,
+    "total_lines_changed": 70,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 158,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".agents/skills/discourse-engineering-writing-style/SKILL.md": 37,
+        ".agents/skills/discourse-engineering-writing-style/agents/openai.yaml": 9,
+        ".agents/skills/roam-load-extension/SKILL.md": 45,
+        ".agents/skills/roam-playwright-session/SKILL.md": 51,
+        ".husky/commit-msg": 3,
+        ".husky/post-commit": 3,
+        ".husky/post-rewrite": 3,
+        ".husky/pre-push": 3,
+        ".husky/prepare-commit-msg": 3,
+        ".lsp/.cache/db.transit.json": 1
+      }
+    }
+  ]
+}

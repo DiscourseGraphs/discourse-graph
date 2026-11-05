@@ -3,7 +3,7 @@
   "checkpoint_id": "01M6N6PG1RS8NVVCCR8HJVZZD1",
   "strategy": "manual-commit",
   "branch": "eng-1824-use-the-unified-upsert_concepts-in-roam",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     ".github/pull_request_template.md",
     "apps/roam/src/utils/getAllDiscourseNodesSince.ts",
@@ -17,13 +17,20 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
-    "input_tokens": 30,
-    "cache_creation_tokens": 53994,
-    "cache_read_tokens": 1049808,
-    "output_tokens": 8648,
-    "api_call_count": 15
+    "input_tokens": 416,
+    "cache_creation_tokens": 157830,
+    "cache_read_tokens": 2239208,
+    "output_tokens": 30409,
+    "api_call_count": 28
   }
 }
