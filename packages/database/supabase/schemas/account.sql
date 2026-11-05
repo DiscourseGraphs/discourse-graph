@@ -320,9 +320,12 @@ AS $$
 DECLARE
     platform_ public."Platform";
     account_id_ BIGINT;
-    user_uid UUID;
-    permissions_ public."SpaceAccessPermissions";
 BEGIN
+    -- This function bypasses RLS, so it must check access itself.
+    IF NOT public.in_space(space_id_, 'editor') THEN
+        RAISE EXCEPTION 'Editor access to space % required', space_id_
+            USING ERRCODE = 'insufficient_privilege';
+    END IF;
     SELECT platform INTO STRICT platform_ FROM public."Space" WHERE id = space_id_;
     INSERT INTO public."PlatformAccount" AS pa (
             account_local_id, name, platform
@@ -330,21 +333,7 @@ BEGIN
             local_account.account_local_id, local_account.name, platform_
         ) ON CONFLICT (account_local_id, platform) DO UPDATE SET
             name = COALESCE(NULLIF(TRIM(EXCLUDED.name), ''), pa.name)
-        RETURNING id, dg_account INTO STRICT account_id_, user_uid;
-    IF user_uid IS NOT NULL THEN
-        -- is any permission specified in the input?
-        permissions_ := COALESCE(
-            local_account.permissions,
-            CASE WHEN local_account.space_editor IS true THEN 'editor'  -- legacy
-                 WHEN local_account.space_editor IS false THEN 'reader' END);
-        INSERT INTO public."SpaceAccess" as sa (space_id, account_uid, permissions)
-            VALUES (space_id_, user_uid, least(my_permissions_in_space(space_id_), COALESCE(permissions_, 'editor')))
-            ON CONFLICT (space_id, account_uid)
-            DO UPDATE SET permissions = CASE
-                WHEN permissions_ IS NULL THEN permissions
-                ELSE least(my_permissions_in_space(space_id_), permissions_)
-                END;
-    END IF;
+        RETURNING id INTO STRICT account_id_;
     INSERT INTO public."LocalAccess" (space_id, account_id) values (space_id_, account_id_)
         ON CONFLICT (space_id, account_id)
         DO NOTHING;
@@ -405,6 +394,10 @@ $$;
 
 -- Plugins call it after logging in, as do upsert_documents, upsert_content and upsert_concepts.
 REVOKE ALL ON FUNCTION public.create_account_in_space FROM anon;
+
+COMMENT ON FUNCTION public.upsert_account_in_space IS 'Add an account to a space the caller can edit. Grants no SpaceAccess: the space_editor and permissions fields of the input are ignored.';
+COMMENT ON FUNCTION public.upsert_accounts_in_space IS 'Add accounts to a space the caller can edit, through upsert_account_in_space.';
+COMMENT ON FUNCTION public.create_account_in_space IS 'Legacy wrapper of upsert_account_in_space; permissions_ is ignored.';
 
 -- Space: Allow anyone to insert, but only users who are members of the space can update or select
 

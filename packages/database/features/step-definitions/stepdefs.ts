@@ -1480,6 +1480,76 @@ Given(
   },
 );
 
+Given(
+  "user {word} fails to upsert these accounts to space {word}:",
+  async (userName: string, spaceName: string, accountsString: string) => {
+    const accounts = JSON.parse(accountsString) as Json;
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    const client = await getLoggedinDatabaseForUsername(userName);
+    const response = await client.rpc("upsert_accounts_in_space", {
+      space_id_: spaceId,
+      accounts,
+    });
+    assert.equal(response.error?.code, INSUFFICIENT_PRIVILEGE);
+  },
+);
+
+Given(
+  "a client that is not logged in fails to upsert these accounts to space {word}:",
+  async (spaceName: string, accountsString: string) => {
+    const accounts = JSON.parse(accountsString) as Json;
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    const response = await getAnonymousClient().rpc(
+      "upsert_accounts_in_space",
+      { space_id_: spaceId, accounts },
+    );
+    assert.equal(response.error?.code, INSUFFICIENT_PRIVILEGE);
+  },
+);
+
+Given(
+  "user {word} adds the account of space {word} to space {word}",
+  async (userName: string, accountSpaceName: string, spaceName: string) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const accountSpaceId = localRefs[accountSpaceName];
+    const spaceId = localRefs[spaceName];
+    if (typeof accountSpaceId !== "number")
+      assert.fail("accountSpaceId not a number");
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    const client = await getLoggedinDatabaseForUsername(userName);
+    const response = await client.rpc("upsert_accounts_in_space", {
+      space_id_: spaceId,
+      accounts: [
+        {
+          account_local_id: spaceAnonUserEmail("Roam", accountSpaceId),
+          name: accountSpaceName,
+        },
+      ],
+    });
+    assert.equal(response.error, null);
+  },
+);
+
+Then(
+  "the account {word} should be named {string}",
+  async (accountName: string, expectedName: string) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const accountId = localRefs[accountName];
+    if (typeof accountId !== "number") assert.fail("accountId not a number");
+    const response = await getServiceClient()
+      .from("PlatformAccount")
+      .select("name")
+      .eq("id", accountId)
+      .single();
+    assert.equal(response.error, null);
+    assert.equal(response.data?.name, expectedName);
+  },
+);
+
 const upsertDocs = async (
   userName: string,
   spaceName: string,

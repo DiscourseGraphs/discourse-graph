@@ -32,10 +32,12 @@ That filter starts at `reader`, but `PlatformAccount` rows are visible from `par
 - `security_barrier`. Without it, a caller's filter that isn't `LEAKPROOF` can run below the access join and see accounts from other spaces.
 - Its grants: `SELECT` only. `anon` holds it for public access (see [Grants made for public access](#grants-made-for-public-access)). It returns no rows to `anon` today.
 
-### Account writes
+### Account and group writes
 
 - `authenticated` can't insert into `PlatformAccount`, and has `UPDATE` on it per column, so clients can't set who owns an account (`dg_account`) or change what identifies it (`agent_type`, `platform`, `account_local_id`). A new column isn't client-writable until it's added to the grant. Clients create and upsert accounts through `upsert_account_in_space`, which also adds the account to the space (ENG-2447).
-- `LocalAccess` says an account belongs to a space and grants nothing. Its writes require editor access to the row's own space (ENG-2447).
+- `upsert_account_in_space` requires editor access to the space, and grants no `SpaceAccess` (ENG-2439). `LocalAccess` says an account belongs to a space and grants nothing.
+- `LocalAccess` writes require editor access to the row's own space (ENG-2447).
+- Only a group's admins can add members. The `create-group` edge function adds the first admin with the service role, and `accept_group_invitation` adds invited members (ENG-2438).
 
 ### Account reads
 
@@ -78,7 +80,7 @@ Every `anon` grant and every revoke is explicit, next to the function in its sch
 4. A `SECURITY DEFINER` function that clients can call must check the caller's access itself, because it skips RLS. Don't rely on capping a permission with `least(...)`: `LEAST` ignores NULL, so a caller with no access (NULL) gets the other argument.
 5. A helper that clients can call may reveal only facts about the caller, facts about resources the caller can read, or facts about identities whose owner made them public.
 
-Two helpers don't follow rule 5 yet. `file_exists` says whether any space holds a file with a given hash; the caller must already know the hash. `group_exists` says whether a group id has members; ENG-2438 removes it.
+One helper doesn't follow rule 5 yet. `file_exists` says whether any space holds a file with a given hash; the caller must already know the hash.
 
 ### Functions `anon` can execute
 
@@ -143,6 +145,8 @@ Any other finding from either advisor is new, and should be fixed or added here 
 - ENG-2344, ENG-2359: the views rewritten with InitPlans.
 - ENG-2368: write privileges revoked on the updatable views.
 - ENG-1480, ENG-2436: Supabase findings reviewed and documented.
+- ENG-2438: joining a group limited to its admins, and `group_exists` removed.
+- ENG-2439: `upsert_account_in_space` requires editor access and grants no `SpaceAccess`.
 - ENG-2441: `dg_account` and `metadata` removed from `my_accounts` and hidden on `PlatformAccount`.
 - ENG-2442: function grants made explicit, and new functions no longer executable by `anon`.
 - ENG-2443, ENG-2446: policies moved to the InitPlan form, and `can_access_account`, `can_view_concept`, `can_view_content`, `account_in_shared_space`, `unowned_account_in_shared_space` and `is_my_account` removed.
