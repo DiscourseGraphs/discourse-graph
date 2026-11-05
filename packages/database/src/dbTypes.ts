@@ -1703,6 +1703,22 @@ export type Database = {
           },
         ];
       };
+      my_resource_grants: {
+        Row: {
+          source_local_id: string;
+          space_id: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          source_local_id?: string | null;
+          space_id?: number | null;
+        };
+        Update: {
+          source_local_id?: string | null;
+          space_id?: number | null;
+        };
+        Relationships: [];
+      };
       my_spaces: {
         Row: {
           id: number;
@@ -1864,13 +1880,6 @@ export type Database = {
           isOneToOne: true;
           isSetofReturn: true;
         };
-      };
-      can_access_account: { Args: { account_uid: string }; Returns: boolean };
-      can_view_concept: { Args: { concept_id: number }; Returns: boolean };
-      can_view_content: { Args: { content_id: number }; Returns: boolean };
-      can_view_specific_resource: {
-        Args: { source_local_id_: string; space_id_: number };
-        Returns: boolean;
       };
       compute_arity_local: {
         Args: { lit_content: Json; schema_id: number };
