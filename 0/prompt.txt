@@ -1,0 +1,13 @@
+/start obsidian-ai-tutorial. this is not an official Linear ticket. but i want to start a worktree to do some experimental work. here is the general direction:
+
+* growth engineer project: help people onboard on Obsidian vault easier
+* how: we used to have some scaffolding for Obsidian tutorial using overlays to guide steps to do xyz at some point. i can't remember what branch it is anymore or whether it still exists locally or remotely on Github. but i want to use some of this to build this feature: have user input in a use case they want to do with Obsidian -> generate the tutorial for them to follow through
+* feel free to /grill
+
+---
+
+can you summarize to be what has been done? what's the next step?
+
+---
+
+credits added, record it now

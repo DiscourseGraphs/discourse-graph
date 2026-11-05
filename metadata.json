@@ -1,0 +1,55 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M6PDETZHZTC987FP3DM6PAMN",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 6,
+  "files_touched": [
+    "apps/obsidian/src/components/tutorial/TutorialManager.tsx",
+    "apps/obsidian/src/components/tutorial/TutorialOverlay.tsx",
+    "apps/obsidian/src/components/tutorial/__tests__/blocks.test.ts",
+    "apps/obsidian/src/components/tutorial/__tests__/cardPosition.test.ts",
+    "apps/obsidian/src/components/tutorial/__tests__/tourState.test.ts",
+    "apps/obsidian/src/components/tutorial/blocks.ts",
+    "apps/obsidian/src/components/tutorial/cardPosition.ts",
+    "apps/obsidian/src/components/tutorial/sampleTour.ts",
+    "apps/obsidian/src/components/tutorial/tourState.ts",
+    "apps/obsidian/src/components/tutorial/tourSteps.ts",
+    "apps/obsidian/src/components/tutorial/useTargetRect.ts",
+    "apps/obsidian/src/styles/tutorial.css",
+    "apps/obsidian/src/types/obsidian-unofficial.d.ts",
+    "apps/obsidian/src/utils/registerCommands.ts",
+    "apps/website/app/api/obsidian/tutorial/route.ts",
+    "apps/website/app/prompts/obsidianTutorial.test.ts",
+    "apps/website/app/prompts/obsidianTutorial.ts",
+    "apps/website/app/types/obsidianTutorial.ts",
+    "apps/website/next.config.ts",
+    "apps/website/public/docs/roam/dg-schema02.PNG",
+    "packages/database/supabase/.gitignore",
+    "packages/database/supabase/config.toml",
+    "packages/database/supabase/supabase.lock"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 194,
+    "cache_creation_tokens": 727394,
+    "cache_read_tokens": 23307800,
+    "output_tokens": 70163,
+    "api_call_count": 96,
+    "subagent_tokens": {
+      "input_tokens": 4,
+      "cache_creation_tokens": 68056,
+      "cache_read_tokens": 60216,
+      "output_tokens": 2183,
+      "api_call_count": 2
+    }
+  }
+}
