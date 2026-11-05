@@ -995,6 +995,35 @@ export type Database = {
       };
     };
     Views: {
+      accounts_in_my_partial_spaces: {
+        Row: {
+          account_id: number;
+        };
+        ComputedFields: never;
+        Relationships: [
+          {
+            foreignKeyName: "LocalAccess_account_id_fkey";
+            columns: ["account_id"];
+            isOneToOne: false;
+            referencedRelation: "my_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "LocalAccess_account_id_fkey";
+            columns: ["account_id"];
+            isOneToOne: false;
+            referencedRelation: "my_pseudo_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "LocalAccess_account_id_fkey";
+            columns: ["account_id"];
+            isOneToOne: false;
+            referencedRelation: "PlatformAccount";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       my_accounts: {
         Row: {
           account_local_id: string;
@@ -1824,12 +1853,14 @@ export type Database = {
         };
       };
       accept_group_invitation: { Args: { token: string }; Returns: boolean };
-      account_in_shared_space: {
+      account_ids_in_shared_spaces: {
         Args: {
           access_level?: Database["public"]["Enums"]["SpaceAccessPermissions"];
-          p_account_id: number;
         };
-        Returns: boolean;
+        Returns: {
+          account_id: number;
+          unowned: boolean;
+        }[];
       };
       author_of_concept: {
         Args: {
@@ -2133,7 +2164,6 @@ export type Database = {
         Args: { source_local_id_: string; space_id_: number };
         Returns: boolean;
       };
-      is_my_account: { Args: { account_id: number }; Returns: boolean };
       match_content_embeddings: {
         Args: {
           current_document_id?: number;
@@ -2169,6 +2199,10 @@ export type Database = {
       my_permissions_in_space: {
         Args: { space_id_: number };
         Returns: Database["public"]["Enums"]["SpaceAccessPermissions"];
+      };
+      my_platform_account_ids: {
+        Args: Record<PropertyKey, never>;
+        Returns: number[];
       };
       my_space_ids: {
         Args: {
@@ -2236,13 +2270,6 @@ export type Database = {
               isSetofReturn: true;
             };
           };
-      unowned_account_in_shared_space: {
-        Args: {
-          access_level?: Database["public"]["Enums"]["SpaceAccessPermissions"];
-          p_account_id: number;
-        };
-        Returns: boolean;
-      };
       upsert_account_in_space: {
         Args: {
           local_account: Database["public"]["CompositeTypes"]["account_local_input"];

@@ -974,6 +974,17 @@ Then(
           .select("id");
         assert.equal(deleted.error, null, label);
         written = (deleted.data?.length ?? 0) > 0;
+      } else if (operation === "delete") {
+        // Not undone: the delete cascades to the account's other rows. List deletes last.
+        const accountId = localRefs[account!];
+        if (typeof accountId !== "number") assert.fail(`unknown ${account}`);
+        await client.from("PlatformAccount").delete().eq("id", accountId);
+        const after = await service
+          .from("PlatformAccount")
+          .select("id")
+          .eq("id", accountId);
+        assert.equal(after.error, null, label);
+        written = (after.data?.length ?? 0) === 0;
       } else assert.fail(`unknown operation ${operation}`);
       if (result !== "allowed" && result !== "denied")
         assert.fail(`unknown result ${result} for ${label}`);
@@ -1070,6 +1081,134 @@ Then(
         const undone = await service
           .from("LocalAccess")
           .upsert(before.data!, { ignoreDuplicates: true });
+        assert.equal(undone.error, null, label);
+      } else assert.fail(`unknown operation ${operation}`);
+      if (result !== "allowed" && result !== "denied")
+        assert.fail(`unknown result ${result} for ${label}`);
+      if (written !== (result === "allowed"))
+        mismatches.push(`${label}: expected ${result}`);
+    }
+    assert.deepEqual(mismatches, []);
+  },
+);
+
+// How the feature tables name the rows of each account table: accounts by local reference,
+// space memberships as account@space.
+const visibleAccountTableRows = async (
+  client: ReturnType<typeof getServiceClient>,
+  table: string,
+): Promise<string[]> => {
+  const localRefs = (world.localRefs || {}) as LocalRefsType;
+  const names = new Map(
+    Object.entries(localRefs).map(([name, id]) => [id, name]),
+  );
+  const nameOf = (id: number | null): string =>
+    id === null ? "none" : (names.get(id) ?? `id ${id}`);
+  let rows: string[];
+  if (table === "PlatformAccount") {
+    const response = await client.from("PlatformAccount").select("id");
+    assert.equal(response.error, null, table);
+    rows = response.data!.map(({ id }) => nameOf(id));
+  } else if (table === "AgentIdentifier") {
+    const response = await client.from("AgentIdentifier").select("account_id");
+    assert.equal(response.error, null, table);
+    rows = response.data!.map(({ account_id }) => nameOf(account_id));
+  } else if (table === "LocalAccess") {
+    const response = await client
+      .from("LocalAccess")
+      .select("account_id, space_id");
+    assert.equal(response.error, null, table);
+    rows = response.data!.map(
+      ({ account_id, space_id }) => `${nameOf(account_id)}@${nameOf(space_id)}`,
+    );
+  } else assert.fail(`unknown table ${table}`);
+  return rows.sort();
+};
+
+Then(
+  "a user logged in space {word} should see these account table rows:",
+  async (viewerSpaceName: string, table: DataTable) => {
+    const { client } = await getSpaceClient(viewerSpaceName);
+    for (const { table: tableName, rows } of table.hashes()) {
+      const expected = rows!
+        .split(",")
+        .map((name) => name.trim())
+        .filter((name) => name !== "")
+        .sort();
+      assert.deepEqual(
+        await visibleAccountTableRows(client, tableName!),
+        expected,
+        tableName,
+      );
+    }
+  },
+);
+
+// Same approach as the account write results. An update flips the identifier's trusted flag.
+Then(
+  "a user logged in space {word} should get these identifier write results:",
+  async (writerSpaceName: string, table: DataTable) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const { client } = await getSpaceClient(writerSpaceName);
+    const service = getServiceClient();
+    const mismatches: string[] = [];
+    for (const { operation, account, result } of table.hashes()) {
+      const label = `${operation} identifier of ${account}`;
+      const accountId = localRefs[account!];
+      if (typeof accountId !== "number") assert.fail(`unknown ${account}`);
+      const before = await service
+        .from("AgentIdentifier")
+        .select("*")
+        .eq("account_id", accountId);
+      assert.equal(before.error, null, label);
+      const existing = before.data!;
+      let written: boolean;
+      if (operation === "insert") {
+        const value = `new-${account}@example.com`;
+        await client.from("AgentIdentifier").insert({
+          account_id: accountId,
+          value,
+          identifier_type: "email",
+          trusted: false,
+        });
+        const undone = await service
+          .from("AgentIdentifier")
+          .delete()
+          .eq("account_id", accountId)
+          .eq("value", value)
+          .select("value");
+        assert.equal(undone.error, null, label);
+        written = (undone.data?.length ?? 0) > 0;
+      } else if (operation === "update") {
+        if (existing.length === 0) assert.fail(`${label}: no identifier`);
+        const trusted = !existing[0]!.trusted;
+        await client
+          .from("AgentIdentifier")
+          .update({ trusted })
+          .eq("account_id", accountId);
+        const after = await service
+          .from("AgentIdentifier")
+          .select("trusted")
+          .eq("account_id", accountId);
+        assert.equal(after.error, null, label);
+        written = after.data!.every((row) => row.trusted === trusted);
+        const undone = await service.from("AgentIdentifier").upsert(existing);
+        assert.equal(undone.error, null, label);
+      } else if (operation === "delete") {
+        if (existing.length === 0) assert.fail(`${label}: no identifier`);
+        await client
+          .from("AgentIdentifier")
+          .delete()
+          .eq("account_id", accountId);
+        const after = await service
+          .from("AgentIdentifier")
+          .select("value")
+          .eq("account_id", accountId);
+        assert.equal(after.error, null, label);
+        written = after.data!.length === 0;
+        const undone = await service
+          .from("AgentIdentifier")
+          .upsert(existing, { ignoreDuplicates: true });
         assert.equal(undone.error, null, label);
       } else assert.fail(`unknown operation ${operation}`);
       if (result !== "allowed" && result !== "denied")

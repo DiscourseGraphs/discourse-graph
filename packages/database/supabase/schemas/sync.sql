@@ -295,7 +295,7 @@ LANGUAGE sql AS $$
         WHEN target_type = 'Content' THEN public.content_in_space(target_id, 'editor')
         WHEN target_type = 'Concept' THEN public.concept_in_space(target_id, 'editor')
         WHEN target_type = 'Document' THEN public.document_in_space(target_id, 'editor')
-        WHEN target_type = 'PlatformAccount' THEN public.account_in_shared_space(target_id, 'editor')
+        WHEN target_type = 'PlatformAccount' THEN EXISTS (SELECT 1 FROM public."LocalAccess" AS la WHERE la.account_id = target_id AND la.space_id = any(public.my_space_ids('editor')))
         ELSE false
     END;
 $$;
