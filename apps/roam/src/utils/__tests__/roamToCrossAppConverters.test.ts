@@ -129,39 +129,46 @@ describe("fullContentNodeToCrossApp coreTitle", () => {
     source_local_id: "node-1",
     created: 1000,
     last_modified: 2000,
-    node_type_id: "schema-1",
-    format: "CLM - {content}",
+    type: "schema-1",
     text: "CLM - claim",
   };
 
   it("extracts the content from the title", () => {
-    const node = fullContentNodeToCrossApp(baseNode);
+    const node = fullContentNodeToCrossApp(baseNode, claimSchema);
     expect(node.coreTitle).toBe("claim");
   });
 
   it("extracts from the page title when node_title is present", () => {
-    const node = fullContentNodeToCrossApp({
-      ...baseNode,
-      text: "some block text",
-      node_title: "CLM - claim",
-    });
+    const node = fullContentNodeToCrossApp(
+      {
+        ...baseNode,
+        text: "some block text",
+        node_title: "CLM - claim",
+      },
+      claimSchema,
+    );
     expect(node.coreTitle).toBe("claim");
   });
 
   it("keeps the whole title when it does not match the format", () => {
-    const node = fullContentNodeToCrossApp({
-      ...baseNode,
-      text: "unrelated title",
-    });
+    const node = fullContentNodeToCrossApp(
+      {
+        ...baseNode,
+        text: "unrelated title",
+      },
+      claimSchema,
+    );
     expect(node.coreTitle).toBe("unrelated title");
   });
 
   it("extracts the content from a format with regex metacharacters", () => {
-    const node = fullContentNodeToCrossApp({
-      ...baseNode,
-      format: "Claim (draft) - {content}",
-      text: "Claim (draft) - sleep improves memory",
-    });
+    const node = fullContentNodeToCrossApp(
+      {
+        ...baseNode,
+        text: "Claim (draft) - sleep improves memory",
+      },
+      { ...claimSchema, format: "Claim (draft) - {content}" },
+    );
     expect(node.coreTitle).toBe("sleep improves memory");
   });
 });
