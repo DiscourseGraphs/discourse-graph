@@ -125,6 +125,16 @@ const COLOR_ARRAY = Array.from(DefaultColorStyle.values)
   .filter((c) => !["red", "green", "grey"].includes(c))
   .reverse() as TLDefaultColorStyle[];
 
+const NAMED_RELATION_COLORS = new Map<string, TLDefaultColorStyle>([
+  ["supports", "green"],
+  ["supported by", "green"],
+  ["opposes", "red"],
+  ["opposed by", "red"],
+  ["informs", "grey"],
+  ["informed by", "grey"],
+  ["add source", "grey"],
+]);
+
 export const DISCOURSE_RELATION_SHAPE_TYPE = "discourse-relation";
 
 const isRelationShapeType = (shapeType: string): boolean =>
@@ -140,23 +150,11 @@ export const getRelationColor = (
   relationName: string,
   index?: number,
 ): TLDefaultColorStyle => {
-  if (relationName === "Supports" || relationName === "Supported By") {
-    return "green";
-  }
-
-  if (relationName === "Opposes" || relationName === "Opposed By") {
-    return "red";
-  }
-
-  if (relationName === "Informs" || relationName === "Informed By") {
-    return "grey";
-  }
-
-  if (relationName === "Add Source") {
-    return "grey";
-  }
-
-  return `${COLOR_ARRAY[index || 0]}`;
+  const named = NAMED_RELATION_COLORS.get(relationName.toLowerCase());
+  if (named) return named;
+  // Arrows paint this name as a raw CSS color; CSS grey is the one readable on light and dark canvases.
+  if (index === undefined || index < 0) return "grey";
+  return COLOR_ARRAY[index % COLOR_ARRAY.length];
 };
 
 type ShapeWithOptionalRelationTypeId = TLShape & {
