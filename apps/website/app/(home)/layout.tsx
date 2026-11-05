@@ -47,14 +47,16 @@ const HomeLayout = async ({
     STATIC_NEWS_ITEMS.length > 0 || (await getAllBlogs()).length > 0;
   const navigationItems = [
     { href: "/#about", label: "About" },
-    { href: "/#plugins", label: "Plugins" },
     { href: "/#resources", label: "Resources" },
     ...(hasNews ? [{ href: "/#news", label: "News" }] : []),
     { href: "/#talks", label: "Talks" },
     { href: "/#team", label: "Team" },
     { href: "/#supporters", label: "Supporters" },
     { href: "/docs", isDocumentNavigation: true, label: "Docs" },
-    { href: "/#contact", label: "Contact" },
+    // Desktop shows Get started as a button and omits Contact; the mobile
+    // menu keeps both because it has no separate buttons.
+    { href: "/#plugins", isMobileOnly: true, label: "Get started" },
+    { href: "/#contact", isMobileOnly: true, label: "Contact" },
   ];
 
   return (
@@ -78,23 +80,26 @@ const HomeLayout = async ({
         </div>
         <header className="sticky top-0 z-50 h-[var(--header-height)] border-b border-neutral-dark/10 bg-neutral-light/95 backdrop-blur">
           <div className="mx-auto flex h-full max-w-7xl items-center justify-between gap-2 px-4 min-[360px]:gap-4 min-[360px]:px-5 md:px-6">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-4 lg:flex-1">
               <Logo />
             </div>
 
-            <div className="flex items-center gap-6">
-              <HomeNavigationMenu items={navigationItems} />
+            <HomeNavigationMenu items={navigationItems} />
 
-              <div className="hidden lg:block">
-                {/* Use hard navigation across the marketing/docs boundary because client-side transitions can leak docs CSS. */}
-                {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-                <a
-                  href="/docs"
-                  className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary/90 hover:text-white"
-                >
-                  Open docs
-                </a>
-              </div>
+            <div className="hidden items-center justify-end gap-3 lg:flex lg:flex-1">
+              {/* Use hard navigation across the marketing/docs boundary because client-side transitions can leak docs CSS. */}
+              <a
+                href="/docs"
+                className="inline-flex items-center justify-center px-2 py-2 text-sm font-semibold text-neutral-dark/75 transition-colors hover:text-neutral-dark"
+              >
+                Open docs
+              </a>
+              <Link
+                href="/#plugins"
+                className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary/90 hover:text-white"
+              >
+                Get started
+              </Link>
             </div>
           </div>
         </header>
