@@ -42,6 +42,11 @@ CREATE UNIQUE INDEX account_platform_and_id_idx ON public."PlatformAccount" (acc
 
 REVOKE ALL ON TABLE public."PlatformAccount" FROM anon;
 GRANT ALL ON TABLE public."PlatformAccount" TO authenticated;
+-- Clients cannot set who owns an account (dg_account) or change what identifies it (agent_type, platform, account_local_id).
+-- Clients create and upsert accounts through upsert_account_in_space, which also adds the account to the space.
+-- Updates are granted per column: a new column is not client-writable until it is added to this grant.
+REVOKE INSERT, UPDATE ON TABLE public."PlatformAccount" FROM authenticated;
+GRANT UPDATE (name, active, metadata) ON TABLE public."PlatformAccount" TO authenticated;
 GRANT ALL ON TABLE public."PlatformAccount" TO service_role;
 
 CREATE TABLE public."AgentIdentifier" (
@@ -420,7 +425,8 @@ FROM public."Space" WHERE id = any(public.my_space_ids('partial'));
 -- Single-table views are writable, and writes run as the view owner, bypassing Space's RLS.
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.my_spaces FROM anon, authenticated;
 
--- PlatformAccount: Access to anyone sharing a space with you to create an account, to allow editing authors
+-- PlatformAccount: Editors of a space can change or delete its unowned accounts, to allow editing authors.
+-- Clients create accounts through the account functions.
 -- Once the account is claimed by a user, only allow this user to modify it.
 -- Eventually: Allow platform admin to modify?
 
@@ -505,9 +511,6 @@ CREATE POLICY platform_account_select_policy ON public."PlatformAccount" FOR SEL
 DROP POLICY IF EXISTS platform_account_delete_policy ON public."PlatformAccount";
 CREATE POLICY platform_account_delete_policy ON public."PlatformAccount" FOR DELETE USING (dg_account = (SELECT auth.uid() LIMIT 1) OR (dg_account IS null AND public.unowned_account_in_shared_space(id, 'editor')));
 
-DROP POLICY IF EXISTS platform_account_insert_policy ON public."PlatformAccount";
-CREATE POLICY platform_account_insert_policy ON public."PlatformAccount" FOR INSERT WITH CHECK (dg_account = (SELECT auth.uid() LIMIT 1) OR (dg_account IS null AND public.unowned_account_in_shared_space(id, 'editor')));
-
 DROP POLICY IF EXISTS platform_account_update_policy ON public."PlatformAccount";
 CREATE POLICY platform_account_update_policy ON public."PlatformAccount" FOR UPDATE USING (dg_account = (SELECT auth.uid() LIMIT 1) OR (dg_account IS null AND public.unowned_account_in_shared_space(id, 'editor')));
 
@@ -539,13 +542,13 @@ DROP POLICY IF EXISTS local_access_select_policy ON public."LocalAccess";
 CREATE POLICY local_access_select_policy ON public."LocalAccess" FOR SELECT USING (space_id = any((SELECT public.my_space_ids('reader'))::bigint []));
 
 DROP POLICY IF EXISTS local_access_delete_policy ON public."LocalAccess";
-CREATE POLICY local_access_delete_policy ON public."LocalAccess" FOR DELETE USING (public.unowned_account_in_shared_space(account_id, 'editor') OR public.is_my_account(account_id));
+CREATE POLICY local_access_delete_policy ON public."LocalAccess" FOR DELETE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint[]) AND (public.unowned_account_in_shared_space(account_id, 'editor') OR public.is_my_account(account_id)));
 
 DROP POLICY IF EXISTS local_access_insert_policy ON public."LocalAccess";
-CREATE POLICY local_access_insert_policy ON public."LocalAccess" FOR INSERT WITH CHECK (public.unowned_account_in_shared_space(account_id, 'editor') OR public.is_my_account(account_id));
+CREATE POLICY local_access_insert_policy ON public."LocalAccess" FOR INSERT WITH CHECK (space_id = any((SELECT public.my_space_ids('editor'))::bigint[]) AND (public.unowned_account_in_shared_space(account_id, 'editor') OR public.is_my_account(account_id)));
 
 DROP POLICY IF EXISTS local_access_update_policy ON public."LocalAccess";
-CREATE POLICY local_access_update_policy ON public."LocalAccess" FOR UPDATE USING (public.unowned_account_in_shared_space(account_id, 'editor') OR public.is_my_account(account_id));
+CREATE POLICY local_access_update_policy ON public."LocalAccess" FOR UPDATE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint[]) AND (public.unowned_account_in_shared_space(account_id, 'editor') OR public.is_my_account(account_id)));
 
 -- AgentIdentifier: Allow space members to do anything, to allow editing authors.
 -- Eventually: Once the account is claimed by a user, only allow this user to modify it.
