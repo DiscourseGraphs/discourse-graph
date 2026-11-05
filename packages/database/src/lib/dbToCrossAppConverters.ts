@@ -115,11 +115,10 @@ const getSchemaFormatMap = async (
     .in("id", schemaIds);
   if (error) throw error;
   return Object.fromEntries(
-    data.flatMap(({ id, format, sourceDataFormat }) =>
-      id === null
-        ? []
-        : [[id, resolveSchemaFormat({ format, sourceDataFormat })]],
-    ),
+    data.map(({ id, format, sourceDataFormat }) => [
+      id,
+      resolveSchemaFormat({ format, sourceDataFormat }),
+    ]),
   );
 };
 
