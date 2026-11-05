@@ -3,7 +3,6 @@ import { getSubTree } from "roamjs-components/util";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import DualWriteBlocksPanel from "./components/EphemeralBlocksPanel";
 import { TEMPLATE_SETTING_KEYS } from "~/components/settings/utils/settingKeys";
-import { ROAM_DOCS, withDocsLink } from "./utils/docs";
 
 const NodeTemplatePage = ({ node }: { node: DiscourseNode }): JSX.Element => {
   const templateUid = getSubTree({ parentUid: node.type, key: "Template" }).uid;
@@ -12,10 +11,7 @@ const NodeTemplatePage = ({ node }: { node: DiscourseNode }): JSX.Element => {
       <DualWriteBlocksPanel
         nodeType={node.type}
         title="Template"
-        description={withDocsLink(
-          `The template that auto fills ${node.text} page when generated.`,
-          ROAM_DOCS.creatingNodes,
-        )}
+        description={`The template that auto fills ${node.text} page when generated.`}
         settingKeys={TEMPLATE_SETTING_KEYS}
         uid={templateUid}
         defaultValue={node.template}

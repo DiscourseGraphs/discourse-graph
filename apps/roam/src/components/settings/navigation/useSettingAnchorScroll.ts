@@ -4,7 +4,7 @@ import { settingAnchorSelector } from "~/components/settings/utils/settingAnchor
 
 /** Time-based so it outlasts Blueprint's 200ms Collapse timer on high-refresh displays. */
 const LOOKUP_TIMEOUT_MS = 500;
-const FLASH_HOLD_MS = 600;
+const FLASH_HOLD_MS = 900;
 const FLASH_FADE_MS = 700;
 
 /** `-mx-2 px-2` widens the highlight past the row's content without moving it. */
@@ -15,7 +15,7 @@ const FLASH_FRAME_CLASSES = [
   "transition-colors",
   "duration-700",
 ];
-const FLASH_FILL_CLASS = "bg-gray-100";
+const FLASH_FILL_CLASS = "bg-gray-200";
 
 const flashTimeouts = new WeakMap<Element, number[]>();
 
