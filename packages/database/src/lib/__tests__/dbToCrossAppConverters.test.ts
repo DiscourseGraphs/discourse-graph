@@ -606,7 +606,7 @@ describe("dbNodeToCrossApp", () => {
     },
     {
       error: "Missing created date",
-      overrides: { direct: { ...direct, created: null } },
+      overrides: { direct: { ...direct, created: "" } },
     },
     { error: "Missing direct content", overrides: { direct: undefined } },
     {
