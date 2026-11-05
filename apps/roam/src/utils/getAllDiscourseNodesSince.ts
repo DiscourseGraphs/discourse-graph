@@ -28,8 +28,8 @@ export const getDiscourseNodeTypeWithSettingsBlockNodes = async (
   const regex = getDiscourseNodeFormatExpression(node.format);
   const regexPattern = regex.source.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
   const queryBlock = `[
-      :find ?childString ?nodeUid ?nodeCreateTime ?nodeEditTime ?author_local_id ?author_name ?node-title ?node_author_local_id
-      :keys text source_local_id created last_modified author_local_id author_name node_title node_author_local_id
+      :find ?childString ?nodeUid ?nodeCreateTime ?nodeEditTime ?author_local_id ?node-title ?node_author_local_id
+      :keys text source_local_id created last_modified author_local_id node_title node_author_local_id
       :in $ ?firstChildUid ?since
       :where
         [(re-pattern "${regexPattern}") ?title-regex]
@@ -50,8 +50,6 @@ export const getDiscourseNodeTypeWithSettingsBlockNodes = async (
         [?user-eid :user/uid ?author_local_id]
         [(get-else $ ?node :create/user ?user-eid) ?node-user-eid]
         [?node-user-eid :user/uid ?node_author_local_id]
-        [(get-else $ ?child :edit/user ?user-eid) ?eu]
-        [(get-else $ ?eu :user/display-name "Anonymous User") ?author_name]
         [or
          [(> ?childEditTime ?since)]
          [(> ?nodeEditTime ?since)]]
@@ -84,8 +82,8 @@ export const getAllDiscourseNodesSince = async (
     .replace(/"/g, '\\"');
 
   const query = `[
-    :find ?node-title ?uid ?nodeCreateTime ?nodeEditTime ?author_local_id ?author_name
-    :keys text source_local_id created last_modified author_local_id author_name
+    :find ?node-title ?uid ?nodeCreateTime ?nodeEditTime ?author_local_id
+    :keys text source_local_id created last_modified author_local_id
     :in $ ?since
     :where
       [(re-pattern "${regexPattern}") ?title-regex]
@@ -95,7 +93,6 @@ export const getAllDiscourseNodesSince = async (
       [?node :create/time ?nodeCreateTime]
       [?node :create/user ?user-eid]
       [?user-eid :user/uid ?author_local_id]
-      [(get-else $ ?user-eid :user/display-name "Anonymous User") ?author_name]
       [(get-else $ ?node :edit/time ?nodeCreateTime) ?nodeEditTime]
       [(> ?nodeEditTime ?since)]
   ]`;
