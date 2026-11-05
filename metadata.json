@@ -1,0 +1,38 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M6P14FB1HN8KZH503ZF95NDT",
+  "strategy": "manual-commit",
+  "branch": "eng-2444-make-the-my_-views-use-rls-instead-of-their-own-access",
+  "checkpoints_count": 11,
+  "files_touched": [
+    "apps/website/public/docs/roam/dg-schema02.PNG",
+    "packages/database/features/linkedTableAccess.feature",
+    "packages/database/src/dbTypes.ts",
+    "packages/database/supabase/migrations/20261030120000_rls_once_per_query.sql",
+    "packages/database/supabase/schemas/assets.sql",
+    "packages/database/supabase/schemas/content.sql"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 134,
+    "cache_creation_tokens": 541075,
+    "cache_read_tokens": 7409392,
+    "output_tokens": 68006,
+    "api_call_count": 51,
+    "subagent_tokens": {
+      "input_tokens": 30,
+      "cache_creation_tokens": 129612,
+      "cache_read_tokens": 1183177,
+      "output_tokens": 25498,
+      "api_call_count": 13
+    }
+  }
+}
