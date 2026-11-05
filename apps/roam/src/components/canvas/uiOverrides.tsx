@@ -489,7 +489,11 @@ export const CustomContextMenu = ({
               <TldrawUiMenuItem
                 key={rt.id}
                 id={`relation-${rt.id}`}
-                label={rt.label}
+                label={
+                  rt.hasLabelCollision
+                    ? `${rt.label} · ${rt.complement}`
+                    : rt.label
+                }
                 onSelect={async () => {
                   const arrow = editor.getShape<TLArrowShape>(
                     arrowRelationOptions.arrowId,
