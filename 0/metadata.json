@@ -1,0 +1,151 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M6N6CG43HEC7W09NRZCE47JK",
+  "session_id": "104b2eaa-a4fa-4079-bba1-7569daa6bc75",
+  "strategy": "manual-commit",
+  "created_at": "2026-11-05T06:29:52.917689558Z",
+  "branch": "main",
+  "checkpoints_count": 17,
+  "save_step_count": 1,
+  "files_touched": [
+    ".agents/skills/discourse-engineering-writing-style/SKILL.md",
+    ".agents/skills/discourse-engineering-writing-style/agents/openai.yaml",
+    ".agents/skills/roam-load-extension/SKILL.md",
+    ".agents/skills/roam-playwright-session/SKILL.md",
+    ".clj-kondo/.cache/v1/lock",
+    ".husky/commit-msg",
+    ".husky/post-commit",
+    ".husky/post-rewrite",
+    ".husky/pre-push",
+    ".husky/prepare-commit-msg",
+    ".lsp/.cache/db.transit.json"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "3062c7a5ba21",
+  "checkpoint_transcript_start": 869,
+  "transcript_lines_at_start": 869,
+  "compact_transcript_start": 107,
+  "token_usage": {
+    "input_tokens": 200,
+    "cache_creation_tokens": 283905,
+    "cache_read_tokens": 36284133,
+    "output_tokens": 114205,
+    "api_call_count": 81,
+    "subagent_tokens": {
+      "input_tokens": 336,
+      "cache_creation_tokens": 694606,
+      "cache_read_tokens": 35036345,
+      "output_tokens": 226815,
+      "api_call_count": 164
+    }
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_01Xt73js6S9xMh4snj4ewxPY",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "update-config"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "3062c7a5ba21",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 935,
+        "end": 936,
+        "entry_ids": [
+          "4b282600-06ce-49be-ac16-fc828309b5de"
+        ],
+        "tool_use_id": "toolu_01Xt73js6S9xMh4snj4ewxPY"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01Xt73js6S9xMh4snj4ewxPY"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: update-config",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_015CVaPpv4Yeg5iDiPT3JyxS",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-engineering-writing-style"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "3062c7a5ba21",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 1246,
+        "end": 1247,
+        "entry_ids": [
+          "40c3a5ce-f9ae-4999-839c-125ea57999bd"
+        ],
+        "tool_use_id": "toolu_015CVaPpv4Yeg5iDiPT3JyxS"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_015CVaPpv4Yeg5iDiPT3JyxS"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-engineering-writing-style",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 26
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-11-05T06:29:52.701527282Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 158,
+    "total_committed": 0,
+    "total_lines_changed": 158,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 158,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".agents/skills/discourse-engineering-writing-style/SKILL.md": 37,
+        ".agents/skills/discourse-engineering-writing-style/agents/openai.yaml": 9,
+        ".agents/skills/roam-load-extension/SKILL.md": 45,
+        ".agents/skills/roam-playwright-session/SKILL.md": 51,
+        ".husky/commit-msg": 3,
+        ".husky/post-commit": 3,
+        ".husky/post-rewrite": 3,
+        ".husky/pre-push": 3,
+        ".husky/prepare-commit-msg": 3,
+        ".lsp/.cache/db.transit.json": 1
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 158,
+      "agent_lines_removed": 0
+    }
+  ]
+}

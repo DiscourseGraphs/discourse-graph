@@ -1,0 +1,43 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M6N6CG43HEC7W09NRZCE47JK",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 17,
+  "files_touched": [
+    ".agents/skills/discourse-engineering-writing-style/SKILL.md",
+    ".agents/skills/discourse-engineering-writing-style/agents/openai.yaml",
+    ".agents/skills/roam-load-extension/SKILL.md",
+    ".agents/skills/roam-playwright-session/SKILL.md",
+    ".clj-kondo/.cache/v1/lock",
+    ".husky/commit-msg",
+    ".husky/post-commit",
+    ".husky/post-rewrite",
+    ".husky/pre-push",
+    ".husky/prepare-commit-msg",
+    ".lsp/.cache/db.transit.json"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 200,
+    "cache_creation_tokens": 283905,
+    "cache_read_tokens": 36284133,
+    "output_tokens": 114205,
+    "api_call_count": 81,
+    "subagent_tokens": {
+      "input_tokens": 336,
+      "cache_creation_tokens": 694606,
+      "cache_read_tokens": 35036345,
+      "output_tokens": 226815,
+      "api_call_count": 164
+    }
+  }
+}
