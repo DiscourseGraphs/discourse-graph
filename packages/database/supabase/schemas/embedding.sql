@@ -90,6 +90,9 @@ query_embedding extensions.vector,
 match_threshold double precision,
 current_document_id integer) OWNER TO "postgres" ;
 
+-- Not SECURITY DEFINER: runs as the caller, and reads through a my_* view.
+GRANT EXECUTE ON FUNCTION public.match_content_embeddings TO anon;
+
 CREATE OR REPLACE FUNCTION public.match_embeddings_for_subset_nodes (
 "p_query_embedding" extensions.vector,
 "p_subset_roam_uids" Text [])
@@ -123,6 +126,9 @@ $$ ;
 ALTER FUNCTION public.match_embeddings_for_subset_nodes (
 "p_query_embedding" extensions.vector, "p_subset_roam_uids" Text [])
 OWNER TO "postgres" ;
+
+-- Not SECURITY DEFINER: runs as the caller, and reads through a my_* view.
+GRANT EXECUTE ON FUNCTION public.match_embeddings_for_subset_nodes TO anon;
 
 RESET ALL ;
 

@@ -218,6 +218,8 @@ AS $$
 $$;
 
 COMMENT ON FUNCTION public.my_user_accounts IS 'security utility: The uids which give me access, either as myself or as a group member.';
+-- Public access: base of the my_* views and of most helpers.
+GRANT EXECUTE ON FUNCTION public.my_user_accounts TO anon;
 
 CREATE OR REPLACE FUNCTION public.my_permissions_in_space(
     space_id_ BIGINT
@@ -230,6 +232,9 @@ AS $$
     WHERE space_id=space_id_;
 $$;
 
+-- Not SECURITY DEFINER: runs as the caller under RLS.
+GRANT EXECUTE ON FUNCTION public.my_permissions_in_space TO anon;
+
 CREATE OR REPLACE FUNCTION public.in_group(group_id_ UUID) RETURNS BOOLEAN
 STABLE SECURITY DEFINER
 SET search_path = ''
@@ -238,6 +243,9 @@ AS $$
     SELECT EXISTS (SELECT true FROM public.group_membership
         WHERE member_id = auth.uid() AND group_id = group_id_);
 $$;
+
+-- group_membership select policy; anon cannot read group_membership.
+REVOKE ALL ON FUNCTION public.in_group FROM anon;
 
 CREATE OR REPLACE FUNCTION public.is_group_admin(group_id_ UUID) RETURNS BOOLEAN
 STABLE SECURITY DEFINER
@@ -248,6 +256,9 @@ AS $$
         WHERE member_id = auth.uid() AND group_id = group_id_ AND admin);
 $$;
 
+-- group_membership write policies; anon cannot read group_membership.
+REVOKE ALL ON FUNCTION public.is_group_admin FROM anon;
+
 CREATE OR REPLACE FUNCTION public.group_exists(group_id_ UUID) RETURNS BOOLEAN
 STABLE SECURITY DEFINER
 SET search_path = ''
@@ -255,6 +266,9 @@ LANGUAGE sql
 AS $$
     SELECT EXISTS (SELECT true FROM public.group_membership WHERE group_id = group_id_ LIMIT 1);
 $$;
+
+-- group_membership insert policy; anon cannot read group_membership.
+REVOKE ALL ON FUNCTION public.group_exists FROM anon;
 
 CREATE OR REPLACE FUNCTION public.my_space_ids(access_level public."SpaceAccessPermissions" = 'reader') RETURNS BIGINT []
 STABLE SECURITY DEFINER
@@ -267,6 +281,8 @@ AS $$
         WHERE permissions >= access_level;
 $$;
 COMMENT ON FUNCTION public.my_space_ids IS 'security utility: all spaces the user has access to';
+-- Space select policy; anon can read Space. Public access: the my_* views and the other select policies.
+GRANT EXECUTE ON FUNCTION public.my_space_ids TO anon;
 
 CREATE OR REPLACE FUNCTION public.in_space(space_id BIGINT, access_level public."SpaceAccessPermissions" = 'reader') RETURNS boolean
 STABLE SECURITY DEFINER
@@ -279,6 +295,8 @@ AS $$
 $$;
 
 COMMENT ON FUNCTION public.in_space IS 'security utility: does current user have access to this space?';
+-- Only write paths reach it as the caller, through concept_in_space and content_in_space; anon's reads use my_space_ids. A new policy that anon's queries reach must not call it.
+REVOKE ALL ON FUNCTION public.in_space FROM anon;
 
 CREATE OR REPLACE FUNCTION public.account_ids_in_shared_spaces(access_level public."SpaceAccessPermissions" = 'reader')
 RETURNS TABLE (account_id BIGINT, unowned BOOLEAN)
@@ -349,6 +367,9 @@ BEGIN
 END;
 $$;
 
+-- Called by upsert_accounts_in_space, create_account_in_space, upsert_documents and upsert_content, which plugins call after logging in.
+REVOKE ALL ON FUNCTION public.upsert_account_in_space FROM anon;
+
 CREATE OR REPLACE FUNCTION public.upsert_accounts_in_space(
     space_id_ BIGINT,
     accounts JSONB
@@ -372,6 +393,9 @@ BEGIN
 END;
 $$;
 
+-- Roam sync calls it after logging in.
+REVOKE ALL ON FUNCTION public.upsert_accounts_in_space FROM anon;
+
 -- legacy
 CREATE OR REPLACE FUNCTION public.create_account_in_space(
     space_id_ BIGINT,
@@ -387,6 +411,9 @@ LANGUAGE sql
 AS $$
     SELECT public.upsert_account_in_space(space_id_, ROW(name_, account_local_id_ ,email_, email_trusted, null, permissions_)::public.account_local_input);
 $$;
+
+-- Plugins call it after logging in, as do upsert_documents, upsert_content and upsert_concepts.
+REVOKE ALL ON FUNCTION public.create_account_in_space FROM anon;
 
 -- Space: Allow anyone to insert, but only users who are members of the space can update or select
 
@@ -508,6 +535,9 @@ BEGIN
 END;
 $$;
 
+-- The website calls it for a logged-in user; it returns false without one.
+REVOKE ALL ON FUNCTION public.accept_group_invitation FROM anon;
+
 DROP POLICY IF EXISTS platform_account_policy ON public."PlatformAccount";
 
 DROP POLICY IF EXISTS platform_account_select_policy ON public."PlatformAccount";
@@ -581,7 +611,7 @@ DROP POLICY IF EXISTS group_membership_select_policy ON public.group_membership;
 CREATE POLICY group_membership_select_policy ON public.group_membership FOR SELECT USING (public.in_group(group_id));
 
 DROP POLICY IF EXISTS group_membership_delete_policy ON public.group_membership;
-CREATE POLICY group_membership_delete_policy ON public.group_membership FOR DELETE USING (member_id = auth.uid() OR public.is_group_admin(group_id));
+CREATE POLICY group_membership_delete_policy ON public.group_membership FOR DELETE USING (member_id = (SELECT auth.uid()) OR public.is_group_admin(group_id));
 
 DROP POLICY IF EXISTS group_membership_insert_policy ON public.group_membership;
 CREATE POLICY group_membership_insert_policy ON public.group_membership FOR INSERT WITH CHECK (public.is_group_admin(group_id) OR NOT public.group_exists(group_id));

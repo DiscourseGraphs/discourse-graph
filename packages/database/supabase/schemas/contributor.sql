@@ -43,11 +43,16 @@ ADD CONSTRAINT concept_contributors_pkey PRIMARY KEY (
     concept_id, contributor_id
 );
 
-GRANT ALL ON TABLE public.concept_contributors TO anon;
+-- anon can't write: the write policies call in_space through concept_in_space, and anon can't execute it.
+-- SELECT stays for public access, which also needs SELECT on the parent tables and on ResourceAccess.
+REVOKE ALL ON TABLE public.concept_contributors FROM anon;
+GRANT SELECT ON TABLE public.concept_contributors TO anon;
 GRANT ALL ON TABLE public.concept_contributors TO authenticated;
 GRANT ALL ON TABLE public.concept_contributors TO service_role;
 
-GRANT ALL ON TABLE public.content_contributors TO anon;
+-- Same as concept_contributors, through content_in_space.
+REVOKE ALL ON TABLE public.content_contributors FROM anon;
+GRANT SELECT ON TABLE public.content_contributors TO anon;
 GRANT ALL ON TABLE public.content_contributors TO authenticated;
 GRANT ALL ON TABLE public.content_contributors TO service_role;
 

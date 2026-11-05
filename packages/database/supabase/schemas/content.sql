@@ -759,3 +759,15 @@ DROP POLICY IF EXISTS resource_access_insert_policy ON public."ResourceAccess";
 CREATE POLICY resource_access_insert_policy ON public."ResourceAccess" FOR INSERT WITH CHECK (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
 DROP POLICY IF EXISTS resource_access_update_policy ON public."ResourceAccess";
 CREATE POLICY resource_access_update_policy ON public."ResourceAccess" FOR UPDATE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
+
+-- Not SECURITY DEFINER: these run as the caller under RLS.
+GRANT EXECUTE ON FUNCTION public.my_accessible_resources TO anon;
+GRANT EXECUTE ON FUNCTION public.document_of_content TO anon;
+GRANT EXECUTE ON FUNCTION public.author_of_content TO anon;
+GRANT EXECUTE ON FUNCTION public._local_document_to_db_document TO anon;
+GRANT EXECUTE ON FUNCTION public._local_content_to_db_content TO anon;
+GRANT EXECUTE ON FUNCTION public.upsert_documents TO anon;
+GRANT EXECUTE ON FUNCTION public.upsert_content_embedding TO anon;
+GRANT EXECUTE ON FUNCTION public.upsert_content TO anon;
+GRANT EXECUTE ON FUNCTION public.content_in_space TO anon;
+GRANT EXECUTE ON FUNCTION public.document_in_space TO anon;
