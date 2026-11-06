@@ -1,7 +1,8 @@
 import type { Tables, Enums, Json } from "@repo/database/dbTypes";
+import type { ColumnRow } from "@repo/database/inputTypes";
 import { convert, MIMETYPES, type DocType } from "~/utils/conversion/convert";
 
-type Concept = Tables<"Concept">;
+type Concept = ColumnRow<"Concept">;
 type Content = Tables<"Content">;
 type PlatformAccount = Tables<"PlatformAccount">;
 type Platform = Enums<"Platform">;

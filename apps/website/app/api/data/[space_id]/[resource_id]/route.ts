@@ -9,8 +9,9 @@ import { asJsonLD, wrapJsonLd } from "~/utils/conversion/jsonld";
 import type { Tables, Enums } from "@repo/database/dbTypes";
 import { PostgrestMaybeSingleResponse } from "@supabase/supabase-js";
 import { MIMETYPES, type DocType } from "~/utils/conversion/convert";
+import type { ColumnRow } from "@repo/database/inputTypes";
 
-type Concept = Tables<"Concept">;
+type Concept = ColumnRow<"Concept">;
 type Content = Tables<"Content">;
 type PlatformAccount = Tables<"PlatformAccount">;
 type Platform = Enums<"Platform">;
