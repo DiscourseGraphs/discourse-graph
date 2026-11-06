@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M6RND1B4EV35VH742J7RV13N",
+  "strategy": "manual-commit",
+  "branch": "eng-2456-stop-clients-from-adding-a-user-to-a-group-or",
+  "checkpoints_count": 45,
+  "files_touched": [
+    "packages/database/doc/security_model.md",
+    "packages/database/features/step-definitions/stepdefs.ts",
+    "packages/database/supabase/schemas/account.sql"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 504,
+    "cache_creation_tokens": 1522828,
+    "cache_read_tokens": 67041122,
+    "output_tokens": 220801,
+    "api_call_count": 202,
+    "subagent_tokens": {
+      "input_tokens": 84,
+      "cache_creation_tokens": 490543,
+      "cache_read_tokens": 3296047,
+      "output_tokens": 114757,
+      "api_call_count": 40
+    }
+  }
+}
