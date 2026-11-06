@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M6SBHSQNHE7XXH2SFXH3VM4J",
+  "strategy": "manual-commit",
+  "branch": "eng-2459-remove-pg_cron-from-extensionssql-and-move",
+  "checkpoints_count": 13,
+  "files_touched": [
+    "packages/database/supabase/migrations/20261106120000_drop_pg_stat_monitor.sql",
+    "packages/database/supabase/schemas/extensions.sql"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 124,
+    "cache_creation_tokens": 101391,
+    "cache_read_tokens": 4500775,
+    "output_tokens": 25663,
+    "api_call_count": 46
+  }
+}

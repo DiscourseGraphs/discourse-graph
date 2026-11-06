@@ -1,0 +1,53 @@
+Ok. I want to get rid of the minor issues: ((RKcaMnnB-)) , ((xf40TocWL)), ENG-2459, ENG-2460. Is there any reason to do them in a certain order? I guess ENG-2460 should come after ENG-2461.
+
+---
+
+Let's turn the two issue candidates into linear tickets. I have the ok to do them.
+
+---
+
+Thank you. I realize that there's some confusion about whether those two are authorized, so I set them to triage. Let's work on the ENG-2458 subtasks first, those are definitely validated. ENG-2459 first as you suggest.
+
+---
+
+Hmmm... ok curious: Does this extension create its own tables? Do we have to care about their schema? Interestingly, pg_stat_statements and pg_stat_statements_info are in the schema extensions in production.
+
+---
+
+There is data in the tables in production, fwiw. Maybe it's empty locally because of all our database resets.
+
+---
+
+Just trying to understand: You keep mentioning the pg_stat_monitor view and not the pg_stat_statements table.
+
+---
+
+Oh! I was looking at pg_stat_statements. I do not have pg_stat_monitor in the list of active extensions in production.
+
+---
+
+I suspect the latter. It does show in your first query. Second query results: shared_preload_libraries
+"pg_stat_statements, pgaudit, plpgsql, plpgsql_check, pg_cron, pg_net, pgsodium, auto_explain, pg_tle, plan_filter, supabase_vault"
+
+---
+
+I would still favour dropping it. We're already touching extensions.sql, it was added wrongly, drizzle is not checked in. The cost is a migration, I say worth correcting the ticket. Again the overarching ticket goal is to remove the warning; method can vary with findings. I do know it's unused, is there another way to double-check that it's inert in production?
+
+---
+
+empty; error; results below; empty.
+pg_describe_object
+rule _RETURN on view pg_stat_monitor
+rule _RETURN on view pg_stat_monitor
+
+---
+
+Yes, post it.
+
+---
+
+Just one thing: Not sure if we should change the ticket name... it's been approved, but we're really changing the scope.
+
+---
+
+Let's
