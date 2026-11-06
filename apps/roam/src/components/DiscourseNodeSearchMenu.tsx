@@ -518,7 +518,7 @@ const NodeSearchMenu = ({
               <Button
                 minimal
                 small
-                className="flex !h-full items-center justify-center !rounded-none px-3 opacity-0 transition-opacity group-hover:opacity-100"
+                className="opacity-0 transition-opacity group-hover:opacity-100"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleSelectOnly(item);
