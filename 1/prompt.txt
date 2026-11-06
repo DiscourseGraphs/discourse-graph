@@ -33,3 +33,15 @@ no I restarted the dev server. no need to debug that. But yes, use node 22
 ---
 
 done
+
+---
+
+Add a line in the ticket. Comparison does not fail, but still has false positives. Committed. Run the PR checks, and create a local draft of the PR body.
+
+---
+
+The query returns no rows.
+
+---
+
+yes to comment
