@@ -4,6 +4,6 @@ interface:
   default_prompt: "Use $dg-create-engineering-ticket to create a concise Discourse Graph Engineering ticket in Linear."
 policy:
   products:
-    - "CHAT"
+    - "CHATGPT"
     - "CODEX"
   allow_implicit_invocation: true

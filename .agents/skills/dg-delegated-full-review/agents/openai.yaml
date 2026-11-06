@@ -4,6 +4,6 @@ interface:
   default_prompt: "Use $dg-delegated-full-review to review the current changes in a separate subagent and report the findings."
 policy:
   products:
-    - "CHAT"
+    - "CHATGPT"
     - "CODEX"
   allow_implicit_invocation: false
