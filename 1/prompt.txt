@@ -1,0 +1,35 @@
+It seems I forgot eng-2456. Was there a roam issue candidate for this?
+
+---
+
+Ok, it's worth drafting now. We're already on the branch.
+
+---
+
+No you were right, I wanted a draft of the code. The test environment is setup. I have a bit of concern with no updates: A group admin can add or withdraw admin permissions to other users.
+
+---
+
+Oh, and a non-admin cannot make themselves admin either, right?
+
+---
+
+Excellent. Reset the database and run the tests.
+
+---
+
+<task-notification>
+<task-id>b7w3vgm8s</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-maparent-OpenSource-discourse-graph/83ccbc73-0d0b-487f-bf9e-31cde92baaff/tasks/b7w3vgm8s.output</output-file>
+<status>failed</status>
+<summary>Background command "Serve edge functions for test project" failed with exit code 1</summary>
+</task-notification>
+
+---
+
+no I restarted the dev server. no need to debug that. But yes, use node 22
+
+---
+
+done
