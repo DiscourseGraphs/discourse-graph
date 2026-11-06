@@ -1,0 +1,47 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M6RKNMP10CBGZC9E92Q7M8T0",
+  "strategy": "manual-commit",
+  "branch": "eng-2456-stop-clients-from-adding-a-user-to-a-group-or",
+  "checkpoints_count": 27,
+  "files_touched": [
+    "apps/website/app/utils/supabase/account.ts",
+    "apps/website/public/docs/roam/dg-schema02.PNG",
+    "apps/website/test/integration/leaveGroup.test.ts",
+    "apps/website/test/integration/listGroupMembers.test.ts",
+    "apps/website/test/integration/listMyGroups.test.ts",
+    "apps/website/test/integration/setGroupAdmin.test.ts",
+    "issue-candidates-priority.html",
+    "packages/database/doc/security_model.md",
+    "packages/database/features/accountTableAccess.feature",
+    "packages/database/features/accountWriteAccess.feature",
+    "packages/database/features/functionGrants.feature",
+    "packages/database/features/readOnlyViews.feature",
+    "packages/database/features/step-definitions/stepdefs.ts",
+    "packages/database/supabase/migrations/20261031120000_restrict_my_accounts.sql",
+    "packages/database/supabase/schemas/account.sql"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 262,
+    "cache_creation_tokens": 565922,
+    "cache_read_tokens": 21929021,
+    "output_tokens": 159618,
+    "api_call_count": 100,
+    "subagent_tokens": {
+      "input_tokens": 52,
+      "cache_creation_tokens": 238115,
+      "cache_read_tokens": 1793715,
+      "output_tokens": 52700,
+      "api_call_count": 23
+    }
+  }
+}
