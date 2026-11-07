@@ -24,9 +24,6 @@ ADD CONSTRAINT "ContentEmbedding_openai_text_embedding_3_small_1536_pkey" PRIMAR
 ALTER TABLE ONLY public."ContentEmbedding_openai_text_embedding_3_small_1536"
 ADD CONSTRAINT "ContentEmbedding_openai_text_embedding_3_small_1_target_id_fkey" FOREIGN KEY (target_id) REFERENCES public."Content" (id) ON UPDATE CASCADE ON DELETE CASCADE ;
 
-REVOKE ALL ON TABLE public."ContentEmbedding_openai_text_embedding_3_small_1536" FROM "anon" ;
-GRANT ALL ON TABLE public."ContentEmbedding_openai_text_embedding_3_small_1536" TO "authenticated" ;
-GRANT ALL ON TABLE public."ContentEmbedding_openai_text_embedding_3_small_1536" TO "service_role" ;
 
 CREATE OR REPLACE VIEW public.my_contents_with_embedding_openai_text_embedding_3_small_1536 AS
 SELECT
@@ -58,6 +55,9 @@ AND (ct.space_id, ct.source_local_id) IN (SELECT space_id, source_local_id FROM 
 )
 )
 AND NOT emb.obsolete;
+
+REVOKE INSERT, UPDATE, DELETE ON public.my_contents_with_embedding_openai_text_embedding_3_small_1536 FROM authenticated;
+GRANT SELECT ON public.my_contents_with_embedding_openai_text_embedding_3_small_1536 TO anon;
 
 set search_path to public, extensions ;
 

@@ -45,11 +45,8 @@ WHERE
     );
 
 -- Single-table views are writable, and writes run as the view owner, bypassing FileReference's RLS.
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.my_file_references FROM anon, authenticated;
-
-GRANT ALL ON TABLE public."FileReference" TO authenticated;
-GRANT ALL ON TABLE public."FileReference" TO service_role;
-REVOKE ALL ON TABLE public."FileReference" FROM anon;
+REVOKE INSERT, UPDATE, DELETE ON public.my_file_references FROM authenticated;
+GRANT SELECT ON public.my_file_references TO anon;
 
 ALTER TABLE public."FileReference" ENABLE ROW LEVEL SECURITY;
 
@@ -77,9 +74,8 @@ CREATE TABLE IF NOT EXISTS public.file_gc (
 );
 ALTER TABLE public.file_gc OWNER TO "postgres";
 
-GRANT ALL ON TABLE public.file_gc TO service_role;
+-- Only triggers and the service key use file_gc.
 REVOKE ALL ON TABLE public.file_gc FROM authenticated;
-REVOKE ALL ON TABLE public.file_gc FROM anon;
 
 -- we could also find out if the storage exists, but not sure how that works with ACLs.
 -- This is both faster and safer.
@@ -89,9 +85,6 @@ SECURITY DEFINER
 LANGUAGE sql AS $$
 SELECT EXISTS (SELECT true FROM public."FileReference" WHERE filehash = hashvalue LIMIT 1);
 $$;
-
--- uploadFile and Roam asset sharing call it after logging in.
-REVOKE ALL ON FUNCTION public.file_exists FROM anon;
 
 CREATE OR REPLACE FUNCTION public.file_access(hashvalue VARCHAR) RETURNS boolean
 SET search_path = ''
@@ -131,7 +124,7 @@ END;
 $$;
 
 -- Only triggers call it. Postgres checks EXECUTE on a trigger function when the trigger is created, not when it fires.
-REVOKE ALL ON FUNCTION public.after_delete_update_fref FROM anon, authenticated;
+REVOKE ALL ON FUNCTION public.after_delete_update_fref FROM authenticated;
 
 CREATE OR REPLACE FUNCTION public.after_insert_fref() RETURNS TRIGGER
 SET search_path = ''
@@ -144,7 +137,7 @@ END;
 $$;
 
 -- Only triggers call it. Postgres checks EXECUTE on a trigger function when the trigger is created, not when it fires.
-REVOKE ALL ON FUNCTION public.after_insert_fref FROM anon, authenticated;
+REVOKE ALL ON FUNCTION public.after_insert_fref FROM authenticated;
 
 CREATE TRIGGER on_delete_file_reference_trigger AFTER DELETE ON public."FileReference" FOR EACH ROW EXECUTE FUNCTION public.after_delete_update_fref();
 CREATE TRIGGER on_update_file_reference_trigger AFTER UPDATE ON public."FileReference" FOR EACH ROW EXECUTE FUNCTION public.after_delete_update_fref();

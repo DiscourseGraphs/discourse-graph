@@ -188,18 +188,6 @@ CREATE INDEX resource_access_content_local_id_idx ON public."ResourceAccess" (so
 
 -- note that I cannot have a foreign key for Content because variant and content_type are part of the unique key.
 
-GRANT ALL ON TABLE public."ResourceAccess" TO authenticated;
-GRANT ALL ON TABLE public."ResourceAccess" TO service_role;
-REVOKE ALL ON TABLE public."ResourceAccess" FROM anon;
-
-REVOKE ALL ON TABLE public."Document" FROM anon;
-GRANT ALL ON TABLE public."Document" TO authenticated;
-GRANT ALL ON TABLE public."Document" TO service_role;
-
-REVOKE ALL ON TABLE public."Content" FROM anon;
-GRANT ALL ON TABLE public."Content" TO authenticated;
-GRANT ALL ON TABLE public."Content" TO service_role;
-
 CREATE TYPE public.accessible_resource AS (
     space_id bigint,
     source_local_id character varying
@@ -249,7 +237,8 @@ WHERE
     );
 
 -- Single-table views are writable, and writes run as the view owner, bypassing Document's RLS.
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.my_documents FROM anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.my_documents FROM authenticated;
+GRANT SELECT ON public.my_documents TO anon;
 
 CREATE OR REPLACE VIEW public.my_contents AS
 SELECT
@@ -277,7 +266,8 @@ WHERE
     );
 
 -- Single-table views are writable, and writes run as the view owner, bypassing Content's RLS.
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.my_contents FROM anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.my_contents FROM authenticated;
+GRANT SELECT ON public.my_contents TO anon;
 
 CREATE OR REPLACE FUNCTION public.document_of_content(content public.my_contents)
 RETURNS SETOF public.my_documents STRICT STABLE
@@ -766,8 +756,5 @@ GRANT EXECUTE ON FUNCTION public.document_of_content TO anon;
 GRANT EXECUTE ON FUNCTION public.author_of_content TO anon;
 GRANT EXECUTE ON FUNCTION public._local_document_to_db_document TO anon;
 GRANT EXECUTE ON FUNCTION public._local_content_to_db_content TO anon;
-GRANT EXECUTE ON FUNCTION public.upsert_documents TO anon;
-GRANT EXECUTE ON FUNCTION public.upsert_content_embedding TO anon;
-GRANT EXECUTE ON FUNCTION public.upsert_content TO anon;
 GRANT EXECUTE ON FUNCTION public.content_in_space TO anon;
 GRANT EXECUTE ON FUNCTION public.document_in_space TO anon;

@@ -15,9 +15,6 @@ LANGUAGE sql AS $$
     INSERT INTO public.secret_token (payload, expiry_date, one_time_use) VALUES (v_payload, now()+expiry_interval, v_one_time_use) RETURNING id;
 $$;
 
--- Admin panels and the website call it after logging in; creator defaults to auth.uid(), which is NOT NULL.
-REVOKE ALL ON FUNCTION public.create_secret_token FROM anon;
-
 CREATE OR REPLACE FUNCTION public.get_secret_token(token VARCHAR) RETURNS JSONB
 SECURITY DEFINER
 SET search_path = ''
@@ -40,9 +37,6 @@ GRANT EXECUTE ON FUNCTION public.get_secret_token TO anon;
 
 ALTER TABLE public.secret_token OWNER TO "postgres";
 
-REVOKE ALL ON TABLE public.secret_token FROM anon;
-GRANT ALL ON TABLE public.secret_token TO authenticated;
-GRANT ALL ON TABLE public.secret_token TO service_role;
 
 ALTER TABLE public.secret_token ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS concept_policy ON public.secret_token;

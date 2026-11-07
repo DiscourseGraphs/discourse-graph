@@ -57,20 +57,32 @@ The policies now use that form too, but most views stay definer, because they're
 Consequences:
 
 - Each view's filter is a second copy of the table's access rules. A change to a policy must be repeated in the views that read the table. We accept this cost, and the security advisor keeps reporting these views.
-- Single-table views are automatically updatable, and writes through them would also bypass RLS. Write privileges are revoked on `my_spaces`, `my_accounts`, `my_concepts`, `my_contents`, `my_documents` and `my_file_references` (ENG-2368, ENG-2359). Any new updatable view needs the same `REVOKE`.
+- Single-table views are automatically updatable, and writes through them would also bypass RLS. Clients only read views, so write privileges are revoked from client roles on every view (ENG-2368, ENG-2359, ENG-2466). The default privileges give them back to `authenticated` on a new view, so it needs the same `REVOKE`.
 - Clients depend on the view names and columns, including older plugin versions that are still installed, PostgREST's foreign-key inference and the generated types. Keep them stable.
 - They have no `security_barrier`, so a caller's filter that isn't `LEAKPROOF` can run below the access filter and see rows the view would hide (measured on `my_accounts`). PostgREST's fixed filter operators shouldn't allow such a filter, so this matters for direct SQL access. The same reordering is what lets `@>` use its index, so time the relation queries before adding `security_barrier` to `my_concepts`.
 
-## Function grants
+## Grants and default privileges
 
-A new function in `public` is executable by `authenticated` and `service_role`, not by `anon`. `base.sql` sets this with default privileges, in two parts:
+`base.sql` sets the default privileges of every object that `postgres` creates in `public`:
 
-- It revokes `anon` from the `public` schema's defaults, which Supabase sets up to include it.
-- It revokes `PUBLIC` from the global defaults of the `postgres` role. Postgres grants EXECUTE on every new function to `PUBLIC`, and `anon` inherits it, so the first part alone changes nothing. A schema-level default cannot remove a global one, so this also applies to functions that `postgres` creates in other schemas.
+| Role            | Tables and views                       | Sequences         | Functions |
+| --------------- | -------------------------------------- | ----------------- | --------- |
+| `anon`          | nothing                                | nothing           | nothing   |
+| `authenticated` | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | `USAGE`, `SELECT` | `EXECUTE` |
+| `service_role`  | everything                             | everything        | `EXECUTE` |
 
-Every `anon` grant and every revoke is explicit, next to the function in its schema file, with a `--` comment saying which client or policy needs it. Functions that are not `SECURITY DEFINER` run as the caller under RLS, so they are granted to `anon` as a group, at the end of their schema file.
+We set these ourselves because the Supabase image's defaults change between versions. Image 17.11.0.018 gives client roles only `TRUNCATE`, `REFERENCES`, `TRIGGER` and `MAINTAIN` on new tables, and nothing on new sequences or functions, so a database built on it from migrations that relied on the image was unusable (ENG-2466).
 
-`CREATE OR REPLACE FUNCTION` keeps a function's grants, but `DROP FUNCTION` followed by `CREATE FUNCTION` loses them. A migration that recreates a function must repeat its `anon` grant. Dropping a view also drops the functions that return its row type, such as `author_of_concept` and `author_of_content` for `my_accounts`, so they need their grants repeated too.
+Because `authenticated` can read and write a new table or view from the start:
+
+- A new table must enable RLS. Without it, every signed-in user can read and write every row, in every space.
+- A new view must run as the caller (`security_invoker`), or filter by the caller as the `my_*` views do. A definer view without such a filter shows every row to every signed-in user.
+
+`base.sql` also revokes `PUBLIC` from the global function defaults of the `postgres` role. Postgres grants EXECUTE on every new function to `PUBLIC`, and `anon` inherits it. A schema-level default cannot remove a global one, so this also applies to functions that `postgres` creates in other schemas.
+
+The schema files declare only the exceptions to these defaults, next to the object, with a `--` comment saying which client or policy needs them: every `anon` grant, and every privilege removed from `authenticated` or `service_role`. Functions that are not `SECURITY DEFINER` and don't write run as the caller under RLS, so they are granted to `anon` as a group, at the end of their schema file. Don't write `GRANT ALL ... TO authenticated`: on a table, it includes `TRUNCATE`, which RLS doesn't limit.
+
+`CREATE OR REPLACE FUNCTION` keeps a function's grants, but `DROP FUNCTION` followed by `CREATE FUNCTION` loses them. A migration that recreates a function must repeat its exceptions, such as an `anon` grant. Dropping a view also drops the functions that return its row type, such as `author_of_concept` and `author_of_content` for `my_accounts`, so they need their grants repeated too. `REVOKE ALL ON TABLE` also removes the table's column grants, such as those on `PlatformAccount`.
 
 ### Rules
 
@@ -91,7 +103,7 @@ One helper doesn't follow rule 5 yet. `file_exists` says whether any space holds
 | `my_space_ids`     | `Space` select policy; `anon` can read `Space`. Public access: the `my_*` views and the other select policies                                                                            |
 | `file_access`      | Public access: the storage read policy on the `assets` bucket                                                                                                                            |
 
-All other `SECURITY DEFINER` functions are executable by `authenticated` only. Trigger functions, and `is_last_local_reference` (which only triggers call), are executable by neither role.
+All other `SECURITY DEFINER` functions, and the functions that write, are executable by `authenticated` only. Trigger functions, and `is_last_local_reference` (which only triggers call), are executable by neither role.
 
 `in_space` is not executable by `anon`. Only write paths reach it as the caller, and `anon`'s reads use `my_space_ids`.
 
@@ -99,7 +111,7 @@ All other `SECURITY DEFINER` functions are executable by `authenticated` only. T
 
 ### Grants made for public access
 
-`anon` will read public nodes, their files and their authors (ENG-1837). The "Public access" entries above, and `anon`'s `SELECT` on `accounts_in_my_partial_spaces`, `my_resource_grants` and the contributor tables, are grants made ahead of that work. Keep them: rule 1 means that removing one fails those queries with a permission error. ENG-1837 also has to grant `anon` `SELECT` on `Concept`, `Content`, `Document`, `FileReference` and `ResourceAccess`, and open `storage_select_assets_access` to `anon`, which today applies only to `authenticated`.
+`anon` will read public nodes, their files and their authors (ENG-1837). The "Public access" entries above, and `anon`'s `SELECT` on `Space`, the contributor tables and the views, are grants made ahead of that work. `anon` can't execute the functions that write, except `get_secret_token`. Keep them: rule 1 means that removing one fails those queries with a permission error. ENG-1837 also has to grant `anon` `SELECT` on `Concept`, `Content`, `Document`, `FileReference` and `ResourceAccess`, and open `storage_select_assets_access` to `anon`, which today applies only to `authenticated`.
 
 ## Supabase advisor findings that remain
 
@@ -114,7 +126,6 @@ It flags any view that bypasses RLS, any view that reads `auth.users`, any polic
 - `accounts_in_my_partial_spaces` (`security_definer_view`). It runs as its owner on purpose, to read `LocalAccess` below `reader` (see above). It stays.
 - `anon_security_definer_function_executable` for the four functions in the table above.
 - `authenticated_security_definer_function_executable` for the policy helpers and for the functions that clients call directly: `create_account_in_space`, `upsert_accounts_in_space`, `file_exists`, `create_secret_token`, `get_secret_token`, `accept_group_invitation`. Also for `upsert_account_in_space`: no client calls it, but `upsert_content` and `upsert_documents` run as the caller, so the caller needs `EXECUTE`.
-- `space_insert_policy` on `Space` (`rls_policy_always_true`). The insert policy is `WITH CHECK (true)`, but no client relies on it: `create-space` creates spaces with the service role. Whether to remove it is still open. Reading, changing and deleting a space still require access to it: those policies check `my_space_ids`.
 
 ### Performance advisor
 
@@ -129,14 +140,14 @@ Any other finding from either advisor is new, and should be fixed or added here 
 
 ## Checklist for changes
 
-- New table: enable RLS, write policies for each operation, and revoke `anon` unless anonymous readers need it. Add visibility scenarios to `features/`, like `features/conceptAccess.feature`.
+- New table: enable RLS, because `authenticated` can read and write it by default. Write policies for each operation, and grant `anon` only what anonymous readers need. Add visibility scenarios to `features/`, like `features/conceptAccess.feature`.
 - New policy: wrap calls that don't depend on the row in `(SELECT ...)`. Write `(SELECT auth.uid())`, not `auth.uid()`. Don't pass a row column to a helper that sets `search_path`. If the policy reads another table directly, remember that table's own select policy filters what it sees.
 - New `PlatformAccount` column: decide whether clients may read or write it, and add it to the per-column grants if so.
 - New `SECURITY DEFINER` function: set `search_path = ''`, check the caller's access inside it (rule 4), grant it only to the roles that call it, and add a comment saying who that is.
 - New function that `anon` reaches, directly, through a policy or through a view: grant it to `anon` in its schema file and in the migration.
-- New trigger function: revoke it from `anon` and `authenticated`.
-- New or changed view: keep existing names and columns, mirror the table's access rules, and revoke write privileges if the view is updatable.
-- New definer view: `REVOKE ALL` and then `GRANT SELECT`, because default privileges give write privileges. Set `security_barrier`, and return only what every caller may already see, including through row counts.
+- New trigger function: revoke it from `authenticated`.
+- New or changed view: keep existing names and columns, and mirror the table's access rules. Revoke `INSERT`, `UPDATE` and `DELETE` from `authenticated`, and grant `SELECT` to `anon` if anonymous readers need it.
+- New definer view: filter by the caller, set `security_barrier`, and return only what every caller may already see, including through row counts.
 - Before merging, run the cucumber suite and compare both Supabase advisors' lists with the findings above.
 
 ## History
@@ -152,3 +163,4 @@ Any other finding from either advisor is new, and should be fixed or added here 
 - ENG-2443, ENG-2446: policies moved to the InitPlan form, and `can_access_account`, `can_view_concept`, `can_view_content`, `account_in_shared_space`, `unowned_account_in_shared_space` and `is_my_account` removed.
 - ENG-2447: account columns granted individually, and `LocalAccess` writes checked against the row's space.
 - ENG-2448: the unused `access_token` table removed.
+- ENG-2466: default privileges set in `base.sql` instead of taken from the Supabase image, and every existing object's grants made explicit. Client roles lost `TRUNCATE`, `REFERENCES`, `TRIGGER` and `MAINTAIN`, write privileges on the views, and `UPDATE` on sequences. `anon` lost its writes on `Space` and `EXECUTE` on the functions that write. `authenticated` lost `INSERT` on `Space`, since only create-space creates spaces, and `space_insert_policy` was removed.
