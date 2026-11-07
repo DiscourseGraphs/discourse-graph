@@ -981,3 +981,47 @@ Correct. You can post this as is.
 ---
 
 It's fine the database is available again. Agree on corrections and issue candidate.
+
+---
+
+Committed and pushed. As for the question... Hard to know. I would tend to not rule it out. So make sure the issue candidate stays in exploration. As for this PR,  I'll do the live check tomorrow. Record your memories now, I'll compress the session.
+
+---
+
+ok. I'm rebasing 1837 (actually all the stack up to mira-rt) onto 2466, and of course there are conflicts: assets, concepts, content, security_model.md. I did resolve, can you check my work (staged, uncommitted)?
+
+---
+
+One second, are you sure? The anon select grants are on tables, did we not say anon would use the views? Also if you look at the difference between my ongoing rebase and head (2466) no grant is dropped.
+
+---
+
+Much better. Applied most of them except the reason for keeping everyone_uid. Please check my work.
+
+---
+
+Wrote in space.sql. Please edit the everyone_uid comment. Btw it says "all othe SECURITY DEFINER" should it also not mention invoker functions that write?
+
+---
+
+A few questions. when my_accessible_resources is called by a definer view, is the effective uid the definer or the invoker? Also: I'm surprised no test has caught this. If that grant is needed, should we put it in 2466?
+
+---
+
+Actually, let's check the failure now. Go ahead and reset.
+
+---
+
+The views do not give foreign key access? I'm surprised by that. Hmmm. New web functions in mira-collab (currently checked-in in ~/OpenSource/discourse-graphs2) do use the tables, I was thinking of using the views, unless you're right about that.
+
+---
+
+Let's think. What's are the costs and gains of removing table access to anon? Conceptually, either works; It forces me to be more careful to always use tables in many calling functions, and that's not good.
+
+---
+
+Agree to restoring all five. I see no reason to hide variant and original. I had already added back ResourceAccess, please add the others.
+
+---
+
+sorry I had not saved those files. Now I did, and I fear I may have stepped over what you just did.

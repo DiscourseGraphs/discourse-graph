@@ -2,10 +2,19 @@
   "cli_version": "0.10.6",
   "checkpoint_id": "01M6SPX33R47W9VEFNZMXPV6AR",
   "strategy": "manual-commit",
-  "branch": "eng-2466-set-sensible-default-privileges-and-explicit-grants",
-  "checkpoints_count": 26,
+  "branch": "1837b",
+  "checkpoints_count": 31,
   "files_touched": [
-    "packages/database/features/step-definitions/stepdefs.ts"
+    "packages/database/doc/security_model.md",
+    "packages/database/features/publicAccess.feature",
+    "packages/database/features/step-definitions/stepdefs.ts",
+    "packages/database/src/dbTypes.ts",
+    "packages/database/supabase/migrations/20261106150000_public_resource_access.sql",
+    "packages/database/supabase/schemas/account.sql",
+    "packages/database/supabase/schemas/assets.sql",
+    "packages/database/supabase/schemas/concept.sql",
+    "packages/database/supabase/schemas/content.sql",
+    "packages/database/supabase/schemas/space.sql"
   ],
   "sessions": [
     {
@@ -24,17 +33,17 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 1010,
-    "cache_creation_tokens": 914447,
-    "cache_read_tokens": 83056424,
-    "output_tokens": 307107,
-    "api_call_count": 400,
+    "input_tokens": 1150,
+    "cache_creation_tokens": 1055853,
+    "cache_read_tokens": 90664630,
+    "output_tokens": 345666,
+    "api_call_count": 460,
     "subagent_tokens": {
-      "input_tokens": 42,
-      "cache_creation_tokens": 100930,
-      "cache_read_tokens": 1454358,
-      "output_tokens": 8055,
-      "api_call_count": 20
+      "input_tokens": 0,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 0,
+      "api_call_count": 0
     }
   },
   "combined_attribution": {
