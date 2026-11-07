@@ -898,3 +898,11 @@ pushed. go ahead with checks. Btw, avoid using the database now, I have another 
 ---
 
 Yes to the 3 commetn fixes and the two decision fixes. Do that first, I'll commit, and then I'll look at the shared helper. You can run tests again, but you'll have to do a db reset first.
+
+---
+
+committed (not pushed yet.) Let's look at what the helper function looks like?
+
+---
+
+yes.
