@@ -704,7 +704,7 @@ const newRowInSpace = async ({
   }
 };
 
-// A denied insert fails the row-level security check; a denied update or delete matches no row.
+// A denied insert fails the insert privilege or the row-level security check; a denied update or delete matches no row.
 const expectWriteResult = ({
   operation,
   result,
@@ -732,7 +732,7 @@ const expectWriteResult = ({
 
 // Runs insert, then update, then delete on each table in the order given, so list dependent tables first.
 // The update sets the space column to its current value, so it changes no data.
-// Inserts do not read the row back: a new Space is not visible to its creator, so a read-back would fail.
+// Inserts do not read the row back, so the result reflects the insert privilege and policy alone, not the select policy.
 Then(
   "a user logged in space {word} should get these write results in space {word}:",
   async (
@@ -1840,17 +1840,36 @@ Then(
 );
 
 // A row-level security refusal has the same code as a missing privilege, so the message tells them apart.
+const expectInsertPrivilegeRefused = async (
+  client: SupabaseClient,
+  tableName: string,
+  values: string,
+): Promise<void> => {
+  const response = await client
+    .from(tableName)
+    .insert(JSON.parse(values) as Record<string, unknown>);
+  assert.equal(response.error?.code, INSUFFICIENT_PRIVILEGE);
+  assert.equal(
+    response.error?.message,
+    `permission denied for table ${tableName}`,
+  );
+};
+
 Then(
   "an anonymous client is refused the insert privilege on {word} with {string}",
-  async (tableName: string, values: string) => {
-    const response = await untyped(getAnonymousClient())
-      .from(tableName)
-      .insert(JSON.parse(values) as Record<string, unknown>);
-    assert.equal(response.error?.code, INSUFFICIENT_PRIVILEGE);
-    assert.equal(
-      response.error?.message,
-      `permission denied for table ${tableName}`,
-    );
+  (tableName: string, values: string) =>
+    expectInsertPrivilegeRefused(
+      untyped(getAnonymousClient()),
+      tableName,
+      values,
+    ),
+);
+
+Then(
+  "a user logged in space {word} is refused the insert privilege on {word} with {string}",
+  async (spaceName: string, tableName: string, values: string) => {
+    const { client } = await getSpaceClient(spaceName);
+    await expectInsertPrivilegeRefused(untyped(client), tableName, values);
   },
 );
 
