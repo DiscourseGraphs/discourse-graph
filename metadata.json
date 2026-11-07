@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M6SPX33R47W9VEFNZMXPV6AR",
+  "strategy": "manual-commit",
+  "branch": "eng-2466-set-sensible-default-privileges-and-explicit-grants",
+  "checkpoints_count": 20,
+  "files_touched": [
+    "packages/database/doc/security_model.md",
+    "packages/database/supabase/schemas/account.sql",
+    "packages/database/supabase/schemas/content.sql"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 282,
+    "cache_creation_tokens": 246299,
+    "cache_read_tokens": 20217237,
+    "output_tokens": 82510,
+    "api_call_count": 114,
+    "subagent_tokens": {
+      "input_tokens": 72,
+      "cache_creation_tokens": 197286,
+      "cache_read_tokens": 2373257,
+      "output_tokens": 22130,
+      "api_call_count": 34
+    }
+  }
+}
