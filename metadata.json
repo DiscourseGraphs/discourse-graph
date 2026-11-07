@@ -3,7 +3,7 @@
   "checkpoint_id": "01M6SPX33R47W9VEFNZMXPV6AR",
   "strategy": "manual-commit",
   "branch": "eng-2466-set-sensible-default-privileges-and-explicit-grants",
-  "checkpoints_count": 22,
+  "checkpoints_count": 26,
   "files_touched": [
     "packages/database/features/step-definitions/stepdefs.ts"
   ],
@@ -24,17 +24,17 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 962,
-    "cache_creation_tokens": 897975,
-    "cache_read_tokens": 80243668,
-    "output_tokens": 298038,
-    "api_call_count": 384,
+    "input_tokens": 1010,
+    "cache_creation_tokens": 914447,
+    "cache_read_tokens": 83056424,
+    "output_tokens": 307107,
+    "api_call_count": 400,
     "subagent_tokens": {
-      "input_tokens": 0,
-      "cache_creation_tokens": 0,
-      "cache_read_tokens": 0,
-      "output_tokens": 0,
-      "api_call_count": 0
+      "input_tokens": 42,
+      "cache_creation_tokens": 100930,
+      "cache_read_tokens": 1454358,
+      "output_tokens": 8055,
+      "api_call_count": 20
     }
   },
   "combined_attribution": {
