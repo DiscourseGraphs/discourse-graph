@@ -47,15 +47,15 @@
     }
   },
   "combined_attribution": {
-    "calculated_at": "2026-11-07T14:59:12.723064Z",
-    "agent_lines": 612,
-    "agent_removed": 44,
-    "human_added": 0,
+    "calculated_at": "2026-11-07T15:00:42.59813Z",
+    "agent_lines": 93,
+    "agent_removed": 121,
+    "human_added": 203,
     "human_modified": 0,
-    "human_removed": 0,
-    "total_committed": 612,
-    "total_lines_changed": 656,
-    "agent_percentage": 100,
+    "human_removed": 113,
+    "total_committed": 296,
+    "total_lines_changed": 530,
+    "agent_percentage": 40.37735849056604,
     "metric_version": 2
   }
 }
