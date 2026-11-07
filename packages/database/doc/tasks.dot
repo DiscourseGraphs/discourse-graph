@@ -24,8 +24,7 @@ gentypes
 /* supabase functions */
 node [color=purple]
 
-sup_db_diff_save
-sup_db_diff
+sup_declarative_sync
 sup_functions
 sup_start
 sup_stop
@@ -44,6 +43,7 @@ s_lint_schemas
 s_lint_functions
 s_deploy
 s_serve
+s_dbdiff
 
 /* Other scripts */
 node [color=black]
@@ -74,9 +74,9 @@ cucumber_js
     test -> build
     test -> cucumber_js
     genenv -> s_createEnv
-    dbdiff -> sup_stop
-    dbdiff -> sup_db_diff
-    dbdiff_save -> sup_db_diff_save
+    dbdiff -> s_dbdiff
+    dbdiff_save -> s_dbdiff
+    s_dbdiff -> sup_declarative_sync
     deploy -> s_deploy
     deploy_functions -> s_deploy
     build -> setup
