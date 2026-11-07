@@ -806,3 +806,7 @@ I agree. This is not a new risk, it's the risk we decided to address with BzGAwT
 ---
 
 Yes.
+
+---
+
+For the record, sensible was half of the argument; the other half is: keeping the insert allows to create unusable data. I think we should lean on that while justifying the scope choice. It certainly needs documenting. spaceTableAccess.feature was written by you while checking ENG-2443, mostly for performance, so you were hewing to existing behaviour. My experience is that branch reset is not needed for changes to migration files, only when they are re-dated.
