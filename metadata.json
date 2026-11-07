@@ -3,22 +3,14 @@
   "checkpoint_id": "01M6SPX33R47W9VEFNZMXPV6AR",
   "strategy": "manual-commit",
   "branch": "eng-2466-set-sensible-default-privileges-and-explicit-grants",
-  "checkpoints_count": 58,
+  "checkpoints_count": 26,
   "files_touched": [
     "packages/database/doc/security_model.md",
     "packages/database/features/functionGrants.feature",
+    "packages/database/features/spaceTableAccess.feature",
     "packages/database/features/step-definitions/stepdefs.ts",
     "packages/database/supabase/migrations/20261106130000_explicit_privileges.sql",
-    "packages/database/supabase/schemas/account.sql",
-    "packages/database/supabase/schemas/assets.sql",
-    "packages/database/supabase/schemas/base.sql",
-    "packages/database/supabase/schemas/concept.sql",
-    "packages/database/supabase/schemas/content.sql",
-    "packages/database/supabase/schemas/contributor.sql",
-    "packages/database/supabase/schemas/embedding.sql",
-    "packages/database/supabase/schemas/secret_tokens.sql",
-    "packages/database/supabase/schemas/space.sql",
-    "packages/database/supabase/schemas/sync.sql"
+    "packages/database/supabase/schemas/space.sql"
   ],
   "sessions": [
     {
@@ -37,17 +29,17 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 690,
-    "cache_creation_tokens": 564124,
-    "cache_read_tokens": 67677962,
-    "output_tokens": 232551,
-    "api_call_count": 276,
+    "input_tokens": 894,
+    "cache_creation_tokens": 866073,
+    "cache_read_tokens": 75905116,
+    "output_tokens": 281455,
+    "api_call_count": 356,
     "subagent_tokens": {
-      "input_tokens": 10,
-      "cache_creation_tokens": 51581,
-      "cache_read_tokens": 190286,
-      "output_tokens": 2552,
-      "api_call_count": 5
+      "input_tokens": 8,
+      "cache_creation_tokens": 50322,
+      "cache_read_tokens": 88198,
+      "output_tokens": 2922,
+      "api_call_count": 3
     }
   },
   "combined_attribution": {
