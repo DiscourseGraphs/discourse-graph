@@ -43,6 +43,9 @@ CREATE TABLE IF NOT EXISTS public."Concept" (
 
 ALTER TABLE public."Concept" OWNER TO "postgres";
 
+-- Public access: the select policy decides which rows anon sees.
+GRANT SELECT ON TABLE public."Concept" TO anon;
+
 COMMENT ON TABLE public."Concept" IS 'An abstract concept, claim or relation';
 
 COMMENT ON COLUMN public."Concept".author_id IS 'The author of content';
@@ -91,11 +94,6 @@ ADD CONSTRAINT "Concept_space_id_fkey" FOREIGN KEY (
     id
 ) ON UPDATE CASCADE ON DELETE CASCADE;
 
-
-REVOKE ALL ON TABLE public."Concept" FROM anon;
-GRANT ALL ON TABLE public."Concept" TO authenticated;
-GRANT ALL ON TABLE public."Concept" TO service_role;
-
 -- arity and is_relation are derived from the Concept's own literal_content, or, when
 -- it has a schema, from the schema's literal_content. That cross-row dependency is why
 -- they are maintained by triggers instead of being GENERATED columns:
@@ -141,7 +139,7 @@ $$;
 COMMENT ON FUNCTION public.concept_set_derived_columns
 IS 'Maintains the derived arity and is_relation columns; values supplied by the writer are always overridden.';
 -- Only triggers call it. Postgres checks EXECUTE on a trigger function when the trigger is created, not when it fires.
-REVOKE ALL ON FUNCTION public.concept_set_derived_columns FROM anon, authenticated;
+REVOKE ALL ON FUNCTION public.concept_set_derived_columns FROM authenticated;
 
 CREATE TRIGGER concept_set_derived_columns_trigger
     BEFORE INSERT OR UPDATE ON public."Concept"
@@ -169,7 +167,7 @@ $$;
 COMMENT ON FUNCTION public.concept_propagate_derived_columns
 IS 'Recomputes arity and is_relation of the instances of a schema Concept whose literal_content changed.';
 -- Only triggers call it. Postgres checks EXECUTE on a trigger function when the trigger is created, not when it fires.
-REVOKE ALL ON FUNCTION public.concept_propagate_derived_columns FROM anon, authenticated;
+REVOKE ALL ON FUNCTION public.concept_propagate_derived_columns FROM authenticated;
 
 -- The WHEN clause also stops the recursion: the propagated UPDATE does not touch literal_content.
 CREATE TRIGGER concept_propagate_derived_columns_trigger
@@ -206,7 +204,8 @@ WHERE
     );
 
 -- Single-table views are writable, and writes run as the view owner, bypassing Concept's RLS.
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.my_concepts FROM anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.my_concepts FROM authenticated;
+GRANT SELECT ON public.my_concepts TO anon;
 
 -- following https://docs.postgrest.org/en/v13/references/api/resource_embedding.html#recursive-relationships
 CREATE OR REPLACE FUNCTION public.schema_of_concept(concept public."Concept")
@@ -639,7 +638,7 @@ AS $$
 $$;
 
 -- Only the local reference triggers call it. Called directly, it would reveal whether a row exists in a space the caller can't read.
-REVOKE ALL ON FUNCTION public.is_last_local_reference FROM anon, authenticated;
+REVOKE ALL ON FUNCTION public.is_last_local_reference FROM authenticated;
 
 CREATE OR REPLACE FUNCTION on_delete_local_reference() RETURNS TRIGGER
 SET search_path = ''
@@ -655,7 +654,7 @@ END;
 $$;
 
 -- Only triggers call it. Postgres checks EXECUTE on a trigger function when the trigger is created, not when it fires.
-REVOKE ALL ON FUNCTION public.on_delete_local_reference FROM anon, authenticated;
+REVOKE ALL ON FUNCTION public.on_delete_local_reference FROM authenticated;
 
 CREATE TRIGGER on_delete_content_trigger AFTER DELETE ON public."Content" FOR EACH ROW EXECUTE FUNCTION public.on_delete_local_reference();
 CREATE TRIGGER on_delete_concept_trigger AFTER DELETE ON public."Concept" FOR EACH ROW EXECUTE FUNCTION public.on_delete_local_reference();
@@ -677,7 +676,7 @@ END;
 $$;
 
 -- Only triggers call it. Postgres checks EXECUTE on a trigger function when the trigger is created, not when it fires.
-REVOKE ALL ON FUNCTION public.on_update_local_reference FROM anon, authenticated;
+REVOKE ALL ON FUNCTION public.on_update_local_reference FROM authenticated;
 
 CREATE TRIGGER on_update_content_trigger AFTER UPDATE ON public."Content" FOR EACH ROW EXECUTE FUNCTION public.on_update_local_reference();
 CREATE TRIGGER on_update_concept_trigger AFTER UPDATE ON public."Concept" FOR EACH ROW EXECUTE FUNCTION public.on_update_local_reference();
@@ -695,7 +694,7 @@ END;
 $$;
 
 -- Only triggers call it. Postgres checks EXECUTE on a trigger function when the trigger is created, not when it fires.
-REVOKE ALL ON FUNCTION public.on_delete_space_revoke_local_access FROM anon, authenticated;
+REVOKE ALL ON FUNCTION public.on_delete_space_revoke_local_access FROM authenticated;
 
 CREATE TRIGGER on_delete_space_revoke_access_trigger AFTER DELETE ON public."Space" FOR EACH ROW EXECUTE FUNCTION public.on_delete_space_revoke_local_access();
 
@@ -716,5 +715,4 @@ GRANT EXECUTE ON FUNCTION public.author_of_concept TO anon;
 GRANT EXECUTE ON FUNCTION public.rid_to_space_id_and_local_id TO anon;
 GRANT EXECUTE ON FUNCTION public.rid_or_local_id_to_concept_db_id TO anon;
 GRANT EXECUTE ON FUNCTION public._local_concept_to_db_concept TO anon;
-GRANT EXECUTE ON FUNCTION public.upsert_concepts TO anon;
 GRANT EXECUTE ON FUNCTION public.concept_in_space TO anon;

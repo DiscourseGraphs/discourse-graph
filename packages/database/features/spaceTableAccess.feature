@@ -9,7 +9,7 @@ Feature: Space table access
   * Space returns every space where I have partial access or more
   * SpaceAccess and LocalAccess return the rows of every space where I have reader access or more
   * Editor access to a space allows updating and deleting it, and writing its grants
-  * Anyone signed in can create a space
+  * No signed-in client can insert a space: only create-space creates spaces, with their grants
 
   Background:
     Given the database is blank
@@ -75,32 +75,32 @@ Feature: Space table access
 
   Scenario: A space can update and delete itself
     Then a user logged in space s1 should get these write results in space s1:
-      | table | insert  | update  | delete  |
-      | Space | allowed | allowed | allowed |
+      | table | insert | update  | delete  |
+      | Space | denied | allowed | allowed |
 
-  Scenario: Without a grant, another space can only create spaces
+  Scenario: Without a grant, another space cannot write to the space or its grants
     Then a user logged in space s2 should get these write results in space s1:
-      | table       | insert  | update | delete |
-      | SpaceAccess | denied  | denied | denied |
-      | Space       | allowed | denied | denied |
+      | table       | insert | update | delete |
+      | SpaceAccess | denied | denied | denied |
+      | Space       | denied | denied | denied |
 
   Scenario: Reader access does not allow writes to the space or its grants
     When SpaceAccess are added to the database:
       | _account_uid | _space_id | permissions |
       | g1           | s1        | reader      |
     Then a user logged in space s2 should get these write results in space s1:
-      | table       | insert  | update | delete |
-      | SpaceAccess | denied  | denied | denied |
-      | Space       | allowed | denied | denied |
+      | table       | insert | update | delete |
+      | SpaceAccess | denied | denied | denied |
+      | Space       | denied | denied | denied |
 
   Scenario: Partial access does not allow writes to the space or its grants
     When SpaceAccess are added to the database:
       | _account_uid | _space_id | permissions |
       | g1           | s1        | partial     |
     Then a user logged in space s2 should get these write results in space s1:
-      | table       | insert  | update | delete |
-      | SpaceAccess | denied  | denied | denied |
-      | Space       | allowed | denied | denied |
+      | table       | insert | update | delete |
+      | SpaceAccess | denied | denied | denied |
+      | Space       | denied | denied | denied |
 
   Scenario: Editor access allows writing the space's grants
     When SpaceAccess are added to the database:
@@ -115,5 +115,5 @@ Feature: Space table access
       | _account_uid | _space_id | permissions |
       | g1           | s1        | editor      |
     Then a user logged in space s2 should get these write results in space s1:
-      | table | insert  | update  | delete  |
-      | Space | allowed | allowed | allowed |
+      | table | insert | update  | delete  |
+      | Space | denied | allowed | allowed |
