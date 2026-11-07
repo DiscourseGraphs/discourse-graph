@@ -977,3 +977,7 @@ Correct. You can post this as is.
   
   One small stale comment: in `packages/database/features/step-definitions/stepdefs.ts`, the line above `expectWriteResult` still says "A denied insert fails the row-level security check". A denied Space insert now fails the insert privilege instead. The assertion is still right, since both give 42501.
 </agent-message>
+
+---
+
+It's fine the database is available again. Agree on corrections and issue candidate.
