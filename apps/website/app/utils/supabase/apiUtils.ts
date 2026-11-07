@@ -26,9 +26,10 @@ export const createApiResponse = <T>(
   const { data, error, status } = payload;
 
   if (error) {
+    console.error("Supabase error:", error);
     response = NextResponse.json(
       { error: error.message, details: error.details || undefined },
-      { status },
+      { status: status >= 200 && status <= 599 ? status : 502 },
     );
   } else if (data !== undefined && data !== null) {
     response = NextResponse.json<T | T[]>(data, { status });

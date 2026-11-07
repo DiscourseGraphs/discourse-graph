@@ -93,7 +93,7 @@ export const GET = async (
     .select()
     .eq("source_local_id", concept.source_local_id!);
   if (contentResponse.error) {
-    return createApiResponse(request, conceptResponse);
+    return createApiResponse(request, contentResponse);
   }
   const contents: Content[] = contentResponse.data;
   const requestUrlParts = request.url.split("/");
