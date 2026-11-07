@@ -3,14 +3,13 @@
   "checkpoint_id": "01M6SPX33R47W9VEFNZMXPV6AR",
   "strategy": "manual-commit",
   "branch": "eng-2466-set-sensible-default-privileges-and-explicit-grants",
-  "checkpoints_count": 26,
+  "checkpoints_count": 25,
   "files_touched": [
     "packages/database/doc/security_model.md",
-    "packages/database/features/functionGrants.feature",
     "packages/database/features/spaceTableAccess.feature",
     "packages/database/features/step-definitions/stepdefs.ts",
     "packages/database/supabase/migrations/20261106130000_explicit_privileges.sql",
-    "packages/database/supabase/schemas/space.sql"
+    "packages/database/supabase/schemas/account.sql"
   ],
   "sessions": [
     {
@@ -29,16 +28,16 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 894,
-    "cache_creation_tokens": 866073,
-    "cache_read_tokens": 75905116,
-    "output_tokens": 281455,
-    "api_call_count": 356,
+    "input_tokens": 944,
+    "cache_creation_tokens": 893319,
+    "cache_read_tokens": 79070204,
+    "output_tokens": 295279,
+    "api_call_count": 377,
     "subagent_tokens": {
       "input_tokens": 8,
-      "cache_creation_tokens": 50322,
-      "cache_read_tokens": 88198,
-      "output_tokens": 2922,
+      "cache_creation_tokens": 50523,
+      "cache_read_tokens": 88728,
+      "output_tokens": 3159,
       "api_call_count": 3
     }
   },
