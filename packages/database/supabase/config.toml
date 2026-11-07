@@ -323,6 +323,10 @@ s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
 
+# Lets `supabase db schema declarative sync`, used by `pnpm run dbdiff`, run without --experimental.
+[experimental.pgdelta]
+enabled = true
+
 [functions.create-space]
 enabled = true
 verify_jwt = false
