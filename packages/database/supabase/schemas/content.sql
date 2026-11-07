@@ -59,6 +59,9 @@ CREATE UNIQUE INDEX document_url_idx ON public."Document" USING btree (url);
 
 ALTER TABLE public."Document" OWNER TO "postgres";
 
+-- Public access: the select policy decides which rows anon sees.
+GRANT SELECT ON TABLE public."Document" TO anon;
+
 COMMENT ON COLUMN public."Document".space_id IS 'The space in which the content is located';
 
 COMMENT ON COLUMN public."Document".source_local_id IS 'The unique identifier of the content in the remote source';
@@ -145,6 +148,9 @@ CREATE INDEX "Content_text" ON public."Content" USING pgroonga (text);
 
 ALTER TABLE public."Content" OWNER TO "postgres";
 
+-- Public access: the select policy decides which rows anon sees.
+GRANT SELECT ON TABLE public."Content" TO anon;
+
 COMMENT ON TABLE public."Content" IS 'A unit of content';
 
 COMMENT ON COLUMN public."Content".source_local_id IS 'The unique identifier of the content in the remote source';
@@ -172,6 +178,10 @@ ADD CONSTRAINT "ResourceAccess_pkey" PRIMARY KEY (account_uid, source_local_id, 
 
 ALTER TABLE public."ResourceAccess" OWNER TO "postgres";
 
+-- Public access: my_accessible_resources() and my_resource_grants read it as the caller, for the my_* views and the select policies.
+-- Its select policy decides which rows anon sees.
+GRANT SELECT ON TABLE public."ResourceAccess" TO anon;
+
 COMMENT ON TABLE public."ResourceAccess" IS 'An access control entry for a content';
 
 COMMENT ON COLUMN public."ResourceAccess".space_id IS 'The space_id of the content item for which access is granted';
@@ -187,18 +197,6 @@ ADD CONSTRAINT "ResourceAccess_account_uid_fkey" FOREIGN KEY (
 CREATE INDEX resource_access_content_local_id_idx ON public."ResourceAccess" (source_local_id, space_id);
 
 -- note that I cannot have a foreign key for Content because variant and content_type are part of the unique key.
-
-GRANT ALL ON TABLE public."ResourceAccess" TO authenticated;
-GRANT ALL ON TABLE public."ResourceAccess" TO service_role;
-REVOKE ALL ON TABLE public."ResourceAccess" FROM anon;
-
-REVOKE ALL ON TABLE public."Document" FROM anon;
-GRANT ALL ON TABLE public."Document" TO authenticated;
-GRANT ALL ON TABLE public."Document" TO service_role;
-
-REVOKE ALL ON TABLE public."Content" FROM anon;
-GRANT ALL ON TABLE public."Content" TO authenticated;
-GRANT ALL ON TABLE public."Content" TO service_role;
 
 CREATE TYPE public.accessible_resource AS (
     space_id bigint,
@@ -249,7 +247,8 @@ WHERE
     );
 
 -- Single-table views are writable, and writes run as the view owner, bypassing Document's RLS.
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.my_documents FROM anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.my_documents FROM authenticated;
+GRANT SELECT ON public.my_documents TO anon;
 
 CREATE OR REPLACE VIEW public.my_contents AS
 SELECT
@@ -277,7 +276,8 @@ WHERE
     );
 
 -- Single-table views are writable, and writes run as the view owner, bypassing Content's RLS.
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.my_contents FROM anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.my_contents FROM authenticated;
+GRANT SELECT ON public.my_contents TO anon;
 
 CREATE OR REPLACE FUNCTION public.document_of_content(content public.my_contents)
 RETURNS SETOF public.my_documents STRICT STABLE
@@ -746,14 +746,17 @@ ALTER TABLE public."ResourceAccess" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS resource_access_policy ON public."ResourceAccess";
 DROP POLICY IF EXISTS resource_access_select_policy ON public."ResourceAccess";
+-- A space published at reader level shows all its grants, to visitors too; such a space needs no other grant.
 CREATE POLICY resource_access_select_policy ON public."ResourceAccess" FOR SELECT USING (
-    space_id = any((SELECT public.my_space_ids('reader'))::bigint [])
+    account_uid = public.everyone_uid()
+    OR space_id = any((SELECT public.my_space_ids('reader'))::bigint [])
     OR account_uid IN (SELECT public.my_user_accounts())
 );
 DROP POLICY IF EXISTS resource_access_delete_policy ON public."ResourceAccess";
+-- my_identity_accounts: a grant to the everyone pseudo-user is not the caller's own, so only an editor can delete it.
 CREATE POLICY resource_access_delete_policy ON public."ResourceAccess" FOR DELETE USING (
     space_id = any((SELECT public.my_space_ids('editor'))::bigint [])
-    OR account_uid IN (SELECT public.my_user_accounts())
+    OR account_uid IN (SELECT public.my_identity_accounts())
 );
 DROP POLICY IF EXISTS resource_access_insert_policy ON public."ResourceAccess";
 CREATE POLICY resource_access_insert_policy ON public."ResourceAccess" FOR INSERT WITH CHECK (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
@@ -766,8 +769,5 @@ GRANT EXECUTE ON FUNCTION public.document_of_content TO anon;
 GRANT EXECUTE ON FUNCTION public.author_of_content TO anon;
 GRANT EXECUTE ON FUNCTION public._local_document_to_db_document TO anon;
 GRANT EXECUTE ON FUNCTION public._local_content_to_db_content TO anon;
-GRANT EXECUTE ON FUNCTION public.upsert_documents TO anon;
-GRANT EXECUTE ON FUNCTION public.upsert_content_embedding TO anon;
-GRANT EXECUTE ON FUNCTION public.upsert_content TO anon;
 GRANT EXECUTE ON FUNCTION public.content_in_space TO anon;
 GRANT EXECUTE ON FUNCTION public.document_in_space TO anon;

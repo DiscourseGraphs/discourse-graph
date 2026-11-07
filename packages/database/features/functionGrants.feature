@@ -7,8 +7,10 @@ Feature: Function grants
   Acceptance criteria:
   * Clients without a login get a permission error calling functions that only logged-in clients use
   * Clients without a login can still call the functions that their reads need
+  * Clients without a login get a permission error calling functions that write, except get_secret_token
   * No client can call a function that only triggers use
-  * Clients without a login cannot write to the contributor tables
+  * Clients without a login cannot write to the contributor tables or to Space
+  * Logged-in clients cannot insert into Space: only create-space creates spaces
   * The triggers still run when a logged-in client deletes rows
 
   Background:
@@ -24,13 +26,21 @@ Feature: Function grants
     And an anonymous client gets a permission error calling account_ids_in_shared_spaces with '{"access_level": "reader"}'
     And an anonymous client gets a permission error calling in_space with '{"space_id": 1}'
     And an anonymous client can call my_space_ids with '{}'
+    And an anonymous client gets a permission error calling upsert_concepts with '{"v_space_id": 1, "data": []}'
+    And an anonymous client gets a permission error calling upsert_content with '{"v_space_id": 1, "data": [], "v_creator_id": 1}'
+    And an anonymous client gets a permission error calling upsert_content_embedding with '{"content_id": 1, "model": "m", "embedding_array": []}'
+    And an anonymous client gets a permission error calling upsert_documents with '{"v_space_id": 1, "data": []}'
+    And an anonymous client gets a permission error calling propose_sync_task with '{"s_target": 1, "s_function": "f", "s_worker": "w", "timeout": "1 minute", "task_interval": "1 minute"}'
+    And an anonymous client gets a permission error calling end_sync_task with '{"s_target": 1, "s_function": "f", "s_worker": "w", "s_status": "complete"}'
     And an anonymous client can call get_secret_token with '{"token": "no such token"}'
     And an anonymous client can read author_of_concept through my_concepts
     And an anonymous client can read author_of_content through my_contents
 
-  Scenario: Clients without a login cannot write to the contributor tables
+  Scenario: Clients cannot insert into Space, and clients without a login cannot write to the contributor tables
     Then an anonymous client is refused the insert privilege on concept_contributors with '{"concept_id": 1, "contributor_id": 1}'
     And an anonymous client is refused the insert privilege on content_contributors with '{"content_id": 1, "contributor_id": 1}'
+    And an anonymous client is refused the insert privilege on Space with '{"url": "https://example.com/s2", "name": "s2", "platform": "Roam"}'
+    And a user logged in space s1 is refused the insert privilege on Space with '{"url": "https://example.com/s3", "name": "s3", "platform": "Roam"}'
 
   Scenario: Logged-in clients cannot call functions that only triggers use
     Then a user logged in space s1 gets a permission error calling is_last_local_reference with '{"space_id_": 1, "source_local_id_": "ln1"}'
