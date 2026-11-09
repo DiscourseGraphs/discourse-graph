@@ -1,3 +1,4 @@
+// Cucumber's ts-node cannot load the content-model package root, so this imports the subpath.
 import { contentTypes } from "@repo/content-model/constants";
 import type { CrossAppNode } from "./crossAppContracts";
 
@@ -36,6 +37,8 @@ export const roamOriginNodeExample: CrossAppNode = {
       scale: "document",
     },
   },
+  // Only rewriteAssetLinks.test.ts reads these. Roam's publish converter does not
+  // emit assets, so sharedNodeRoundTrip.feature does not check them.
   assets: [
     {
       sourceRef: ROAM_STORED_ASSET_URL,
