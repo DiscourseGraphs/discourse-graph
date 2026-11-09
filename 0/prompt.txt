@@ -1,0 +1,1 @@
+why TypeScript has to be told how to read JSX?
