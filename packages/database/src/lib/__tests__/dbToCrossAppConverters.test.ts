@@ -588,12 +588,10 @@ describe("dbNodeToCrossApp", () => {
   });
 
   it("falls back to the created date when nothing has a last-modified date", () => {
-    // The columns are NOT NULL; the casts exercise the fallback anyway.
-    const noDate = null as unknown as string;
     expect(
       convert({
-        concept: { ...concept, last_modified: noDate },
-        direct: { ...direct, last_modified: noDate },
+        concept: { ...concept, last_modified: "" },
+        direct: { ...direct, last_modified: "" },
         fullLastModified: null,
       }).modifiedAt,
     ).toEqual(new Date("2026-06-14T11:00:00Z"));
