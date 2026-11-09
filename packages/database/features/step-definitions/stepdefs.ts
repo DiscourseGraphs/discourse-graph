@@ -1987,7 +1987,6 @@ When(
         crossAppNodeSchemaToDbConcept({
           localId: node.nodeType,
           label: "Claim",
-          format: "[[CLM]] - {content}",
           authorId: node.authorId,
           createdAt: node.createdAt,
           modifiedAt: node.modifiedAt,
