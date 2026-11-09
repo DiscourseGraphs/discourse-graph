@@ -38,7 +38,11 @@ type Row = { filepath: string; filehash: string; source_path: string | null };
 const clientWithReferences = (
   rows: Row[],
   error?: { message: string },
-): { client: DGSupabaseClient; from: ReturnType<typeof vi.fn> } => {
+): {
+  client: DGSupabaseClient;
+  from: ReturnType<typeof vi.fn>;
+  eq: ReturnType<typeof vi.fn>;
+} => {
   const result = error ? { data: null, error } : { data: rows, error: null };
   const chain = {
     eq: vi.fn(() => chain),
@@ -47,7 +51,11 @@ const clientWithReferences = (
       Promise.resolve(result).then(resolve),
   };
   const from = vi.fn(() => ({ select: vi.fn(() => chain) }));
-  return { client: { from } as unknown as DGSupabaseClient, from };
+  return {
+    client: { from } as unknown as DGSupabaseClient,
+    from,
+    eq: chain.eq,
+  };
 };
 
 const row = (
@@ -426,6 +434,26 @@ describe("importNodeAssets", () => {
 
     expect(mirror).toHaveBeenCalledTimes(1);
     expect(result.markdown).toBe(`![](${MIRRORED})`);
+  });
+
+  it("reads only the references the node holds in its own space", async () => {
+    mirror.mockResolvedValue({
+      status: "mirrored",
+      contentHash: "h1",
+      url: MIRRORED,
+    });
+    const { client, from, eq } = clientWithReferences([row(IMAGE_REF, "h1")]);
+
+    await importNodeAssets({
+      client,
+      sharedNode,
+      space,
+      markdown: `![](${IMAGE_REF})`,
+    });
+
+    expect(from).toHaveBeenCalledWith("my_file_references");
+    expect(eq).toHaveBeenCalledWith("space_id", space.id);
+    expect(eq).toHaveBeenCalledWith("source_local_id", sharedNode.localId);
   });
 
   it("copies nothing for a node with no content", async () => {

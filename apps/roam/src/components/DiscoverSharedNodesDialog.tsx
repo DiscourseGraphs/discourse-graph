@@ -247,6 +247,7 @@ const RelationFailuresSummary = ({ failures }: { failures: string[] }) => (
 );
 
 const DiscoverSharedNodesDialog = ({ onClose }: { onClose: () => void }) => {
+  // One state so no render sees a node without its space: getSharedNodeSpace throws then.
   const [{ nodes, spaces }, setListing] = useState<SharedNodeListing>({
     nodes: [],
     spaces: {},
