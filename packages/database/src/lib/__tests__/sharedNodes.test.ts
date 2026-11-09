@@ -508,10 +508,7 @@ describe("listGroupSharedCrossAppNodes", () => {
         filters.variant === "direct"
           ? [olderDirect, ...directContents]
           : fullContentSummaries,
-      my_spaces: () => [
-        ...spaces,
-        { id: 21, name: null, platform: "Obsidian", url: "obsidian:vault-b" },
-      ],
+      my_spaces: () => spaces,
       my_accounts: () => accountRows,
     });
 

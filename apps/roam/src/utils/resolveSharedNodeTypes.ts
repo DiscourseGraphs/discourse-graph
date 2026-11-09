@@ -113,7 +113,7 @@ export const resolveSharedNodeTypes = async ({
 
   const nodeTypeBySchemaRid = new Map<string, DiscourseNode>();
   for (const schema of data) {
-    const spaceUrl = spaceUrlsById.get(schema.space_id ?? 0);
+    const spaceUrl = spaceUrlsById.get(schema.space_id);
     if (!spaceUrl || schema.source_local_id === null) continue;
     const schemaRid = spaceUriAndLocalIdToRid(
       spaceUrl,
