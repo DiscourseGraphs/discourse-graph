@@ -1,0 +1,41 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M70KDJZ787RJEN8970B1KTA7",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 17,
+  "files_touched": [
+    ".husky/_/commit-msg",
+    ".husky/_/post-commit",
+    ".husky/_/post-rewrite",
+    ".husky/_/pre-push",
+    ".husky/_/prepare-commit-msg",
+    "apps/website/public/docs/roam/dg-schema02.PNG",
+    "packages/database/supabase/.gitignore",
+    "packages/database/supabase/config.toml",
+    "packages/database/supabase/supabase.lock"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 308,
+    "cache_creation_tokens": 1502184,
+    "cache_read_tokens": 93415300,
+    "output_tokens": 176785,
+    "api_call_count": 153,
+    "subagent_tokens": {
+      "input_tokens": 24,
+      "cache_creation_tokens": 110472,
+      "cache_read_tokens": 797372,
+      "output_tokens": 12791,
+      "api_call_count": 12
+    }
+  }
+}
