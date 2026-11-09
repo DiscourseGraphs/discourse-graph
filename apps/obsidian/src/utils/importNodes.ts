@@ -118,6 +118,7 @@ export const getSpaceInfoFromIds = async (
   return spaceMap;
 };
 
+/** The returned names are keyed by account local id, which is unique only within one platform. */
 export const fetchUserNames = async (
   plugin: DiscourseGraphPlugin,
   client: DGSupabaseClient,

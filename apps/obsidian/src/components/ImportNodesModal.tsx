@@ -131,7 +131,9 @@ const ImportNodesContent = ({ plugin, onClose }: ImportNodesModalProps) => {
     } catch (error) {
       console.error("Error loading importable nodes:", error);
       const errorMessage =
-        error instanceof Error ? error.message : String(error);
+        typeof error === "object" && error !== null && "message" in error
+          ? String(error.message)
+          : String(error);
       new Notice(`Failed to load nodes: ${errorMessage}`, 5000);
       onClose();
     } finally {

@@ -356,13 +356,17 @@ describe("fetchUserNames", () => {
         }[]
       | null;
     error: { message: string } | null;
-  }) => {
+  }): {
+    client: DGSupabaseClient;
+    from: ReturnType<typeof vi.fn>;
+    eq: ReturnType<typeof vi.fn>;
+  } => {
     const eq = vi.fn().mockResolvedValue(result);
     const select = vi.fn().mockReturnValue({ eq });
     const from = vi.fn().mockReturnValue({ select });
     return { client: { from } as unknown as DGSupabaseClient, from, eq };
   };
-  const makePlugin = () =>
+  const makePlugin = (): DiscourseGraphPlugin =>
     ({
       settings: {},
       saveSettings: vi.fn(),
