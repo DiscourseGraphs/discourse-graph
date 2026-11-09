@@ -100,8 +100,8 @@ export type ImportableNode = {
   spaceName: string;
   groupId: string;
   selected: boolean;
-  /** From shared-node discovery: modifiedAt is the latest last_modified of the Concept and its Contents. */
   createdAt?: number;
+  /** From shared-node discovery: the latest last_modified of the Concept and its Contents. */
   modifiedAt?: number;
   authorId?: string;
 };

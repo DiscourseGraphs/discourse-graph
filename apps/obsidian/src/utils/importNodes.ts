@@ -137,11 +137,10 @@ export const fetchUserNames = async (
   plugin.settings.userNames = nameById;
   await plugin.saveSettings();
   return Object.fromEntries(
-    result.data.flatMap(({ account_local_id, name }) =>
-      account_local_id !== null && name !== null
-        ? [[account_local_id, name]]
-        : [],
-    ),
+    result.data.map(({ account_local_id, name }): [string, string] => [
+      account_local_id,
+      name,
+    ]),
   );
 };
 

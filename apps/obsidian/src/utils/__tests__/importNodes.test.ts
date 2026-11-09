@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { TFile, TFolder, type App } from "obsidian";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
+import type { Tables } from "@repo/database/dbTypes";
 import type DiscourseGraphPlugin from "~/index";
 import {
   fetchUserNames,
@@ -349,11 +350,7 @@ describe("mapNodeTypeIdToLocal format import", () => {
 describe("fetchUserNames", () => {
   const makeClient = (result: {
     data:
-      | {
-          id: number;
-          name: string | null;
-          account_local_id: string | null;
-        }[]
+      | Pick<Tables<"my_accounts">, "id" | "name" | "account_local_id">[]
       | null;
     error: { message: string } | null;
   }): {
@@ -376,7 +373,7 @@ describe("fetchUserNames", () => {
     const { client, from, eq } = makeClient({
       data: [
         { id: 7, account_local_id: "alice-local", name: "Alice" },
-        { id: 8, account_local_id: null, name: "No local id" },
+        { id: 8, account_local_id: "bob-local", name: "Bob" },
       ],
       error: null,
     });
@@ -384,8 +381,9 @@ describe("fetchUserNames", () => {
 
     await expect(fetchUserNames(plugin, client)).resolves.toEqual({
       "alice-local": "Alice",
+      "bob-local": "Bob",
     });
-    expect(plugin.settings.userNames).toEqual({ 7: "Alice", 8: "No local id" });
+    expect(plugin.settings.userNames).toEqual({ 7: "Alice", 8: "Bob" });
     expect(from).toHaveBeenCalledWith("my_accounts");
     expect(eq).toHaveBeenCalledWith("agent_type", "person");
   });
