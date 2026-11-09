@@ -1,13 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 
 const mocks = vi.hoisted(() => ({
   query: vi.fn(),
-}));
-
-vi.mock("roamjs-components/queries/getPageUidByPageTitle", () => ({
-  default: vi.fn(),
 }));
 
 vi.mock("~/utils/discourseNodeFormatToDatalog", () => ({
@@ -37,8 +32,9 @@ describe("resolveInitialReferencedNode", () => {
   });
 
   it("returns the matching node from the block's page or parents", async () => {
-    mocks.query.mockResolvedValue([[{ ":node/title": "@Source" }]]);
-    vi.mocked(getPageUidByPageTitle).mockReturnValue("source-uid");
+    mocks.query.mockResolvedValue([
+      [{ ":node/title": "@Source", ":block/uid": "source-uid" }],
+    ]);
 
     await expect(
       resolveInitialReferencedNode({
@@ -48,6 +44,21 @@ describe("resolveInitialReferencedNode", () => {
     ).resolves.toEqual({ text: "@Source", uid: "source-uid" });
     expect(mocks.query).toHaveBeenCalledWith(
       expect.stringContaining('[?b :block/uid "block-uid"]'),
+    );
+  });
+
+  it("preserves a block-backed reference's identity and formatted text", async () => {
+    mocks.query.mockResolvedValue([
+      [{ ":block/string": "@Source", ":block/uid": "source-block" }],
+    ]);
+    await expect(
+      resolveInitialReferencedNode({
+        blockUid: "block-uid",
+        referencedNodeType,
+      }),
+    ).resolves.toEqual({ text: "@Source", uid: "source-block" });
+    expect(mocks.query).toHaveBeenCalledWith(
+      expect.stringContaining(":block/uid]"),
     );
   });
 

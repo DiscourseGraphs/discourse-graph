@@ -404,13 +404,25 @@ const ModifyNodeDialog = ({
             formattedReferencedNodeText = formattedRefNode;
           }
 
+          // Block-backed references already contain formatted text, not a page title.
+          const referencedBlock = isReferencedNodeLocked
+            ? window.roamAlphaAPI.pull("[:block/string]", [
+                ":block/uid",
+                referencedNodeValue.uid,
+              ])
+            : undefined;
+          const formattedReference =
+            typeof referencedBlock?.[":block/string"] === "string"
+              ? formattedReferencedNodeText
+              : `[[${formattedReferencedNodeText}]]`;
+
           formattedTitle = nodeFormat.replace(
             /{([\w\d-]*)}/g,
             // unused variable will take _ as name
             (_, val: string) => {
               if (/content/i.test(val)) return content.text.trim();
               if (new RegExp(referencedNode.name, "i").test(val))
-                return `[[${formattedReferencedNodeText}]]`;
+                return formattedReference;
               return "";
             },
           );

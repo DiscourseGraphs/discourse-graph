@@ -1,4 +1,3 @@
-import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import type { PullBlock } from "roamjs-components/types";
 import compileDatalog from "./compileDatalog";
 import discourseNodeFormatToDatalog from "./discourseNodeFormatToDatalog";
@@ -17,7 +16,7 @@ export const resolveInitialReferencedNode = async ({
   try {
     const referenced = (
       await window.roamAlphaAPI.data.async.fast.q(
-        `[:find (pull ?r [:node/title :block/string]) :where [?b :block/uid "${blockUid}"] (or-join [?b ?r] (and [?b :block/parents ?p] [?p :block/refs ?r]) (and [?b :block/page ?r])) ${discourseNodeFormatToDatalog(
+        `[:find (pull ?r [:node/title :block/string :block/uid]) :where [?b :block/uid "${blockUid}"] (or-join [?b ?r] (and [?b :block/parents ?p] [?p :block/refs ?r]) (and [?b :block/page ?r])) ${discourseNodeFormatToDatalog(
           {
             freeVar: "r",
             ...referencedNodeType,
@@ -34,7 +33,7 @@ export const resolveInitialReferencedNode = async ({
 
     return {
       text,
-      uid: getPageUidByPageTitle(text),
+      uid: referenced?.[":block/uid"] || "",
     };
   } catch (error) {
     console.error("Error getting initial referenced node:", error);
