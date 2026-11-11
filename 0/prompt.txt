@@ -1,0 +1,17 @@
+help me understand roam block kPg_0_-lh. new simple language, try to be concise, and use charts whenever it's helpful.
+
+---
+
+I'm still unclear on how the handoff bundle is used by the MCP client to log in. So walk me through the flow where a user sign in, let's say Claude, and they want to add our MCP via our plugin, like either via Roam or Obsidian. How would that flow work from the UX perspective, and then what happened at each of the steps?
+
+---
+
+So one space account can have multiple sessions. What are sessions in this Supabase context?
+
+---
+
+for this, does it mean that Claude and MCP has to get a new token every hour or like whenever the token expires?
+
+---
+
+besides inheriting the supabase users
