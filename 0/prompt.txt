@@ -1,0 +1,258 @@
+Looking one last time at our work on DiscourseGraphs accounts.  https://roamresearch.com/#/app/discourse-graphs/page/H3a0tja8D 
+One thing that I think is missing: What are the UX touchpoints. We have to make people of whether and how they are logged in on each platform, and sometimes in non-obvious places like if they're doing a non-local search, for example. I may be worth enumerating this.
+
+---
+
+I replaced "minimum" with "most likely first target." Otherwise I'll read in details and try to think of what's missing. Meanwhile, another thing I'd like: A diagram showing the relation between all the identities: Space, Person, Agent, group, everyone ... not sure what's the best way to convey the connections, but I want to convey which different logins allow to reach (and maybe how.) So more functionality-centric than database-centric. Please write it locally first, ideally with a text format (dot or plantuml or mermaid, for example.)
+
+---
+
+Ah, maybe we need more than one diagram. One thing that's hard to follow for cold readers is the "How far a claim reaches" (by identity vs attestation). May be worth explaining the difference here.
+
+---
+
+please separate in two diagrams, and stack each option horizontally
+
+---
+
+More readable, yes. A bit jargon heavy: We should have a glossary about what claim and attestation mean. Roam's mermaid rendering does not give space to the text at the top of each block, which is covered by the first sub-block.
+
+---
+
+The second option is back to vertical stacking
+
+---
+
+ok, they're horizontal now. the colours are wrong, but... yes, the Roam mermaid is obviously an ancient version.
+
+---
+
+wrong colours. The section boxes are always yellow; the first box representing the case is always blue; the last boxes representing the cases are the right colour.
+
+---
+
+huh... the boxes are grey now.
+
+---
+
+yes. But one second, are the failure cases not supposed to be a different colour?
+
+---
+
+actually, I said horizontal stacking, but that's now a bit small. Could option 2 be made a 2x2 matrix?
+
+---
+
+I get b, a d, c
+
+---
+
+unchanged. badc
+
+---
+
+still unchanged. I wonder if there's a render limit on roam
+
+---
+
+TEST appears
+
+---
+
+order unchanged
+
+---
+
+Still unchanged. Yes, we'll have to nest
+
+---
+
+that worked. Ok, maybe we should not rely on roam mermaid in the future... How hard is it for you to write tldraw?
+
+---
+
+yes, let's try svg from graphviz.
+
+---
+
+So much better... yes, let's convert the others.
+
+---
+
+yes, please.
+
+---
+
+moved to dg_agent_diagrams/
+
+---
+
+3
+
+---
+
+I was asked to review your performance, hit the wrong key, tried to correct, and here we are. Forget it. Could you go through the Linear projects and tell me which projects are touched by DiscourseGraph accounts? Include past projects where we used space accounts as a workaround, and how we may want to review them.
+
+---
+
+Ok. let's wrap up memory and close this session.
+
+---
+
+Ok. I need to iterate on the DG account spec. Let me give you a roadmap, of course we won't do everything at once. (Giving numbers to itemize, this may not be the order in which we'll do things.) First: some of the diagrams can be simplified, because we're changing the read-only access not to use separate principals for agents. Second, the whole question of vector of attacks did not land well when I explained it. We need to make it clearer what could happen, maybe with slides showing the steps of the attack. That's for later. But now, we need to make sure the spec goes from generic to specific. Third, we should give an idea of what users are expected to do (and where) to get and manage the account, maybe with a wireframe or dead html page showing the account management. Fourth I think we'll want to explore what it will mean to let users to decide what aspect of their personal information gets published where. (This involves both UX and data structures.) Any order you would prefer to tackle this in?
+
+---
+
+Oh, I wonder if we mean the same thing by "generic to specific", I was no referring to a decision! But I forgot a major point: We want to distinguish long-term vision from v0. The v0 will almost certainly not include advanced claim checking. (And using the firebase token is unlikely.) There may be intermediate steps. We want to explain what v0 consists of, what we could add, and what each additional step buys us (either security or functionality.)
+
+---
+
+Much better reading of generic to specific, and agreed with the ladder as proposed.
+
+---
+
+I removed three prerequisites, ENG-2438 ENG-2447 ENG-2443 which are done. As for 'the branch of `upsert_account_in_space`', is that not an issue candidate already? 
+The staging draft uses vocabulary from implementation, notably `asserted`. This is a good example of general to specific: We should talk about the abstract notion (weak identity claims?), not the proposed implementation names at this stage. We may allow a weak claim to have a bit more reach in v0, tightening as we introduce stronger claims.
+
+---
+
+Let's settle on narrow, and I'll reread the draft.
+
+---
+
+You can do the other staleness corrections while I read.
+
+---
+
+A few things. Your writing seems to imply we would always create the DG account on the web first, then connect the platform second. I would see a scenario where we'd start from the platform, create the account, then connect social logins second. (It should be possible to create the account directly with social login that way but I'm less sure, we might have to start with password account.) 
+When you mention the OAuth route, you realize that we can use the supabase OAuth mechanism, right?
+
+---
+
+Much better already. To add as a step: One benefit of DG accounts is MCP tokens that act as the user for cross-space search. So add a step with UX for creating such tokens (assuming we have MCP tokens for spaces, which are being worked on in parallel.)
+Another potential later step: When we have web views of nodes, as being designed on mira-collab branch, we can send a node link to another DG users. That would exist independently. But a step would be to send a link to someone who does not have a DG account, in a way that clicking on the link invites them to create an account that _will_ access the resource. These invitations probably need new db tables.
+Can you think of other steps?
+
+---
+
+Very good! These are all post-v0, but I agree that 3 should be the first post-v0 step for regulatory reasons.
+
+---
+
+Go ahead, we have a solid first draft, even if we iterate. Then I'll need to put the laptop to sleep while I change locations, before we tackle the next steps.
+
+---
+
+ok. You could go on to the diagrams. What are ways to do wireframes you're comfortable with? Or should we go straight to HTML?
+
+---
+
+Paper adds another tool. No fundamental objection to simple HTML. What do you think of plantuml/salt ?
+
+---
+
+Yeah. I wish roam had a plantuml renderer. Not an urgent concern.
+
+---
+
+Note that if we wanted to build one, I have a plantuml server running on https://www.conversence.com/plantuml/
+
+---
+
+It's the right level of detail. I'm thinking... this is the account management page, there will be one where you'd just do searches etc. Probably premature to show that page, but should we mention a link to it? I don't know if I want people to land on this complex account management page after login.
+
+---
+
+Ok. I think "Reaches" is a bit obscure, what would be clearer? And what are values other than "this space only"?
+
+---
+
+ah, is it not simple to have each space be a row? Then each one could be disconnected independently, and we can drop the "gives access to" column. The platform comes after the space name, probably, or it could actually be a table subheader, simpler. Platform accounts: Some of them like orcid are part of provenance we'll want to show. They  will eventually need a visibility toggle... per group? That is more complex. Not keen on a 2x2 table, but we could have "public" and "group" with a drop-down in the group header.
+
+---
+
+Yeah, I'm mixing levels here. Even visibility is post-v0. We'll need more than one version of the diagram.
+
+---
+
+For post-v0: Adding multiple emails. (also as a step.) Not sure what you mean by leave out.
+
+---
+
+I think this should be a separate thing, maybe default search preferences.
+
+---
+
+yes.
+
+---
+
+ok. the second column of connected spaces (postv0) is a bit obscure for end users. I think you intend it for claim strength? Then we should have a "next action" if the claim strength is less than it could be. Or did you have something else in mind?
+
+---
+
+Again, not proven is going to feel negative for users, esp. if ways to prove are not implemented yet! It's better to say that a potential proof is missing, and nothing otherwise.
+
+---
+
+Not sure you can have disabled checkboxes in salt? If a credential is public, it cannot be disabled in a group.
+
+---
+
+What does it mean to change an email? Remove makes sense, and validate as a button (action) or a checkmark.
+
+---
+
+In the obsidian table header, you give a vault id. That would be per row.
+
+---
+
+We could show the vault url on hover, but that's not part of the wireframe. Having the username is useful however.
+
+---
+
+Ah, and the "proven by email" in roam, which I was not crazy about, becomes "as Alice Martin <alice@example.com>". Actually, if it were a different email, it would be part of the linked identities.
+
+---
+
+should we then not have a roam row in the linked identities?
+
+---
+
+ah, good point. Hmmm... I think Obsidian verifies the email... sometimes?
+
+---
+
+I think we should assume Obsidian email is not readable.
+
+---
+
+It's not a known fact, but the more conservative assumption. But Obsidian is very protective of user privacy, so I think it's a safe one.
+
+---
+
+Oh, btw I learnt roam only shows your own email, not that of other group members. I was wrong about this because we have info in our old graph from before that was implemented. It may have some impact on design.
+
+---
+
+yes.
+
+---
+
+Good point about L6, I missed that. Agree on the second open question. On the wireframe, could we show that each section should be collapsable?
+
+---
+
+I think showing they're foldable is enough for wireframes. Can you upload both of these to Roam? Maybe have a PlantUML code block as reference, but make the SVG visible. Upload the svg, my server is not relevant yet. Not sure where they'll live in the page, but I'm sure you can find a plausible place.
+
+---
+
+Good. What's the next step, is it slides? How do you think of doing it? May be easiest to do svg slides in html, but open to suggestions. (I've used plantuml with different shapes hidden sometimes, but I'm not sure it's what's easiest for you.)
+
+---
+
+iframe it is. Yes, let's have the scripts.
+
+---
+
+Will read tomorrow, unfortunately. Otherwise I just noticed something I'd like you to remember: When we add text to Roam that contains a hashtag, such as #1234, it becomes a Roam page. The easy way to avoid that is to wrap it in backticks.
