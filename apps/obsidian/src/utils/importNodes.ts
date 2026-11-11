@@ -1,6 +1,5 @@
 import { App, Notice, TFile, parseYaml } from "obsidian";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
-import { listGroupSharedNodes } from "@repo/database/lib/sharedNodes";
 import type DiscourseGraphPlugin from "~/index";
 import {
   getLocalSpaceUri,
@@ -40,54 +39,6 @@ import { decorateTitle } from "@repo/database/lib/decorateTitle";
 import { buildSchemaRid, findLocalNodeTypeMatch } from "./schemaMatching";
 import { splitFrontmatter } from "~/utils/splitFrontmatter";
 import { resolveSchemaFormat } from "@repo/utils/resolveSchemaFormat";
-
-type PublishedNode = {
-  source_local_id: string;
-  space_id: number;
-  text: string;
-  createdAt: number;
-  modifiedAt: number;
-  filePath: string | undefined;
-  authorId: number | undefined;
-};
-
-export const getPublishedNodesForGroups = async ({
-  client,
-  currentSpaceId,
-}: {
-  client: DGSupabaseClient;
-  currentSpaceId: number;
-}): Promise<Array<PublishedNode>> => {
-  const sharedNodes = await listGroupSharedNodes({
-    client,
-    currentSpaceId,
-  }).catch((error: { message?: string }) => {
-    console.error("Error fetching published nodes:", error);
-    throw new Error(`Failed to fetch published nodes: ${error.message}`);
-  });
-
-  return sharedNodes.map((sharedNode) => {
-    const metadata = sharedNode.directMetadata;
-    const filePath: string | undefined =
-      metadata !== null &&
-      typeof metadata === "object" &&
-      !Array.isArray(metadata) &&
-      typeof metadata.filePath === "string"
-        ? metadata.filePath
-        : undefined;
-    return {
-      source_local_id: sharedNode.sourceLocalId,
-      space_id: sharedNode.spaceId,
-      text: sharedNode.title,
-      createdAt: sharedNode.created
-        ? new Date(sharedNode.created).valueOf()
-        : 0,
-      modifiedAt: new Date(sharedNode.lastModified).valueOf(),
-      filePath,
-      authorId: sharedNode.authorId,
-    };
-  });
-};
 
 export const getLocalNodeInstanceIds = (
   plugin: DiscourseGraphPlugin,
@@ -167,23 +118,30 @@ export const getSpaceInfoFromIds = async (
   return spaceMap;
 };
 
+/** The returned names are keyed by account local id, which is unique only within one platform. */
 export const fetchUserNames = async (
   plugin: DiscourseGraphPlugin,
   client: DGSupabaseClient,
-) => {
+): Promise<Record<string, string>> => {
   const result = await client
     .from("my_accounts")
-    .select("id, name")
+    .select("id, name, account_local_id")
     .eq("agent_type", "person");
   if (result.error || !result.data) {
     console.error(result.error);
-    return;
+    return {};
   }
   const nameById = Object.fromEntries(
     result.data.map(({ id, name }) => [id, name]) as [number, string][],
   );
   plugin.settings.userNames = nameById;
   await plugin.saveSettings();
+  return Object.fromEntries(
+    result.data.map(({ account_local_id, name }): [string, string] => [
+      account_local_id,
+      name,
+    ]),
+  );
 };
 
 export const fetchNodeContent = async ({
@@ -1768,14 +1726,11 @@ const importNodes = async ({
           content,
           createdAt: contentCreatedAt,
           modifiedAt: contentModifiedAt,
-          filePath: contentFilePath,
+          filePath: originalNodePath,
           authorId,
         } = nodeContent;
         const createdAt = node.createdAt ?? contentCreatedAt;
         const modifiedAt = node.modifiedAt ?? contentModifiedAt;
-        // Use source vault path from Content direct variant metadata for wikilink rewriting and asset placement
-        const originalNodePath: string | undefined =
-          contentFilePath ?? node.filePath;
 
         const nodeImportInfo = nodeImportInfoByInstance.get(
           node.nodeInstanceId,
@@ -1824,8 +1779,8 @@ const importNodes = async ({
         } else {
           // Preserve source vault folder structure under import/{vaultName} when we have filePath from Content
           const sourceFolder =
-            contentFilePath && contentFilePath.includes("/")
-              ? sanitizePathForImport(contentFilePath.replace(/\/[^/]*$/, ""))
+            originalNodePath && originalNodePath.includes("/")
+              ? sanitizePathForImport(originalNodePath.replace(/\/[^/]*$/, ""))
               : "";
           const pathUnderImport = sourceFolder
             ? `${sourceFolder}/${sanitizedFileName}.md`
@@ -2031,19 +1986,6 @@ export const refreshImportedFile = async ({
   if (spaceId === -1) {
     return { success: false, error: "Could not get the space Id" };
   }
-  const metadataResp = await supabaseClient
-    .from("Content")
-    .select("metadata")
-    .eq("space_id", spaceId)
-    .eq("source_local_id", frontmatter.nodeInstanceId)
-    .eq("variant", "direct")
-    .maybeSingle();
-  const metadata = metadataResp.data?.metadata;
-  const filePath: string | undefined =
-    typeof metadata === "object" &&
-    typeof (metadata as Record<string, unknown>).filePath === "string"
-      ? ((metadata as Record<string, unknown>).filePath as string)
-      : undefined;
   const result = await importSelectedNodes({
     plugin,
     selectedNodes: [
@@ -2052,7 +1994,6 @@ export const refreshImportedFile = async ({
         title: file.basename,
         spaceId,
         spaceName,
-        filePath,
         groupId:
           (frontmatter.publishedToGroups as string[] | undefined)?.[0] ?? "",
         selected: false,

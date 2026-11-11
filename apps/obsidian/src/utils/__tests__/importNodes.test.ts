@@ -1,8 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { TFile, TFolder, type App } from "obsidian";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
+import type { Tables } from "@repo/database/dbTypes";
 import type DiscourseGraphPlugin from "~/index";
 import {
+  fetchUserNames,
   getUntitledTemplateFileName,
   mapNodeTypeIdToLocal,
 } from "~/utils/importNodes";
@@ -342,5 +344,63 @@ describe("mapNodeTypeIdToLocal format import", () => {
     });
 
     expect(plugin.settings.nodeTypes[0]?.format).toBe(expected);
+  });
+});
+
+describe("fetchUserNames", () => {
+  const makeClient = (result: {
+    data:
+      | Pick<Tables<"my_accounts">, "id" | "name" | "account_local_id">[]
+      | null;
+    error: { message: string } | null;
+  }): {
+    client: DGSupabaseClient;
+    from: ReturnType<typeof vi.fn>;
+    eq: ReturnType<typeof vi.fn>;
+  } => {
+    const eq = vi.fn().mockResolvedValue(result);
+    const select = vi.fn().mockReturnValue({ eq });
+    const from = vi.fn().mockReturnValue({ select });
+    return { client: { from } as unknown as DGSupabaseClient, from, eq };
+  };
+  const makePlugin = (): DiscourseGraphPlugin =>
+    ({
+      settings: {},
+      saveSettings: vi.fn(),
+    }) as unknown as DiscourseGraphPlugin;
+
+  it("stores names by account id and returns them by account local id", async () => {
+    const { client, from, eq } = makeClient({
+      data: [
+        { id: 7, account_local_id: "alice-local", name: "Alice" },
+        { id: 8, account_local_id: "bob-local", name: "Bob" },
+      ],
+      error: null,
+    });
+    const plugin = makePlugin();
+
+    await expect(fetchUserNames(plugin, client)).resolves.toEqual({
+      "alice-local": "Alice",
+      "bob-local": "Bob",
+    });
+    expect(plugin.settings.userNames).toEqual({ 7: "Alice", 8: "Bob" });
+    expect(from).toHaveBeenCalledWith("my_accounts");
+    expect(eq).toHaveBeenCalledWith("agent_type", "person");
+  });
+
+  it("returns no names and keeps the stored ones when the lookup fails", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const { client } = makeClient({
+      data: null,
+      error: { message: "permission denied" },
+    });
+    const plugin = makePlugin();
+    plugin.settings.userNames = { 1: "Bob" };
+
+    await expect(fetchUserNames(plugin, client)).resolves.toEqual({});
+    expect(plugin.settings.userNames).toEqual({ 1: "Bob" });
+    consoleError.mockRestore();
   });
 });
