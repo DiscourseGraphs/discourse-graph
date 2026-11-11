@@ -38,9 +38,9 @@ SELECT
     source_path
 FROM public."FileReference"
 WHERE
-    space_id = any((SELECT public.my_space_ids('reader'))::bigint [])
+    space_id = any((SELECT public.my_space_ids('reader'))::bigint[])
     OR (
-        space_id = any((SELECT public.my_space_ids('partial'))::bigint [])
+        space_id = any((SELECT public.my_space_ids('partial'))::bigint[])
         AND (space_id, source_local_id) IN (SELECT space_id, source_local_id FROM public.my_accessible_resources())
     );
 
@@ -53,18 +53,18 @@ ALTER TABLE public."FileReference" ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS file_reference_policy ON public."FileReference";
 DROP POLICY IF EXISTS file_reference_select_policy ON public."FileReference";
 CREATE POLICY file_reference_select_policy ON public."FileReference" FOR SELECT USING (
-    space_id = any((SELECT public.my_space_ids('reader'))::bigint [])
+    space_id = any((SELECT public.my_space_ids('reader'))::bigint[])
     OR (
-        space_id = any((SELECT public.my_space_ids('partial'))::bigint [])
+        space_id = any((SELECT public.my_space_ids('partial'))::bigint[])
         AND EXISTS (SELECT 1 FROM public.my_resource_grants AS r WHERE r.space_id = "FileReference".space_id AND r.source_local_id = "FileReference".source_local_id)
     )
 );
 DROP POLICY IF EXISTS file_reference_delete_policy ON public."FileReference";
-CREATE POLICY file_reference_delete_policy ON public."FileReference" FOR DELETE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
+CREATE POLICY file_reference_delete_policy ON public."FileReference" FOR DELETE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint[]));
 DROP POLICY IF EXISTS file_reference_insert_policy ON public."FileReference";
-CREATE POLICY file_reference_insert_policy ON public."FileReference" FOR INSERT WITH CHECK (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
+CREATE POLICY file_reference_insert_policy ON public."FileReference" FOR INSERT WITH CHECK (space_id = any((SELECT public.my_space_ids('editor'))::bigint[]));
 DROP POLICY IF EXISTS file_reference_update_policy ON public."FileReference";
-CREATE POLICY file_reference_update_policy ON public."FileReference" FOR UPDATE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
+CREATE POLICY file_reference_update_policy ON public."FileReference" FOR UPDATE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint[]));
 
 -- We cannot delete blobs from sql; we'll need to call an edge function with pg_net.
 -- We could pass the name to the edge function, but it's safer to accumulate paths in a table
@@ -146,7 +146,7 @@ CREATE TRIGGER on_insert_file_reference_trigger AFTER INSERT ON public."FileRefe
 INSERT INTO storage.buckets
 (id, name, public)
 VALUES
-('assets', 'assets', FALSE)
+('assets', 'assets', false)
 ON CONFLICT (id) DO NOTHING;
 
 DROP POLICY IF EXISTS "storage_insert_assets_authenticated" ON storage.objects;
@@ -165,7 +165,7 @@ DROP POLICY IF EXISTS "storage_delete_assets_noref" ON storage.objects;
 CREATE POLICY "storage_delete_assets_noref"
 ON storage.objects FOR DELETE TO authenticated USING (
     bucket_id = 'assets' AND NOT EXISTS (
-        SELECT TRUE FROM public."FileReference"
+        SELECT true FROM public."FileReference"
         WHERE filehash = name LIMIT 1
     )
 );

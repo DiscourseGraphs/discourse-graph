@@ -11,12 +11,12 @@ ADD CONSTRAINT content_contributors_pkey PRIMARY KEY (
 ALTER TABLE ONLY public.content_contributors
 ADD CONSTRAINT content_contributors_content_id_fkey FOREIGN KEY (
     content_id
-) REFERENCES public."Content" (id) ON UPDATE CASCADE ON DELETE CASCADE;
+) REFERENCES public."Content"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.content_contributors
 ADD CONSTRAINT content_contributors_contributor_id_fkey FOREIGN KEY (
     contributor_id
-) REFERENCES public."PlatformAccount" (id) ON UPDATE CASCADE ON DELETE CASCADE;
+) REFERENCES public."PlatformAccount"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE public.content_contributors OWNER TO "postgres";
 
@@ -31,12 +31,12 @@ ALTER TABLE public.concept_contributors OWNER TO "postgres";
 ALTER TABLE ONLY public.concept_contributors
 ADD CONSTRAINT concept_contributors_concept_id_fkey FOREIGN KEY (
     concept_id
-) REFERENCES public."Concept" (id) ON UPDATE CASCADE ON DELETE CASCADE;
+) REFERENCES public."Concept"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.concept_contributors
 ADD CONSTRAINT concept_contributors_contributor_id_fkey FOREIGN KEY (
     contributor_id
-) REFERENCES public."PlatformAccount" (id) ON UPDATE CASCADE ON DELETE CASCADE;
+) REFERENCES public."PlatformAccount"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.concept_contributors
 ADD CONSTRAINT concept_contributors_pkey PRIMARY KEY (

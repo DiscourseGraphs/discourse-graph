@@ -10,66 +10,68 @@ CREATE TYPE public."EmbeddingName" AS ENUM (
 ALTER TYPE public."EmbeddingName" OWNER TO "postgres";
 
 CREATE TABLE IF NOT EXISTS public."ContentEmbedding_openai_text_embedding_3_small_1536" (
-target_id bigint NOT NULL,
-"model" public."EmbeddingName" DEFAULT 'openai_text_embedding_3_small_1536'::public."EmbeddingName" NOT NULL,
-"vector" extensions.vector (1536) NOT NULL,
-obsolete boolean DEFAULT false
-) ;
+    target_id bigint NOT NULL,
+    "model" public."EmbeddingName" DEFAULT 'openai_text_embedding_3_small_1536'::public."EmbeddingName" NOT NULL,
+    "vector" extensions.vector(1536) NOT NULL,
+    obsolete boolean DEFAULT false
+);
 
-ALTER TABLE public."ContentEmbedding_openai_text_embedding_3_small_1536" OWNER TO "postgres" ;
-
-ALTER TABLE ONLY public."ContentEmbedding_openai_text_embedding_3_small_1536"
-ADD CONSTRAINT "ContentEmbedding_openai_text_embedding_3_small_1536_pkey" PRIMARY KEY (target_id) ;
+ALTER TABLE public."ContentEmbedding_openai_text_embedding_3_small_1536" OWNER TO "postgres";
 
 ALTER TABLE ONLY public."ContentEmbedding_openai_text_embedding_3_small_1536"
-ADD CONSTRAINT "ContentEmbedding_openai_text_embedding_3_small_1_target_id_fkey" FOREIGN KEY (target_id) REFERENCES public."Content" (id) ON UPDATE CASCADE ON DELETE CASCADE ;
+ADD CONSTRAINT "ContentEmbedding_openai_text_embedding_3_small_1536_pkey" PRIMARY KEY (target_id);
+
+ALTER TABLE ONLY public."ContentEmbedding_openai_text_embedding_3_small_1536"
+ADD CONSTRAINT "ContentEmbedding_openai_text_embedding_3_small_1_target_id_fkey" FOREIGN KEY (target_id) REFERENCES public."Content"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 CREATE OR REPLACE VIEW public.my_contents_with_embedding_openai_text_embedding_3_small_1536 AS
 SELECT
-ct.id,
-ct.document_id,
-ct.source_local_id,
-ct.variant,
-ct.author_id,
-ct.creator_id,
-ct.created,
-ct.text,
-ct.metadata,
-ct.scale,
-ct.space_id,
-ct.last_modified,
-ct.part_of_id,
-ct.content_type,
-ct.original,
-emb.model,
-emb.vector
+    ct.id,
+    ct.document_id,
+    ct.source_local_id,
+    ct.variant,
+    ct.author_id,
+    ct.creator_id,
+    ct.created,
+    ct.text,
+    ct.metadata,
+    ct.scale,
+    ct.space_id,
+    ct.last_modified,
+    ct.part_of_id,
+    ct.content_type,
+    ct.original,
+    emb.model,
+    emb.vector
 FROM public."Content" AS ct
-JOIN public."ContentEmbedding_openai_text_embedding_3_small_1536" AS emb ON (ct.id = emb.target_id)
+    JOIN public."ContentEmbedding_openai_text_embedding_3_small_1536" AS emb ON (ct.id = emb.target_id)
 WHERE
-(
-ct.space_id = any((SELECT public.my_space_ids('reader'))::bigint [])
-OR (
-ct.space_id = any((SELECT public.my_space_ids('partial'))::bigint [])
-AND (ct.space_id, ct.source_local_id) IN (SELECT space_id, source_local_id FROM public.my_accessible_resources())
-)
-)
-AND NOT emb.obsolete;
+    (
+        ct.space_id = any((SELECT public.my_space_ids('reader'))::bigint[])
+        OR (
+            ct.space_id = any((SELECT public.my_space_ids('partial'))::bigint[])
+            AND (ct.space_id, ct.source_local_id) IN (SELECT space_id, source_local_id FROM public.my_accessible_resources())
+        )
+    )
+    AND NOT emb.obsolete;
 
 REVOKE INSERT, UPDATE, DELETE ON public.my_contents_with_embedding_openai_text_embedding_3_small_1536 FROM authenticated;
 GRANT SELECT ON public.my_contents_with_embedding_openai_text_embedding_3_small_1536 TO anon;
 
-set search_path to public, extensions ;
+SET search_path TO public, extensions;
 
-CREATE OR REPLACE FUNCTION public.match_content_embeddings (
-query_embedding extensions.vector,
-match_threshold double precision,
-current_document_id integer DEFAULT NULL::integer)
+CREATE OR REPLACE FUNCTION public.match_content_embeddings(
+    query_embedding extensions.vector,
+    match_threshold double precision,
+    current_document_id integer DEFAULT null::integer
+)
 RETURNS TABLE (
-content_id bigint,
-roam_uid Text,
-text_content Text,
-similarity double precision)
+    content_id bigint,
+    roam_uid Text,
+    text_content Text,
+    similarity double precision
+)
 SET search_path = 'extensions'
 LANGUAGE sql STABLE
 AS $$
@@ -83,23 +85,27 @@ WHERE 1 - (c.vector <=> query_embedding) > match_threshold
   AND (current_document_id IS NULL OR c.document_id = current_document_id)
 ORDER BY
   c.vector <=> query_embedding ASC;
-$$ ;
+$$;
 
-ALTER FUNCTION public.match_content_embeddings (
-query_embedding extensions.vector,
-match_threshold double precision,
-current_document_id integer) OWNER TO "postgres" ;
+ALTER FUNCTION public.match_content_embeddings(
+    query_embedding extensions.vector,
+    match_threshold double precision,
+    current_document_id integer
+) OWNER TO "postgres";
 
 -- Not SECURITY DEFINER: runs as the caller, and reads through a my_* view.
 GRANT EXECUTE ON FUNCTION public.match_content_embeddings TO anon;
 
-CREATE OR REPLACE FUNCTION public.match_embeddings_for_subset_nodes (
-"p_query_embedding" extensions.vector,
-"p_subset_roam_uids" Text [])
-RETURNS TABLE (content_id bigint,
-roam_uid Text,
-text_content Text,
-similarity double precision)
+CREATE OR REPLACE FUNCTION public.match_embeddings_for_subset_nodes(
+    "p_query_embedding" extensions.vector,
+    "p_subset_roam_uids" Text[]
+)
+RETURNS TABLE (
+    content_id bigint,
+    roam_uid Text,
+    text_content Text,
+    similarity double precision
+)
 LANGUAGE sql STABLE
 SET search_path = 'extensions'
 AS $$
@@ -121,57 +127,58 @@ SELECT
   1 - (ss_ce.embedding_vector <=> p_query_embedding) AS similarity
 FROM subset_content_with_embeddings AS ss_ce
 ORDER BY similarity DESC; -- Order by calculated similarity, highest first
-$$ ;
+$$;
 
-ALTER FUNCTION public.match_embeddings_for_subset_nodes (
-"p_query_embedding" extensions.vector, "p_subset_roam_uids" Text [])
-OWNER TO "postgres" ;
+ALTER FUNCTION public.match_embeddings_for_subset_nodes(
+    "p_query_embedding" extensions.vector, "p_subset_roam_uids" Text[]
+)
+OWNER TO "postgres";
 
 -- Not SECURITY DEFINER: runs as the caller, and reads through a my_* view.
 GRANT EXECUTE ON FUNCTION public.match_embeddings_for_subset_nodes TO anon;
 
-RESET ALL ;
+RESET ALL;
 
-ALTER TABLE public."ContentEmbedding_openai_text_embedding_3_small_1536" ENABLE ROW LEVEL SECURITY ;
+ALTER TABLE public."ContentEmbedding_openai_text_embedding_3_small_1536" ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS embedding_openai_te3s_1536_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536" ;
-DROP POLICY IF EXISTS embedding_openai_te3s_1536_select_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536" ;
+DROP POLICY IF EXISTS embedding_openai_te3s_1536_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536";
+DROP POLICY IF EXISTS embedding_openai_te3s_1536_select_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536";
 CREATE POLICY embedding_openai_te3s_1536_select_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536"
 FOR SELECT USING (
     EXISTS (
         SELECT 1 FROM public."Content" AS ct
         WHERE ct.id = "ContentEmbedding_openai_text_embedding_3_small_1536".target_id
     )
-) ;
+);
 COMMENT ON POLICY embedding_openai_te3s_1536_select_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536"
-IS 'Visible exactly when the content is visible under its own select policy.' ;
-DROP POLICY IF EXISTS embedding_openai_te3s_1536_delete_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536" ;
+IS 'Visible exactly when the content is visible under its own select policy.';
+DROP POLICY IF EXISTS embedding_openai_te3s_1536_delete_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536";
 CREATE POLICY embedding_openai_te3s_1536_delete_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536"
 FOR DELETE USING (
     EXISTS (
         SELECT 1 FROM public."Content" AS ct
         WHERE
             ct.id = "ContentEmbedding_openai_text_embedding_3_small_1536".target_id
-            AND ct.space_id = any((SELECT public.my_space_ids('editor'))::bigint [])
+            AND ct.space_id = any((SELECT public.my_space_ids('editor'))::bigint[])
     )
-) ;
-DROP POLICY IF EXISTS embedding_openai_te3s_1536_insert_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536" ;
+);
+DROP POLICY IF EXISTS embedding_openai_te3s_1536_insert_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536";
 CREATE POLICY embedding_openai_te3s_1536_insert_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536"
 FOR INSERT WITH CHECK (
     EXISTS (
         SELECT 1 FROM public."Content" AS ct
         WHERE
             ct.id = "ContentEmbedding_openai_text_embedding_3_small_1536".target_id
-            AND ct.space_id = any((SELECT public.my_space_ids('editor'))::bigint [])
+            AND ct.space_id = any((SELECT public.my_space_ids('editor'))::bigint[])
     )
-) ;
-DROP POLICY IF EXISTS embedding_openai_te3s_1536_update_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536" ;
+);
+DROP POLICY IF EXISTS embedding_openai_te3s_1536_update_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536";
 CREATE POLICY embedding_openai_te3s_1536_update_policy ON public."ContentEmbedding_openai_text_embedding_3_small_1536"
 FOR UPDATE USING (
     EXISTS (
         SELECT 1 FROM public."Content" AS ct
         WHERE
             ct.id = "ContentEmbedding_openai_text_embedding_3_small_1536".target_id
-            AND ct.space_id = any((SELECT public.my_space_ids('editor'))::bigint [])
+            AND ct.space_id = any((SELECT public.my_space_ids('editor'))::bigint[])
     )
-) ;
+);
