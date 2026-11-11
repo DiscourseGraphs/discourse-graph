@@ -57,6 +57,8 @@ export type DbNodeRow = {
   fullLastModified: string | null;
 };
 
+export type DbCrossAppNode = CrossAppNode & { rid: string; modifiedAt: Date };
+
 export type ResolvedDbNode = {
   rid: string;
   localId: string;
@@ -364,7 +366,7 @@ export const dbNodeToCrossApp = ({
   accountMap: Record<number, string>;
   schemaMap: Record<number, string>;
   formatMap: Record<number, string>;
-}): CrossAppNode => {
+}): DbCrossAppNode => {
   const {
     rid,
     localId,
@@ -405,7 +407,7 @@ export const dbNodesToCrossApp = async ({
 }: DbNodeRows & {
   client: DGSupabaseClient;
   spaceMap: Record<number, string>;
-}): Promise<CrossAppNode[]> => {
+}): Promise<DbCrossAppNode[]> => {
   const authorIds = new Set<number>(
     directContents
       .map((c) => c.author_id)
