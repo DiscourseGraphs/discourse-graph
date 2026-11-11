@@ -1,0 +1,6 @@
+We now have two versions of the MCP read-only access; one with principals, and one with sessions we control with a hook. (Ref at https://roamresearch.com/#/app/discourse-graphs/page/Eg4aD33rW )
+Now, I see a new supabase page that may give a third way: Scoped personal access tokens. https://supabase.com/changelog/scoped-personal-access-tokens-ga and https://supabase.com/docs/guides/platform/personal-access-tokens . Looks good, but I mostly see UI access to create tokens, not sure we could do it through the api on behalf of users, can you check?
+
+---
+
+Ah, ok, thanks for correcting me.
