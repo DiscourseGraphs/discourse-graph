@@ -1,0 +1,13 @@
+I am curious about the lifecycle of openspec. I know you have the skill. When decisions in an archived spec get updated in a subsequent spec, is the archive updated? Or does the new spec reference the archive? Is there a risk of a large archive overwhelming agent memory? Is there a way to translate archived openspec into something more terse, like architecture decision records?
+
+---
+
+Can you build a small, terse version of those options for a cold reader with these concerns? (Without referring to the current repo)
+
+---
+
+Good. It addresses the need for decision history, not the concern about agent memory, can you explain how OpenSpec separates specs from the other documents to keep the memory requirements minimal?
+
+---
+
+Yes.
