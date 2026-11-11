@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS public."PlatformAccount" (
     agent_type public."AgentType" NOT NULL DEFAULT 'person',
     metadata JSONB NOT NULL DEFAULT '{}',
     dg_account UUID,
-    FOREIGN KEY (dg_account) REFERENCES auth.users (id) ON DELETE SET NULL ON UPDATE CASCADE
+    FOREIGN KEY (dg_account) REFERENCES auth.users(id) ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 ALTER TABLE public."PlatformAccount" OWNER TO "postgres";
@@ -54,7 +54,7 @@ CREATE TABLE public."AgentIdentifier" (
     value VARCHAR NOT NULL,
     trusted BOOLEAN NOT NULL DEFAULT false,
     PRIMARY KEY (value, identifier_type, account_id),
-    FOREIGN KEY (account_id) REFERENCES public."PlatformAccount" (id)
+    FOREIGN KEY (account_id) REFERENCES public."PlatformAccount"(id)
 );
 
 ALTER TABLE public."AgentIdentifier" OWNER TO "postgres";
@@ -82,12 +82,12 @@ COMMENT ON COLUMN public."LocalAccess".account_id IS 'The identity of the local 
 ALTER TABLE ONLY public."LocalAccess"
 ADD CONSTRAINT "LocalAccess_account_id_fkey" FOREIGN KEY (
     account_id
-) REFERENCES public."PlatformAccount" (id) ON UPDATE CASCADE ON DELETE CASCADE;
+) REFERENCES public."PlatformAccount"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE ONLY public."LocalAccess"
 ADD CONSTRAINT "LocalAccess_space_id_fkey" FOREIGN KEY (
     space_id
-) REFERENCES public."Space" (
+) REFERENCES public."Space"(
     id
 ) ON UPDATE CASCADE ON DELETE CASCADE;
 
@@ -120,12 +120,12 @@ COMMENT ON COLUMN public."SpaceAccess".permissions IS 'The permission this accou
 ALTER TABLE ONLY public."SpaceAccess"
 ADD CONSTRAINT "SpaceAccess_account_uid_fkey" FOREIGN KEY (
     account_uid
-) REFERENCES auth.users (id) ON UPDATE CASCADE ON DELETE CASCADE;
+) REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE ONLY public."SpaceAccess"
 ADD CONSTRAINT "SpaceAccess_space_id_fkey" FOREIGN KEY (
     space_id
-) REFERENCES public."Space" (
+) REFERENCES public."Space"(
     id
 ) ON UPDATE CASCADE ON DELETE CASCADE;
 
@@ -149,12 +149,12 @@ COMMENT ON COLUMN public.group_membership.group_id IS 'The group identifier';
 ALTER TABLE ONLY public.group_membership
 ADD CONSTRAINT "group_membership_member_id_fkey" FOREIGN KEY (
     member_id
-) REFERENCES auth.users (id) ON UPDATE CASCADE ON DELETE CASCADE;
+) REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.group_membership
 ADD CONSTRAINT "group_membership_group_id_fkey" FOREIGN KEY (
     group_id
-) REFERENCES auth.users (id) ON UPDATE CASCADE ON DELETE CASCADE;
+) REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 CREATE OR REPLACE VIEW public.my_groups AS
 SELECT id, split_part(email, '@', 1) AS name FROM auth.users
@@ -235,7 +235,7 @@ AS $$
         WHERE member_id = auth.uid() AND group_id = group_id_ AND admin);
 $$;
 
-CREATE OR REPLACE FUNCTION public.my_space_ids(access_level public."SpaceAccessPermissions" = 'reader') RETURNS BIGINT []
+CREATE OR REPLACE FUNCTION public.my_space_ids(access_level public."SpaceAccessPermissions" = 'reader') RETURNS BIGINT[]
 STABLE SECURITY DEFINER
 SET search_path = ''
 LANGUAGE sql
@@ -365,11 +365,11 @@ ALTER TABLE public."Space" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS space_policy ON public."Space";
 DROP POLICY IF EXISTS space_select_policy ON public."Space";
-CREATE POLICY space_select_policy ON public."Space" FOR SELECT USING (id = any((SELECT public.my_space_ids('partial'))::bigint []));
+CREATE POLICY space_select_policy ON public."Space" FOR SELECT USING (id = any((SELECT public.my_space_ids('partial'))::bigint[]));
 DROP POLICY IF EXISTS space_delete_policy ON public."Space";
-CREATE POLICY space_delete_policy ON public."Space" FOR DELETE USING (id = any((SELECT public.my_space_ids('editor'))::bigint []));
+CREATE POLICY space_delete_policy ON public."Space" FOR DELETE USING (id = any((SELECT public.my_space_ids('editor'))::bigint[]));
 DROP POLICY IF EXISTS space_update_policy ON public."Space";
-CREATE POLICY space_update_policy ON public."Space" FOR UPDATE USING (id = any((SELECT public.my_space_ids('editor'))::bigint []));
+CREATE POLICY space_update_policy ON public."Space" FOR UPDATE USING (id = any((SELECT public.my_space_ids('editor'))::bigint[]));
 -- No insert policy: clients cannot insert into Space. See space.sql.
 DROP POLICY IF EXISTS space_insert_policy ON public."Space";
 
@@ -409,7 +409,7 @@ WHERE id IN (
         JOIN public.my_user_accounts() ON (account_uid = my_user_accounts)
     WHERE permissions >= 'partial'
     UNION
-    SELECT id FROM public."PlatformAccount" WHERE dg_account = auth.uid()
+    SELECT pa.id FROM public."PlatformAccount" AS pa WHERE pa.dg_account = auth.uid()
 );
 
 -- Single-table views are writable, and writes run as the view owner, bypassing PlatformAccount's RLS.
@@ -503,16 +503,16 @@ ALTER TABLE public."SpaceAccess" ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS space_access_policy ON public."SpaceAccess";
 
 DROP POLICY IF EXISTS space_access_select_policy ON public."SpaceAccess";
-CREATE POLICY space_access_select_policy ON public."SpaceAccess" FOR SELECT USING (space_id = any((SELECT public.my_space_ids('reader'))::bigint []));
+CREATE POLICY space_access_select_policy ON public."SpaceAccess" FOR SELECT USING (space_id = any((SELECT public.my_space_ids('reader'))::bigint[]));
 
 DROP POLICY IF EXISTS space_access_delete_policy ON public."SpaceAccess";
-CREATE POLICY space_access_delete_policy ON public."SpaceAccess" FOR DELETE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
+CREATE POLICY space_access_delete_policy ON public."SpaceAccess" FOR DELETE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint[]));
 
 DROP POLICY IF EXISTS space_access_insert_policy ON public."SpaceAccess";
-CREATE POLICY space_access_insert_policy ON public."SpaceAccess" FOR INSERT WITH CHECK (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
+CREATE POLICY space_access_insert_policy ON public."SpaceAccess" FOR INSERT WITH CHECK (space_id = any((SELECT public.my_space_ids('editor'))::bigint[]));
 
 DROP POLICY IF EXISTS space_access_update_policy ON public."SpaceAccess";
-CREATE POLICY space_access_update_policy ON public."SpaceAccess" FOR UPDATE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint []));
+CREATE POLICY space_access_update_policy ON public."SpaceAccess" FOR UPDATE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint[]));
 
 ALTER TABLE public."LocalAccess" ENABLE ROW LEVEL SECURITY;
 
@@ -520,7 +520,7 @@ DROP POLICY IF EXISTS local_access_policy ON public."LocalAccess";
 
 -- The AgentIdentifier select policy and the PlatformAccount write policies read LocalAccess as the caller, so narrowing this policy narrows them too, with no error.
 DROP POLICY IF EXISTS local_access_select_policy ON public."LocalAccess";
-CREATE POLICY local_access_select_policy ON public."LocalAccess" FOR SELECT USING (space_id = any((SELECT public.my_space_ids('reader'))::bigint []));
+CREATE POLICY local_access_select_policy ON public."LocalAccess" FOR SELECT USING (space_id = any((SELECT public.my_space_ids('reader'))::bigint[]));
 
 DROP POLICY IF EXISTS local_access_delete_policy ON public."LocalAccess";
 CREATE POLICY local_access_delete_policy ON public."LocalAccess" FOR DELETE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint[]) AND (account_id IN (SELECT account_id FROM public.account_ids_in_shared_spaces('editor') WHERE unowned) OR account_id IN (SELECT public.my_platform_account_ids())));
