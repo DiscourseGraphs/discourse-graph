@@ -25,6 +25,7 @@ import { NodeSearchFooter } from "~/components/NodeSearchFooter";
 import { NodeSortMenu } from "~/components/NodeSortMenu";
 import { NodeTypeChipsSearchInput } from "~/components/NodeTypeChipsSearchInput";
 import { NodeTypeFilterMenu } from "~/components/NodeTypeFilterMenu";
+import { PreviewErrorBoundary } from "~/components/PreviewErrorBoundary";
 import type { SearchDropdownId } from "~/components/SearchDropdown";
 import {
   openFileInNewLeaf,
@@ -660,7 +661,17 @@ const NodeSearch = ({
             />
           )}
         </div>
-        <PreviewPane app={app} result={activeResult} authorName={authorName} />
+        {/* Keep the boundary outside any conditional around PreviewPane: unmounting
+            it with the preview would let a teardown throw blank the modal again. */}
+        <PreviewErrorBoundary
+          resetKey={`${activeResult?.file.path ?? ""}:${activeResult?.tagLine?.line ?? ""}:${activeResult?.nodeTypeId ?? ""}`}
+        >
+          <PreviewPane
+            app={app}
+            result={activeResult}
+            authorName={authorName}
+          />
+        </PreviewErrorBoundary>
       </div>
       <NodeSearchFooter
         canAct={nodesState.status === "ready" && !!activeResult}
