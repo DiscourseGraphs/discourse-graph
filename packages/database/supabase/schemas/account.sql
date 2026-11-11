@@ -40,8 +40,6 @@ COMMENT ON TABLE public."PlatformAccount" IS 'An account for an agent on a platf
 
 CREATE UNIQUE INDEX account_platform_and_id_idx ON public."PlatformAccount" (account_local_id, platform);
 
-REVOKE ALL ON TABLE public."PlatformAccount" FROM anon;
-GRANT ALL ON TABLE public."PlatformAccount" TO authenticated;
 -- Clients cannot set who owns an account (dg_account) or change what identifies it (agent_type, platform, account_local_id).
 -- Clients create and upsert accounts through upsert_account_in_space, which also adds the account to the space.
 -- Clients cannot read dg_account, which would show which accounts belong to one person, or metadata, which nothing uses yet.
@@ -49,7 +47,6 @@ GRANT ALL ON TABLE public."PlatformAccount" TO authenticated;
 REVOKE SELECT, INSERT, UPDATE ON TABLE public."PlatformAccount" FROM authenticated;
 GRANT SELECT (id, name, platform, account_local_id, write_permission, active, agent_type) ON TABLE public."PlatformAccount" TO authenticated;
 GRANT UPDATE (name, active) ON TABLE public."PlatformAccount" TO authenticated;
-GRANT ALL ON TABLE public."PlatformAccount" TO service_role;
 
 CREATE TABLE public."AgentIdentifier" (
     identifier_type public."AgentIdentifierType" NOT NULL,
@@ -63,10 +60,6 @@ CREATE TABLE public."AgentIdentifier" (
 ALTER TABLE public."AgentIdentifier" OWNER TO "postgres";
 
 COMMENT ON TABLE public."AgentIdentifier" IS 'An identifying attribute associated with an account, can be a basis for unification';
-
-REVOKE ALL ON TABLE public."AgentIdentifier" FROM anon;
-GRANT ALL ON TABLE public."AgentIdentifier" TO authenticated;
-GRANT ALL ON TABLE public."AgentIdentifier" TO service_role;
 
 CREATE INDEX platform_account_dg_account_idx ON public."PlatformAccount" (dg_account);
 
@@ -97,10 +90,6 @@ ADD CONSTRAINT "LocalAccess_space_id_fkey" FOREIGN KEY (
 ) REFERENCES public."Space" (
     id
 ) ON UPDATE CASCADE ON DELETE CASCADE;
-
-GRANT ALL ON TABLE public."LocalAccess" TO authenticated;
-GRANT ALL ON TABLE public."LocalAccess" TO service_role;
-REVOKE ALL ON TABLE public."LocalAccess" FROM anon;
 
 
 CREATE TYPE public."SpaceAccessPermissions" AS ENUM (
@@ -140,10 +129,6 @@ ADD CONSTRAINT "SpaceAccess_space_id_fkey" FOREIGN KEY (
     id
 ) ON UPDATE CASCADE ON DELETE CASCADE;
 
-GRANT ALL ON TABLE public."SpaceAccess" TO authenticated;
-GRANT ALL ON TABLE public."SpaceAccess" TO service_role;
-REVOKE ALL ON TABLE public."SpaceAccess" FROM anon;
-
 CREATE TABLE IF NOT EXISTS public.group_membership (
     member_id UUID NOT NULL,
     group_id UUID NOT NULL,
@@ -171,14 +156,13 @@ ADD CONSTRAINT "group_membership_group_id_fkey" FOREIGN KEY (
     group_id
 ) REFERENCES auth.users (id) ON UPDATE CASCADE ON DELETE CASCADE;
 
-REVOKE ALL ON TABLE public.group_membership FROM anon;
-GRANT ALL ON TABLE public.group_membership TO authenticated;
-GRANT ALL ON TABLE public.group_membership TO service_role;
-
 CREATE OR REPLACE VIEW public.my_groups AS
 SELECT id, split_part(email, '@', 1) AS name FROM auth.users
     JOIN public.group_membership ON (group_id = id)
 WHERE member_id = auth.uid();
+
+REVOKE INSERT, UPDATE, DELETE ON public.my_groups FROM authenticated;
+GRANT SELECT ON public.my_groups TO anon;
 
 CREATE TYPE public.account_local_input AS (
     -- PlatformAccount columns
@@ -201,10 +185,6 @@ AS $$
 $$;
 
 COMMENT ON FUNCTION public.my_platform_account_ids IS 'security utility: the platform accounts I own. Takes no row column, so a policy runs it once per query.';
-
--- LocalAccess and AgentIdentifier write policies; anon cannot write those tables.
-REVOKE ALL ON FUNCTION public.my_platform_account_ids() FROM public, anon;
-GRANT EXECUTE ON FUNCTION public.my_platform_account_ids() TO authenticated, service_role;
 
 -- The planner can't inline this function, and its default estimate of 1000 rows makes it scan SpaceAccess instead of using the primary key.
 -- The caller plus their groups is usually a few rows. Measured on generated data: above 10, plans get worse as SpaceAccess grows.
@@ -246,9 +226,6 @@ AS $$
         WHERE member_id = auth.uid() AND group_id = group_id_);
 $$;
 
--- group_membership select policy; anon cannot read group_membership.
-REVOKE ALL ON FUNCTION public.in_group FROM anon;
-
 CREATE OR REPLACE FUNCTION public.is_group_admin(group_id_ UUID) RETURNS BOOLEAN
 STABLE SECURITY DEFINER
 SET search_path = ''
@@ -257,9 +234,6 @@ AS $$
     SELECT EXISTS (SELECT true FROM public.group_membership
         WHERE member_id = auth.uid() AND group_id = group_id_ AND admin);
 $$;
-
--- group_membership write policies; anon cannot read group_membership.
-REVOKE ALL ON FUNCTION public.is_group_admin FROM anon;
 
 CREATE OR REPLACE FUNCTION public.my_space_ids(access_level public."SpaceAccessPermissions" = 'reader') RETURNS BIGINT []
 STABLE SECURITY DEFINER
@@ -286,8 +260,7 @@ AS $$
 $$;
 
 COMMENT ON FUNCTION public.in_space IS 'security utility: does current user have access to this space?';
--- Only write paths reach it as the caller, through concept_in_space and content_in_space; anon's reads use my_space_ids. A new policy that anon's queries reach must not call it.
-REVOKE ALL ON FUNCTION public.in_space FROM anon;
+-- anon can't execute it. Only write paths reach it as the caller, through concept_in_space and content_in_space; anon's reads use my_space_ids. A new policy that anon's queries reach must not call it.
 
 CREATE OR REPLACE FUNCTION public.account_ids_in_shared_spaces(access_level public."SpaceAccessPermissions" = 'reader')
 RETURNS TABLE (account_id BIGINT, unowned BOOLEAN)
@@ -303,10 +276,6 @@ LANGUAGE sql AS $$
 $$;
 
 COMMENT ON FUNCTION public.account_ids_in_shared_spaces IS 'security utility: the accounts in spaces where I have at least this access level, and whether each is unowned. Takes no row column, so a policy runs it once per query.';
-
--- LocalAccess and AgentIdentifier write policies; anon cannot write those tables.
-REVOKE ALL ON FUNCTION public.account_ids_in_shared_spaces(public."SpaceAccessPermissions") FROM public, anon;
-GRANT EXECUTE ON FUNCTION public.account_ids_in_shared_spaces(public."SpaceAccessPermissions") TO authenticated, service_role;
 
 
 CREATE OR REPLACE FUNCTION public.upsert_account_in_space(
@@ -347,9 +316,6 @@ BEGIN
 END;
 $$;
 
--- Called by upsert_accounts_in_space, create_account_in_space, upsert_documents and upsert_content, which plugins call after logging in.
-REVOKE ALL ON FUNCTION public.upsert_account_in_space FROM anon;
-
 CREATE OR REPLACE FUNCTION public.upsert_accounts_in_space(
     space_id_ BIGINT,
     accounts JSONB
@@ -373,9 +339,6 @@ BEGIN
 END;
 $$;
 
--- Roam sync calls it after logging in.
-REVOKE ALL ON FUNCTION public.upsert_accounts_in_space FROM anon;
-
 -- legacy
 CREATE OR REPLACE FUNCTION public.create_account_in_space(
     space_id_ BIGINT,
@@ -392,9 +355,6 @@ AS $$
     SELECT public.upsert_account_in_space(space_id_, ROW(name_, account_local_id_ ,email_, email_trusted, null, permissions_)::public.account_local_input);
 $$;
 
--- Plugins call it after logging in, as do upsert_documents, upsert_content and upsert_concepts.
-REVOKE ALL ON FUNCTION public.create_account_in_space FROM anon;
-
 COMMENT ON FUNCTION public.upsert_account_in_space IS 'Add an account to a space the caller can edit. Grants no SpaceAccess: the space_editor and permissions fields of the input are ignored.';
 COMMENT ON FUNCTION public.upsert_accounts_in_space IS 'Add accounts to a space the caller can edit, through upsert_account_in_space.';
 COMMENT ON FUNCTION public.create_account_in_space IS 'Legacy wrapper of upsert_account_in_space; permissions_ is ignored.';
@@ -410,8 +370,8 @@ DROP POLICY IF EXISTS space_delete_policy ON public."Space";
 CREATE POLICY space_delete_policy ON public."Space" FOR DELETE USING (id = any((SELECT public.my_space_ids('editor'))::bigint []));
 DROP POLICY IF EXISTS space_update_policy ON public."Space";
 CREATE POLICY space_update_policy ON public."Space" FOR UPDATE USING (id = any((SELECT public.my_space_ids('editor'))::bigint []));
+-- No insert policy: clients cannot insert into Space. See space.sql.
 DROP POLICY IF EXISTS space_insert_policy ON public."Space";
-CREATE POLICY space_insert_policy ON public."Space" FOR INSERT WITH CHECK (true);
 
 CREATE OR REPLACE VIEW public.my_spaces AS
 SELECT
@@ -422,7 +382,8 @@ SELECT
 FROM public."Space" WHERE id = any(public.my_space_ids('partial'));
 
 -- Single-table views are writable, and writes run as the view owner, bypassing Space's RLS.
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.my_spaces FROM anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.my_spaces FROM authenticated;
+GRANT SELECT ON public.my_spaces TO anon;
 
 -- PlatformAccount: Editors of a space can change or delete its unowned accounts, to allow editing authors.
 -- Clients create accounts through the account functions.
@@ -452,7 +413,8 @@ WHERE id IN (
 );
 
 -- Single-table views are writable, and writes run as the view owner, bypassing PlatformAccount's RLS.
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.my_accounts FROM anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.my_accounts FROM authenticated;
+GRANT SELECT ON public.my_accounts TO anon;
 
 -- Definer view on purpose: inside a policy, LocalAccess is filtered by its own reader-level select policy, so an inline check can't see partial access.
 -- Unlike a function, the planner can inline a view, so a policy can check one account without building the whole set.
@@ -489,6 +451,9 @@ FROM public."PlatformAccount" AS pa
     LEFT OUTER JOIN public."SpaceAccess" AS grpsa ON (grpsa.account_uid = gm.group_id AND grpsa.space_id = sp.id)
 WHERE pa.agent_type = 'anonymous' AND sa.permissions = 'editor';
 
+REVOKE INSERT, UPDATE, DELETE ON public.my_pseudo_accounts FROM authenticated;
+GRANT SELECT ON public.my_pseudo_accounts TO anon;
+
 
 CREATE OR REPLACE FUNCTION public.accept_group_invitation(token varchar) RETURNS boolean
 SET search_path = '' SECURITY DEFINER
@@ -517,9 +482,6 @@ BEGIN
     END;
 END;
 $$;
-
--- The website calls it for a logged-in user; it returns false without one.
-REVOKE ALL ON FUNCTION public.accept_group_invitation FROM anon;
 
 DROP POLICY IF EXISTS platform_account_policy ON public."PlatformAccount";
 
