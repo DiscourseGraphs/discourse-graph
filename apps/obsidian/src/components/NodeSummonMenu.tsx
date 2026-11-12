@@ -143,6 +143,7 @@ class NodeSummonMenu {
       return false;
     });
     this.scope.register([], "Escape", () => {
+      if (this.closeIfEditorBlurred()) return true;
       this.close();
       return false;
     });

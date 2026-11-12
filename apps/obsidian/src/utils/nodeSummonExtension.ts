@@ -8,15 +8,12 @@ import {
 } from "~/components/NodeSummonMenu";
 import { getTypedTriggerStart } from "~/utils/nodeSearchTrigger";
 
-// Obsidian's markdown token names; `@` there is code or YAML, not a node reference.
-const CODE_OR_FRONTMATTER = /codeblock|inline-code|frontmatter/i;
+// Obsidian's markdown token names where `@` is code, YAML, link text, math or a comment.
+const NON_PROSE_TOKEN = /codeblock|inline-code|frontmatter|link|math|comment/i;
 
-const isInCodeOrFrontmatter = (
-  state: ViewUpdate["state"],
-  pos: number,
-): boolean => {
+const isInNonProse = (state: ViewUpdate["state"], pos: number): boolean => {
   let node = syntaxTree(state).resolveInner(pos, -1);
-  while (!CODE_OR_FRONTMATTER.test(node.name)) {
+  while (!NON_PROSE_TOKEN.test(node.name)) {
     if (!node.parent) return false;
     node = node.parent;
   }
@@ -57,7 +54,9 @@ const updateOpenMenu = (update: ViewUpdate): boolean => {
   return true;
 };
 
-export const createNodeSummonExtension = (plugin: DiscourseGraphPlugin) =>
+export const createNodeSummonExtension = (
+  plugin: DiscourseGraphPlugin,
+): ReturnType<typeof EditorView.updateListener.of> =>
   EditorView.updateListener.of((update) => {
     if (updateOpenMenu(update)) return;
 
@@ -76,7 +75,7 @@ export const createNodeSummonExtension = (plugin: DiscourseGraphPlugin) =>
       lineBeforeCursor: doc.sliceString(line.from, head),
       trigger,
     });
-    if (start === null || isInCodeOrFrontmatter(update.state, head)) return;
+    if (start === null || isInNonProse(update.state, head)) return;
 
     openNodeSummonMenu({
       plugin,
