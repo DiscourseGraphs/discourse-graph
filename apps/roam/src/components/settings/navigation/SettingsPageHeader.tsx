@@ -8,10 +8,12 @@ const SettingsPageHeader = ({
   ancestorLabels,
   rootLabel,
   resolveLabel,
+  actions,
 }: {
   ancestorLabels: readonly string[];
   rootLabel: string;
   resolveLabel: (segment: string, segmentIndex: number) => string;
+  actions?: React.ReactNode;
 }): JSX.Element | null => {
   const { path, depth, pop, goToDepth } = useSettingsNav();
   if (depth === 0) return null;
@@ -34,6 +36,9 @@ const SettingsPageHeader = ({
           onClick={pop}
         />
         {current.label}
+        {actions && (
+          <div className="ml-auto text-sm font-normal">{actions}</div>
+        )}
       </div>
       <div className="text-sm leading-snug text-gray-500">
         {ancestorLabels.map((label) => (
