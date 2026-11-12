@@ -155,3 +155,7 @@ is there a simpler way? we did a similar drag thing into canvas. i remember it w
 ---
 
 yes, use this simpler version
+
+---
+
+hmm the link seems wrong. and it is wrong. make sure the link generated is correct link to the file, just a different format
