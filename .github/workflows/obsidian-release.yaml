@@ -72,3 +72,21 @@ jobs:
           access_key: ${{ secrets.LINEAR_RELEASES_ACCESS_KEY_OBSIDIAN }}
           command: complete
           version: ${{ env.VERSION }}
+
+      # The incoming webhook is bound to its Slack channel when it is created,
+      # so changing the destination channel means replacing this secret.
+      - name: Notify Slack
+        # The release is already published and completed here, so a Slack
+        # delivery failure must not mark the run as failed.
+        continue-on-error: true
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_OBSIDIAN_RELEASE_WEBHOOK_URL }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "::warning::SLACK_OBSIDIAN_RELEASE_WEBHOOK_URL is not set; skipping Slack notification."
+            exit 0
+          fi
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          jq -n --arg text "Discourse Graph for Obsidian ${VERSION} was released. <${RUN_URL}|Workflow run>" \
+            '{text: $text}' \
+            | curl --fail --silent --show-error -X POST -H 'Content-type: application/json' --data @- "$SLACK_WEBHOOK_URL"
