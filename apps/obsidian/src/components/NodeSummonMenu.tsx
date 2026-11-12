@@ -63,7 +63,6 @@ const NodeSummonList = ({
               <div
                 key={node.file.path}
                 ref={isActive ? activeRef : undefined}
-                // Indented past the header's dot so rows read as children of the type.
                 className={`suggestion-item pl-7 ${isActive ? "is-selected" : ""}`}
                 // Keeps focus in the editor, so the cursor stays after the query.
                 onMouseDown={(event) => event.preventDefault()}
