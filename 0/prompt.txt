@@ -293,3 +293,25 @@ If this event is something the user would act on now, send a PushNotification. R
 <event>carryover2 finished</event>
 If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
 </task-notification>
+
+---
+
+<task-notification>
+<task-id>behrwy79p</task-id>
+<tool-use-id>toolu_01UbhWLMD8JcJDAr9Zbt4TbP</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/4c5f914f-cbde-45a8-8380-a59c858f1894/tasks/behrwy79p.output</output-file>
+<status>completed</status>
+<summary>Background command "Verify fix in Roam" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>b7k0oab75</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/4c5f914f-cbde-45a8-8380-a59c858f1894/tasks/b7k0oab75.output</output-file>
+<status>completed</status>
+<summary>Monitor "fix verification completion" stream ended</summary>
+<event>fix verification finished</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
