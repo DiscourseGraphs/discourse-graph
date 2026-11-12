@@ -3,7 +3,7 @@
   "checkpoint_id": "01M78HKJNWA6KX0P7FFRYCB9H3",
   "strategy": "manual-commit",
   "branch": "eng-893-implement-node-summoning-menu-in-obsidian",
-  "checkpoints_count": 3,
+  "checkpoints_count": 4,
   "files_touched": [
     "apps/obsidian/src/components/GeneralSettings.tsx",
     "apps/obsidian/src/components/NodeSummonMenu.tsx",
@@ -24,14 +24,21 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 50,
-    "cache_creation_tokens": 30815,
-    "cache_read_tokens": 5610831,
-    "output_tokens": 17510,
-    "api_call_count": 25,
+    "input_tokens": 94,
+    "cache_creation_tokens": 58454,
+    "cache_read_tokens": 10279001,
+    "output_tokens": 36858,
+    "api_call_count": 47,
     "subagent_tokens": {
       "input_tokens": 8,
       "cache_creation_tokens": 76224,
