@@ -130,3 +130,25 @@ If this event is something the user would act on now, send a PushNotification. R
 ---
 
 Yes, fix both
+
+---
+
+<task-notification>
+<task-id>bz8wnmtvk</task-id>
+<tool-use-id>toolu_01YHKPKwzQ8NmjaKrmNotWMs</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/4c5f914f-cbde-45a8-8380-a59c858f1894/tasks/bz8wnmtvk.output</output-file>
+<status>completed</status>
+<summary>Background command "Verify width cap in real Roam" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>ba5u0jacn</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/4c5f914f-cbde-45a8-8380-a59c858f1894/tasks/ba5u0jacn.output</output-file>
+<status>completed</status>
+<summary>Monitor "width cap verification completion" stream ended</summary>
+<event>width-cap run finished</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
