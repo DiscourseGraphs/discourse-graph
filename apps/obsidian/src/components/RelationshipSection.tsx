@@ -27,6 +27,7 @@ import {
   updateRelation,
 } from "~/utils/relationsStore";
 import { InfoTooltip } from "./InfoTooltip";
+import { setFileDragData } from "~/utils/fileDragData";
 
 type RelationTypeOption = {
   id: string;
@@ -529,10 +530,29 @@ const CurrentRelationships = ({
       <ul className="m-0 ml-6 list-none p-0">
         {group.linkedEntries.map((entry) => (
           <li key={entry.relation.id} className="mt-1 flex items-center gap-2">
+            {/* No href: an <a href> makes Chromium write anchor markup into
+                text/html, which Obsidian converts in preference to our link. */}
             <a
-              href="#"
-              className="text-accent-text flex-1"
-              onClick={(e) => {
+              role="link"
+              tabIndex={0}
+              className="text-accent-text flex-1 cursor-pointer"
+              draggable
+              onDragStart={(e) =>
+                setFileDragData({
+                  dataTransfer: e.dataTransfer,
+                  app: plugin.app,
+                  file: entry.file,
+                  sourcePath: activeFile.path,
+                })
+              }
+              onClick={() =>
+                void plugin.app.workspace.openLinkText(
+                  entry.file.path,
+                  activeFile.path,
+                )
+              }
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
                 e.preventDefault();
                 void plugin.app.workspace.openLinkText(
                   entry.file.path,
