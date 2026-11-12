@@ -18,12 +18,6 @@
   padding: 0 10px;
   width: 100%;
 }
-.dg-settings-node-page {
-  display: flex;
-  flex-direction: column;
-  gap: 44px;
-  padding: 2px;
-}
 
 /* Keeps a search-jumped row clear of the sticky section heading above it. */
 .dg-settings-tabs [data-setting-id] {
@@ -32,7 +26,11 @@
 
 /* Row content only: tables, the node index and the specification query editor need full width.
    The cap sits on the content, not the scroll box, so the scrollbar stays at the dialog edge. */
-.dg-settings-row-panel > *,
+.dg-settings-row-panel > * {
+  max-width: 720px;
+}
+
+/* Kept separate: a browser without :has() would invalidate the whole rule, not just this half. */
 .dg-settings-node-config > :not(:has(.roamjs-node-specification)) {
   max-width: 720px;
 }
