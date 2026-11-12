@@ -3,7 +3,7 @@
   "checkpoint_id": "01M78K284X2S2CFFM9AW2SEACF",
   "strategy": "manual-commit",
   "branch": "eng-1947-drag-and-drop-from-discourse-context-should",
-  "checkpoints_count": 3,
+  "checkpoints_count": 12,
   "files_touched": [
     "apps/obsidian/src/components/RelationshipSection.tsx",
     "apps/obsidian/src/utils/__tests__/fileDragData.test.ts",
@@ -30,14 +30,21 @@
       "compact_transcript": "/2/transcript.jsonl",
       "content_hash": "/2/content_hash.txt",
       "prompt": "/2/prompt.txt"
+    },
+    {
+      "metadata": "/3/metadata.json",
+      "transcript": "/3/full.jsonl",
+      "compact_transcript": "/3/transcript.jsonl",
+      "content_hash": "/3/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
-    "input_tokens": 52,
-    "cache_creation_tokens": 36643,
-    "cache_read_tokens": 6535066,
-    "output_tokens": 13400,
-    "api_call_count": 23,
+    "input_tokens": 54,
+    "cache_creation_tokens": 233528,
+    "cache_read_tokens": 6578345,
+    "output_tokens": 13723,
+    "api_call_count": 24,
     "subagent_tokens": {
       "input_tokens": 44,
       "cache_creation_tokens": 133809,
