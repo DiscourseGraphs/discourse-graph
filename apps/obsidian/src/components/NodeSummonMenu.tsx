@@ -184,11 +184,14 @@ class NodeSummonMenu {
       view.scrollDOM.removeEventListener("scroll", onScroll),
     );
 
-    this.resizeObserver = new ResizeObserver(() => this.reposition());
+    // The editor's own window, so the observer also fires in popout windows.
+    const win = doc.defaultView ?? window;
+    this.resizeObserver = new win.ResizeObserver(() => this.reposition());
     this.resizeObserver.observe(this.containerEl);
 
     this.regroup();
     this.render();
+    this.reposition();
   }
 
   setQuery(query: string): void {
