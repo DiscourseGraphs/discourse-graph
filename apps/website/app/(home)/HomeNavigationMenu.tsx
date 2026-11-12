@@ -13,6 +13,7 @@ import {
 export type HomeNavigationItem = {
   href: string;
   isDocumentNavigation?: boolean;
+  isMobileOnly?: boolean;
   label: string;
 };
 
@@ -23,7 +24,9 @@ type HomeNavigationMenuProps = {
 export const HomeNavigationMenu = ({
   items,
 }: HomeNavigationMenuProps): React.ReactElement => {
-  const desktopItems = items.filter((item) => !item.isDocumentNavigation);
+  const desktopItems = items.filter(
+    (item) => !item.isDocumentNavigation && !item.isMobileOnly,
+  );
 
   return (
     <>
@@ -34,11 +37,10 @@ export const HomeNavigationMenu = ({
               type="button"
               variant="outline"
               size="icon"
-              className="border-neutral-dark/15 bg-neutral-light text-neutral-dark hover:border-neutral-dark/15 hover:bg-neutral-light hover:text-neutral-dark focus-visible:ring-neutral-dark/20 active:bg-neutral-light active:text-neutral-dark data-[state=open]:border-neutral-dark/15 data-[state=open]:bg-neutral-light data-[state=open]:text-neutral-dark min-[360px]:w-auto min-[360px]:px-4"
+              className="border-neutral-dark/15 bg-neutral-light text-neutral-dark hover:border-neutral-dark/15 hover:bg-neutral-light hover:text-neutral-dark focus-visible:ring-neutral-dark/20 active:bg-neutral-light active:text-neutral-dark data-[state=open]:border-neutral-dark/15 data-[state=open]:bg-neutral-light data-[state=open]:text-neutral-dark"
               aria-label="Open navigation menu"
             >
               <Menu className="h-4 w-4" aria-hidden="true" />
-              <span className="hidden min-[360px]:inline">Menu</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -61,7 +63,7 @@ export const HomeNavigationMenu = ({
       </div>
 
       <nav aria-label="Primary navigation" className="hidden lg:flex">
-        <ul className="flex flex-wrap justify-end gap-x-5 gap-y-2 text-sm font-medium text-neutral-dark/75">
+        <ul className="flex flex-nowrap justify-center gap-x-4 whitespace-nowrap text-sm font-medium text-neutral-dark/75 xl:gap-x-5">
           {desktopItems.map((item) => (
             <li key={item.href} className="shrink-0">
               {item.isDocumentNavigation ? (
