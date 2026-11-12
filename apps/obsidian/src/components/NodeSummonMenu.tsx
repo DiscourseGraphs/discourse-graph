@@ -121,9 +121,19 @@ class NodeSummonMenu {
 
     // Parented to app.scope so unrelated hotkeys keep working while the menu is open.
     this.scope = new Scope(plugin.app.scope);
-    this.scope.register([], "ArrowDown", () => this.move(1));
-    this.scope.register([], "ArrowUp", () => this.move(-1));
-    this.scope.register([], "Enter", () => {
+    // Returning true lets an IME composition keep its own Enter and arrow keys.
+    this.scope.register(
+      [],
+      "ArrowDown",
+      (evt) => evt.isComposing || this.move(1),
+    );
+    this.scope.register(
+      [],
+      "ArrowUp",
+      (evt) => evt.isComposing || this.move(-1),
+    );
+    this.scope.register([], "Enter", (evt) => {
+      if (evt.isComposing) return true;
       if (this.closeIfEditorBlurred()) return true;
       if (this.itemCount() === 0) {
         this.close();
@@ -255,7 +265,16 @@ class NodeSummonMenu {
     this.view.requestMeasure({
       read: (view) => view.coordsAtPos(this.triggerFrom),
       write: (coords) => {
-        if (!coords) return;
+        // A trigger scrolled out of view would leave the menu over unrelated text.
+        const scroller = this.view.scrollDOM.getBoundingClientRect();
+        if (
+          !coords ||
+          coords.bottom < scroller.top ||
+          coords.top > scroller.bottom
+        ) {
+          this.close();
+          return;
+        }
         const win = this.view.dom.ownerDocument.defaultView ?? window;
         const { width, height } = this.containerEl.getBoundingClientRect();
         const left = Math.min(

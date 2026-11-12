@@ -1,3 +1,4 @@
+import { syntaxTree } from "@codemirror/language";
 import { EditorView, type ViewUpdate } from "@codemirror/view";
 import type DiscourseGraphPlugin from "~/index";
 import {
@@ -6,6 +7,21 @@ import {
   openNodeSummonMenu,
 } from "~/components/NodeSummonMenu";
 import { getTypedTriggerStart } from "~/utils/nodeSearchTrigger";
+
+// Obsidian's markdown token names; `@` there is code or YAML, not a node reference.
+const CODE_OR_FRONTMATTER = /codeblock|inline-code|frontmatter/i;
+
+const isInCodeOrFrontmatter = (
+  state: ViewUpdate["state"],
+  pos: number,
+): boolean => {
+  let node = syntaxTree(state).resolveInner(pos, -1);
+  while (!CODE_OR_FRONTMATTER.test(node.name)) {
+    if (!node.parent) return false;
+    node = node.parent;
+  }
+  return true;
+};
 
 // Keeps the open menu's query in sync, or closes it once the trigger is gone.
 const updateOpenMenu = (update: ViewUpdate): boolean => {
@@ -60,7 +76,7 @@ export const createNodeSummonExtension = (plugin: DiscourseGraphPlugin) =>
       lineBeforeCursor: doc.sliceString(line.from, head),
       trigger,
     });
-    if (start === null) return;
+    if (start === null || isInCodeOrFrontmatter(update.state, head)) return;
 
     openNodeSummonMenu({
       plugin,
