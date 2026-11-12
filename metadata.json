@@ -3,7 +3,7 @@
   "checkpoint_id": "01M78H5J8APJJ4R0CJW66HG7TY",
   "strategy": "manual-commit",
   "branch": "eng-893-implement-node-summoning-menu-in-obsidian",
-  "checkpoints_count": 9,
+  "checkpoints_count": 14,
   "files_touched": null,
   "sessions": [
     {
@@ -12,20 +12,27 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 126,
-    "cache_creation_tokens": 346539,
-    "cache_read_tokens": 10370364,
-    "output_tokens": 58664,
-    "api_call_count": 63,
+    "input_tokens": 324,
+    "cache_creation_tokens": 855117,
+    "cache_read_tokens": 24601103,
+    "output_tokens": 105898,
+    "api_call_count": 164,
     "subagent_tokens": {
-      "input_tokens": 50,
-      "cache_creation_tokens": 382748,
-      "cache_read_tokens": 1437678,
-      "output_tokens": 5587,
-      "api_call_count": 25
+      "input_tokens": 162,
+      "cache_creation_tokens": 2550060,
+      "cache_read_tokens": 7436973,
+      "output_tokens": 39086,
+      "api_call_count": 83
     }
   }
 }
