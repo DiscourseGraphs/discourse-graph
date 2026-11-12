@@ -90,12 +90,15 @@ const GrammarNodesRoute = ({
           <div className="p-1">
             <DiscourseNodeConfigPanel />
           </div>
-        ) : subPage === nodeConfigSegmentIds.index ? (
-          <NodeIndexPage node={node} onloadArgs={onloadArgs} />
+        ) : /* Keyed by node: search can jump straight between node pages, and these forms seed
+             their state from props once, so without a remount the previous node's values stay. */
+        subPage === nodeConfigSegmentIds.index ? (
+          <NodeIndexPage key={node.type} node={node} onloadArgs={onloadArgs} />
         ) : subPage === nodeConfigSegmentIds.template ? (
-          <NodeTemplatePage node={node} />
+          <NodeTemplatePage key={node.type} node={node} />
         ) : (
           <NodeConfig
+            key={node.type}
             node={node}
             collapsedSections={collapsedSections}
             onToggleSection={(section) =>
