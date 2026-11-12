@@ -3,7 +3,7 @@
   "checkpoint_id": "01M78K284X2S2CFFM9AW2SEACF",
   "strategy": "manual-commit",
   "branch": "eng-1947-drag-and-drop-from-discourse-context-should",
-  "checkpoints_count": 3,
+  "checkpoints_count": 4,
   "files_touched": [
     "apps/obsidian/src/components/RelationshipSection.tsx",
     "apps/obsidian/src/utils/__tests__/fileDragData.test.ts",
@@ -23,20 +23,27 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 34,
-    "cache_creation_tokens": 11734,
-    "cache_read_tokens": 3778536,
-    "output_tokens": 5677,
-    "api_call_count": 13,
+    "input_tokens": 46,
+    "cache_creation_tokens": 18191,
+    "cache_read_tokens": 5186713,
+    "output_tokens": 9405,
+    "api_call_count": 19,
     "subagent_tokens": {
-      "input_tokens": 4,
-      "cache_creation_tokens": 38634,
-      "cache_read_tokens": 96341,
-      "output_tokens": 1468,
-      "api_call_count": 2
+      "input_tokens": 44,
+      "cache_creation_tokens": 134160,
+      "cache_read_tokens": 2804996,
+      "output_tokens": 13940,
+      "api_call_count": 22
     }
   },
   "combined_attribution": {
