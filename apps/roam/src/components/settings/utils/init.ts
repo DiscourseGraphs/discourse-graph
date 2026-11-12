@@ -25,7 +25,12 @@ import {
   migratePersonalSettings,
 } from "./migrateLegacyToBlockProps";
 import { migratePropsStoreDefault } from "./migratePropsStoreDefault";
-import { getTopLevelBlockPropsConfig } from "~/components/settings/utils/zodSchema";
+import {
+  getTopLevelBlockPropsConfig,
+  PersonalSettingsSchema,
+} from "~/components/settings/utils/zodSchema";
+import { PERSONAL_KEYS } from "./settingKeys";
+import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import { DG_BLOCK_PROP_SETTINGS_PAGE_TITLE } from "./zodSchema";
 import toFlexRegex from "roamjs-components/util/toFlexRegex";
 import refreshConfigTree from "~/utils/refreshConfigTree";
@@ -165,7 +170,18 @@ const initializeSettingsBlockProps = async (
         Object.keys(existingProps).length === 0 ||
         !schema.safeParse(existingProps).success
       ) {
-        await setBlockPropsAsync(uid, defaults, false);
+        await setBlockPropsAsync(
+          uid,
+          schema === PersonalSettingsSchema
+            ? {
+                ...defaults,
+                // The getter falls back to this block, so seed the resolved choice, not the schema's true.
+                [PERSONAL_KEYS.reifiedRelationTriples]:
+                  getStoredRelationsEnabled(),
+              }
+            : defaults,
+          false,
+        );
       }
 
       // Reconcile placeholder relation keys with real block UIDs.

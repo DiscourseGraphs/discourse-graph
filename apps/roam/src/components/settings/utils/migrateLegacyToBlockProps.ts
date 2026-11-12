@@ -316,7 +316,13 @@ export const migratePersonalSettings = async (
     return false;
   }
 
-  const legacyPersonal = readAllLegacyPersonalSettings();
+  // A re-added dev extension starts with empty settings; keep graph values for missing keys.
+  const currentProps = getBlockProps(personalUid);
+  const legacyPersonal = readAllLegacyPersonalSettings(
+    isPropsValid(PersonalSettingsSchema, currentProps)
+      ? PersonalSettingsSchema.parse(currentProps)
+      : undefined,
+  );
   const ok = await migrateSection({
     label: "Personal",
     blockUid: personalUid,
