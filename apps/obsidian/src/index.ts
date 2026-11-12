@@ -29,6 +29,11 @@ import {
 import { refreshMarkdownEditors } from "~/utils/markdownViewRefresh";
 import { closeDiscourseContextPopover } from "~/components/DiscourseContextPopover";
 import {
+  closeNodeSummonMenu,
+  getActiveNodeSummonMenu,
+} from "~/components/NodeSummonMenu";
+import { createNodeSummonExtension } from "~/utils/nodeSummonExtension";
+import {
   registerCommands,
   createModifyNodeModalSubmitHandler,
 } from "~/utils/registerCommands";
@@ -126,6 +131,14 @@ export default class DiscourseGraphPlugin extends Plugin {
         "active-leaf-change",
         (leaf: WorkspaceLeaf | null) => {
           this.cleanupViewActions();
+          // The event can arrive after typing starts in the leaf that just opened.
+          const summonMenu = getActiveNodeSummonMenu();
+          if (
+            summonMenu &&
+            !leaf?.view.containerEl.contains(summonMenu.view.dom)
+          ) {
+            closeNodeSummonMenu();
+          }
 
           if (!leaf) return;
 
@@ -365,6 +378,8 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     this.registerEditorExtension(nodeTagHotkeyExtension);
 
+    this.registerEditorExtension(createNodeSummonExtension(this));
+
     this.registerEditorExtension(createImageEmbedHoverExtension(this));
 
     this.registerEditorExtension(createWikilinkDragExtension(this));
@@ -479,6 +494,7 @@ export default class DiscourseGraphPlugin extends Plugin {
     unregisterNodeTypeIdPropertyWidget(this);
     this.activeNodePopover?.close();
     this.activeNodePopover = null;
+    closeNodeSummonMenu();
     this.cleanupViewActions();
     activeDocument.body.classList.remove("dg-hide-frontmatter-ids");
 
