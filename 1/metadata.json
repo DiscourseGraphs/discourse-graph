@@ -1,0 +1,460 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M78HKJNWA6KX0P7FFRYCB9H3",
+  "session_id": "acd926ad-e46c-48ee-923d-2dbaf02f04e8",
+  "strategy": "manual-commit",
+  "created_at": "2026-11-12T18:51:32.68816Z",
+  "branch": "eng-893-implement-node-summoning-menu-in-obsidian",
+  "checkpoints_count": 2,
+  "save_step_count": 18,
+  "files_touched": [
+    "apps/obsidian/src/components/GeneralSettings.tsx",
+    "apps/obsidian/src/components/NodeSummonMenu.tsx",
+    "apps/obsidian/src/utils/nodeSearchTrigger.ts",
+    "apps/obsidian/src/utils/nodeSummonExtension.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "c535a00c224c",
+  "checkpoint_transcript_start": 2010,
+  "transcript_lines_at_start": 2010,
+  "compact_transcript_start": 253,
+  "token_usage": {
+    "input_tokens": 28,
+    "cache_creation_tokens": 19265,
+    "cache_read_tokens": 3140398,
+    "output_tokens": 12582,
+    "api_call_count": 14
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "prompt-skill-claude-code-start-2026-11-11T16:22:19.696516Z",
+      "event_type": "prompt_invocation",
+      "skill": {
+        "name": "start"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "prompt_slash_command",
+        "confidence": "explicit"
+      },
+      "turn_id": "8b0d9d17b0d5",
+      "timestamp": "2026-11-11T16:22:19.696516Z",
+      "native": {
+        "command": "/start"
+      },
+      "collapse": {
+        "target": "user_message",
+        "label": "/start",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "prompt-skill-claude-code-mattpocock-skills:tdd-2026-11-12T01:25:05.230123Z",
+      "event_type": "prompt_invocation",
+      "skill": {
+        "name": "mattpocock-skills:tdd"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "prompt_slash_command",
+        "confidence": "explicit"
+      },
+      "turn_id": "36c249c7c86f",
+      "timestamp": "2026-11-12T01:25:05.230123Z",
+      "native": {
+        "command": "/mattpocock-skills:tdd"
+      },
+      "collapse": {
+        "target": "user_message",
+        "label": "/mattpocock-skills:tdd",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_014Z42focd2E1NQhpinmkbgJ",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-create-engineering-ticket"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "f2f39abb4704",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 602,
+        "end": 603,
+        "entry_ids": [
+          "fc78f899-8879-4c59-8dc6-6a9bf583921f"
+        ],
+        "tool_use_id": "toolu_014Z42focd2E1NQhpinmkbgJ"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_014Z42focd2E1NQhpinmkbgJ"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-create-engineering-ticket",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01Nkiaq5Lw49gdqmwwGiMjL2",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-engineering-writing-style"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "f2f39abb4704",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 619,
+        "end": 620,
+        "entry_ids": [
+          "40c587c4-3f54-462a-bab1-4a95dac625bb"
+        ],
+        "tool_use_id": "toolu_01Nkiaq5Lw49gdqmwwGiMjL2"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01Nkiaq5Lw49gdqmwwGiMjL2"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-engineering-writing-style",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01JbPg6CmrsTyFiQKkfScDt2",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-obsidian-cdp-verify"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "f2f39abb4704",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 1316,
+        "end": 1317,
+        "entry_ids": [
+          "0a8c5504-a869-456a-b894-dc6500b28e56"
+        ],
+        "tool_use_id": "toolu_01JbPg6CmrsTyFiQKkfScDt2"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01JbPg6CmrsTyFiQKkfScDt2"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-obsidian-cdp-verify",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_011JR823hvdvyVRcqDAZjGg1",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "scope-check"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "f2f39abb4704",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 1875,
+        "end": 1876,
+        "entry_ids": [
+          "9cbd0da5-091a-4520-991a-888ba1ec0dae"
+        ],
+        "tool_use_id": "toolu_011JR823hvdvyVRcqDAZjGg1"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_011JR823hvdvyVRcqDAZjGg1"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: scope-check",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01WM3VMePWCXL9mbxSmomr4D",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-pr-adherence-check"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "f2f39abb4704",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 1898,
+        "end": 1899,
+        "entry_ids": [
+          "aaafbb6f-1620-4476-9bde-35dcf33c9a33"
+        ],
+        "tool_use_id": "toolu_01WM3VMePWCXL9mbxSmomr4D"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01WM3VMePWCXL9mbxSmomr4D"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-pr-adherence-check",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01EkKoK92QbMkfwKRnuA6k4H",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-delegated-full-review"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "f2f39abb4704",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 1936,
+        "end": 1937,
+        "entry_ids": [
+          "af04db1d-d1c2-4936-9ef8-7f42857c8ae4"
+        ],
+        "tool_use_id": "toolu_01EkKoK92QbMkfwKRnuA6k4H"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01EkKoK92QbMkfwKRnuA6k4H"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-delegated-full-review",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 18
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-11-12T18:51:32.398377Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 957,
+    "human_modified": 28,
+    "human_removed": 0,
+    "total_committed": 957,
+    "total_lines_changed": 986,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 8,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 9,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 10,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 11,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 12,
+      "user_lines_added": 187,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "apps/obsidian/src/utils/__tests__/nodeSearchTrigger.test.ts": 31,
+        "apps/obsidian/src/utils/__tests__/nodeSummonResults.test.ts": 101,
+        "apps/obsidian/src/utils/nodeSearchTrigger.ts": 20,
+        "apps/obsidian/src/utils/nodeSummonResults.ts": 35
+      }
+    },
+    {
+      "checkpoint_number": 13,
+      "user_lines_added": 215,
+      "user_lines_removed": 0,
+      "agent_lines_added": 368,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "apps/obsidian/src/components/GeneralSettings.tsx": 48,
+        "apps/obsidian/src/utils/__tests__/nodeSearchTrigger.test.ts": 31,
+        "apps/obsidian/src/utils/__tests__/nodeSummonResults.test.ts": 101,
+        "apps/obsidian/src/utils/nodeSummonResults.ts": 35
+      }
+    },
+    {
+      "checkpoint_number": 14,
+      "user_lines_added": 187,
+      "user_lines_removed": 4,
+      "agent_lines_added": 416,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "apps/obsidian/src/components/NodeSummonMenu.tsx": 20,
+        "apps/obsidian/src/utils/__tests__/nodeSearchTrigger.test.ts": 31,
+        "apps/obsidian/src/utils/__tests__/nodeSummonResults.test.ts": 101,
+        "apps/obsidian/src/utils/nodeSummonResults.ts": 35
+      },
+      "user_removed_per_file": {
+        "apps/obsidian/src/components/NodeSummonMenu.tsx": 4
+      }
+    },
+    {
+      "checkpoint_number": 15,
+      "user_lines_added": 189,
+      "user_lines_removed": 5,
+      "agent_lines_added": 416,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "apps/obsidian/src/components/NodeSummonMenu.tsx": 22,
+        "apps/obsidian/src/utils/__tests__/nodeSearchTrigger.test.ts": 31,
+        "apps/obsidian/src/utils/__tests__/nodeSummonResults.test.ts": 101,
+        "apps/obsidian/src/utils/nodeSummonResults.ts": 35
+      },
+      "user_removed_per_file": {
+        "apps/obsidian/src/components/NodeSummonMenu.tsx": 5
+      }
+    },
+    {
+      "checkpoint_number": 16,
+      "user_lines_added": 189,
+      "user_lines_removed": 5,
+      "agent_lines_added": 416,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "apps/obsidian/src/components/NodeSummonMenu.tsx": 22,
+        "apps/obsidian/src/utils/__tests__/nodeSearchTrigger.test.ts": 31,
+        "apps/obsidian/src/utils/__tests__/nodeSummonResults.test.ts": 101,
+        "apps/obsidian/src/utils/nodeSummonResults.ts": 35
+      },
+      "user_removed_per_file": {
+        "apps/obsidian/src/components/NodeSummonMenu.tsx": 5
+      }
+    },
+    {
+      "checkpoint_number": 17,
+      "user_lines_added": 189,
+      "user_lines_removed": 5,
+      "agent_lines_added": 416,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "apps/obsidian/src/components/NodeSummonMenu.tsx": 22,
+        "apps/obsidian/src/utils/__tests__/nodeSearchTrigger.test.ts": 31,
+        "apps/obsidian/src/utils/__tests__/nodeSummonResults.test.ts": 101,
+        "apps/obsidian/src/utils/nodeSummonResults.ts": 35
+      },
+      "user_removed_per_file": {
+        "apps/obsidian/src/components/NodeSummonMenu.tsx": 5
+      }
+    },
+    {
+      "checkpoint_number": 18,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 19,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
