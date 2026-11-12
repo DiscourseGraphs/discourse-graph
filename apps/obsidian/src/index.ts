@@ -28,6 +28,8 @@ import {
 } from "~/utils/discourseContextOverlayRefresh";
 import { refreshMarkdownEditors } from "~/utils/markdownViewRefresh";
 import { closeDiscourseContextPopover } from "~/components/DiscourseContextPopover";
+import { closeNodeSummonMenu } from "~/components/NodeSummonMenu";
+import { createNodeSummonExtension } from "~/utils/nodeSummonExtension";
 import {
   registerCommands,
   createModifyNodeModalSubmitHandler,
@@ -365,6 +367,8 @@ export default class DiscourseGraphPlugin extends Plugin {
 
     this.registerEditorExtension(nodeTagHotkeyExtension);
 
+    this.registerEditorExtension(createNodeSummonExtension(this));
+
     this.registerEditorExtension(createImageEmbedHoverExtension(this));
 
     this.registerEditorExtension(createWikilinkDragExtension(this));
@@ -479,6 +483,7 @@ export default class DiscourseGraphPlugin extends Plugin {
     unregisterNodeTypeIdPropertyWidget(this);
     this.activeNodePopover?.close();
     this.activeNodePopover = null;
+    closeNodeSummonMenu();
     this.cleanupViewActions();
     activeDocument.body.classList.remove("dg-hide-frontmatter-ids");
 

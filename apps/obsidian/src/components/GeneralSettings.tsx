@@ -7,6 +7,10 @@ import { openExportSpecsModal } from "./ExportSpecsModal";
 import { getDgSchemaFileName } from "~/utils/specValidation";
 import { FeedbackModal } from "./FeedbackModal";
 import { DOCS_URL, COMMUNITY_URL } from "~/constants";
+import {
+  MAX_NODE_SEARCH_TRIGGER_LENGTH,
+  validateNodeSearchTrigger,
+} from "~/utils/nodeSearchTrigger";
 
 const ToggleSetting = ({
   name,
@@ -196,6 +200,13 @@ const GeneralSettings = () => {
   const [nodeTagHotkey, setNodeTagHotkey] = useState<string>(
     plugin.settings.nodeTagHotkey,
   );
+  const [nodeSearchTrigger, setNodeSearchTrigger] = useState<string>(
+    plugin.settings.nodeSearchTrigger,
+  );
+  const nodeSearchTriggerError = validateNodeSearchTrigger({
+    value: nodeSearchTrigger,
+    nodeTagHotkey,
+  });
   const schemaFileName = getDgSchemaFileName(plugin.app.vault.getName());
   const [showHelpMenuStatusBarIcon, setShowHelpMenuStatusBarIcon] = useState(
     plugin.settings.showHelpMenuStatusBarIcon,
@@ -260,6 +271,17 @@ const GeneralSettings = () => {
       }
     },
     [plugin],
+  );
+
+  const handleNodeSearchTriggerChange = useCallback(
+    (newValue: string) => {
+      setNodeSearchTrigger(newValue);
+      // An invalid draft stays in the input with its error; the last valid trigger keeps working.
+      if (validateNodeSearchTrigger({ value: newValue, nodeTagHotkey })) return;
+      plugin.settings.nodeSearchTrigger = newValue;
+      void plugin.saveSettings();
+    },
+    [plugin, nodeTagHotkey],
   );
 
   return (
@@ -351,6 +373,32 @@ const GeneralSettings = () => {
             }}
             placeholder="\"
             maxLength={1}
+          />
+        </div>
+      </div>
+
+      <div className="setting-item">
+        <div className="setting-item-info">
+          <div className="setting-item-name">Node search trigger</div>
+          <div className="setting-item-description">
+            Characters to type at the start of a line or after a space to search
+            for a node and insert a link to it. Leave empty to turn it off.
+            Default: &quot;@&quot;.
+          </div>
+          {nodeSearchTriggerError && (
+            <div className="setting-item-description text-error">
+              {nodeSearchTriggerError}
+            </div>
+          )}
+        </div>
+        <div className="setting-item-control">
+          <input
+            type="text"
+            value={nodeSearchTrigger}
+            onChange={(e) => handleNodeSearchTriggerChange(e.target.value)}
+            placeholder="@"
+            maxLength={MAX_NODE_SEARCH_TRIGGER_LENGTH + 1}
+            aria-invalid={!!nodeSearchTriggerError}
           />
         </div>
       </div>

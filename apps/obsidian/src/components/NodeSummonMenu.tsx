@@ -1,0 +1,335 @@
+import { Fragment, useEffect, useRef, type ReactElement } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { editorInfoField, Scope } from "obsidian";
+import type { EditorView } from "@codemirror/view";
+import type DiscourseGraphPlugin from "~/index";
+import { QueryEngine, type SearchableNode } from "~/services/QueryEngine";
+import {
+  groupNodesForSummonMenu,
+  type SummonMenuGroup,
+} from "~/utils/nodeSummonResults";
+
+const VIEWPORT_MARGIN = 8;
+
+type NodeSummonListProps = {
+  groups: SummonMenuGroup[];
+  activeIndex: number;
+  onSelect: (index: number) => void;
+  onHover: (index: number) => void;
+};
+
+const NodeSummonList = ({
+  groups,
+  activeIndex,
+  onSelect,
+  onHover,
+}: NodeSummonListProps): ReactElement => {
+  const activeRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex]);
+
+  if (groups.length === 0) {
+    return <div className="suggestion-empty">No matching nodes</div>;
+  }
+
+  let index = 0;
+  return (
+    <div className="suggestion">
+      {groups.map((group, groupIndex) => (
+        <Fragment key={group.nodeType.id}>
+          <div
+            className={`text-muted flex items-center gap-2 px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide ${
+              groupIndex > 0
+                ? "border-modifier-border mt-1 border-0 border-t border-solid"
+                : ""
+            }`}
+          >
+            <span
+              className="h-2 w-2 shrink-0 rounded-full bg-[var(--text-faint)]"
+              style={
+                group.nodeType.color
+                  ? { backgroundColor: group.nodeType.color }
+                  : undefined
+              }
+            />
+            {group.nodeType.name}
+          </div>
+          {group.nodes.map((node) => {
+            const itemIndex = index++;
+            const isActive = itemIndex === activeIndex;
+            return (
+              <div
+                key={node.file.path}
+                ref={isActive ? activeRef : undefined}
+                className={`suggestion-item pl-7 ${isActive ? "is-selected" : ""}`}
+                onMouseMove={() => onHover(itemIndex)}
+                onClick={() => onSelect(itemIndex)}
+              >
+                {node.title}
+              </div>
+            );
+          })}
+        </Fragment>
+      ))}
+    </div>
+  );
+};
+
+type NodeSummonMenuOptions = {
+  plugin: DiscourseGraphPlugin;
+  view: EditorView;
+  triggerFrom: number;
+  trigger: string;
+};
+
+class NodeSummonMenu {
+  readonly view: EditorView;
+  readonly trigger: string;
+  triggerFrom: number;
+  private plugin: DiscourseGraphPlugin;
+  private nodes: SearchableNode[];
+  private query = "";
+  private activeIndex = 0;
+  private groups: SummonMenuGroup[] = [];
+  private containerEl: HTMLElement;
+  private root: Root;
+  private scope: Scope;
+  private resizeObserver: ResizeObserver;
+  private cleanupListeners: (() => void)[] = [];
+  private closed = false;
+
+  constructor({ plugin, view, triggerFrom, trigger }: NodeSummonMenuOptions) {
+    this.plugin = plugin;
+    this.view = view;
+    this.triggerFrom = triggerFrom;
+    this.trigger = trigger;
+    // Loaded once per opening; typing only re-ranks.
+    this.nodes = new QueryEngine(plugin.app).getSearchableNodes(
+      plugin.settings.nodeTypes,
+    );
+
+    const doc = view.dom.ownerDocument;
+    this.containerEl = doc.body.createDiv({
+      // Hidden until the first reposition places it at the cursor.
+      cls: "suggestion-container dg-node-summon-menu invisible",
+    });
+    // Keeps focus in the editor for clicks anywhere in the menu, so typing still lands.
+    this.containerEl.addEventListener("mousedown", (event) =>
+      event.preventDefault(),
+    );
+    // Mounted directly so .suggestion is the flex child that scrolls inside the capped container.
+    this.root = createRoot(this.containerEl);
+
+    // Parented to app.scope so unrelated hotkeys keep working while the menu is open.
+    this.scope = new Scope(plugin.app.scope);
+    // Returning true lets an IME composition keep its own Enter and arrow keys.
+    this.scope.register(
+      [],
+      "ArrowDown",
+      (evt) => evt.isComposing || this.move(1),
+    );
+    this.scope.register(
+      [],
+      "ArrowUp",
+      (evt) => evt.isComposing || this.move(-1),
+    );
+    this.scope.register([], "Enter", (evt) => {
+      if (evt.isComposing) return true;
+      if (this.closeIfEditorBlurred()) return true;
+      if (this.itemCount() === 0) {
+        this.close();
+        return true;
+      }
+      this.select(this.activeIndex);
+      return false;
+    });
+    this.scope.register([], "Escape", (evt) => {
+      if (evt.isComposing || this.closeIfEditorBlurred()) return true;
+      this.close();
+      return false;
+    });
+    plugin.app.keymap.pushScope(this.scope);
+
+    const closeIfOutside = (event: MouseEvent): void => {
+      if (this.containerEl.contains(event.target as Node)) return;
+      this.close();
+    };
+    doc.addEventListener("mousedown", closeIfOutside, true);
+    this.cleanupListeners.push(() =>
+      doc.removeEventListener("mousedown", closeIfOutside, true),
+    );
+
+    // Opening another file can reuse this editor, so CodeMirror sees no typing to react to.
+    // A late leaf change for the leaf that just opened must not close it.
+    const { workspace } = plugin.app;
+    const filePath = view.state.field(editorInfoField, false)?.file?.path;
+    const workspaceRefs = [
+      workspace.on("file-open", (file) => {
+        if (file?.path !== filePath) this.close();
+      }),
+      workspace.on("active-leaf-change", (leaf) => {
+        if (!leaf?.view.containerEl.contains(view.dom)) this.close();
+      }),
+    ];
+    this.cleanupListeners.push(() =>
+      workspaceRefs.forEach((ref) => workspace.offref(ref)),
+    );
+
+    // Scrolling moves the cursor on screen without a CodeMirror update.
+    const onScroll = (): void => this.reposition();
+    view.scrollDOM.addEventListener("scroll", onScroll, { passive: true });
+    this.cleanupListeners.push(() =>
+      view.scrollDOM.removeEventListener("scroll", onScroll),
+    );
+
+    // The editor's own window, so the observer also fires in popout windows.
+    const win = doc.defaultView ?? window;
+    this.resizeObserver = new win.ResizeObserver(() => this.reposition());
+    this.resizeObserver.observe(this.containerEl);
+
+    this.regroup();
+    this.render();
+    this.reposition();
+  }
+
+  setQuery(query: string): void {
+    if (query === this.query) return;
+    this.query = query;
+    this.activeIndex = 0;
+    this.regroup();
+    this.render();
+  }
+
+  close(): void {
+    // A measure queued before closing can still call this.
+    if (this.closed) return;
+    this.closed = true;
+    for (const cleanup of this.cleanupListeners) cleanup();
+    this.cleanupListeners = [];
+    this.plugin.app.keymap.popScope(this.scope);
+    this.resizeObserver.disconnect();
+    // Deferred: unmounting during React's event handling warns.
+    const root = this.root;
+    (this.view.dom.ownerDocument.defaultView ?? window).setTimeout(
+      () => root.unmount(),
+      0,
+    );
+    this.containerEl.remove();
+    if (activeMenu === this) activeMenu = null;
+  }
+
+  private itemCount(): number {
+    return this.groups.reduce((count, group) => count + group.nodes.length, 0);
+  }
+
+  // Keyboard focus can leave the editor without a mousedown; stop capturing keys then.
+  private closeIfEditorBlurred(): boolean {
+    if (this.view.hasFocus) return false;
+    this.close();
+    return true;
+  }
+
+  private move(delta: number): boolean {
+    if (this.closeIfEditorBlurred()) return true;
+    const count = this.itemCount();
+    // Nothing to move through, so the editor gets the arrow key.
+    if (count === 0) return true;
+    this.activeIndex = (this.activeIndex + delta + count) % count;
+    this.render();
+    return false;
+  }
+
+  private select(index: number): void {
+    const node = this.groups.flatMap((group) => group.nodes)[index];
+    if (!node) return;
+
+    const sourcePath = this.view.state.field(editorInfoField, false)?.file
+      ?.path;
+    const link = this.plugin.app.fileManager.generateMarkdownLink(
+      node.file,
+      sourcePath ?? "",
+    );
+    const to = this.view.state.selection.main.head;
+    const from = this.triggerFrom;
+
+    this.close();
+    this.view.dispatch({
+      changes: { from, to, insert: link },
+      selection: { anchor: from + link.length },
+      userEvent: "input.complete",
+    });
+    this.view.focus();
+  }
+
+  private regroup(): void {
+    this.groups = groupNodesForSummonMenu({
+      nodes: this.nodes,
+      nodeTypes: this.plugin.settings.nodeTypes,
+      query: this.query,
+    });
+  }
+
+  private render(): void {
+    this.root.render(
+      <NodeSummonList
+        groups={this.groups}
+        activeIndex={this.activeIndex}
+        onSelect={(index) => this.select(index)}
+        onHover={(index) => {
+          if (index === this.activeIndex) return;
+          this.activeIndex = index;
+          this.render();
+        }}
+      />,
+    );
+  }
+
+  // Editor layout can only be read in a measure phase, not during an update.
+  reposition(): void {
+    this.view.requestMeasure({
+      read: (view) => view.coordsAtPos(this.triggerFrom),
+      write: (coords) => {
+        // A trigger scrolled out of view would leave the menu over unrelated text.
+        const scroller = this.view.scrollDOM.getBoundingClientRect();
+        if (
+          !coords ||
+          coords.bottom < scroller.top ||
+          coords.top > scroller.bottom
+        ) {
+          this.close();
+          return;
+        }
+        const win = this.view.dom.ownerDocument.defaultView ?? window;
+        const { width, height } = this.containerEl.getBoundingClientRect();
+        const left = Math.min(
+          Math.max(VIEWPORT_MARGIN, coords.left),
+          Math.max(VIEWPORT_MARGIN, win.innerWidth - width - VIEWPORT_MARGIN),
+        );
+        const spaceBelow = win.innerHeight - coords.bottom;
+        const openUpward =
+          spaceBelow < height + VIEWPORT_MARGIN && coords.top > spaceBelow;
+        const top = openUpward
+          ? Math.max(VIEWPORT_MARGIN, coords.top - height - 4)
+          : coords.bottom + 4;
+        this.containerEl.style.left = `${left}px`;
+        this.containerEl.style.top = `${top}px`;
+        this.containerEl.removeClass("invisible");
+      },
+    });
+  }
+}
+
+let activeMenu: NodeSummonMenu | null = null;
+
+export const getActiveNodeSummonMenu = (): NodeSummonMenu | null => activeMenu;
+
+export const openNodeSummonMenu = (options: NodeSummonMenuOptions): void => {
+  activeMenu?.close();
+  activeMenu = new NodeSummonMenu(options);
+};
+
+export const closeNodeSummonMenu = (): void => {
+  activeMenu?.close();
+};

@@ -68,6 +68,8 @@ export type Settings = {
   canvasFolderPath: string;
   canvasAttachmentsFolderPath: string;
   nodeTagHotkey: string;
+  /** Empty turns the node search menu off. */
+  nodeSearchTrigger: string;
   showHelpMenuStatusBarIcon: boolean;
   showDiscourseContextOverlay: boolean;
   spacePassword?: string;
