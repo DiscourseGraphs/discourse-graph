@@ -64,8 +64,6 @@ const NodeSummonList = ({
                 key={node.file.path}
                 ref={isActive ? activeRef : undefined}
                 className={`suggestion-item pl-7 ${isActive ? "is-selected" : ""}`}
-                // Keeps focus in the editor, so the cursor stays after the query.
-                onMouseDown={(event) => event.preventDefault()}
                 onMouseMove={() => onHover(itemIndex)}
                 onClick={() => onSelect(itemIndex)}
               >
@@ -114,8 +112,13 @@ class NodeSummonMenu {
 
     const doc = view.dom.ownerDocument;
     this.containerEl = doc.body.createDiv({
-      cls: "suggestion-container dg-node-summon-menu",
+      // Hidden until the first reposition places it at the cursor.
+      cls: "suggestion-container dg-node-summon-menu invisible",
     });
+    // Keeps focus in the editor for clicks anywhere in the menu, so typing still lands.
+    this.containerEl.addEventListener("mousedown", (event) =>
+      event.preventDefault(),
+    );
     // Mounted directly so .suggestion is the flex child that scrolls inside the capped container.
     this.root = createRoot(this.containerEl);
 
@@ -142,8 +145,8 @@ class NodeSummonMenu {
       this.select(this.activeIndex);
       return false;
     });
-    this.scope.register([], "Escape", () => {
-      if (this.closeIfEditorBlurred()) return true;
+    this.scope.register([], "Escape", (evt) => {
+      if (evt.isComposing || this.closeIfEditorBlurred()) return true;
       this.close();
       return false;
     });
@@ -309,6 +312,7 @@ class NodeSummonMenu {
           : coords.bottom + 4;
         this.containerEl.style.left = `${left}px`;
         this.containerEl.style.top = `${top}px`;
+        this.containerEl.removeClass("invisible");
       },
     });
   }

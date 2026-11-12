@@ -1,4 +1,4 @@
-import { syntaxTree } from "@codemirror/language";
+import { ensureSyntaxTree, syntaxTree } from "@codemirror/language";
 import { EditorView, type ViewUpdate } from "@codemirror/view";
 import type DiscourseGraphPlugin from "~/index";
 import {
@@ -12,7 +12,9 @@ import { getTypedTriggerStart } from "~/utils/nodeSearchTrigger";
 const NON_PROSE_TOKEN = /codeblock|inline-code|frontmatter|link|math|comment/i;
 
 const isInNonProse = (state: ViewUpdate["state"], pos: number): boolean => {
-  let node = syntaxTree(state).resolveInner(pos, -1);
+  // The background parse may not have reached the cursor yet in a long note.
+  const tree = ensureSyntaxTree(state, pos, 50) ?? syntaxTree(state);
+  let node = tree.resolveInner(pos, -1);
   while (!NON_PROSE_TOKEN.test(node.name)) {
     if (!node.parent) return false;
     node = node.parent;
