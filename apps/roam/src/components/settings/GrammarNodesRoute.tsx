@@ -86,13 +86,13 @@ const GrammarNodesRoute = ({
       />
       {/* `-mx-1 px-1` widens the scroll box so the search flash is not clipped; content stays put. */}
       <div className="-mx-1 min-h-0 flex-auto overflow-y-auto px-1">
+        {/* Node routes are keyed: search jumps straight between node pages, and these forms seed
+            their state from props once, so without a remount the previous node's values stay. */}
         {!node ? (
           <div className="p-1">
             <DiscourseNodeConfigPanel />
           </div>
-        ) : /* Keyed by node: search can jump straight between node pages, and these forms seed
-             their state from props once, so without a remount the previous node's values stay. */
-        subPage === nodeConfigSegmentIds.index ? (
+        ) : subPage === nodeConfigSegmentIds.index ? (
           <NodeIndexPage key={node.type} node={node} onloadArgs={onloadArgs} />
         ) : subPage === nodeConfigSegmentIds.template ? (
           <NodeTemplatePage key={node.type} node={node} />
