@@ -151,3 +151,7 @@ Yes, investigate
 ---
 
 is there a simpler way? we did a similar drag thing into canvas. i remember it was less ...unofficial than this?
+
+---
+
+yes, use this simpler version
