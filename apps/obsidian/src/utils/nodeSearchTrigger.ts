@@ -29,6 +29,10 @@ export const validateNodeSearchTrigger = ({
   if (value.length > MAX_NODE_SEARCH_TRIGGER_LENGTH) {
     return `The trigger can be at most ${MAX_NODE_SEARCH_TRIGGER_LENGTH} characters.`;
   }
+  // A whitespace trigger would open the menu on indentation and take over Enter.
+  if (/\s/.test(value)) {
+    return "The trigger can't contain spaces.";
+  }
   // The node tag hotkey's keydown handler swallows the key, so it could never be typed.
   if (nodeTagHotkey && value.includes(nodeTagHotkey)) {
     return `The trigger can't contain the node tag hotkey (${nodeTagHotkey}).`;

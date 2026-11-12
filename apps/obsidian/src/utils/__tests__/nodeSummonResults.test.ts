@@ -34,7 +34,9 @@ const node = (title: string, nodeTypeId: string): SearchableNode => {
   return { file, title, nodeTypeId };
 };
 
-const summarize = (groups: ReturnType<typeof groupNodesForSummonMenu>) =>
+const summarize = (
+  groups: ReturnType<typeof groupNodesForSummonMenu>,
+): { type: string; titles: string[] }[] =>
   groups.map((group) => ({
     type: group.nodeType.name,
     titles: group.nodes.map((n) => n.title),

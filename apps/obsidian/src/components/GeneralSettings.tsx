@@ -386,7 +386,7 @@ const GeneralSettings = () => {
             Default: &quot;@&quot;.
           </div>
           {nodeSearchTriggerError && (
-            <div className="setting-item-description text-[var(--text-error)]">
+            <div className="setting-item-description text-error">
               {nodeSearchTriggerError}
             </div>
           )}

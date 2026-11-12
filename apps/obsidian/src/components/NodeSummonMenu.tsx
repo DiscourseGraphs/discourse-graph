@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef } from "react";
+import { Fragment, useEffect, useRef, type ReactElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { editorInfoField, Scope } from "obsidian";
 import type { EditorView } from "@codemirror/view";
@@ -23,7 +23,7 @@ const NodeSummonList = ({
   activeIndex,
   onSelect,
   onHover,
-}: NodeSummonListProps) => {
+}: NodeSummonListProps): ReactElement => {
   const activeRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -40,9 +40,9 @@ const NodeSummonList = ({
       {groups.map((group, groupIndex) => (
         <Fragment key={group.nodeType.id}>
           <div
-            className={`flex items-center gap-2 px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]${
+            className={`text-muted flex items-center gap-2 px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide ${
               groupIndex > 0
-                ? "mt-1 border-0 border-t border-solid border-[var(--background-modifier-border)]"
+                ? "border-modifier-border mt-1 border-0 border-t border-solid"
                 : ""
             }`}
           >
@@ -64,7 +64,7 @@ const NodeSummonList = ({
                 key={node.file.path}
                 ref={isActive ? activeRef : undefined}
                 // Indented past the header's dot so rows read as children of the type.
-                className={`suggestion-item pl-7${isActive ? "is-selected" : ""}`}
+                className={`suggestion-item pl-7 ${isActive ? "is-selected" : ""}`}
                 // Keeps focus in the editor, so the cursor stays after the query.
                 onMouseDown={(event) => event.preventDefault()}
                 onMouseMove={() => onHover(itemIndex)}
@@ -124,6 +124,7 @@ class NodeSummonMenu {
     this.scope.register([], "ArrowDown", () => this.move(1));
     this.scope.register([], "ArrowUp", () => this.move(-1));
     this.scope.register([], "Enter", () => {
+      if (this.closeIfEditorBlurred()) return true;
       if (this.itemCount() === 0) {
         this.close();
         return true;
@@ -146,9 +147,17 @@ class NodeSummonMenu {
       doc.removeEventListener("mousedown", closeIfOutside, true),
     );
 
+    // Scrolling moves the cursor on screen without a CodeMirror update.
+    const onScroll = (): void => this.reposition();
+    view.scrollDOM.addEventListener("scroll", onScroll, { passive: true });
+    this.cleanupListeners.push(() =>
+      view.scrollDOM.removeEventListener("scroll", onScroll),
+    );
+
     this.resizeObserver = new ResizeObserver(() => this.reposition());
     this.resizeObserver.observe(this.containerEl);
 
+    this.regroup();
     this.render();
   }
 
@@ -156,6 +165,7 @@ class NodeSummonMenu {
     if (query === this.query) return;
     this.query = query;
     this.activeIndex = 0;
+    this.regroup();
     this.render();
   }
 
@@ -178,7 +188,15 @@ class NodeSummonMenu {
     return this.groups.reduce((count, group) => count + group.nodes.length, 0);
   }
 
+  // Keyboard focus can leave the editor without a mousedown; stop capturing keys then.
+  private closeIfEditorBlurred(): boolean {
+    if (this.view.hasFocus) return false;
+    this.close();
+    return true;
+  }
+
   private move(delta: number): boolean {
+    if (this.closeIfEditorBlurred()) return true;
     const count = this.itemCount();
     // Nothing to move through, so the editor gets the arrow key.
     if (count === 0) return true;
@@ -209,12 +227,15 @@ class NodeSummonMenu {
     this.view.focus();
   }
 
-  private render(): void {
+  private regroup(): void {
     this.groups = groupNodesForSummonMenu({
       nodes: this.nodes,
       nodeTypes: this.plugin.settings.nodeTypes,
       query: this.query,
     });
+  }
+
+  private render(): void {
     this.root.render(
       <NodeSummonList
         groups={this.groups}
@@ -230,7 +251,7 @@ class NodeSummonMenu {
   }
 
   // Editor layout can only be read in a measure phase, not during an update.
-  private reposition(): void {
+  reposition(): void {
     this.view.requestMeasure({
       read: (view) => view.coordsAtPos(this.triggerFrom),
       write: (coords) => {

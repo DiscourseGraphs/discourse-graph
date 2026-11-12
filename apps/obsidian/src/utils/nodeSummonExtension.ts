@@ -11,7 +11,10 @@ import { getTypedTriggerStart } from "~/utils/nodeSearchTrigger";
 const updateOpenMenu = (update: ViewUpdate): boolean => {
   const menu = getActiveNodeSummonMenu();
   if (!menu || menu.view !== update.view) return false;
-  if (!update.docChanged && !update.selectionSet) return true;
+  if (!update.docChanged && !update.selectionSet) {
+    if (update.geometryChanged) menu.reposition();
+    return true;
+  }
 
   const { doc, selection } = update.state;
   const triggerFrom = update.changes.mapPos(menu.triggerFrom);
@@ -33,6 +36,8 @@ const updateOpenMenu = (update: ViewUpdate): boolean => {
 
   menu.triggerFrom = triggerFrom;
   menu.setQuery(doc.sliceString(queryFrom, head));
+  // Text inserted above the trigger moves it on screen.
+  if (update.docChanged || update.geometryChanged) menu.reposition();
   return true;
 };
 

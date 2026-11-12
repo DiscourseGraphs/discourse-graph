@@ -17,6 +17,15 @@ describe("validateNodeSearchTrigger", () => {
     ).not.toBeNull();
   });
 
+  it("rejects a trigger containing whitespace", () => {
+    expect(
+      validateNodeSearchTrigger({ value: " ", nodeTagHotkey: "\\" }),
+    ).not.toBeNull();
+    expect(
+      validateNodeSearchTrigger({ value: "@ ", nodeTagHotkey: "\\" }),
+    ).not.toBeNull();
+  });
+
   it("accepts the default, an empty trigger, and any trigger when no hotkey is set", () => {
     expect(
       validateNodeSearchTrigger({ value: "@", nodeTagHotkey: "\\" }),
