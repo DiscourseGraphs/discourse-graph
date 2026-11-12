@@ -1,0 +1,14 @@
+I'm rebasing eng-1837 on main, mostly done but the db diff identifies the following discrepancy:
+
+
+<pasted_content id="d5ec">
+SET local check_function_bodies = off;
+
+REVOKE ALL ON FUNCTION "public"."everyone_uid"() FROM PUBLIC;
+
+GRANT EXECUTE ON FUNCTION "public"."everyone_uid"() TO PUBLIC;
+</pasted_content id="d5ec">
+
+---
+
+The explanation makes sense, but is this what we want? Everyone should have execute access on this.
