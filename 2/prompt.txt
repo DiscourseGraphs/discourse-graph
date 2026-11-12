@@ -277,3 +277,7 @@ Correct, as a group admin you can remove someone else. My turn to push back: Do 
 ---
 
 Ok. Thinking in general; a lot of this is independent from dg accounts. For example, should we restrict the view to the PlatformAccount's account_local_id? It may not need to be exposed across the group.
+
+---
+
+Yes.
