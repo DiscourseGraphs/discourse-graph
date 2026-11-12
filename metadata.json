@@ -3,8 +3,16 @@
   "checkpoint_id": "01M78H5J8APJJ4R0CJW66HG7TY",
   "strategy": "manual-commit",
   "branch": "eng-893-implement-node-summoning-menu-in-obsidian",
-  "checkpoints_count": 14,
-  "files_touched": null,
+  "checkpoints_count": 30,
+  "files_touched": [
+    "apps/obsidian/src/components/GeneralSettings.tsx",
+    "apps/obsidian/src/components/NodeSummonMenu.tsx",
+    "apps/obsidian/src/constants.ts",
+    "apps/obsidian/src/index.ts",
+    "apps/obsidian/src/types.ts",
+    "apps/obsidian/src/utils/nodeSearchTrigger.ts",
+    "apps/obsidian/src/utils/nodeSummonExtension.ts"
+  ],
   "sessions": [
     {
       "metadata": "/0/metadata.json",
@@ -19,20 +27,27 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 324,
-    "cache_creation_tokens": 855117,
-    "cache_read_tokens": 24601103,
-    "output_tokens": 105898,
-    "api_call_count": 164,
+    "input_tokens": 680,
+    "cache_creation_tokens": 1646397,
+    "cache_read_tokens": 51448441,
+    "output_tokens": 231920,
+    "api_call_count": 321,
     "subagent_tokens": {
-      "input_tokens": 162,
-      "cache_creation_tokens": 2550060,
-      "cache_read_tokens": 7436973,
-      "output_tokens": 39086,
-      "api_call_count": 83
+      "input_tokens": 198,
+      "cache_creation_tokens": 2692722,
+      "cache_read_tokens": 8245828,
+      "output_tokens": 49557,
+      "api_call_count": 99
     }
   }
 }
