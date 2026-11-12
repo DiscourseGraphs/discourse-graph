@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { App, TFile } from "obsidian";
-import { setFileDragData } from "~/utils/fileDragData";
+import { setFileDragData } from "~/components/fileDragData";
 
 const makeDataTransfer = () => {
   const data = new Map<string, string>();

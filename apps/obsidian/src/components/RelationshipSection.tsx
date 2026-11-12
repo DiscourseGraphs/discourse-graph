@@ -27,7 +27,7 @@ import {
   updateRelation,
 } from "~/utils/relationsStore";
 import { InfoTooltip } from "./InfoTooltip";
-import { setFileDragData } from "~/utils/fileDragData";
+import { setFileDragData } from "./fileDragData";
 
 type RelationTypeOption = {
   id: string;
