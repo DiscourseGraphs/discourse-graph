@@ -54,6 +54,7 @@ export type ModifyNodeDialogProps = {
     formattedTitle: string;
     configPageUid: string;
   }) => Promise<string>;
+  beforeSubmit?: () => void;
   onSuccess: (result: {
     text: string;
     uid: string;
@@ -75,6 +76,7 @@ const ModifyNodeDialog = ({
   imageUrl,
   disableNodeTypeChange = false,
   createOverride,
+  beforeSubmit,
   onSuccess,
   onClose,
 }: RoamOverlayProps<ModifyNodeDialogProps>) => {
@@ -109,6 +111,8 @@ const ModifyNodeDialog = ({
   const contentRequestIdRef = useRef(0);
   const referencedNodeRequestIdRef = useRef(0);
   const [error, setError] = useState("");
+  const submittingRef = useRef(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const discourseNodes = useMemo(() => {
     const allNodes = getDiscourseNodes();
@@ -335,6 +339,7 @@ const ModifyNodeDialog = ({
   );
 
   const onSubmit = async () => {
+    if (submittingRef.current) return;
     if (!content.text.trim()) return;
     if (!selectedNodeType && !isContentLocked) {
       setError("Please select a node type");
@@ -344,7 +349,10 @@ const ModifyNodeDialog = ({
       mode,
       nodeType: selectedNodeType?.type,
     });
+    submittingRef.current = true;
+    setIsSubmitting(true);
     try {
+      beforeSubmit?.();
       if (mode === "create") {
         // If content is locked (user selected existing node), just insert it
         if (isContentLocked && content.uid) {
@@ -396,13 +404,25 @@ const ModifyNodeDialog = ({
             formattedReferencedNodeText = formattedRefNode;
           }
 
+          // Block-backed references already contain formatted text, not a page title.
+          const referencedBlock = isReferencedNodeLocked
+            ? window.roamAlphaAPI.pull("[:block/string]", [
+                ":block/uid",
+                referencedNodeValue.uid,
+              ])
+            : undefined;
+          const formattedReference =
+            typeof referencedBlock?.[":block/string"] === "string"
+              ? formattedReferencedNodeText
+              : `[[${formattedReferencedNodeText}]]`;
+
           formattedTitle = nodeFormat.replace(
             /{([\w\d-]*)}/g,
             // unused variable will take _ as name
             (_, val: string) => {
               if (/content/i.test(val)) return content.text.trim();
               if (new RegExp(referencedNode.name, "i").test(val))
-                return `[[${formattedReferencedNodeText}]]`;
+                return formattedReference;
               return "";
             },
           );
@@ -524,14 +544,18 @@ const ModifyNodeDialog = ({
       onClose();
     } catch (error) {
       setError((error as Error).message);
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
   return (
     <Dialog
       isOpen={isOpen}
-      onClose={onClose}
-      canEscapeKeyClose
+      onClose={isSubmitting ? undefined : onClose}
+      canOutsideClickClose={!isSubmitting}
+      canEscapeKeyClose={!isSubmitting}
       autoFocus={false}
       className={"roamjs-canvas-dialog"}
     >
@@ -633,14 +657,14 @@ const ModifyNodeDialog = ({
               text="Confirm"
               intent={Intent.PRIMARY}
               onClick={() => void onSubmit()}
-              disabled={loading || !content.text.trim()}
+              disabled={loading || isSubmitting || !content.text.trim()}
               className="flex-shrink-0"
               autoFocus={isContentLocked}
             />
             <Button
               text="Cancel"
               onClick={onCancelClick}
-              disabled={loading}
+              disabled={loading || isSubmitting}
               className="flex-shrink-0"
             />
             <span className="flex-grow text-red-700">{error}</span>
@@ -654,6 +678,8 @@ const ModifyNodeDialog = ({
 
 export const renderModifyNodeDialog = (props: ModifyNodeDialogProps) =>
   renderOverlay({
+    // The overlay helper uses this ID in an unescaped CSS selector.
+    id: `discourse-node-dialog-${window.roamAlphaAPI.util.generateUID()}`,
     Overlay: ModifyNodeDialog,
     props,
   });
