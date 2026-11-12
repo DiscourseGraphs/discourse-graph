@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M78JXKKDRBR09J651MSZD6EQ",
+  "strategy": "manual-commit",
+  "branch": "eng-893-implement-node-summoning-menu-in-obsidian",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/obsidian/src/components/NodeSummonMenu.tsx",
+    "apps/obsidian/src/utils/nodeSummonExtension.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 24,
+    "cache_creation_tokens": 15337,
+    "cache_read_tokens": 2810923,
+    "output_tokens": 6764,
+    "api_call_count": 9,
+    "subagent_tokens": {
+      "input_tokens": 4,
+      "cache_creation_tokens": 38628,
+      "cache_read_tokens": 96300,
+      "output_tokens": 1735,
+      "api_call_count": 2
+    }
+  }
+}
