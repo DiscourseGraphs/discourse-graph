@@ -229,3 +229,7 @@ Drop that line
 ---
 
 Apply all three
+
+---
+
+yes run the checks then create the PRs
