@@ -47,8 +47,15 @@ const updateOpenMenu = (update: ViewUpdate): boolean => {
     return true;
   }
 
+  // No node title starts with a space, so `@ the lab` is prose, not a search.
+  const query = doc.sliceString(queryFrom, head);
+  if (/^\s/.test(query)) {
+    closeNodeSummonMenu();
+    return true;
+  }
+
   menu.triggerFrom = triggerFrom;
-  menu.setQuery(doc.sliceString(queryFrom, head));
+  menu.setQuery(query);
   // Text inserted above the trigger moves it on screen.
   if (update.docChanged || update.geometryChanged) menu.reposition();
   return true;

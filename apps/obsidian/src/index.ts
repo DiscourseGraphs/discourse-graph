@@ -28,10 +28,7 @@ import {
 } from "~/utils/discourseContextOverlayRefresh";
 import { refreshMarkdownEditors } from "~/utils/markdownViewRefresh";
 import { closeDiscourseContextPopover } from "~/components/DiscourseContextPopover";
-import {
-  closeNodeSummonMenu,
-  getActiveNodeSummonMenu,
-} from "~/components/NodeSummonMenu";
+import { closeNodeSummonMenu } from "~/components/NodeSummonMenu";
 import { createNodeSummonExtension } from "~/utils/nodeSummonExtension";
 import {
   registerCommands,
@@ -131,14 +128,6 @@ export default class DiscourseGraphPlugin extends Plugin {
         "active-leaf-change",
         (leaf: WorkspaceLeaf | null) => {
           this.cleanupViewActions();
-          // The event can arrive after typing starts in the leaf that just opened.
-          const summonMenu = getActiveNodeSummonMenu();
-          if (
-            summonMenu &&
-            !leaf?.view.containerEl.contains(summonMenu.view.dom)
-          ) {
-            closeNodeSummonMenu();
-          }
 
           if (!leaf) return;
 

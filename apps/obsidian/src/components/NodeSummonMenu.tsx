@@ -100,6 +100,7 @@ class NodeSummonMenu {
   private scope: Scope;
   private resizeObserver: ResizeObserver;
   private cleanupListeners: (() => void)[] = [];
+  private closed = false;
 
   constructor({ plugin, view, triggerFrom, trigger }: NodeSummonMenuOptions) {
     this.plugin = plugin;
@@ -157,6 +158,22 @@ class NodeSummonMenu {
       doc.removeEventListener("mousedown", closeIfOutside, true),
     );
 
+    // Opening another file can reuse this editor, so CodeMirror sees no typing to react to.
+    // A late leaf change for the leaf that just opened must not close it.
+    const { workspace } = plugin.app;
+    const filePath = view.state.field(editorInfoField, false)?.file?.path;
+    const workspaceRefs = [
+      workspace.on("file-open", (file) => {
+        if (file?.path !== filePath) this.close();
+      }),
+      workspace.on("active-leaf-change", (leaf) => {
+        if (!leaf?.view.containerEl.contains(view.dom)) this.close();
+      }),
+    ];
+    this.cleanupListeners.push(() =>
+      workspaceRefs.forEach((ref) => workspace.offref(ref)),
+    );
+
     // Scrolling moves the cursor on screen without a CodeMirror update.
     const onScroll = (): void => this.reposition();
     view.scrollDOM.addEventListener("scroll", onScroll, { passive: true });
@@ -180,6 +197,9 @@ class NodeSummonMenu {
   }
 
   close(): void {
+    // A measure queued before closing can still call this.
+    if (this.closed) return;
+    this.closed = true;
     for (const cleanup of this.cleanupListeners) cleanup();
     this.cleanupListeners = [];
     this.plugin.app.keymap.popScope(this.scope);
