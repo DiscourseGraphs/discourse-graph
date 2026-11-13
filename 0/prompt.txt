@@ -1,0 +1,21 @@
+I'm reassured that the diff will catch it, but it's still worth understanding the issue. Go ahead, and if you need to touch the test database nothing else uses it right now.
+
+---
+
+schema_paths is going to be deprecated, so I doubt that the report is useful. I agree we should have an issue candidate for the rename.
+
+---
+
+go ahead, write to roam.
+
+---
+
+Good, thank you!
+
+---
+
+Just to be sure: Did you check that renaming alphabetically would solve the issue?
+
+---
+
+yes, please.
