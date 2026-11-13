@@ -47,7 +47,7 @@ import {
 } from "@repo/database/lib/coreTitleBackfill";
 
 const DEFAULT_TIME = "1970-01-01";
-const CONCEPT_BATCH_SIZE = 200;
+const CONCEPT_BATCH_SIZE = 50;
 export type ChangeType = "title" | "content";
 
 export type ObsidianDiscourseNodeData = {

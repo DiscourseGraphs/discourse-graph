@@ -47,14 +47,14 @@ afterEach(() => {
 });
 
 describe("upsertConceptBatches", () => {
-  it("sends the concepts to upsert_concepts in order, 200 per call", async () => {
+  it("sends the concepts to upsert_concepts in order, 50 per call", async () => {
     const rpc = fakeRpc(({ data }) => ({
       data: data.map((_, i) => i + 1),
       error: null,
     }));
 
     await upsertConceptBatches({
-      concepts: concepts(450),
+      concepts: concepts(120),
       supabaseClient: { rpc } as unknown as DGSupabaseClient,
       spaceId: SPACE_ID,
     });
@@ -67,9 +67,9 @@ describe("upsertConceptBatches", () => {
     const sentBatches = rpc.mock.calls.map(([, { data }]) =>
       data.map((concept) => concept.source_local_id),
     );
-    expect(sentBatches.map((batch) => batch.length)).toEqual([200, 200, 50]);
+    expect(sentBatches.map((batch) => batch.length)).toEqual([50, 50, 20]);
     expect(sentBatches.flat()).toEqual(
-      concepts(450).map((concept) => concept.source_local_id),
+      concepts(120).map((concept) => concept.source_local_id),
     );
   });
 
@@ -88,7 +88,7 @@ describe("upsertConceptBatches", () => {
 
       await expect(
         upsertConceptBatches({
-          concepts: concepts(450),
+          concepts: concepts(120),
           supabaseClient: { rpc } as unknown as DGSupabaseClient,
           spaceId: SPACE_ID,
         }),
@@ -101,18 +101,18 @@ describe("upsertConceptBatches", () => {
 
   it("still sends the later batches when a call fails, then throws with every failure", async () => {
     const rpc = fakeRpc(({ data }) =>
-      data[0]?.source_local_id === "c200"
+      data[0]?.source_local_id === "c50"
         ? { data: null, error: { message: "statement timeout" } }
         : {
             data: data.map((concept) =>
-              concept.source_local_id === "c401" ? -2 : 1,
+              concept.source_local_id === "c101" ? -2 : 1,
             ),
             error: null,
           },
     );
 
     const upsert = upsertConceptBatches({
-      concepts: concepts(450),
+      concepts: concepts(120),
       supabaseClient: { rpc } as unknown as DGSupabaseClient,
       spaceId: SPACE_ID,
     });
