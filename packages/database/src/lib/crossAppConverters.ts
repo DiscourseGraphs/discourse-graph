@@ -153,8 +153,7 @@ export const crossAppRelationTypeSchemaToDbConcept = (
 
 export const crossAppRelationTripleSchemaToDbConcept = (
   node: CrossAppRelationTripleSchema,
-  // used in Obsidian, not yet in Roam.
-  relationType?: CrossAppRelationTypeSchema,
+  relationType?: Pick<CrossAppRelationTypeSchema, "label" | "complement">,
 ): LocalConceptDataInput | undefined => {
   if (!("label" in node) && relationType === undefined) return undefined;
   const label = "label" in node ? node.label : relationType!.label;

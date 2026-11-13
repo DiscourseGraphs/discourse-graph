@@ -6,6 +6,7 @@ import type {
   CrossAppRelation,
   CrossAppRelationTripleSchema,
   CrossAppRelationTypeSchema,
+  CrossAppUpsertData,
 } from "../crossAppContracts";
 import {
   obsidianOriginNodeExample,
@@ -17,6 +18,7 @@ import {
   crossAppRelationTripleSchemaValidator,
   crossAppRelationTypeSchemaValidator,
   crossAppRelationValidator,
+  crossAppUpsertDataValidator,
 } from "../crossAppValidators";
 
 type JsonObject = Record<string, unknown>;
@@ -109,6 +111,9 @@ describe("cross-app validators", () => {
     expectTypeOf<
       z.output<typeof crossAppRelationValidator>
     >().branded.toEqualTypeOf<CrossAppRelation>();
+    expectTypeOf<
+      z.output<typeof crossAppUpsertDataValidator>
+    >().branded.toEqualTypeOf<CrossAppUpsertData>();
   });
 
   it.each([
@@ -303,6 +308,12 @@ describe("cross-app validators", () => {
       when: "relation source is not a string",
       value: { ...toJson(relation), source: 42 },
       path: ["source"],
+    },
+    {
+      validator: crossAppRelationValidator,
+      when: "relation local id is empty",
+      value: { ...toJson(relation), localId: "" },
+      path: ["localId"],
     },
     {
       validator: crossAppRelationValidator,
