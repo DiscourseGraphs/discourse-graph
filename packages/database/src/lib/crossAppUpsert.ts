@@ -25,7 +25,7 @@ type ItemOf<K extends UpsertKind> = NonNullable<CrossAppUpsertData[K]>[number];
 
 // Fields the contract allows but no converter writes yet. They are refused, not
 // dropped. Remove an entry once the route writes that field.
-const UNWRITTEN_FIELDS: Partial<Record<UpsertKind, string>> = {
+const UNWRITTEN_FIELDS: { [K in UpsertKind]?: keyof ItemOf<K> } = {
   nodeSchemas: "metadata",
   relationTypeSchemas: "metadata",
   relationTripleSchemas: "metadata",
