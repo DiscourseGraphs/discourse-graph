@@ -545,7 +545,7 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
       sent = sentConcepts(upsertConcepts);
     });
 
-    it("sends every schema, local or imported, and every local note and relation, but no imported note or relation", () => {
+    it("sends every node type, every local or accepted imported relation schema, and every local note and relation, but no imported note or relation", () => {
       expect(sent.map((concept) => concept.source_local_id).sort()).toEqual(
         [
           "claim-type",
