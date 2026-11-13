@@ -488,10 +488,11 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
 
   // What supabase-js sends to upsert_concepts: JSON, so undefined fields drop out.
   // upsert_concepts stores these alike, so a later PR may change them for that
-  // reason: a row's space_id (replaced by v_space_id, concept.sql:476), a missing
-  // literal_content (defaults to {}, :473), ".000" in a UTC timestamp (columns are
-  // timestamp without time zone, :31-32), and author_id versus an author_local_id
-  // naming the same account (:403-405).
+  // reason: a row's space_id (it sets every row's space_id from v_space_id), a
+  // missing literal_content (it defaults to {}), ".000" or a trailing "Z" in a UTC
+  // timestamp (Concept and Content timestamps are timestamp without time zone,
+  // which ignores the zone), and author_id versus an author_local_id naming the
+  // same account (_local_concept_to_db_concept resolves it).
   const sentConcepts = (
     upsertConcepts: UpsertConcepts,
   ): LocalConceptDataInput[] =>
