@@ -1,11 +1,10 @@
 import { nextApiRoot } from "@repo/utils/execContext";
-import { DGSupabaseClient } from "@repo/database/lib/client";
-import { Json, CompositeTypes } from "@repo/database/dbTypes";
-import { SupabaseContext } from "./supabaseContext";
+import { Json } from "@repo/database/dbTypes";
+import type { LocalContentDataInput } from "@repo/database/inputTypes";
 import { ObsidianDiscourseNodeData, ChangeType } from "./syncDgNodesToSupabase";
 import { default as DiscourseGraphPlugin } from "~/index";
 
-type LocalContentDataInput = Partial<CompositeTypes<"content_local_input">>;
+type NodeContentEntry = LocalContentDataInput & { source_local_id: string };
 
 type ContentVariant = "direct" | "full";
 
@@ -39,7 +38,7 @@ const createNodeContentEntries = async (
   node: ObsidianDiscourseNodeData,
   accountLocalId: string,
   plugin: DiscourseGraphPlugin,
-): Promise<LocalContentDataInput[]> => {
+): Promise<NodeContentEntry[]> => {
   const variantsToCreate = getVariantsToCreate(node.changeTypes);
 
   if (variantsToCreate.length === 0) {
@@ -55,7 +54,7 @@ const createNodeContentEntries = async (
     scale: "document" as const,
   };
 
-  const entries: LocalContentDataInput[] = [];
+  const entries: NodeContentEntry[] = [];
 
   // Create direct entry (title) if needed - will get embeddings
   if (variantsToCreate.includes("direct")) {
@@ -95,16 +94,16 @@ export const convertObsidianNodeToLocalContent = async ({
   nodes: ObsidianDiscourseNodeData[];
   accountLocalId: string;
   plugin: DiscourseGraphPlugin;
-}): Promise<LocalContentDataInput[]> => {
+}): Promise<NodeContentEntry[]> => {
   const entriesPerNode = await Promise.all(
     nodes.map((node) => createNodeContentEntries(node, accountLocalId, plugin)),
   );
   return entriesPerNode.flat();
 };
 
-export const fetchEmbeddingsForNodes = async (
-  nodes: LocalContentDataInput[],
-): Promise<LocalContentDataInput[]> => {
+export const fetchEmbeddingsForNodes = async <T extends LocalContentDataInput>(
+  nodes: T[],
+): Promise<T[]> => {
   const allEmbeddings: number[][] = [];
   const allNodesTexts = nodes.map((node) => node.text || "");
 
@@ -159,48 +158,17 @@ export const fetchEmbeddingsForNodes = async (
   }));
 };
 
-const uploadBatches = async (
-  batches: LocalContentDataInput[][],
-  supabaseClient: DGSupabaseClient,
-  context: SupabaseContext,
-): Promise<void> => {
-  const { spaceId, userId } = context;
-  for (let idx = 0; idx < batches.length; idx++) {
-    const batch = batches[idx];
-    const { error } = await supabaseClient.rpc("upsert_content", {
-      data: batch as unknown as Json,
-      v_space_id: spaceId,
-      v_creator_id: userId,
-      content_as_document: true,
-    });
-
-    if (error) {
-      console.error(`upsert_content failed for batch ${idx + 1}:`, error);
-      throw error;
-    }
-  }
-};
-
-export const upsertNodesToSupabaseAsContentWithEmbeddings = async ({
+export const buildNodeContentsWithEmbeddings = async ({
   obsidianNodes,
-  supabaseClient,
-  context,
   accountLocalId,
   plugin,
 }: {
   obsidianNodes: ObsidianDiscourseNodeData[];
-  supabaseClient: DGSupabaseClient;
-  context: SupabaseContext;
   accountLocalId: string;
   plugin: DiscourseGraphPlugin;
-}): Promise<void> => {
-  if (!context?.userId) {
-    console.error("No Supabase context found.");
-    return;
-  }
-
+}): Promise<Record<string, LocalContentDataInput[]>> => {
   if (obsidianNodes.length === 0) {
-    return;
+    return {};
   }
 
   // Create two entries per node: one "direct" (title) and one "full" (content)
@@ -217,45 +185,24 @@ export const upsertNodesToSupabaseAsContentWithEmbeddings = async ({
     (entry) => entry.variant === "full",
   );
 
-  let directEntriesWithEmbeddings: LocalContentDataInput[];
+  let directEntriesWithEmbeddings: NodeContentEntry[];
   try {
     directEntriesWithEmbeddings =
       await fetchEmbeddingsForNodes(directVariantEntries);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(
-      `upsertNodesToSupabaseAsContentWithEmbeddings: Embedding service failed – ${errorMessage}`,
+      `buildNodeContentsWithEmbeddings: Embedding service failed – ${errorMessage}`,
     );
     throw new Error(errorMessage);
   }
 
-  if (directEntriesWithEmbeddings.length !== directVariantEntries.length) {
-    console.error(
-      "upsertNodesToSupabaseAsContentWithEmbeddings: Mismatch between direct variant entries and embedding counts.",
-    );
-    throw new Error(
-      "upsertNodesToSupabaseAsContentWithEmbeddings: Mismatch between direct variant entries and embedding counts.",
-    );
+  const contentsByNodeId: Record<string, LocalContentDataInput[]> = {};
+  for (const entry of [...directEntriesWithEmbeddings, ...fullVariantEntries]) {
+    contentsByNodeId[entry.source_local_id] = [
+      ...(contentsByNodeId[entry.source_local_id] ?? []),
+      entry,
+    ];
   }
-
-  const allEntriesToUpload = [
-    ...directEntriesWithEmbeddings,
-    ...fullVariantEntries,
-  ];
-
-  const batchSize = 200;
-
-  const chunk = <T>(array: T[], size: number): T[][] => {
-    const chunks: T[][] = [];
-    for (let i = 0; i < array.length; i += size) {
-      chunks.push(array.slice(i, i + size));
-    }
-    return chunks;
-  };
-
-  await uploadBatches(
-    chunk(allEntriesToUpload, batchSize),
-    supabaseClient,
-    context,
-  );
+  return contentsByNodeId;
 };
