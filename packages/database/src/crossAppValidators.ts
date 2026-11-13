@@ -1,6 +1,7 @@
 import { supportedContentTypes } from "@repo/content-model/constants";
 import { z } from "zod";
 import { Constants, type Json } from "./dbTypes";
+import { isRid } from "./lib/rid";
 
 // JSON carries a Date as an ISO 8601 string. One without an offset is refused because
 // `new Date` would read it in the server's local time zone.
@@ -21,12 +22,12 @@ const jsonValidator: z.ZodType<Json> = z.lazy(() =>
 );
 
 // Every object validator is strict, so a key the contract does not define, such as a
-// misspelled optional key, is refused instead of silently dropped. Free-form data
-// belongs in `metadata`. `extend` and `partial` keep the setting.
+// misspelled optional key, is refused instead of silently dropped. `extend` and
+// `partial` keep the setting.
 const crossAppBaseValidator = z
   .object({
     localId: z.string(),
-    rid: z.string().optional(),
+    rid: z.string().refine(isRid).optional(),
     createdAt: dateValidator,
     modifiedAt: dateValidator.optional(),
     authorId: z.string(),

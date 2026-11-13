@@ -306,6 +306,12 @@ describe("cross-app validators", () => {
     },
     {
       validator: crossAppRelationValidator,
+      when: "relation rid is not a RID",
+      value: { ...toJson(relation), rid: "relation-1" },
+      path: ["rid"],
+    },
+    {
+      validator: crossAppRelationValidator,
       when: "relation is not an object",
       value: [toJson(relation)],
       path: [],
