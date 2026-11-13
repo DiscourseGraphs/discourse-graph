@@ -365,6 +365,19 @@ describe("toOrderedEntries", () => {
     },
   );
 
+  it("writes a last_modified on every row of a body whose items omit modifiedAt", () => {
+    expect(JSON.stringify(graph)).not.toContain("modifiedAt");
+    const parsed = parse(toJson(graph));
+    if (!parsed.success) throw new Error("The graph did not parse");
+    const rows = toOrderedEntries({
+      data: parsed.data,
+      storedSchemas: [],
+    }).flatMap(({ concept }) => [concept, ...(concept.contents_inline ?? [])]);
+    expect(rows.map((row) => row.last_modified)).toEqual(
+      new Array<string>(12).fill("2026-06-14T11:00:00.000Z"),
+    );
+  });
+
   it("throws for a triple whose relation type was not found", () => {
     expect(() =>
       toOrderedEntries({
