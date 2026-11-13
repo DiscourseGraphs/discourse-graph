@@ -62,7 +62,7 @@ const fakeClient = ({
   editorSpaceIds?: number[];
   stored?: Result;
   upsert?: Result;
-} = {}): Mock => {
+} = {}): { rpc: Mock; from: Mock } => {
   const client = {
     auth: {
       getUser: () =>
@@ -76,15 +76,16 @@ const fakeClient = ({
         fn === "my_space_ids" ? { data: editorSpaceIds, error: null } : upsert,
       ),
     ),
-    from: (table: string) =>
+    from: vi.fn((table: string) =>
       query(
         table === "Space" ? { data: { url: SPACE_URL }, error: null } : stored,
       ),
+    ),
   };
   vi.mocked(createBearerTokenClient).mockReturnValue(
     client as unknown as DGSupabaseClient,
   );
-  return client.rpc;
+  return client;
 };
 
 const post = ({
@@ -124,9 +125,12 @@ describe("POST /api/internal/space/[id]/graph", () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
 
-  it("refuses a space id that is not all digits", async () => {
+  it.each([
+    { id: "5abc", when: "is not all digits" },
+    { id: "9007199254740992", when: "is past the safe-integer range" },
+  ])("refuses a space id that $when", async ({ id }) => {
     fakeClient();
-    await expectResponse(await post({ id: "5abc" }), { status: 400 });
+    await expectResponse(await post({ id }), { status: 400 });
     expect(createBearerTokenClient).not.toHaveBeenCalled();
   });
 
@@ -143,11 +147,27 @@ describe("POST /api/internal/space/[id]/graph", () => {
     await expectResponse(await post(), { status: 401 });
   });
 
-  it("answers 502 and reports it when the auth server is unreachable", async () => {
-    fakeClient({ authError: new AuthRetryableFetchError("fetch failed", 0) });
-    await expectResponse(await post(), { status: 502 });
-    expect(internalError).toHaveBeenCalledOnce();
-  });
+  it.each([
+    {
+      when: "is unreachable",
+      authError: new AuthRetryableFetchError("fetch failed", 0),
+    },
+    {
+      when: "rate-limits the caller",
+      authError: new AuthApiError(
+        "Request rate limit reached",
+        429,
+        "over_request_rate_limit",
+      ),
+    },
+  ])(
+    "answers 502 and reports it when the auth server $when",
+    async ({ authError }) => {
+      fakeClient({ authError });
+      await expectResponse(await post(), { status: 502 });
+      expect(internalError).toHaveBeenCalledOnce();
+    },
+  );
 
   it("refuses a caller who is not an editor of the space", async () => {
     fakeClient({ editorSpaceIds: [6] });
@@ -163,7 +183,7 @@ describe("POST /api/internal/space/[id]/graph", () => {
   });
 
   it("refuses a body whose rid names another space, writing nothing", async () => {
-    const rpc = fakeClient();
+    const { rpc } = fakeClient();
     const rid = "https://roamresearch.com/#/app/graph-b/claim-1";
     await expectResponse(await post({ body: { nodes: [{ ...node, rid }] } }), {
       status: 400,
@@ -173,7 +193,7 @@ describe("POST /api/internal/space/[id]/graph", () => {
   });
 
   it("answers 422 for a schema in neither the body nor the space", async () => {
-    const rpc = fakeClient();
+    const { rpc } = fakeClient();
     await expectResponse(await post({ body: { nodes: [node] } }), {
       status: 422,
       body: { missing: ["claim-type"] },
@@ -197,7 +217,7 @@ describe("POST /api/internal/space/[id]/graph", () => {
   });
 
   it("answers 200 with the id of each upserted local id", async () => {
-    const rpc = fakeClient({
+    const { rpc } = fakeClient({
       stored: storedClaimType,
       upsert: { data: [42], error: null },
     });
@@ -212,11 +232,12 @@ describe("POST /api/internal/space/[id]/graph", () => {
   });
 
   it("answers 200 to an empty body after an empty upsert", async () => {
-    const rpc = fakeClient();
+    const { rpc, from } = fakeClient();
     await expectResponse(await post(), {
       status: 200,
       body: { upserted: {}, failed: [] },
     });
+    expect(from).not.toHaveBeenCalledWith("my_concepts");
     expect(rpc).toHaveBeenCalledWith("upsert_concepts", {
       v_space_id: 5,
       data: [],

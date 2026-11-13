@@ -27,7 +27,7 @@ export const POST = async (
     cors(request, NextResponse.json(body, { status })) as NextResponse;
   try {
     const { id } = await segmentData.params;
-    if (!/^\d+$/.test(id))
+    if (!/^\d+$/.test(id) || !Number.isSafeInteger(Number(id)))
       return respond(400, { error: `${id} is not a number` });
     const spaceId = Number(id);
     const fail = (status: number, error: Error): NextResponse => {
@@ -43,8 +43,11 @@ export const POST = async (
     const client = createBearerTokenClient(token);
     const { error: authError } = await client.auth.getUser(token);
     // A plugin reads 401 as "sign in again", so only the auth server's verdict
-    // on the token gets it; an unreachable auth server is a 502.
-    if (isAuthApiError(authError) || isAuthSessionMissingError(authError))
+    // on the token gets it; an unreachable or rate-limiting auth server is a 502.
+    if (
+      (isAuthApiError(authError) && authError.status !== 429) ||
+      isAuthSessionMissingError(authError)
+    )
       return respond(401, { error: authError.message });
     if (authError) return fail(502, authError);
 
@@ -68,12 +71,16 @@ export const POST = async (
       });
     const { data } = parsed;
 
-    const stored = await client
-      .from("my_concepts")
-      .select("source_local_id, literal_content")
-      .eq("space_id", spaceId)
-      .eq("is_schema", true)
-      .in("source_local_id", schemaReferences(data));
+    const references = schemaReferences(data);
+    const stored =
+      references.length === 0
+        ? { data: [], error: null }
+        : await client
+            .from("my_concepts")
+            .select("source_local_id, literal_content")
+            .eq("space_id", spaceId)
+            .eq("is_schema", true)
+            .in("source_local_id", references);
     if (stored.error) return fail(500, stored.error);
     const missing = findMissingSchemas({ data, storedSchemas: stored.data });
     if (missing.length > 0)
