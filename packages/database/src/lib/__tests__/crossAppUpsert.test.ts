@@ -184,33 +184,6 @@ describe("parseUpsertData", () => {
       }),
     ),
     {
-      when: "has a node with assets",
-      body: {
-        nodes: [
-          toJson({
-            ...node("claim-1", "claim-type"),
-            assets: [{ sourceRef: "a.png", contentHash: "ab" }],
-          }),
-        ],
-      },
-      issues: [
-        {
-          path: ["nodes", 0, "assets"],
-          message: "This route does not write this field yet",
-        },
-      ],
-    },
-    {
-      when: "has a schema with metadata",
-      body: { relationTypeSchemas: [toJson({ ...supports, metadata: {} })] },
-      issues: [
-        {
-          path: ["relationTypeSchemas", 0, "metadata"],
-          message: "This route does not write this field yet",
-        },
-      ],
-    },
-    {
       when: "has metadata nested 100,000 levels deep",
       body: deeplyNested(100_000),
       issues: [{ path: [], message: "The body is nested too deeply" }],
@@ -218,6 +191,41 @@ describe("parseUpsertData", () => {
   ])("refuses a body that $when", ({ body, issues }) => {
     expect(parse(body)).toEqual({ success: false, issues });
   });
+
+  it.each([
+    { kind: "nodeSchemas", item: claimType, field: "metadata", value: {} },
+    {
+      kind: "relationTypeSchemas",
+      item: supports,
+      field: "metadata",
+      value: {},
+    },
+    {
+      kind: "relationTripleSchemas",
+      item: evidenceSupportsClaim,
+      field: "metadata",
+      value: {},
+    },
+    {
+      kind: "nodes",
+      item: node("claim-1", "claim-type"),
+      field: "assets",
+      value: [{ sourceRef: "a.png", contentHash: "ab" }],
+    },
+  ])(
+    "refuses $kind with $field, which no converter writes yet",
+    ({ kind, item, field, value }) => {
+      expect(parse({ [kind]: [toJson({ ...item, [field]: value })] })).toEqual({
+        success: false,
+        issues: [
+          {
+            path: [kind, 0, field],
+            message: "This route does not write this field yet",
+          },
+        ],
+      });
+    },
+  );
 
   it("refuses a key outside the five root types", () => {
     expect(parse({ edges: [] })).toMatchObject({
