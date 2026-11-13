@@ -1,0 +1,7 @@
+<task-notification>
+<task-id>bsswmcosw</task-id>
+<tool-use-id>toolu_017KMnnRRnNuv3GwwVB6Ewpb</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/7b584be8-cc24-47ed-b62e-2bb92fe484d3/tasks/bsswmcosw.output</output-file>
+<status>completed</status>
+<summary>Background command "Start frontmost sampler in background" completed (exit code 0)</summary>
+</task-notification>
