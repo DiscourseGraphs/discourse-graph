@@ -13,6 +13,7 @@
     "./dbTypes": "./src/dbTypes.ts",
     "./inputTypes": "./src/inputTypes.ts",
     "./crossAppContracts": "./src/crossAppContracts.ts",
+    "./crossAppValidators": "./src/crossAppValidators.ts",
     "./crossAppNodeContract.example": "./src/crossAppNodeContract.example.ts"
   },
   "typesVersions": {
@@ -51,7 +52,8 @@
     "@supabase/functions-js": "catalog:",
     "@supabase/storage-js": "catalog:",
     "@supabase/supabase-js": "catalog:",
-    "tslib": "2.5.1"
+    "tslib": "2.5.1",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@cucumber/cucumber": "^12.7.0",
