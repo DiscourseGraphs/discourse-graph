@@ -87,7 +87,7 @@ const AVOID_DISTANCE = 80;
 const AVOID_MIN_VISIBILITY = 0.12;
 const MAX_FRAME_SECONDS = 0.05;
 
-const randomBetween = (range: [number, number]): number =>
+export const randomBetween = (range: [number, number]): number =>
   range[0] + Math.random() * (range[1] - range[0]);
 
 export const smoothstep = ({
