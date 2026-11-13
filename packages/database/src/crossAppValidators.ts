@@ -26,8 +26,8 @@ const jsonValidator: z.ZodType<Json> = z.lazy(() =>
 // `partial` keep the setting.
 const crossAppBaseValidator = z
   .object({
-    localId: z.string(),
-    rid: z.string().refine(isRid).optional(),
+    localId: z.string().min(1),
+    rid: z.string().refine(isRid, "Not an https:// or orn: RID").optional(),
     createdAt: dateValidator,
     modifiedAt: dateValidator.optional(),
     authorId: z.string(),
@@ -115,3 +115,14 @@ export const crossAppRelationValidator = crossAppBaseValidator.extend({
   source: z.string(),
   destination: z.string(),
 });
+
+export const crossAppUpsertDataValidator = z
+  .object({
+    nodeSchemas: z.array(crossAppNodeSchemaValidator),
+    relationTypeSchemas: z.array(crossAppRelationTypeSchemaValidator),
+    relationTripleSchemas: z.array(crossAppRelationTripleSchemaValidator),
+    nodes: z.array(crossAppNodeValidator),
+    relations: z.array(crossAppRelationValidator),
+  })
+  .partial()
+  .strict();

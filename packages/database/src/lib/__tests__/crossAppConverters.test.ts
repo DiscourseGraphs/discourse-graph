@@ -1,8 +1,18 @@
 import { describe, expect, it } from "vitest";
-import type { CrossAppNode, CrossAppNodeSchema } from "../../crossAppContracts";
+import type {
+  CrossAppNode,
+  CrossAppNodeSchema,
+  CrossAppRelation,
+  CrossAppRelationTripleSchema,
+  CrossAppRelationTypeSchema,
+} from "../../crossAppContracts";
 import {
   crossAppNodeSchemaToDbConcept,
   crossAppNodeToDbConcept,
+  crossAppNodeToDbContent,
+  crossAppRelationToDbConcept,
+  crossAppRelationTripleSchemaToDbConcept,
+  crossAppRelationTypeSchemaToDbConcept,
 } from "../crossAppConverters";
 
 const baseSchema: CrossAppNodeSchema = {
@@ -137,5 +147,80 @@ describe("crossAppNodeToDbConcept", () => {
         ({ variant }) => variant,
       ),
     ).toEqual(["direct"]);
+  });
+});
+
+describe("an item without modifiedAt", () => {
+  const CREATED = "2026-06-14T11:00:00.000Z";
+  const relationType: CrossAppRelationTypeSchema = {
+    localId: "supports",
+    createdAt: new Date(CREATED),
+    authorId: "account-local-1",
+    label: "supports",
+    complement: "is supported by",
+  };
+  const triple: CrossAppRelationTripleSchema = {
+    localId: "node-supports-concept",
+    createdAt: new Date(CREATED),
+    authorId: "account-local-1",
+    label: "supports",
+    complement: "is supported by",
+    sourceType: "concept-1",
+    destinationType: "concept-1",
+  };
+  const relation: CrossAppRelation = {
+    localId: "relation-1",
+    createdAt: new Date(CREATED),
+    authorId: "account-local-1",
+    relationType: "node-supports-concept",
+    source: "node-2",
+    destination: "node-1",
+  };
+
+  it.each([
+    {
+      converter: "crossAppNodeSchemaToDbConcept",
+      convert: () => crossAppNodeSchemaToDbConcept(baseSchema),
+    },
+    {
+      converter: "crossAppNodeToDbConcept",
+      convert: () => crossAppNodeToDbConcept(baseNode),
+    },
+    {
+      converter: "crossAppRelationTypeSchemaToDbConcept",
+      convert: () => crossAppRelationTypeSchemaToDbConcept(relationType),
+    },
+    {
+      converter: "crossAppRelationTripleSchemaToDbConcept",
+      convert: () => crossAppRelationTripleSchemaToDbConcept(triple),
+    },
+    {
+      converter: "crossAppRelationToDbConcept",
+      convert: () => crossAppRelationToDbConcept(relation),
+    },
+  ])("$converter writes its createdAt as last_modified", ({ convert }) => {
+    expect(convert()).toMatchObject({
+      created: CREATED,
+      last_modified: CREATED,
+    });
+  });
+
+  it("crossAppNodeToDbContent writes the content's own createdAt as last_modified", () => {
+    const content = crossAppNodeToDbContent(
+      {
+        ...baseNode,
+        content: {
+          direct: {
+            value: "EVD - REM sleep and recall",
+            createdAt: new Date("2026-06-15T09:00:00Z"),
+          },
+        },
+      },
+      "direct",
+    );
+    expect(content).toMatchObject({
+      created: "2026-06-15T09:00:00.000Z",
+      last_modified: "2026-06-15T09:00:00.000Z",
+    });
   });
 });
