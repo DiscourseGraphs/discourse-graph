@@ -160,6 +160,9 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
     template: "Claim template",
     color: "#7DA13E",
     tag: "clm",
+    shortcut: "C",
+    keyImage: true,
+    folderPath: "Claims",
     ...schemaTimes,
   };
   const SOURCE_TYPE: DiscourseNode = {
@@ -190,6 +193,16 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
     color: "green",
     ...schemaTimes,
   };
+  const IMPORTED_OPPOSES_TYPE: DiscourseRelationType = {
+    id: "opposes-type",
+    label: "opposes",
+    complement: "is opposed by",
+    color: "red",
+    importedFromRid: "orn:obsidian.schema:other-vault/opposes-type",
+    status: "accepted",
+    authorId: 9,
+    ...schemaTimes,
+  };
   const CLAIM_CITES_SOURCE: DiscourseRelation = {
     id: "claim-cites-source",
     relationshipTypeId: "cites-type",
@@ -202,6 +215,16 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
     relationshipTypeId: "supports-type",
     sourceId: "claim-type",
     destinationId: "claim-type",
+    ...schemaTimes,
+  };
+  const IMPORTED_CLAIM_OPPOSES_CLAIM: DiscourseRelation = {
+    id: "claim-opposes-claim",
+    relationshipTypeId: "opposes-type",
+    sourceId: "claim-type",
+    destinationId: "claim-type",
+    importedFromRid: "orn:obsidian.schema:other-vault/claim-opposes-claim",
+    status: "accepted",
+    authorId: 9,
     ...schemaTimes,
   };
 
@@ -221,11 +244,7 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
     file: Object.assign(new TFile(), {
       path,
       basename: path.slice(path.lastIndexOf("/") + 1, -".md".length),
-      stat: {
-        ctime: Date.parse(NOTE_CREATED),
-        mtime: Date.parse(modified),
-        size: 10,
-      },
+      stat: { ctime: Date.parse(NOTE_CREATED), mtime: Date.parse(modified) },
     }),
     frontmatter: { nodeTypeId, nodeInstanceId, ...otherFrontmatter },
     nodeTypeId,
@@ -255,10 +274,19 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
   });
   const TEMPLATE_FILE = Object.assign(new TFile(), {
     path: "Templates/Claim template.md",
-    basename: "Claim template",
   });
+  const CLAIM_FILE_TEXT = [
+    "---",
+    "nodeTypeId: claim-type",
+    "nodeInstanceId: claim-node",
+    "tags:",
+    "  - sleep",
+    "---",
+    "Sleep after learning strengthens recall.",
+    "",
+  ].join("\n");
   const TEXT_BY_PATH: Record<string, string> = {
-    [CLAIM_PATH]: "Sleep after learning strengthens recall.",
+    [CLAIM_PATH]: CLAIM_FILE_TEXT,
     [SOURCE_NOTE.file.path]: "Walker, M. (2017). Why we sleep.",
     [IMPORTED_NOTE.file.path]: "Dreams replay the day's events.",
     [TEMPLATE_FILE.path]: "## Evidence\n",
@@ -291,6 +319,9 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
     ...relationTimes,
   };
 
+  const embeddingOf = (text: string): number[] =>
+    [...text].map((char) => char.charCodeAt(0));
+
   const CLAIM_CONCEPT: LocalConceptDataInput = {
     space_id: SPACE_ID,
     source_local_id: "claim-node",
@@ -319,7 +350,7 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
     metadata: { filePath: CLAIM_PATH },
     embedding_inline: {
       model: "openai_text_embedding_3_small_1536",
-      vector: ["CLM - Sleep consolidates memory".length],
+      vector: embeddingOf("CLM - Sleep consolidates memory"),
     },
   };
   const CLAIM_FULL_CONTENT: LocalContentDataInput = {
@@ -331,7 +362,7 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
     last_modified: NOTE_MODIFIED,
     variant: "full",
     content_type: "text/obsidian+markdown",
-    text: "Sleep after learning strengthens recall.",
+    text: CLAIM_FILE_TEXT,
     metadata: {
       nodeTypeId: "claim-type",
       nodeInstanceId: "claim-node",
@@ -424,8 +455,12 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
       settings: {
         accountLocalId: ACCOUNT_LOCAL_ID,
         nodeTypes: [CLAIM_TYPE, SOURCE_TYPE, IMPORTED_EVIDENCE_TYPE],
-        relationTypes: [CITES_TYPE, SUPPORTS_TYPE],
-        discourseRelations: [CLAIM_CITES_SOURCE, CLAIM_SUPPORTS_CLAIM],
+        relationTypes: [CITES_TYPE, SUPPORTS_TYPE, IMPORTED_OPPOSES_TYPE],
+        discourseRelations: [
+          CLAIM_CITES_SOURCE,
+          CLAIM_SUPPORTS_CLAIM,
+          IMPORTED_CLAIM_OPPOSES_CLAIM,
+        ],
       },
       app: {
         vault: {
@@ -451,15 +486,19 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
     } as unknown as DiscourseGraphPlugin;
   };
 
-  // Compare what reaches the database: supabase-js sends the arguments as JSON,
-  // which drops undefined fields.
+  // What supabase-js sends to upsert_concepts: JSON, so undefined fields drop out.
+  // upsert_concepts stores these alike, so a later PR may change them for that
+  // reason: a row's space_id (replaced by v_space_id, concept.sql:476), a missing
+  // literal_content (defaults to {}, :473), ".000" in a UTC timestamp (columns are
+  // timestamp without time zone, :31-32), and author_id versus an author_local_id
+  // naming the same account (:403-405).
   const sentConcepts = (
     upsertConcepts: UpsertConcepts,
   ): LocalConceptDataInput[] =>
-    upsertConcepts.mock.calls.flatMap(
-      ([, { data }]) =>
-        JSON.parse(JSON.stringify(data)) as LocalConceptDataInput[],
-    );
+    upsertConcepts.mock.calls.flatMap(([, { data, v_space_id }]) => {
+      expect(v_space_id, "v_space_id").toBe(SPACE_ID);
+      return JSON.parse(JSON.stringify(data)) as LocalConceptDataInput[];
+    });
 
   beforeEach(() => {
     vi.mocked(getSupabaseContext).mockResolvedValue({
@@ -472,7 +511,7 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
         ok: true,
         json: () =>
           Promise.resolve({
-            data: input.map((text) => ({ embedding: [text.length] })),
+            data: input.map((text) => ({ embedding: embeddingOf(text) })),
           }),
       });
     });
@@ -513,8 +552,10 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
           "evidence-type",
           "cites-type",
           "supports-type",
+          "opposes-type",
           "claim-cites-source",
           "claim-supports-claim",
+          "claim-opposes-claim",
           "claim-node",
           "source-node",
           "rel-cites",
@@ -538,7 +579,13 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
           format: "CLM - {content}",
           template: "Claim template",
           template_content: "## Evidence\n",
-          source_data: { color: "#7DA13E", tag: "clm" },
+          source_data: {
+            color: "#7DA13E",
+            tag: "clm",
+            shortcut: "C",
+            keyImage: true,
+            folderPath: "Claims",
+          },
         },
       });
     });
@@ -598,6 +645,25 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
       });
     });
 
+    it("sends an accepted imported relation type with its origin RID and without its status", () => {
+      expect(sentRow("opposes-type")).toStrictEqual({
+        space_id: SPACE_ID,
+        source_local_id: "opposes-type",
+        is_schema: true,
+        author_id: USER_ID,
+        name: "opposes",
+        created: SCHEMA_CREATED,
+        last_modified: SCHEMA_MODIFIED,
+        literal_content: {
+          roles: ["source", "destination"],
+          label: "opposes",
+          complement: "is opposed by",
+          importedFromRid: "orn:obsidian.schema:other-vault/opposes-type",
+          source_data: { color: "red", authorId: 9 },
+        },
+      });
+    });
+
     it("names a relation triple '<source type> -<label>-> <destination type>' and references its types", () => {
       expect(sentRow("claim-cites-source")).toStrictEqual({
         space_id: SPACE_ID,
@@ -620,6 +686,30 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
       });
     });
 
+    it("sends an accepted imported relation triple with its origin RID", () => {
+      expect(sentRow("claim-opposes-claim")).toStrictEqual({
+        space_id: SPACE_ID,
+        source_local_id: "claim-opposes-claim",
+        is_schema: true,
+        author_id: USER_ID,
+        name: "Claim -opposes-> Claim",
+        created: SCHEMA_CREATED,
+        last_modified: SCHEMA_MODIFIED,
+        literal_content: {
+          roles: ["source", "destination"],
+          label: "opposes",
+          complement: "is opposed by",
+          importedFromRid:
+            "orn:obsidian.schema:other-vault/claim-opposes-claim",
+        },
+        local_reference_content: {
+          relation_type: "opposes-type",
+          source: "claim-type",
+          destination: "claim-type",
+        },
+      });
+    });
+
     it("sends a new note as a Concept named by its file path, with its title as direct Content and its text as full Content", () => {
       expect(sentRow("claim-node")).toStrictEqual({
         ...CLAIM_CONCEPT,
@@ -628,10 +718,7 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
       });
     });
 
-    it("gives a note the Source it cites as its sourceDocument, and none to a note that cites no Source", () => {
-      expect(sentRow("claim-node")?.local_reference_content).toStrictEqual({
-        sourceDocument: "source-node",
-      });
+    it("sends no sourceDocument for a note that cites no Source", () => {
       expect(sentRow("source-node")).not.toHaveProperty(
         "local_reference_content",
       );
