@@ -1,249 +1,33 @@
 import type { DGSupabaseClient } from "./client";
 import { ridToSpaceUriAndLocalId, spaceUriAndLocalIdToRid } from "./rid";
-import type { Enums, Json, Tables } from "../dbTypes";
+import {
+  dbNodesToCrossApp,
+  type DbCrossAppNode,
+  type DbNodeConcept,
+  type DbNodeRows,
+} from "./dbToCrossAppConverters";
+import type { Tables } from "../dbTypes";
 
-type SharedConcept = Pick<
-  Tables<"my_concepts">,
-  | "is_schema"
-  | "last_modified"
-  | "schema_id"
-  | "source_local_id"
-  | "space_id"
-  | "reference_content"
-> & {
-  core_title: string | null;
-  concepts_of_relation: {
-    id: number | null;
-    space_id: number | null;
-    source_local_id: string | null;
-  }[];
-};
-type SharedContent = Pick<
-  Tables<"my_contents">,
-  | "author_id"
-  | "created"
-  | "last_modified"
-  | "metadata"
-  | "source_local_id"
-  | "space_id"
-  | "text"
-  | "variant"
->;
-type SharedContentSummary = Pick<
-  Tables<"my_contents">,
-  "last_modified" | "source_local_id" | "space_id"
->;
-type SharedSpace = Pick<
+export type SharedNodeSpace = Pick<
   Tables<"my_spaces">,
   "id" | "name" | "platform" | "url"
 >;
-type Platform = Enums<"Platform">;
 
-type ValidSharedSpace = {
-  name: string;
-  platform: Platform;
-  url: string;
+export type SharedNodeListing = {
+  nodes: DbCrossAppNode[];
+  spaces: Record<string, SharedNodeSpace>;
 };
 
-export type SharedNode = {
-  rid: string;
-  sourceLocalId: string;
-  schemaId: number;
-  spaceId: number;
-  spaceName: string;
-  spaceUri: string;
-  platform: Platform;
-  title: string;
-  coreTitle?: string;
-  created: string | null;
-  lastModified: string;
-  authorId?: number;
-  directMetadata: Json;
-  slots?: Record<string, string>;
-};
-
-export type SharedNodeRows = {
-  nodes: SharedConcept[];
-  directContents: SharedContent[];
-  fullContentSummaries: SharedContentSummary[];
-  spaces: SharedSpace[];
+export type SharedNodeRows = DbNodeRows & {
+  spaces: SharedNodeSpace[];
 };
 
 const CONCEPT_COLUMNS_WITH_SLOTS =
   "core_title:literal_content->>core_title, is_schema, last_modified, schema_id, source_local_id, space_id, reference_content, concepts_of_relation(id, space_id, source_local_id)";
 const DIRECT_CONTENT_COLUMNS =
-  "author_id, created, last_modified, metadata, source_local_id, space_id, text, variant";
+  "author_id, created, last_modified, source_local_id, space_id, text, variant";
 const FULL_CONTENT_SUMMARY_COLUMNS = "last_modified, source_local_id, space_id";
 const SPACE_COLUMNS = "id, name, platform, url";
-
-const getResourceKey = ({
-  sourceLocalId,
-  spaceId,
-}: {
-  sourceLocalId: string;
-  spaceId: number;
-}): string => `${spaceId}:${sourceLocalId}`;
-
-const normalizeUtcTimestamp = (timestamp: string | null): string | null => {
-  if (!timestamp) return null;
-  const date = new Date(`${timestamp}Z`);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
-};
-
-const getLatestTimestamp = (timestamps: (string | null)[]): string | null => {
-  const validTimestamps = timestamps
-    .map(normalizeUtcTimestamp)
-    .filter((timestamp): timestamp is string => typeof timestamp === "string");
-  if (validTimestamps.length === 0) return null;
-  return validTimestamps.reduce((latest, timestamp) =>
-    timestamp > latest ? timestamp : latest,
-  );
-};
-
-export const buildSharedNodes = ({
-  nodes,
-  directContents,
-  fullContentSummaries,
-  spaces,
-}: SharedNodeRows): SharedNode[] => {
-  const spacesById = new Map<number, ValidSharedSpace>(
-    spaces.flatMap((space): [number, ValidSharedSpace][] => {
-      if (
-        typeof space.id !== "number" ||
-        typeof space.name !== "string" ||
-        space.platform === null ||
-        typeof space.url !== "string"
-      )
-        return [];
-      return [
-        [
-          space.id,
-          {
-            name: space.name,
-            platform: space.platform,
-            url: space.url,
-          },
-        ],
-      ];
-    }),
-  );
-  const directByResource = new Map<string, SharedContent>();
-  directContents.forEach((content) => {
-    if (
-      typeof content.space_id !== "number" ||
-      typeof content.source_local_id !== "string" ||
-      content.variant !== "direct"
-    )
-      return;
-    directByResource.set(
-      getResourceKey({
-        sourceLocalId: content.source_local_id,
-        spaceId: content.space_id,
-      }),
-      content,
-    );
-  });
-
-  const fullModifiedByResource = new Map<string, string | null>();
-  fullContentSummaries.forEach((summary) => {
-    if (
-      typeof summary.space_id !== "number" ||
-      typeof summary.source_local_id !== "string"
-    )
-      return;
-    fullModifiedByResource.set(
-      getResourceKey({
-        sourceLocalId: summary.source_local_id,
-        spaceId: summary.space_id,
-      }),
-      summary.last_modified,
-    );
-  });
-
-  return nodes
-    .flatMap((node): SharedNode[] => {
-      if (
-        node.is_schema !== false ||
-        node.schema_id === null ||
-        typeof node.space_id !== "number" ||
-        typeof node.source_local_id !== "string"
-      )
-        return [];
-
-      const resourceKey = getResourceKey({
-        sourceLocalId: node.source_local_id,
-        spaceId: node.space_id,
-      });
-
-      const space = spacesById.get(node.space_id);
-      const direct = directByResource.get(resourceKey);
-      if (!space || typeof direct?.text !== "string") return [];
-
-      const created = normalizeUtcTimestamp(direct.created);
-      const lastModified =
-        getLatestTimestamp([
-          node.last_modified,
-          direct.last_modified,
-          fullModifiedByResource.get(resourceKey) ?? null,
-        ]) ?? created;
-      if (!lastModified) return [];
-
-      let rid: string;
-      try {
-        rid = spaceUriAndLocalIdToRid(space.url, node.source_local_id, "note");
-      } catch {
-        return [];
-      }
-
-      const nodeRidById = Object.fromEntries(
-        node.concepts_of_relation
-          .filter((c) => c.id !== null)
-          .map((c) => {
-            if (c.space_id === node.space_id) return [c.id, c.source_local_id];
-            const space = spacesById.get(c.space_id || 0);
-            if (!space || !c.source_local_id || !c.id) return [c.id, undefined];
-            return [
-              c.id,
-              // To be reviewed if we have relations of relations
-              spaceUriAndLocalIdToRid(space.url, c.source_local_id, "note"),
-            ];
-          }) as [number, string | undefined][],
-      );
-      const referenceContent = (node.reference_content ?? {}) as Record<
-        string,
-        number
-      >;
-      const slots = Object.fromEntries(
-        Object.entries(referenceContent ?? {})
-          .map(([k, v]) => [k, nodeRidById[v]])
-          .filter(([, v]) => v !== undefined) as [string, string][],
-      );
-
-      return [
-        {
-          rid,
-          sourceLocalId: node.source_local_id,
-          schemaId: node.schema_id,
-          spaceId: node.space_id,
-          spaceName: space.name,
-          spaceUri: space.url,
-          platform: space.platform,
-          title: direct.text,
-          coreTitle: node.core_title ?? undefined,
-          created,
-          lastModified,
-          authorId: direct.author_id ?? undefined,
-          directMetadata: direct.metadata,
-          slots: Object.keys(slots).length > 0 ? slots : undefined,
-        },
-      ];
-    })
-    .sort(
-      (left, right) =>
-        Date.parse(right.lastModified) - Date.parse(left.lastModified) ||
-        left.title.localeCompare(right.title),
-    );
-};
 
 const getAssociatedSpaces = async ({
   client,
@@ -252,23 +36,21 @@ const getAssociatedSpaces = async ({
   currentSpaceId,
 }: {
   client: DGSupabaseClient;
-  concepts: SharedConcept[];
-  currentSpace?: SharedSpace;
+  concepts: DbNodeConcept[];
+  currentSpace?: SharedNodeSpace;
   currentSpaceId?: number;
-}): Promise<SharedSpace[]> => {
-  const associatedSpaceIds = new Set(
-    [
-      ...concepts.map((cpt) => cpt.space_id),
-      ...concepts.flatMap((cpt) =>
-        cpt.concepts_of_relation.map((cr) => cr.space_id),
-      ),
-    ].filter((id) => id !== null),
-  );
+}): Promise<SharedNodeSpace[]> => {
+  const associatedSpaceIds = new Set([
+    ...concepts.map((cpt) => cpt.space_id),
+    ...concepts.flatMap((cpt) =>
+      cpt.concepts_of_relation.map((cr) => cr.space_id),
+    ),
+  ]);
   if (currentSpace !== undefined) {
     currentSpaceId = currentSpace.id ?? currentSpaceId;
   } else if (currentSpaceId !== undefined)
     associatedSpaceIds.add(currentSpaceId);
-  const spaces: SharedSpace[] = [];
+  const spaces: SharedNodeSpace[] = [];
   if (currentSpace !== undefined && currentSpaceId !== undefined) {
     spaces.push(currentSpace);
     associatedSpaceIds.delete(currentSpaceId);
@@ -326,16 +108,57 @@ const getSharedNodeRows = async ({
   };
 };
 
+const toSharedNodeListing = async ({
+  client,
+  spaces,
+  ...rows
+}: SharedNodeRows & {
+  client: DGSupabaseClient;
+}): Promise<SharedNodeListing> => {
+  const nodes = await dbNodesToCrossApp({
+    client,
+    ...rows,
+    spaceMap: Object.fromEntries(spaces.map(({ id, url }) => [id, url])),
+  });
+  return {
+    nodes: nodes.sort(
+      (left, right) =>
+        right.modifiedAt.getTime() - left.modifiedAt.getTime() ||
+        left.content.direct.value.localeCompare(right.content.direct.value),
+    ),
+    spaces: Object.fromEntries(spaces.map((space) => [space.url, space])),
+  };
+};
+
 export const listGroupSharedNodes = async ({
   client,
   currentSpaceId,
 }: {
   client: DGSupabaseClient;
   currentSpaceId: number;
-}): Promise<SharedNode[]> => {
+}): Promise<SharedNodeListing> => {
   const rows = await getSharedNodeRows({ client, currentSpaceId });
-  return buildSharedNodes(rows);
+  return toSharedNodeListing({ client, ...rows });
 };
+
+export const getSharedNodeSpace = ({
+  node,
+  spaces,
+}: {
+  node: DbCrossAppNode;
+  spaces: SharedNodeListing["spaces"];
+}): SharedNodeSpace => {
+  const space = spaces[ridToSpaceUriAndLocalId(node.rid).spaceUri];
+  if (space === undefined) throw new Error(`Missing the space of ${node.rid}`);
+  return space;
+};
+
+export const getNodeTypeRid = (node: DbCrossAppNode): string =>
+  spaceUriAndLocalIdToRid(
+    ridToSpaceUriAndLocalId(node.rid).spaceUri,
+    node.nodeType,
+    "schema",
+  );
 
 export const getSharedNodeByRid = async ({
   client,
@@ -343,7 +166,7 @@ export const getSharedNodeByRid = async ({
 }: {
   client: DGSupabaseClient;
   rid: string;
-}): Promise<SharedNode | null> => {
+}): Promise<{ node: DbCrossAppNode; space: SharedNodeSpace } | null> => {
   const { spaceUri, sourceLocalId } = ridToSpaceUriAndLocalId(rid);
   const spaceResponse = await client
     .from("my_spaces")
@@ -352,7 +175,7 @@ export const getSharedNodeByRid = async ({
     .maybeSingle();
   if (spaceResponse.error) throw spaceResponse.error;
   const space = spaceResponse.data;
-  if (!space || typeof space.id !== "number") return null;
+  if (!space) return null;
 
   const [conceptsResponse, directResponse, fullResponse] = await Promise.all([
     client
@@ -384,11 +207,17 @@ export const getSharedNodeByRid = async ({
     currentSpace: space,
   });
 
-  const [sharedNode] = buildSharedNodes({
+  const listing = await toSharedNodeListing({
+    client,
     nodes: conceptsResponse.data,
     directContents: directResponse.data,
     fullContentSummaries: fullResponse.data,
     spaces,
   });
-  return sharedNode ?? null;
+  const [node] = listing.nodes;
+  if (!node) {
+    if (conceptsResponse.data.length === 0) return null;
+    throw new Error(`${rid} is shared but could not be read`);
+  }
+  return { node, space: getSharedNodeSpace({ node, spaces: listing.spaces }) };
 };

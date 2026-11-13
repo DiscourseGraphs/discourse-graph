@@ -1,6 +1,9 @@
 import type { App } from "obsidian";
 import type { ReactElement } from "react";
-import { SearchDropdown } from "~/components/SearchDropdown";
+import {
+  SEARCH_DROPDOWN_ITEM_FOCUS_RING,
+  SearchDropdown,
+} from "~/components/SearchDropdown";
 import { activateOnKey } from "~/utils/keyboardHints";
 
 export const NodeDisplayOptionsMenu = ({
@@ -35,7 +38,7 @@ export const NodeDisplayOptionsMenu = ({
         onClick={toggle}
         onKeyDown={(event) => activateOnKey(event, toggle)}
         onMouseDown={(event) => event.preventDefault()}
-        className="text-normal hover:bg-modifier-hover flex cursor-pointer items-center justify-between gap-3 px-3 py-2 text-sm"
+        className={`text-normal hover:bg-modifier-hover flex cursor-pointer items-center justify-between gap-3 px-3 py-2 text-sm ${SEARCH_DROPDOWN_ITEM_FOCUS_RING}`}
       >
         <span>Show candidate nodes</span>
         {/* Obsidian's own toggle chrome, so it matches the settings tab. */}

@@ -1,14 +1,62 @@
 import {
+  CrossAppNode,
   CrossAppNodeSchema,
   CrossAppRelationTypeSchema,
   CrossAppRelationTripleSchema,
   CrossAppRelation,
 } from "../crossAppContracts";
-import { Tables, Json } from "../dbTypes";
+import type { Json, Tables } from "../dbTypes";
+import type { ColumnRow } from "../inputTypes";
+import { resolveSchemaFormat } from "@repo/utils/resolveSchemaFormat";
 import type { DGSupabaseClient } from "./client";
+import { extractContentFromTitle } from "./extractContentFromTitle";
 import { ridToSpaceUriAndLocalId, spaceUriAndLocalIdToRid, isRid } from "./rid";
 
-type Concept = Tables<"Concept">;
+type Concept = ColumnRow<"Concept">;
+
+export type DbNodeConcept = Pick<
+  Tables<"my_concepts">,
+  | "is_schema"
+  | "last_modified"
+  | "schema_id"
+  | "source_local_id"
+  | "space_id"
+  | "reference_content"
+> & {
+  core_title: string | null;
+  concepts_of_relation: Pick<
+    Tables<"my_concepts">,
+    "id" | "space_id" | "source_local_id"
+  >[];
+};
+export type DbNodeContent = Pick<
+  Tables<"my_contents">,
+  | "author_id"
+  | "created"
+  | "last_modified"
+  | "source_local_id"
+  | "space_id"
+  | "text"
+  | "variant"
+>;
+type DbNodeContentSummary = Pick<
+  Tables<"my_contents">,
+  "last_modified" | "source_local_id" | "space_id"
+>;
+
+export type DbNodeRows = {
+  nodes: DbNodeConcept[];
+  directContents: DbNodeContent[];
+  fullContentSummaries: DbNodeContentSummary[];
+};
+
+export type DbNodeRow = {
+  concept: DbNodeConcept;
+  direct: DbNodeContent | undefined;
+  fullLastModified: string | null;
+};
+
+export type DbCrossAppNode = CrossAppNode & { rid: string; modifiedAt: Date };
 
 const getConceptMap = async (
   client: DGSupabaseClient,
@@ -39,6 +87,26 @@ const getConceptMap = async (
         ];
       })
       .filter(([, rid]) => rid !== undefined) as [number, string][],
+  );
+};
+
+const getSchemaFormatMap = async (
+  client: DGSupabaseClient,
+  schemaIds: number[],
+): Promise<Record<number, string>> => {
+  if (schemaIds.length === 0) return {};
+  const { data, error } = await client
+    .from("my_concepts")
+    .select(
+      "id, format:literal_content->>format, sourceDataFormat:literal_content->source_data->>format",
+    )
+    .in("id", schemaIds);
+  if (error) throw error;
+  return Object.fromEntries(
+    data.map(({ id, format, sourceDataFormat }) => [
+      id,
+      resolveSchemaFormat({ format, sourceDataFormat }),
+    ]),
   );
 };
 
@@ -100,7 +168,7 @@ export const dbNodeSchemaToCrossApp = ({
     string,
     number
   >;
-  const { template, template_content, roles, ...other } =
+  const { template, template_content, roles, format, ...other } =
     schema.literal_content as Record<string, Json>;
   const authorId = accountMap[schema.author_id || 0];
   if (authorId === undefined) throw new Error("Missing author");
@@ -126,6 +194,7 @@ export const dbNodeSchemaToCrossApp = ({
     metadata: other,
     template: template_content as string | undefined,
     templateTitle: template as string | undefined,
+    format: format as string | undefined,
     authorId,
     slotDefinitions,
   };
@@ -154,6 +223,184 @@ export const dbNodeSchemasToCrossApp = async ({
   return schemas.map((schema) =>
     dbNodeSchemaToCrossApp({ schema, spaceMap, accountMap, schemaMap }),
   );
+};
+
+const getResourceKey = (row: {
+  space_id: number | null;
+  source_local_id: string | null;
+}): string => `${row.space_id}:${row.source_local_id}`;
+
+const normalizeUtcTimestamp = (timestamp: string | null): string | null => {
+  if (!timestamp) return null;
+  const date = new Date(`${timestamp}Z`);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+
+const getLatestTimestamp = (timestamps: (string | null)[]): string | null => {
+  const validTimestamps = timestamps
+    .map(normalizeUtcTimestamp)
+    .filter((timestamp): timestamp is string => typeof timestamp === "string");
+  if (validTimestamps.length === 0) return null;
+  return validTimestamps.reduce((latest, timestamp) =>
+    timestamp > latest ? timestamp : latest,
+  );
+};
+
+const groupDbNodeRows = ({
+  nodes,
+  directContents,
+  fullContentSummaries,
+}: DbNodeRows): DbNodeRow[] => {
+  const directByResource = new Map<string, DbNodeContent>();
+  directContents.forEach((content) => {
+    if (
+      typeof content.space_id !== "number" ||
+      typeof content.source_local_id !== "string" ||
+      content.variant !== "direct"
+    )
+      return;
+    directByResource.set(getResourceKey(content), content);
+  });
+
+  const fullModifiedByResource = new Map<string, string | null>();
+  fullContentSummaries.forEach((summary) => {
+    if (
+      typeof summary.space_id !== "number" ||
+      typeof summary.source_local_id !== "string"
+    )
+      return;
+    fullModifiedByResource.set(getResourceKey(summary), summary.last_modified);
+  });
+
+  return nodes.map((concept) => ({
+    concept,
+    direct: directByResource.get(getResourceKey(concept)),
+    fullLastModified:
+      fullModifiedByResource.get(getResourceKey(concept)) ?? null,
+  }));
+};
+
+export const dbNodeToCrossApp = ({
+  row: { concept, direct, fullLastModified },
+  spaceMap,
+  accountMap,
+  schemaMap,
+  formatMap,
+}: {
+  row: DbNodeRow;
+  spaceMap: Record<number, string>;
+  accountMap: Record<number, string>;
+  schemaMap: Record<number, string>;
+  formatMap: Record<number, string>;
+}): DbCrossAppNode => {
+  if (concept.is_schema !== false) throw new Error("Not a node instance");
+  if (concept.schema_id === null) throw new Error("Missing node type");
+  if (typeof concept.source_local_id !== "string")
+    throw new Error("Missing local id");
+  const spaceUrl = spaceMap[concept.space_id];
+  if (spaceUrl === undefined) throw new Error("Missing space");
+  if (direct === undefined) throw new Error("Missing direct content");
+
+  const created = normalizeUtcTimestamp(direct.created);
+  if (created === null) throw new Error("Missing created date");
+  const modifiedAt =
+    getLatestTimestamp([
+      concept.last_modified,
+      direct.last_modified,
+      fullLastModified,
+    ]) ?? created;
+
+  const rid = spaceUriAndLocalIdToRid(
+    spaceUrl,
+    concept.source_local_id,
+    "note",
+  );
+
+  const nodeRidById = Object.fromEntries(
+    concept.concepts_of_relation.map((c) => {
+      if (c.space_id === concept.space_id)
+        return [c.id, c.source_local_id ?? undefined];
+      const slotSpaceUrl = spaceMap[c.space_id];
+      if (!slotSpaceUrl || !c.source_local_id) return [c.id, undefined];
+      return [
+        c.id,
+        // To be reviewed if we have relations of relations
+        spaceUriAndLocalIdToRid(slotSpaceUrl, c.source_local_id, "note"),
+      ];
+    }),
+  );
+  const referenceContent = concept.reference_content as Record<string, number>;
+  const slots = Object.fromEntries(
+    Object.entries(referenceContent)
+      .map(([k, v]) => [k, nodeRidById[v]])
+      .filter(([, v]) => v !== undefined) as [string, string][],
+  );
+
+  const authorId = accountMap[direct.author_id || 0];
+  if (authorId === undefined) throw new Error("Missing author");
+  const coreTitle =
+    concept.core_title ??
+    extractContentFromTitle(formatMap[concept.schema_id] ?? "", direct.text);
+  const nodeType = asSimpleLocalId(schemaMap[concept.schema_id], spaceUrl);
+  if (nodeType === undefined) throw new Error("Missing node type");
+  return {
+    rid,
+    localId: concept.source_local_id,
+    createdAt: new Date(created),
+    modifiedAt: new Date(modifiedAt),
+    authorId,
+    nodeType,
+    coreTitle,
+    content: { direct: { value: direct.text } },
+    slots: Object.keys(slots).length > 0 ? slots : undefined,
+  };
+};
+
+export const dbNodesToCrossApp = async ({
+  client,
+  nodes,
+  directContents,
+  fullContentSummaries,
+  spaceMap,
+}: DbNodeRows & {
+  client: DGSupabaseClient;
+  spaceMap: Record<number, string>;
+}): Promise<DbCrossAppNode[]> => {
+  const authorIds = new Set<number>(
+    directContents
+      .map((c) => c.author_id)
+      .filter((id) => typeof id === "number"),
+  );
+  const getSchemaIds = (concepts: DbNodeConcept[]): number[] => [
+    ...new Set<number>(
+      concepts.map((c) => c.schema_id).filter((id) => typeof id === "number"),
+    ),
+  ];
+  const [accountMap, schemaMap, formatMap] = await Promise.all([
+    getAccountMap(client, [...authorIds]),
+    getConceptMap(client, getSchemaIds(nodes), spaceMap),
+    getSchemaFormatMap(
+      client,
+      getSchemaIds(nodes.filter((n) => n.core_title === null)),
+    ),
+  ]);
+  return groupDbNodeRows({
+    nodes,
+    directContents,
+    fullContentSummaries,
+  }).flatMap((row) => {
+    try {
+      return [
+        dbNodeToCrossApp({ row, spaceMap, accountMap, schemaMap, formatMap }),
+      ];
+    } catch (error) {
+      console.warn(
+        `Skipped node ${row.concept.source_local_id} of space ${row.concept.space_id}:`,
+        error,
+      );
+      return [];
+    }
+  });
 };
 
 export const dbRelationTypeSchemaToCrossApp = (

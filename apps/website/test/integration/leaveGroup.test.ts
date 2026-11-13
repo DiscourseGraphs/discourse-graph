@@ -51,18 +51,9 @@ describe("leave group flow", { tags: ["database"] }, () => {
     spaceId1 = s1.data.id;
     client1 = await signedInClient(spaceId1);
     assert(client1);
-    const accountReq1 = await client1
-      .from("PlatformAccount")
-      .select("id,dg_account")
-      .eq(
-        "account_local_id",
-        `roam-${spaceId1}-anon@database.discoursegraphs.com`,
-      )
-      .maybeSingle();
-    assert(!accountReq1.error);
-    assert(accountReq1.data);
-    assert(accountReq1.data.dg_account);
-    spaceAccountUuid1 = accountReq1.data.dg_account;
+    const user1 = await client1.auth.getUser();
+    assert(!user1.error);
+    spaceAccountUuid1 = user1.data.user.id;
     const s2 = await fetchOrCreateSpaceDirect({
       name: "vitest-s2",
       url: "https://roamresearch.com/#/app/vitest-s2",
@@ -74,18 +65,9 @@ describe("leave group flow", { tags: ["database"] }, () => {
     spaceId2 = s2.data.id;
     client2 = await signedInClient(spaceId2);
     assert(client2);
-    const accountReq2 = await client2
-      .from("PlatformAccount")
-      .select("id,dg_account")
-      .eq(
-        "account_local_id",
-        `roam-${spaceId2}-anon@database.discoursegraphs.com`,
-      )
-      .maybeSingle();
-    assert(!accountReq2.error);
-    assert(accountReq2.data);
-    assert(accountReq2.data.dg_account);
-    spaceAccountUuid2 = accountReq2.data.dg_account;
+    const user2 = await client2.auth.getUser();
+    assert(!user2.error);
+    spaceAccountUuid2 = user2.data.user.id;
   });
 
   afterAll(async () => {

@@ -4,6 +4,7 @@ import { Given, When, Then, world, type DataTable } from "@cucumber/cucumber";
 import {
   createClient,
   type PostgrestSingleResponse,
+  type SupabaseClient,
 } from "@supabase/supabase-js";
 import {
   Constants,
@@ -13,6 +14,16 @@ import {
 } from "@repo/database/dbTypes";
 import { getVariant, config } from "@repo/database/dbDotEnv";
 import { getConcepts, initNodeSchemaCache } from "@repo/database/lib/queries";
+import {
+  crossAppNodeSchemaToDbConcept,
+  crossAppNodeToDbConcept,
+} from "@repo/database/lib/crossAppConverters";
+import { roamOriginNodeExample } from "@repo/database/crossAppNodeContract.example";
+import {
+  getSharedNodeSpace,
+  listGroupSharedNodes,
+} from "@repo/database/lib/sharedNodes";
+import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
 
 import {
   spaceAnonUserEmail,
@@ -69,10 +80,12 @@ Given("the database is blank", async () => {
   assert.equal(r.error, null);
   r = await client.from("AgentIdentifier").delete().neq("account_id", -1);
   assert.equal(r.error, null);
-  const r3 = await client.from("group_membership").select("group_id");
+  // Find groups by their flag, not their members: a group can be left without members.
+  const r3 = await client.auth.admin.listUsers({ perPage: 1000 });
   assert.equal(r3.error, null);
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  const groupIds = new Set((r3.data || []).map(({ group_id }) => group_id));
+  const groupIds = r3.data.users
+    .filter((user) => user.user_metadata?.group === true)
+    .map((user) => user.id);
   for (const id of groupIds) {
     const ur = await client.auth.admin.deleteUser(id);
     assert.equal(ur.error, null);
@@ -82,7 +95,7 @@ Given("the database is blank", async () => {
     .select("dg_account")
     .not("dg_account", "is", null);
   assert.equal(r2.error, null);
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+
   for (const { dg_account } of r2.data || []) {
     const r = await client.auth.admin.deleteUser(dg_account);
     assert.equal(r.error, null);
@@ -90,6 +103,9 @@ Given("the database is blank", async () => {
   r = await client.from("PlatformAccount").delete().neq("id", -1);
   assert.equal(r.error, null);
   r = await client.from("Space").delete().neq("id", -1);
+  assert.equal(r.error, null);
+  // Deleting the file references above queued their hashes for garbage collection.
+  r = await client.from("file_gc").delete().neq("filehash", "");
   assert.equal(r.error, null);
   world.localRefs = {};
   // clear the cache
@@ -294,6 +310,10 @@ const getLoggedinDatabaseForUsername = async (userName: string) => {
   return await getLoggedinDatabase(spaceId);
 };
 
+// Clients can't select every column of PlatformAccount.
+const columnsToCount = (tableName: TableName): string =>
+  tableName === "PlatformAccount" ? "id" : "*";
+
 // A test of non-empty object count for the named table, as seen by the user
 Then(
   "a user logged in space {word} should see a {word} in the database",
@@ -304,7 +324,7 @@ Then(
     const client = await getLoggedinDatabase(spaceId);
     const response = await client
       .from(tableName)
-      .select("*", { count: "exact" });
+      .select(columnsToCount(tableName), { count: "exact" });
     assert.notEqual(response.count || 0, 0);
   },
 );
@@ -319,7 +339,7 @@ Then(
     const client = await getLoggedinDatabase(spaceId);
     const response = await client
       .from(tableName)
-      .select("*", { count: "exact" });
+      .select(columnsToCount(tableName), { count: "exact" });
     assert.equal(response.count, expectedCount);
   },
 );
@@ -358,6 +378,15 @@ const CONTENT_VIEW_KEYS = {
   my_contents_with_embedding_openai_text_embedding_3_small_1536: "id",
 } as const;
 type ContentView = keyof typeof CONTENT_VIEW_KEYS;
+
+// The same identifying column for the tables behind those views, read directly under RLS.
+const RESOURCE_TABLE_KEYS = {
+  Concept: "id",
+  Document: "id",
+  Content: "id",
+  FileReference: "filepath",
+} as const;
+type ResourceTable = keyof typeof RESOURCE_TABLE_KEYS;
 
 type VisibilityCheck = {
   viewerSpaceName: string;
@@ -405,7 +434,7 @@ const expectVisibleConcepts = async ({
     if (typeof id !== "number") assert.fail(`unknown concept ${concept}`);
     return id;
   });
-  const visibleIds = (response.data || []).map(({ id }) => id!);
+  const visibleIds = (response.data || []).map(({ id }) => id);
   const byId = (a: number, b: number): number => a - b;
   assert.deepEqual(visibleIds.sort(byId), expectedIds.sort(byId));
 };
@@ -421,46 +450,61 @@ Then(
     }),
 );
 
-// Exact list comparison per view, so duplicated rows fail; a view absent from the table must show no rows.
+// The generated types give tables and views separate from() overloads keyed by name,
+// so a query over a union of names resolves none of them.
+const untyped = (
+  client: Awaited<ReturnType<typeof getLoggedinDatabase>>,
+): SupabaseClient => client;
+
+// Exact list comparison per relation, so duplicated rows fail; a relation absent from the table must show no rows.
 // A row is a local reference, or the literal key value when it is not one.
-const expectVisibleContentViewRows = async ({
+const expectVisibleRows = async <Relation extends ContentView | ResourceTable>({
+  keys,
+  column,
   viewerSpaceName,
   filterSpaceName,
   inFilterSpace,
   table,
-}: VisibilityCheck): Promise<void> => {
+}: VisibilityCheck & {
+  keys: Record<Relation, string>;
+  column: "view" | "table";
+}): Promise<void> => {
   const localRefs = (world.localRefs || {}) as LocalRefsType;
   const { filterSpaceId, client } = await getViewerClient(
     viewerSpaceName,
     filterSpaceName,
   );
-  const views = Object.keys(CONTENT_VIEW_KEYS) as ContentView[];
+  const relations = Object.keys(keys) as Relation[];
   const expected = Object.fromEntries(
-    views.map((view) => [view, [] as string[]]),
-  ) as Record<ContentView, string[]>;
-  for (const { view, row } of table.hashes()) {
-    if (!Object.hasOwn(CONTENT_VIEW_KEYS, view!))
-      assert.fail(`unknown view ${view}`);
-    expected[view as ContentView].push(String(localRefs[row!] ?? row));
+    relations.map((relation) => [relation, [] as string[]]),
+  ) as Record<Relation, string[]>;
+  for (const hash of table.hashes()) {
+    const relation = hash[column];
+    if (!Object.hasOwn(keys, relation!))
+      assert.fail(`unknown ${column} ${relation}`);
+    const row = hash.row!;
+    expected[relation as Relation].push(String(localRefs[row] ?? row));
   }
-  for (const view of views) {
-    const key = CONTENT_VIEW_KEYS[view];
-    const query = client.from(view).select(key);
+  const untypedClient = untyped(client);
+  for (const relation of relations) {
+    const key = keys[relation];
+    const query = untypedClient.from(relation).select(key);
     const response = await (inFilterSpace
       ? query.eq("space_id", filterSpaceId)
       : query.neq("space_id", filterSpaceId));
-    assert.equal(response.error, null, view);
-    // With view ranging over four views, the generated select types do not resolve.
-    const rows = (response.data || []) as unknown as Record<string, unknown>[];
+    assert.equal(response.error, null, relation);
+    const rows = (response.data || []) as Record<string, unknown>[];
     const visible = rows.map((row) => String(row[key]));
-    assert.deepEqual(visible.sort(), expected[view].sort(), view);
+    assert.deepEqual(visible.sort(), expected[relation].sort(), relation);
   }
 };
 
 Then(
   "a user logged in space {word} should see these content view rows in space {word}:",
   (viewerSpaceName: string, filterSpaceName: string, table: DataTable) =>
-    expectVisibleContentViewRows({
+    expectVisibleRows({
+      keys: CONTENT_VIEW_KEYS,
+      column: "view",
       viewerSpaceName,
       filterSpaceName,
       inFilterSpace: true,
@@ -471,12 +515,371 @@ Then(
 Then(
   "a user logged in space {word} should see these content view rows outside space {word}:",
   (viewerSpaceName: string, filterSpaceName: string, table: DataTable) =>
-    expectVisibleContentViewRows({
+    expectVisibleRows({
+      keys: CONTENT_VIEW_KEYS,
+      column: "view",
       viewerSpaceName,
       filterSpaceName,
       inFilterSpace: false,
       table,
     }),
+);
+
+Then(
+  "a user logged in space {word} should see these table rows in space {word}:",
+  (viewerSpaceName: string, filterSpaceName: string, table: DataTable) =>
+    expectVisibleRows({
+      keys: RESOURCE_TABLE_KEYS,
+      column: "table",
+      viewerSpaceName,
+      filterSpaceName,
+      inFilterSpace: true,
+      table,
+    }),
+);
+
+Then(
+  "a user logged in space {word} should see these table rows outside space {word}:",
+  (viewerSpaceName: string, filterSpaceName: string, table: DataTable) =>
+    expectVisibleRows({
+      keys: RESOURCE_TABLE_KEYS,
+      column: "table",
+      viewerSpaceName,
+      filterSpaceName,
+      inFilterSpace: false,
+      table,
+    }),
+);
+
+// The column that names the space of a row in each table, for tables whose rows are counted per space.
+const SPACE_TABLE_SPACE_COLUMNS = {
+  Space: "id",
+  SpaceAccess: "space_id",
+  LocalAccess: "space_id",
+} as const;
+type SpaceTable = keyof typeof SPACE_TABLE_SPACE_COLUMNS;
+
+// Exact row counts per table and space, as seen by the user; a space absent from the table must show no rows.
+Then(
+  "a user logged in space {word} should see these rows per space:",
+  async (viewerSpaceName: string, table: DataTable) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const { client } = await getViewerClient(viewerSpaceName, viewerSpaceName);
+    const spaceNames = new Map(
+      Object.entries(localRefs).map(([name, id]) => [id, name]),
+    );
+    const tables = Object.keys(SPACE_TABLE_SPACE_COLUMNS) as SpaceTable[];
+    const expected = Object.fromEntries(
+      tables.map((name): [SpaceTable, Record<string, number>] => [name, {}]),
+    ) as Record<SpaceTable, Record<string, number>>;
+    for (const { table: tableName, space, count } of table.hashes()) {
+      if (!Object.hasOwn(SPACE_TABLE_SPACE_COLUMNS, tableName!))
+        assert.fail(`unknown table ${tableName}`);
+      expected[tableName as SpaceTable][space!] = Number(count);
+    }
+    const untypedClient = untyped(client);
+    for (const name of tables) {
+      const column = SPACE_TABLE_SPACE_COLUMNS[name];
+      const response = await untypedClient.from(name).select(column);
+      assert.equal(response.error, null, name);
+      const visible: Record<string, number> = {};
+      for (const row of (response.data || []) as Record<string, number>[]) {
+        const spaceName = spaceNames.get(row[column]!) ?? `id ${row[column]}`;
+        visible[spaceName] = (visible[spaceName] ?? 0) + 1;
+      }
+      assert.deepEqual(visible, expected[name], name);
+    }
+  },
+);
+
+// The column that names the space of a row in each table.
+const WRITE_TABLE_SPACE_COLUMNS = {
+  FileReference: "space_id",
+  Content: "space_id",
+  Document: "space_id",
+  Concept: "space_id",
+  ResourceAccess: "space_id",
+  SpaceAccess: "space_id",
+  Space: "id",
+} as const;
+type WriteTable = keyof typeof WRITE_TABLE_SPACE_COLUMNS;
+
+// The uid a space's plugin logs in as.
+const spaceUid = async (spaceName: string): Promise<string> => {
+  const localRefs = (world.localRefs || {}) as LocalRefsType;
+  const spaceId = localRefs[spaceName];
+  if (typeof spaceId !== "number") assert.fail(`unknown space ${spaceName}`);
+  const response = await getServiceClient()
+    .from("PlatformAccount")
+    .select("dg_account")
+    .eq("account_local_id", spaceAnonUserEmail("Roam", spaceId))
+    .single();
+  assert.equal(response.error, null);
+  return response.data!.dg_account!;
+};
+
+// A new row in the target space. Rows it depends on are looked up as the service role,
+// so the row is valid whatever the writer can see. The author is user1, which every write scenario creates.
+const newRowInSpace = async ({
+  table,
+  spaceId,
+  writerUid,
+}: {
+  table: WriteTable;
+  spaceId: number;
+  writerUid: string;
+}): Promise<Record<string, unknown>> => {
+  const service = getServiceClient();
+  const now = new Date().toISOString();
+  const localRefs = (world.localRefs || {}) as LocalRefsType;
+  const authorId = localRefs.user1;
+  if (typeof authorId !== "number") assert.fail("user1 is not defined");
+  switch (table) {
+    case "Concept":
+      return {
+        space_id: spaceId,
+        name: "written",
+        source_local_id: "written",
+        author_id: authorId,
+        is_schema: true,
+        created: now,
+        last_modified: now,
+      };
+    case "Document":
+      return {
+        space_id: spaceId,
+        source_local_id: "written",
+        author_id: authorId,
+        created: now,
+        last_modified: now,
+      };
+    case "Content": {
+      const document = await service
+        .from("Document")
+        .select("id")
+        .eq("space_id", spaceId)
+        .limit(1)
+        .single();
+      assert.equal(document.error, null);
+      return {
+        space_id: spaceId,
+        document_id: document.data!.id,
+        source_local_id: "written",
+        author_id: authorId,
+        variant: "direct",
+        scale: "document",
+        text: "written",
+        created: now,
+        last_modified: now,
+      };
+    }
+    case "FileReference": {
+      const content = await service
+        .from("Content")
+        .select("source_local_id")
+        .eq("space_id", spaceId)
+        .eq("variant", "full")
+        .limit(1)
+        .single();
+      assert.equal(content.error, null);
+      return {
+        space_id: spaceId,
+        source_local_id: content.data!.source_local_id,
+        filepath: "written.png",
+        filehash: "written",
+        created: now,
+        last_modified: now,
+      };
+    }
+    case "ResourceAccess":
+      return {
+        space_id: spaceId,
+        source_local_id: "written",
+        account_uid: writerUid,
+      };
+    // Space s3 holds no grant in the write scenarios, so this never collides with an existing row.
+    case "SpaceAccess":
+      return {
+        space_id: spaceId,
+        account_uid: await spaceUid("s3"),
+        permissions: "partial",
+      };
+    // A new space; the target space plays no part.
+    case "Space":
+      return {
+        name: "written",
+        url: "https://roamresearch.com/#/app/written",
+        platform: "Roam",
+      };
+  }
+};
+
+// A denied insert fails the insert privilege or the row-level security check; a denied update or delete matches no row.
+const expectWriteResult = ({
+  operation,
+  result,
+  label,
+  response,
+}: {
+  operation: "insert" | "update" | "delete";
+  result: string | undefined;
+  label: string;
+  response: { error: { code: string } | null; data?: unknown[] | null };
+}): void => {
+  if (result === "allowed") {
+    assert.equal(response.error, null, label);
+    if (operation !== "insert")
+      assert.notEqual(response.data?.length ?? 0, 0, label);
+  } else if (result === "denied") {
+    if (operation === "insert")
+      assert.equal(response.error?.code, INSUFFICIENT_PRIVILEGE, label);
+    else {
+      assert.equal(response.error, null, label);
+      assert.equal(response.data?.length ?? 0, 0, label);
+    }
+  } else assert.fail(`unknown result ${result} for ${label}`);
+};
+
+// Runs insert, then update, then delete on each table in the order given, so list dependent tables first.
+// The update sets the space column to its current value, so it changes no data.
+// Inserts do not read the row back, so the result reflects the insert privilege and policy alone, not the select policy.
+Then(
+  "a user logged in space {word} should get these write results in space {word}:",
+  async (
+    writerSpaceName: string,
+    targetSpaceName: string,
+    table: DataTable,
+  ) => {
+    const { filterSpaceId: targetSpaceId, client } = await getViewerClient(
+      writerSpaceName,
+      targetSpaceName,
+    );
+    const writer = await client.auth.getUser();
+    assert.equal(writer.error, null);
+    const untypedClient = untyped(client);
+    for (const { table: tableName, ...expected } of table.hashes()) {
+      if (!Object.hasOwn(WRITE_TABLE_SPACE_COLUMNS, tableName!))
+        assert.fail(`unknown table ${tableName}`);
+      const writeTable = tableName as WriteTable;
+      const spaceColumn = WRITE_TABLE_SPACE_COLUMNS[writeTable];
+      const writes = {
+        insert: async () =>
+          untypedClient.from(writeTable).insert(
+            await newRowInSpace({
+              table: writeTable,
+              spaceId: targetSpaceId,
+              writerUid: writer.data.user!.id,
+            }),
+          ),
+        update: () =>
+          untypedClient
+            .from(writeTable)
+            .update({ [spaceColumn]: targetSpaceId })
+            .eq(spaceColumn, targetSpaceId)
+            .select(spaceColumn),
+        delete: () =>
+          untypedClient
+            .from(writeTable)
+            .delete()
+            .eq(spaceColumn, targetSpaceId)
+            .select(spaceColumn),
+      };
+      for (const operation of ["insert", "update", "delete"] as const) {
+        expectWriteResult({
+          operation,
+          result: expected[operation],
+          label: `${operation} ${writeTable}`,
+          response: await writes[operation](),
+        });
+      }
+    }
+  },
+);
+
+const EMBEDDING_TABLE = "ContentEmbedding_openai_text_embedding_3_small_1536";
+
+// The relations with no space column, whose access follows a linked row.
+const LINKED_TABLES = {
+  concept_contributors: { name: "concept_contributors", key: "concept_id" },
+  content_contributors: { name: "content_contributors", key: "content_id" },
+  embedding: { name: EMBEDDING_TABLE, key: "target_id" },
+} as const;
+type LinkedTable = keyof typeof LINKED_TABLES;
+
+// Exact list comparison per table, by the local reference of the linked row; a table absent from the step must show no rows.
+Then(
+  "a user logged in space {word} should see these linked rows:",
+  async (viewerSpaceName: string, table: DataTable) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const { client } = await getViewerClient(viewerSpaceName, viewerSpaceName);
+    const untypedClient = untyped(client);
+    const tables = Object.keys(LINKED_TABLES) as LinkedTable[];
+    const hashes = table.hashes();
+    for (const hash of hashes)
+      if (!Object.hasOwn(LINKED_TABLES, hash.table!))
+        assert.fail(`unknown table ${hash.table}`);
+    for (const linkedTable of tables) {
+      const { name, key } = LINKED_TABLES[linkedTable];
+      const expected = hashes
+        .filter((hash) => hash.table === linkedTable)
+        .map((hash) => Number(localRefs[hash.row!]));
+      const response = await untypedClient.from(name).select(key);
+      assert.equal(response.error, null, linkedTable);
+      const rows = (response.data || []) as Record<string, number>[];
+      const visible = rows.map((row) => row[key]!);
+      const byId = (a: number, b: number): number => a - b;
+      assert.deepEqual(visible.sort(byId), expected.sort(byId), linkedTable);
+    }
+  },
+);
+
+Then(
+  "a user logged in space {word} should get these file access results:",
+  async (viewerSpaceName: string, table: DataTable) => {
+    const { client } = await getViewerClient(viewerSpaceName, viewerSpaceName);
+    for (const { filehash, access } of table.hashes()) {
+      const response = await client.rpc("file_access", {
+        hashvalue: filehash!,
+      });
+      assert.equal(response.error, null, filehash);
+      assert.equal(response.data, access === "true", filehash);
+    }
+  },
+);
+
+// The insert adds an embedding to the new content; the update and delete act on the existing content's embedding.
+Then(
+  "a user logged in space {word} should get these embedding write results:",
+  async (writerSpaceName: string, table: DataTable) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const { client } = await getViewerClient(writerSpaceName, writerSpaceName);
+    const embeddings = untyped(client).from(EMBEDDING_TABLE);
+    const vector = JSON.stringify(Array<number>(1536).fill(0.1));
+    for (const { new: newContent, existing, ...expected } of table.hashes()) {
+      const targets = {
+        new: localRefs[newContent!],
+        old: localRefs[existing!],
+      };
+      const writes = {
+        insert: () => embeddings.insert({ target_id: targets.new, vector }),
+        update: () =>
+          embeddings
+            .update({ obsolete: false })
+            .eq("target_id", targets.old)
+            .select("target_id"),
+        delete: () =>
+          embeddings.delete().eq("target_id", targets.old).select("target_id"),
+      };
+      for (const operation of ["insert", "update", "delete"] as const) {
+        expectWriteResult({
+          operation,
+          result: expected[operation],
+          label: `${operation} embedding`,
+          response: await writes[operation](),
+        });
+      }
+    }
+  },
 );
 
 type ViewWrites = Record<
@@ -506,6 +909,409 @@ const getSpaceClient = async (
   if (typeof spaceId !== "number") assert.fail("spaceId not a number");
   return { spaceId, client: await getLoggedinDatabase(spaceId) };
 };
+
+// Names the anonymous account a space's plugin logs in as, so tables can refer to it.
+Given(
+  "the account of space {word} is called {word}",
+  async (spaceName: string, accountName: string) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    const response = await getServiceClient()
+      .from("PlatformAccount")
+      .select("id")
+      .eq("account_local_id", spaceAnonUserEmail("Roam", spaceId))
+      .single();
+    assert.equal(response.error, null);
+    localRefs[accountName] = response.data!.id;
+    world.localRefs = localRefs;
+  },
+);
+
+const UNDEFINED_COLUMN = "42703";
+
+// A "read" row can name several columns, and an allowed one must return rows.
+// A "filter" row selects id only, so a refusal comes from the filter column.
+Then(
+  "a user logged in space {word} should get these column access results:",
+  async (spaceName: string, table: DataTable): Promise<void> => {
+    const { client } = await getSpaceClient(spaceName);
+    const untypedClient = untyped(client);
+    const mismatches: string[] = [];
+    for (const row of table.hashes()) {
+      const { relation, operation, columns, result } = row;
+      const query = untypedClient.from(relation!);
+      const response =
+        operation === "read"
+          ? await query.select(columns)
+          : await query.select("id").is(columns!, null);
+      const actual =
+        response.error === null
+          ? "allowed"
+          : response.error.code === INSUFFICIENT_PRIVILEGE
+            ? "denied"
+            : response.error.code === UNDEFINED_COLUMN
+              ? "absent"
+              : `error ${response.error.code}`;
+      const emptyRead =
+        actual === "allowed" &&
+        operation === "read" &&
+        (response.data?.length ?? 0) === 0;
+      if (actual !== result || emptyRead)
+        mismatches.push(
+          `${operation} ${columns} of ${relation}: expected ${result}, got ${emptyRead ? "no rows" : actual}`,
+        );
+    }
+    assert.deepEqual(mismatches, []);
+  },
+);
+
+// How queries.ts reads authors, and how Obsidian's fetchUserNames reads user names.
+Then(
+  "a user logged in space {word} should read author {word} of concept {word} through my_accounts",
+  async (spaceName: string, author: string, concept: string): Promise<void> => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const { client } = await getSpaceClient(spaceName);
+    const embed = await client
+      .from("my_concepts")
+      .select("id, author:my_accounts!author_id!inner(account_local_id)")
+      .eq("id", localRefs[concept] as number)
+      .single();
+    assert.equal(embed.error, null);
+    assert.equal(embed.data?.author.account_local_id, author);
+    const names = await client
+      .from("my_accounts")
+      .select("id, name")
+      .eq("agent_type", "person");
+    assert.equal(names.error, null);
+    assert.ok(
+      names.data?.some(({ id }) => id === localRefs[author]),
+      `${author} not among the person accounts`,
+    );
+  },
+);
+
+// Checks the function's privilege: an anonymous client sees no concepts or contents yet.
+Then(
+  "an anonymous client can read {word} through {word}",
+  async (functionName: string, view: string): Promise<void> => {
+    const response = await untyped(getAnonymousClient())
+      .from(view)
+      .select(`id, ${functionName}(account_local_id)`);
+    assert.equal(response.error, null);
+  },
+);
+
+const OWN_LOGIN = "own login";
+
+// Each write runs without RETURNING, and its result is read back as the service role,
+// so a denial counts the same whether a privilege, a policy or a filtered row stopped it.
+// Every allowed write is undone afterwards, so the rows of a table do not depend on each other.
+// All rows run before the step fails, and the failure lists every row with an unexpected result.
+Then(
+  "a user logged in space {word} should get these account write results:",
+  async (writerSpaceName: string, table: DataTable) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const { client } = await getSpaceClient(writerSpaceName);
+    const writer = await client.auth.getUser();
+    assert.equal(writer.error, null);
+    const writerUid = writer.data.user!.id;
+    const untypedClient = untyped(client);
+    const service = untyped(getServiceClient());
+    const mismatches: string[] = [];
+    for (const row of table.hashes()) {
+      const { operation, account, column, value, result } = row;
+      const label = `${operation} ${column} of ${account}`;
+      const newValue = value === OWN_LOGIN ? writerUid : value;
+      let written: boolean;
+      if (operation === "update") {
+        const accountId = localRefs[account!];
+        if (typeof accountId !== "number") assert.fail(`unknown ${account}`);
+        const before = await service
+          .from("PlatformAccount")
+          .select("*")
+          .eq("id", accountId)
+          .single();
+        assert.equal(before.error, null, label);
+        const oldValue = (before.data as Record<string, unknown>)[column!];
+        await untypedClient
+          .from("PlatformAccount")
+          .update({ [column!]: newValue })
+          .eq("id", accountId);
+        const after = await service
+          .from("PlatformAccount")
+          .select("*")
+          .eq("id", accountId)
+          .single();
+        assert.equal(after.error, null, label);
+        written = (after.data as Record<string, unknown>)[column!] === newValue;
+        if (written) {
+          const restored = await service
+            .from("PlatformAccount")
+            .update({ [column!]: oldValue })
+            .eq("id", accountId);
+          assert.equal(restored.error, null, label);
+        }
+      } else if (operation === "insert") {
+        // The new account's local id is the account name given in the table.
+        await untypedClient.from("PlatformAccount").insert({
+          name: account,
+          platform: "Roam",
+          account_local_id: account,
+          [column!]: newValue,
+        });
+        const deleted = await service
+          .from("PlatformAccount")
+          .delete()
+          .eq("account_local_id", account!)
+          .select("id");
+        assert.equal(deleted.error, null, label);
+        written = (deleted.data?.length ?? 0) > 0;
+      } else if (operation === "delete") {
+        // Not undone: the delete cascades to the account's other rows. List deletes last.
+        const accountId = localRefs[account!];
+        if (typeof accountId !== "number") assert.fail(`unknown ${account}`);
+        await client.from("PlatformAccount").delete().eq("id", accountId);
+        const after = await service
+          .from("PlatformAccount")
+          .select("id")
+          .eq("id", accountId);
+        assert.equal(after.error, null, label);
+        written = (after.data?.length ?? 0) === 0;
+      } else assert.fail(`unknown operation ${operation}`);
+      if (result !== "allowed" && result !== "denied")
+        assert.fail(`unknown result ${result} for ${label}`);
+      if (written !== (result === "allowed"))
+        mismatches.push(`${label}: expected ${result}`);
+    }
+    assert.deepEqual(mismatches, []);
+  },
+);
+
+const localAccessExists = async (
+  accountId: number,
+  spaceId: number,
+): Promise<boolean> => {
+  const response = await getServiceClient()
+    .from("LocalAccess")
+    .select("account_id")
+    .eq("account_id", accountId)
+    .eq("space_id", spaceId);
+  assert.equal(response.error, null);
+  return (response.data?.length ?? 0) > 0;
+};
+
+// Same approach as the account write results: no RETURNING, read back and undone as the service role.
+// An update moves the row from the space to the new space.
+Then(
+  "a user logged in space {word} should get these space membership write results:",
+  async (writerSpaceName: string, table: DataTable) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const { client } = await getSpaceClient(writerSpaceName);
+    const service = getServiceClient();
+    const mismatches: string[] = [];
+    for (const row of table.hashes()) {
+      const { operation, account, space, "new space": newSpace, result } = row;
+      const label = `${operation} ${account} in ${space}`;
+      const accountId = localRefs[account!];
+      const spaceId = localRefs[space!];
+      if (typeof accountId !== "number") assert.fail(`unknown ${account}`);
+      if (typeof spaceId !== "number") assert.fail(`unknown ${space}`);
+      let written: boolean;
+      if (operation === "insert") {
+        await client
+          .from("LocalAccess")
+          .insert({ account_id: accountId, space_id: spaceId });
+        written = await localAccessExists(accountId, spaceId);
+        if (written) {
+          const undone = await service
+            .from("LocalAccess")
+            .delete()
+            .eq("account_id", accountId)
+            .eq("space_id", spaceId);
+          assert.equal(undone.error, null, label);
+        }
+      } else if (operation === "update") {
+        const newSpaceId = localRefs[newSpace!];
+        if (typeof newSpaceId !== "number") assert.fail(`unknown ${newSpace}`);
+        await client
+          .from("LocalAccess")
+          .update({ space_id: newSpaceId })
+          .eq("account_id", accountId)
+          .eq("space_id", spaceId);
+        written = await localAccessExists(accountId, newSpaceId);
+        if (written) {
+          const undone = await service
+            .from("LocalAccess")
+            .update({ space_id: spaceId })
+            .eq("account_id", accountId)
+            .eq("space_id", newSpaceId);
+          assert.equal(undone.error, null, label);
+        }
+      } else if (operation === "delete") {
+        await client
+          .from("LocalAccess")
+          .delete()
+          .eq("account_id", accountId)
+          .eq("space_id", spaceId);
+        written = !(await localAccessExists(accountId, spaceId));
+        if (written) {
+          const undone = await service
+            .from("LocalAccess")
+            .insert({ account_id: accountId, space_id: spaceId });
+          assert.equal(undone.error, null, label);
+        }
+      } else if (operation === "unfiltered delete") {
+        // A filter on a column makes Postgres apply the select policy too, which hides rows of
+        // spaces the writer cannot read. Without a filter, safeupdate rejects the call through
+        // the API. If safeupdate were removed, only the delete policy would decide.
+        const before = await service
+          .from("LocalAccess")
+          .select("account_id, space_id");
+        assert.equal(before.error, null, label);
+        await client.from("LocalAccess").delete();
+        written = !(await localAccessExists(accountId, spaceId));
+        const undone = await service
+          .from("LocalAccess")
+          .upsert(before.data!, { ignoreDuplicates: true });
+        assert.equal(undone.error, null, label);
+      } else assert.fail(`unknown operation ${operation}`);
+      if (result !== "allowed" && result !== "denied")
+        assert.fail(`unknown result ${result} for ${label}`);
+      if (written !== (result === "allowed"))
+        mismatches.push(`${label}: expected ${result}`);
+    }
+    assert.deepEqual(mismatches, []);
+  },
+);
+
+// How the feature tables name the rows of each account table: accounts by local reference,
+// space memberships as account@space.
+const visibleAccountTableRows = async (
+  client: ReturnType<typeof getServiceClient>,
+  table: string,
+): Promise<string[]> => {
+  const localRefs = (world.localRefs || {}) as LocalRefsType;
+  const names = new Map(
+    Object.entries(localRefs).map(([name, id]) => [id, name]),
+  );
+  const nameOf = (id: number | null): string =>
+    id === null ? "none" : (names.get(id) ?? `id ${id}`);
+  let rows: string[];
+  if (table === "PlatformAccount") {
+    const response = await client.from("PlatformAccount").select("id");
+    assert.equal(response.error, null, table);
+    rows = response.data!.map(({ id }) => nameOf(id));
+  } else if (table === "AgentIdentifier") {
+    const response = await client.from("AgentIdentifier").select("account_id");
+    assert.equal(response.error, null, table);
+    rows = response.data!.map(({ account_id }) => nameOf(account_id));
+  } else if (table === "LocalAccess") {
+    const response = await client
+      .from("LocalAccess")
+      .select("account_id, space_id");
+    assert.equal(response.error, null, table);
+    rows = response.data!.map(
+      ({ account_id, space_id }) => `${nameOf(account_id)}@${nameOf(space_id)}`,
+    );
+  } else assert.fail(`unknown table ${table}`);
+  return rows.sort();
+};
+
+Then(
+  "a user logged in space {word} should see these account table rows:",
+  async (viewerSpaceName: string, table: DataTable) => {
+    const { client } = await getSpaceClient(viewerSpaceName);
+    for (const { table: tableName, rows } of table.hashes()) {
+      const expected = rows!
+        .split(",")
+        .map((name) => name.trim())
+        .filter((name) => name !== "")
+        .sort();
+      assert.deepEqual(
+        await visibleAccountTableRows(client, tableName!),
+        expected,
+        tableName,
+      );
+    }
+  },
+);
+
+// Same approach as the account write results. An update flips the identifier's trusted flag.
+Then(
+  "a user logged in space {word} should get these identifier write results:",
+  async (writerSpaceName: string, table: DataTable) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const { client } = await getSpaceClient(writerSpaceName);
+    const service = getServiceClient();
+    const mismatches: string[] = [];
+    for (const { operation, account, result } of table.hashes()) {
+      const label = `${operation} identifier of ${account}`;
+      const accountId = localRefs[account!];
+      if (typeof accountId !== "number") assert.fail(`unknown ${account}`);
+      const before = await service
+        .from("AgentIdentifier")
+        .select("*")
+        .eq("account_id", accountId);
+      assert.equal(before.error, null, label);
+      const existing = before.data!;
+      let written: boolean;
+      if (operation === "insert") {
+        const value = `new-${account}@example.com`;
+        await client.from("AgentIdentifier").insert({
+          account_id: accountId,
+          value,
+          identifier_type: "email",
+          trusted: false,
+        });
+        const undone = await service
+          .from("AgentIdentifier")
+          .delete()
+          .eq("account_id", accountId)
+          .eq("value", value)
+          .select("value");
+        assert.equal(undone.error, null, label);
+        written = (undone.data?.length ?? 0) > 0;
+      } else if (operation === "update") {
+        if (existing.length === 0) assert.fail(`${label}: no identifier`);
+        const trusted = !existing[0]!.trusted;
+        await client
+          .from("AgentIdentifier")
+          .update({ trusted })
+          .eq("account_id", accountId);
+        const after = await service
+          .from("AgentIdentifier")
+          .select("trusted")
+          .eq("account_id", accountId);
+        assert.equal(after.error, null, label);
+        written = after.data!.every((row) => row.trusted === trusted);
+        const undone = await service.from("AgentIdentifier").upsert(existing);
+        assert.equal(undone.error, null, label);
+      } else if (operation === "delete") {
+        if (existing.length === 0) assert.fail(`${label}: no identifier`);
+        await client
+          .from("AgentIdentifier")
+          .delete()
+          .eq("account_id", accountId);
+        const after = await service
+          .from("AgentIdentifier")
+          .select("value")
+          .eq("account_id", accountId);
+        assert.equal(after.error, null, label);
+        written = after.data!.length === 0;
+        const undone = await service
+          .from("AgentIdentifier")
+          .upsert(existing, { ignoreDuplicates: true });
+        assert.equal(undone.error, null, label);
+      } else assert.fail(`unknown operation ${operation}`);
+      if (result !== "allowed" && result !== "denied")
+        assert.fail(`unknown result ${result} for ${label}`);
+      if (written !== (result === "allowed"))
+        mismatches.push(`${label}: expected ${result}`);
+    }
+    assert.deepEqual(mismatches, []);
+  },
+);
 
 Then(
   "a user logged in space {word} cannot {word} concepts through my_concepts",
@@ -549,24 +1355,40 @@ Then(
   },
 );
 
+const myAccountsWrites = (
+  client: ReturnType<typeof getAnonymousClient>,
+): ViewWrites => {
+  const view = client.from("my_accounts");
+  return {
+    insert: () =>
+      view.insert({
+        name: "written through my_accounts",
+        account_local_id: "written-through-my-accounts",
+        platform: "Roam",
+      }),
+    update: () =>
+      view
+        .update({ name: "written through my_accounts" })
+        .eq("platform", "Roam"),
+    delete: () => view.delete().eq("platform", "Roam"),
+  };
+};
+
 Then(
   "a user logged in space {word} cannot {word} accounts through my_accounts",
-  async (spaceName: string, operation: string) => {
+  async (spaceName: string, operation: string): Promise<void> => {
     const { client } = await getSpaceClient(spaceName);
-    const view = client.from("my_accounts");
-    await expectWriteRejected(operation, {
-      insert: () =>
-        view.insert({
-          name: "written through my_accounts",
-          account_local_id: "written-through-my-accounts",
-          platform: "Roam",
-        }),
-      update: () =>
-        view
-          .update({ name: "written through my_accounts" })
-          .eq("platform", "Roam"),
-      delete: () => view.delete().eq("platform", "Roam"),
-    });
+    await expectWriteRejected(operation, myAccountsWrites(client));
+  },
+);
+
+Then(
+  "an anonymous client cannot {word} accounts through my_accounts",
+  async (operation: string): Promise<void> => {
+    await expectWriteRejected(
+      operation,
+      myAccountsWrites(getAnonymousClient()),
+    );
   },
 );
 
@@ -665,6 +1487,76 @@ Given(
       accounts,
     });
     assert.equal(response.error, null);
+  },
+);
+
+Given(
+  "user {word} fails to upsert these accounts to space {word}:",
+  async (userName: string, spaceName: string, accountsString: string) => {
+    const accounts = JSON.parse(accountsString) as Json;
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    const client = await getLoggedinDatabaseForUsername(userName);
+    const response = await client.rpc("upsert_accounts_in_space", {
+      space_id_: spaceId,
+      accounts,
+    });
+    assert.equal(response.error?.code, INSUFFICIENT_PRIVILEGE);
+  },
+);
+
+Given(
+  "a client that is not logged in fails to upsert these accounts to space {word}:",
+  async (spaceName: string, accountsString: string) => {
+    const accounts = JSON.parse(accountsString) as Json;
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    const response = await getAnonymousClient().rpc(
+      "upsert_accounts_in_space",
+      { space_id_: spaceId, accounts },
+    );
+    assert.equal(response.error?.code, INSUFFICIENT_PRIVILEGE);
+  },
+);
+
+Given(
+  "user {word} adds the account of space {word} to space {word}",
+  async (userName: string, accountSpaceName: string, spaceName: string) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const accountSpaceId = localRefs[accountSpaceName];
+    const spaceId = localRefs[spaceName];
+    if (typeof accountSpaceId !== "number")
+      assert.fail("accountSpaceId not a number");
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    const client = await getLoggedinDatabaseForUsername(userName);
+    const response = await client.rpc("upsert_accounts_in_space", {
+      space_id_: spaceId,
+      accounts: [
+        {
+          account_local_id: spaceAnonUserEmail("Roam", accountSpaceId),
+          name: accountSpaceName,
+        },
+      ],
+    });
+    assert.equal(response.error, null);
+  },
+);
+
+Then(
+  "the account {word} should be named {string}",
+  async (accountName: string, expectedName: string) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const accountId = localRefs[accountName];
+    if (typeof accountId !== "number") assert.fail("accountId not a number");
+    const response = await getServiceClient()
+      .from("PlatformAccount")
+      .select("name")
+      .eq("id", accountId)
+      .single();
+    assert.equal(response.error, null);
+    assert.equal(response.data?.name, expectedName);
   },
 );
 
@@ -833,12 +1725,12 @@ When(
     if (typeof spaceId !== "number") assert.fail("spaceId not a number");
     if (typeof groupId !== "string") assert.fail("groupId not a string");
     const client = await getLoggedinDatabase(spaceId);
-    /* eslint-disable @typescript-eslint/naming-convention */
+
     const { data, error } = await client.rpc("create_secret_token", {
       v_payload: { groupId, type: "groupInvitation", admin: false },
       expiry_interval: "60d",
     });
-    /* eslint-enable @typescript-eslint/naming-convention */
+
     assert.equal(error, null);
     assert.ok(data, "create_secret_token returned no token");
     world.lastInvitationToken = data;
@@ -911,13 +1803,9 @@ When(
     if (typeof space2Id !== "number") assert.fail("space2Id not a number");
     if (typeof groupId !== "string") assert.fail("groupId not a string");
     const client2 = await getLoggedinDatabase(space2Id);
-    const r1 = await client2
-      .from("PlatformAccount")
-      .select("dg_account")
-      .eq("account_local_id", spaceAnonUserEmail("Roam", space2Id))
-      .maybeSingle();
+    const r1 = await client2.auth.getUser();
     assert.equal(r1.error, null);
-    const memberId = r1.data?.dg_account;
+    const memberId = r1.data.user?.id;
     assert.ok(memberId, "memberId not found for space2");
     const client1 = await getLoggedinDatabase(space1Id);
     const r2 = await client1.from("group_membership").insert({
@@ -925,5 +1813,269 @@ When(
       member_id: memberId,
     });
     assert.equal(r2.error, null);
+  },
+);
+
+type FunctionName = keyof Database["public"]["Functions"];
+
+const callFunction = (
+  client: ReturnType<typeof getAnonymousClient>,
+  functionName: string,
+  args: string,
+): PromiseLike<PostgrestSingleResponse<unknown>> =>
+  client.rpc(functionName as FunctionName, JSON.parse(args));
+
+Then(
+  "an anonymous client gets a permission error calling {word} with {string}",
+  async (functionName: string, args: string) => {
+    const response = await callFunction(
+      getAnonymousClient(),
+      functionName,
+      args,
+    );
+    assert.equal(response.error?.code, INSUFFICIENT_PRIVILEGE);
+  },
+);
+
+Then(
+  "an anonymous client can call {word} with {string}",
+  async (functionName: string, args: string) => {
+    const response = await callFunction(
+      getAnonymousClient(),
+      functionName,
+      args,
+    );
+    assert.equal(response.error, null);
+  },
+);
+
+// A row-level security refusal has the same code as a missing privilege, so the message tells them apart.
+const expectInsertPrivilegeRefused = async (
+  client: SupabaseClient,
+  tableName: string,
+  values: string,
+): Promise<void> => {
+  const response = await client
+    .from(tableName)
+    .insert(JSON.parse(values) as Record<string, unknown>);
+  assert.equal(response.error?.code, INSUFFICIENT_PRIVILEGE);
+  assert.equal(
+    response.error?.message,
+    `permission denied for table ${tableName}`,
+  );
+};
+
+Then(
+  "an anonymous client is refused the insert privilege on {word} with {string}",
+  (tableName: string, values: string) =>
+    expectInsertPrivilegeRefused(
+      untyped(getAnonymousClient()),
+      tableName,
+      values,
+    ),
+);
+
+Then(
+  "a user logged in space {word} is refused the insert privilege on {word} with {string}",
+  async (spaceName: string, tableName: string, values: string) => {
+    const { client } = await getSpaceClient(spaceName);
+    await expectInsertPrivilegeRefused(untyped(client), tableName, values);
+  },
+);
+
+Then(
+  "a user logged in space {word} gets a permission error calling {word} with {string}",
+  async (spaceName: string, functionName: string, args: string) => {
+    const { client } = await getSpaceClient(spaceName);
+    const response = await callFunction(client, functionName, args);
+    assert.equal(response.error?.code, INSUFFICIENT_PRIVILEGE);
+  },
+);
+
+Then(
+  "a user logged in space {word} can call {word} with {string}",
+  async (spaceName: string, functionName: string, args: string) => {
+    const { client } = await getSpaceClient(spaceName);
+    const response = await callFunction(client, functionName, args);
+    assert.equal(response.error, null);
+  },
+);
+
+/* eslint-disable max-params -- Cucumber inspects function.length for step arity. */
+When(
+  "a user logged in space {word} deletes the {word} rows with {word} {string}",
+  async (
+    spaceName: string,
+    tableName: TableName,
+    column: string,
+    value: string,
+  ) => {
+    const { client } = await getSpaceClient(spaceName);
+    const response = await client
+      .from(tableName)
+      .delete({ count: "exact" })
+      .eq(column, value);
+    assert.equal(response.error, null);
+    assert.notEqual(response.count || 0, 0);
+  },
+);
+/* eslint-enable max-params */
+When(
+  "user of space {word} leaves group {word}",
+  async (spaceName: string, groupName: string): Promise<void> => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    const groupId = localRefs[groupName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    if (typeof groupId !== "string") assert.fail("groupId not a string");
+    const client = await getLoggedinDatabase(spaceId);
+    const memberId = (await client.auth.getUser()).data.user?.id;
+    assert.ok(memberId, "user of space not logged in");
+    const response = await client
+      .from("group_membership")
+      .delete()
+      .eq("group_id", groupId)
+      .eq("member_id", memberId)
+      .select();
+    assert.equal(response.error, null);
+    assert.equal(response.data?.length, 1);
+  },
+);
+
+const failToJoinGroup = async (
+  spaceId: number,
+  groupId: string,
+): Promise<void> => {
+  const client = await getLoggedinDatabase(spaceId);
+  const memberId = (await client.auth.getUser()).data.user?.id;
+  assert.ok(memberId, "user of space not logged in");
+  const response = await client
+    .from("group_membership")
+    .insert({ group_id: groupId, member_id: memberId });
+  assert.equal(response.error?.code, INSUFFICIENT_PRIVILEGE);
+};
+
+Then(
+  "user of space {word} fails to add itself to group {word}",
+  async (spaceName: string, groupName: string): Promise<void> => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    const groupId = localRefs[groupName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    if (typeof groupId !== "string") assert.fail("groupId not a string");
+    await failToJoinGroup(spaceId, groupId);
+  },
+);
+
+// The joining user reads the editor's id through its own client,
+// as an attacker with reader access would.
+Then(
+  "user of space {word} fails to join an editor of space {word} as a group",
+  async (space1Name: string, space2Name: string): Promise<void> => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const space1Id = localRefs[space1Name];
+    const space2Id = localRefs[space2Name];
+    if (typeof space1Id !== "number") assert.fail("space1Id not a number");
+    if (typeof space2Id !== "number") assert.fail("space2Id not a number");
+    const client1 = await getLoggedinDatabase(space1Id);
+    const r1 = await client1
+      .from("SpaceAccess")
+      .select("account_uid")
+      .eq("space_id", space2Id)
+      .eq("permissions", "editor")
+      .limit(1)
+      .maybeSingle();
+    assert.equal(r1.error, null);
+    const editorId = r1.data?.account_uid;
+    assert.ok(editorId, `user of space ${space1Name} cannot see an editor`);
+    await failToJoinGroup(space1Id, editorId);
+  },
+);
+
+When(
+  "user {word} publishes the example Roam node to space {word}",
+  async (userName: string, spaceName: string) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const spaceId = localRefs[spaceName];
+    if (typeof spaceId !== "number") assert.fail("spaceId not a number");
+    const node = roamOriginNodeExample;
+    const client = await getLoggedinDatabaseForUsername(userName);
+    const response = await client.rpc("upsert_concepts", {
+      v_space_id: spaceId,
+      data: [
+        crossAppNodeSchemaToDbConcept({
+          localId: node.nodeType,
+          label: "Claim",
+          authorId: node.authorId,
+          createdAt: node.createdAt,
+          modifiedAt: node.modifiedAt,
+        }),
+        crossAppNodeToDbConcept(node),
+      ],
+    });
+    assert.equal(response.error, null);
+    assert.deepEqual(
+      response.data?.filter((id) => id < 0),
+      [],
+    );
+  },
+);
+
+Then(
+  "a user logged in space {word} reads the example Roam node of space {word} back through discovery",
+  async (readerSpaceName: string, publisherSpaceName: string) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const readerSpaceId = localRefs[readerSpaceName];
+    const publisherSpaceId = localRefs[publisherSpaceName];
+    if (typeof readerSpaceId !== "number")
+      assert.fail("readerSpaceId not a number");
+    if (typeof publisherSpaceId !== "number")
+      assert.fail("publisherSpaceId not a number");
+    const client = await getLoggedinDatabase(readerSpaceId);
+    const { nodes, spaces } = await listGroupSharedNodes({
+      client,
+      currentSpaceId: readerSpaceId,
+    });
+    assert.equal(nodes.length, 1);
+    const [node] = nodes;
+    assert.ok(node);
+    const space = getSharedNodeSpace({ node, spaces });
+    assert.equal(space.id, publisherSpaceId);
+    const published = roamOriginNodeExample;
+    assert.deepEqual(
+      {
+        rid: node.rid,
+        localId: node.localId,
+        authorId: node.authorId,
+        nodeType: node.nodeType,
+        coreTitle: node.coreTitle,
+        direct: node.content.direct.value,
+        createdAt: node.createdAt,
+        modifiedAt: node.modifiedAt,
+      },
+      {
+        rid: spaceUriAndLocalIdToRid(space.url, published.localId, "note"),
+        localId: published.localId,
+        authorId: published.authorId,
+        nodeType: published.nodeType,
+        coreTitle: published.coreTitle,
+        direct: published.content.direct.value,
+        createdAt: published.createdAt,
+        modifiedAt: published.modifiedAt,
+      },
+    );
+    const full = await client
+      .from("my_contents")
+      .select("text, content_type")
+      .eq("space_id", space.id)
+      .eq("source_local_id", node.localId)
+      .eq("variant", "full")
+      .eq("original", true)
+      .maybeSingle();
+    assert.equal(full.error, null);
+    assert.deepEqual(full.data, {
+      text: published.content.full?.value,
+      content_type: published.content.full?.contentType,
+    });
   },
 );

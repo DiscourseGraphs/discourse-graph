@@ -33,7 +33,6 @@ vi.mock("roamjs-components/queries/getPageTitleByPageUid", () => ({
 }));
 vi.mock("roamjs-components/writes/deleteBlock", () => ({ default: vi.fn() }));
 vi.mock("roamjs-components/components/Toast", () => ({ render: vi.fn() }));
-vi.mock("posthog-js", () => ({ default: { capture: vi.fn() } }));
 
 let root: Root;
 let container: HTMLDivElement;

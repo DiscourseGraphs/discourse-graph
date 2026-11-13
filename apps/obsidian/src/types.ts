@@ -100,20 +100,17 @@ export type ImportableNode = {
   spaceName: string;
   groupId: string;
   selected: boolean;
-  /** From source Content (latest last_modified across variants). Set when loaded from getPublishedNodesForGroups. */
   createdAt?: number;
+  /** From shared-node discovery: the latest last_modified of the Concept and its Contents. */
   modifiedAt?: number;
-  filePath?: string;
-  authorId?: number;
+  authorId?: string;
 };
 
 export type GroupWithNodes = {
   groupId: string;
-  groupName?: string;
   nodes: ImportableNode[];
-  authorIds: Set<number>;
-  /** Absent when the space lookup failed. */
-  spacePlatform?: Enums<"Platform">;
+  authorIds: Set<string>;
+  spacePlatform: Enums<"Platform">;
 };
 
 export type ImportFolderMetadata = {

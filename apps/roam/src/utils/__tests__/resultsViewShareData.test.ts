@@ -29,7 +29,6 @@ vi.mock("~/components/results-view/ResultsTable", () => ({
 vi.mock("~/components/results-view/Inputs", () => ({ Inputs: () => null }));
 vi.mock("~/utils/parseQuery", () => ({ default: vi.fn() }));
 vi.mock("~/utils/fireQuery", () => ({ getDatalogQuery: vi.fn() }));
-vi.mock("posthog-js", () => ({ default: { capture: vi.fn() } }));
 vi.mock("roamjs-components/components/ExtensionApiContext", () => ({
   useExtensionAPI: () => ({ settings: { get: () => undefined } }),
 }));

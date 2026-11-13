@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
-import type { SharedNode } from "@repo/database/lib/sharedNodes";
+import type { DbCrossAppNode } from "@repo/database/lib/dbToCrossAppConverters";
+import {
+  getNodeTypeRid,
+  type SharedNodeSpace,
+} from "@repo/database/lib/sharedNodes";
 import { createDiscourseNodeType } from "~/components/settings/utils/accessors";
 import getDiscourseNodes, {
   type DiscourseNode,
@@ -26,8 +30,9 @@ const mockedGetDiscourseNodes = vi.mocked(getDiscourseNodes);
 const mockedInternalError = vi.mocked(internalError);
 const mockedRefreshConfigTree = vi.mocked(refreshConfigTree);
 
-const SCHEMA_ID = 200;
+const SPACE_ID = 20;
 const REMOTE_TYPE_UID = "node_hs6r0kqxvbmc3l9ywtd2fp";
+const SCHEMA_RID = `orn:obsidian.schema:vault-a/${REMOTE_TYPE_UID}`;
 const FORMAT = "[[EVD]] - {content}";
 
 const evidenceType: DiscourseNode = {
@@ -50,24 +55,28 @@ const pageType: DiscourseNode = {
   canvasSettings: {},
 };
 
-const sharedNode: SharedNode = {
-  rid: "orn:obsidian.note:vault-a/node-1",
-  sourceLocalId: "node-1",
-  schemaId: SCHEMA_ID,
-  spaceId: 20,
-  spaceName: "Research vault",
-  spaceUri: "obsidian:vault-a",
+const space: SharedNodeSpace = {
+  id: SPACE_ID,
+  name: "Research vault",
   platform: "Obsidian",
-  title: "EVD - REM sleep and recall",
+  url: "obsidian:vault-a",
+};
+
+const spaces = { [space.url]: space };
+
+const sharedNode: DbCrossAppNode = {
+  rid: "orn:obsidian.note:vault-a/node-1",
+  localId: "node-1",
+  nodeType: REMOTE_TYPE_UID,
   coreTitle: "REM sleep and recall",
-  created: "2026-06-14T12:30:00.000Z",
-  lastModified: "2026-06-14T15:00:00.000Z",
-  authorId: 7,
-  directMetadata: null,
+  content: { direct: { value: "EVD - REM sleep and recall" } },
+  createdAt: new Date("2026-06-14T12:30:00.000Z"),
+  modifiedAt: new Date("2026-06-14T15:00:00.000Z"),
+  authorId: "account-7",
 };
 
 type SchemaRow = {
-  id: number;
+  space_id: number | null;
   name: string | null;
   source_local_id: string | null;
   format: string | null;
@@ -76,7 +85,7 @@ type SchemaRow = {
 };
 
 const schemaRow = (overrides: Partial<SchemaRow> = {}): SchemaRow => ({
-  id: SCHEMA_ID,
+  space_id: SPACE_ID,
   name: "Evidence",
   source_local_id: REMOTE_TYPE_UID,
   format: FORMAT,
@@ -124,11 +133,14 @@ describe("resolveSharedNodeTypes", () => {
     ]);
 
     await expect(
-      resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] }),
-    ).resolves.toEqual(new Map([[SCHEMA_ID, importedType]]));
+      resolveSharedNodeTypes({ client, sharedNodes: [sharedNode], spaces }),
+    ).resolves.toEqual(new Map([[SCHEMA_RID, importedType]]));
     expect(builder.eq).toHaveBeenCalledWith("is_schema", true);
     expect(builder.eq).toHaveBeenCalledWith("is_relation", false);
-    expect(builder.in).toHaveBeenCalledWith("id", [SCHEMA_ID]);
+    expect(builder.in).toHaveBeenCalledWith("space_id", [SPACE_ID]);
+    expect(builder.in).toHaveBeenCalledWith("source_local_id", [
+      REMOTE_TYPE_UID,
+    ]);
     expect(mockedCreateDiscourseNodeType).not.toHaveBeenCalled();
     expect(mockedRefreshConfigTree).not.toHaveBeenCalled();
   });
@@ -138,8 +150,8 @@ describe("resolveSharedNodeTypes", () => {
     mockedGetDiscourseNodes.mockReturnValue([evidenceType]);
 
     await expect(
-      resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] }),
-    ).resolves.toEqual(new Map([[SCHEMA_ID, evidenceType]]));
+      resolveSharedNodeTypes({ client, sharedNodes: [sharedNode], spaces }),
+    ).resolves.toEqual(new Map([[SCHEMA_RID, evidenceType]]));
     expect(mockedCreateDiscourseNodeType).not.toHaveBeenCalled();
   });
 
@@ -149,8 +161,8 @@ describe("resolveSharedNodeTypes", () => {
     mockedCreateDiscourseNodeType.mockResolvedValue(createdType);
 
     await expect(
-      resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] }),
-    ).resolves.toEqual(new Map([[SCHEMA_ID, createdType]]));
+      resolveSharedNodeTypes({ client, sharedNodes: [sharedNode], spaces }),
+    ).resolves.toEqual(new Map([[SCHEMA_RID, createdType]]));
     expect(mockedCreateDiscourseNodeType).toHaveBeenCalledWith({
       label: "Evidence",
       shortcut: "",
@@ -175,7 +187,7 @@ describe("resolveSharedNodeTypes", () => {
     });
     mockedCreateDiscourseNodeType.mockResolvedValue(evidenceType);
 
-    await resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] });
+    await resolveSharedNodeTypes({ client, sharedNodes: [sharedNode], spaces });
 
     expect(mockedCreateDiscourseNodeType).toHaveBeenCalledWith(
       expect.objectContaining({ format: "EVD - {content}" }),
@@ -193,7 +205,7 @@ describe("resolveSharedNodeTypes", () => {
     });
     mockedCreateDiscourseNodeType.mockResolvedValue(evidenceType);
 
-    await resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] });
+    await resolveSharedNodeTypes({ client, sharedNodes: [sharedNode], spaces });
 
     expect(mockedCreateDiscourseNodeType).toHaveBeenCalledWith(
       expect.objectContaining({ format: "[[EVD]] - {content} - {Source}" }),
@@ -204,7 +216,7 @@ describe("resolveSharedNodeTypes", () => {
     const { client } = makeClient({ rows: [schemaRow({ format: null })] });
     mockedCreateDiscourseNodeType.mockResolvedValue(evidenceType);
 
-    await resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] });
+    await resolveSharedNodeTypes({ client, sharedNodes: [sharedNode], spaces });
 
     expect(mockedCreateDiscourseNodeType).toHaveBeenCalledWith(
       expect.objectContaining({ format: "" }),
@@ -218,7 +230,7 @@ describe("resolveSharedNodeTypes", () => {
     });
     mockedCreateDiscourseNodeType.mockResolvedValue(evidenceType);
 
-    await resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] });
+    await resolveSharedNodeTypes({ client, sharedNodes: [sharedNode], spaces });
 
     expect(builder.select).toHaveBeenCalledWith(
       expect.stringContaining(
@@ -241,7 +253,7 @@ describe("resolveSharedNodeTypes", () => {
     });
     mockedCreateDiscourseNodeType.mockResolvedValue(evidenceType);
 
-    await resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] });
+    await resolveSharedNodeTypes({ client, sharedNodes: [sharedNode], spaces });
 
     expect(mockedCreateDiscourseNodeType).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -265,7 +277,11 @@ describe("resolveSharedNodeTypes", () => {
       });
       mockedCreateDiscourseNodeType.mockResolvedValue(evidenceType);
 
-      await resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] });
+      await resolveSharedNodeTypes({
+        client,
+        sharedNodes: [sharedNode],
+        spaces,
+      });
 
       expect(mockedCreateDiscourseNodeType).toHaveBeenCalledWith(
         expect.objectContaining({ template: undefined }),
@@ -280,7 +296,11 @@ describe("resolveSharedNodeTypes", () => {
     mockedGetDiscourseNodes.mockReturnValue([pageType]);
 
     await expect(
-      resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] }),
+      resolveSharedNodeTypes({
+        client,
+        sharedNodes: [{ ...sharedNode, nodeType: "remote-page-type" }],
+        spaces,
+      }),
     ).resolves.toEqual(new Map());
     expect(mockedCreateDiscourseNodeType).not.toHaveBeenCalled();
     expect(mockedInternalError).not.toHaveBeenCalled();
@@ -294,7 +314,11 @@ describe("resolveSharedNodeTypes", () => {
       });
 
       await expect(
-        resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] }),
+        resolveSharedNodeTypes({
+          client,
+          sharedNodes: [{ ...sharedNode, nodeType: "remote-reserved-type" }],
+          spaces,
+        }),
       ).resolves.toEqual(new Map());
       expect(mockedCreateDiscourseNodeType).not.toHaveBeenCalled();
       expect(mockedInternalError).not.toHaveBeenCalled();
@@ -307,10 +331,11 @@ describe("resolveSharedNodeTypes", () => {
     });
     const userPageType = { ...evidenceType, text: "Page" };
     mockedGetDiscourseNodes.mockReturnValue([userPageType]);
+    const pageNode = { ...sharedNode, nodeType: "remote-page-type" };
 
     await expect(
-      resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] }),
-    ).resolves.toEqual(new Map([[SCHEMA_ID, userPageType]]));
+      resolveSharedNodeTypes({ client, sharedNodes: [pageNode], spaces }),
+    ).resolves.toEqual(new Map([[getNodeTypeRid(pageNode), userPageType]]));
     expect(mockedCreateDiscourseNodeType).not.toHaveBeenCalled();
   });
 
@@ -318,14 +343,17 @@ describe("resolveSharedNodeTypes", () => {
     const { client } = makeClient({ rows: [] });
 
     await expect(
-      resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] }),
+      resolveSharedNodeTypes({ client, sharedNodes: [sharedNode], spaces }),
     ).resolves.toEqual(new Map());
     expect(mockedCreateDiscourseNodeType).not.toHaveBeenCalled();
   });
 
   it("fetches every node type schema in one query", async () => {
     const { client, builder, from } = makeClient({
-      rows: [schemaRow(), schemaRow({ id: 300, name: "Claim" })],
+      rows: [
+        schemaRow(),
+        schemaRow({ name: "Claim", source_local_id: "claim-type" }),
+      ],
     });
     mockedGetDiscourseNodes.mockReturnValue([evidenceType]);
     mockedCreateDiscourseNodeType.mockResolvedValue(evidenceType);
@@ -338,13 +366,48 @@ describe("resolveSharedNodeTypes", () => {
         {
           ...sharedNode,
           rid: "orn:obsidian.note:vault-a/node-3",
-          schemaId: 300,
+          nodeType: "claim-type",
         },
       ],
+      spaces,
     });
 
     expect(from).toHaveBeenCalledTimes(1);
-    expect(builder.in).toHaveBeenCalledWith("id", [SCHEMA_ID, 300]);
+    expect(builder.in).toHaveBeenCalledWith("space_id", [SPACE_ID]);
+    expect(builder.in).toHaveBeenCalledWith("source_local_id", [
+      REMOTE_TYPE_UID,
+      "claim-type",
+    ]);
+  });
+
+  it("keys each node type by its schema's rid, leaving out another space's type of the same id", async () => {
+    const otherSpace: SharedNodeSpace = {
+      id: 21,
+      name: "Other vault",
+      platform: "Obsidian",
+      url: "obsidian:vault-b",
+    };
+    const otherNode = {
+      ...sharedNode,
+      rid: "orn:obsidian.note:vault-b/node-2",
+      nodeType: "claim-type",
+    };
+    const { client } = makeClient({
+      rows: [
+        schemaRow(),
+        schemaRow({ space_id: otherSpace.id, name: "Claim" }),
+      ],
+    });
+    mockedGetDiscourseNodes.mockReturnValue([evidenceType]);
+
+    await expect(
+      resolveSharedNodeTypes({
+        client,
+        sharedNodes: [sharedNode, otherNode],
+        spaces: { ...spaces, [otherSpace.url]: otherSpace },
+      }),
+    ).resolves.toEqual(new Map([[SCHEMA_RID, evidenceType]]));
+    expect(mockedCreateDiscourseNodeType).not.toHaveBeenCalled();
   });
 
   it("reports a failed type creation and leaves the node undecorated", async () => {
@@ -354,7 +417,7 @@ describe("resolveSharedNodeTypes", () => {
     );
 
     await expect(
-      resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] }),
+      resolveSharedNodeTypes({ client, sharedNodes: [sharedNode], spaces }),
     ).resolves.toEqual(new Map());
     expect(mockedInternalError).toHaveBeenCalledWith(
       expect.objectContaining({ sendEmail: false }),
@@ -367,7 +430,7 @@ describe("resolveSharedNodeTypes", () => {
     const { client } = makeClient({ error: { message: "permission denied" } });
 
     await expect(
-      resolveSharedNodeTypes({ client, sharedNodes: [sharedNode] }),
+      resolveSharedNodeTypes({ client, sharedNodes: [sharedNode], spaces }),
     ).resolves.toEqual(new Map());
     expect(mockedInternalError).toHaveBeenCalledWith(
       expect.objectContaining({ sendEmail: false }),

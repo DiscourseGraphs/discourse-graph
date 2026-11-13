@@ -45,6 +45,7 @@ export const discourseNodeSchemaToLocalConcept = ({
     template,
     id,
     name,
+    format,
     created,
     modified,
     importedFromRid,
@@ -52,6 +53,7 @@ export const discourseNodeSchemaToLocalConcept = ({
   } = node;
   const literal_content: Record<string, Json> = {
     label: name,
+    format,
     source_data: otherData,
   };
   if (template) literal_content.template = template;

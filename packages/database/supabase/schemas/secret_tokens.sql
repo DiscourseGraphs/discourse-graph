@@ -32,19 +32,19 @@ BEGIN
 END;
 $$;
 
+-- The website's /auth/token route hands a plugin's session to a browser that isn't logged in yet.
+GRANT EXECUTE ON FUNCTION public.get_secret_token TO anon;
+
 ALTER TABLE public.secret_token OWNER TO "postgres";
 
-REVOKE ALL ON TABLE public.secret_token FROM anon;
-GRANT ALL ON TABLE public.secret_token TO authenticated;
-GRANT ALL ON TABLE public.secret_token TO service_role;
 
 ALTER TABLE public.secret_token ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS concept_policy ON public.secret_token;
 DROP POLICY IF EXISTS concept_select_policy ON public.secret_token;
-CREATE POLICY concept_select_policy ON public.secret_token FOR SELECT USING (creator = auth.uid());
+CREATE POLICY concept_select_policy ON public.secret_token FOR SELECT USING (creator = (SELECT auth.uid()));
 DROP POLICY IF EXISTS concept_delete_policy ON public.secret_token;
-CREATE POLICY concept_delete_policy ON public.secret_token FOR DELETE USING (creator = auth.uid());
+CREATE POLICY concept_delete_policy ON public.secret_token FOR DELETE USING (creator = (SELECT auth.uid()));
 DROP POLICY IF EXISTS concept_insert_policy ON public.secret_token;
 -- Do not allow insert except through create_secret_token
 DROP POLICY IF EXISTS concept_update_policy ON public.secret_token;
-CREATE POLICY concept_update_policy ON public.secret_token FOR UPDATE USING (creator = auth.uid());
+CREATE POLICY concept_update_policy ON public.secret_token FOR UPDATE USING (creator = (SELECT auth.uid()));

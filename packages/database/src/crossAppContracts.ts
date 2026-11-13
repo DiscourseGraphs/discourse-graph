@@ -1,4 +1,4 @@
-import type { ContentType } from "@repo/content-model";
+import type { ContentType } from "@repo/content-model/constants";
 import { Enums, type Json } from "./dbTypes";
 
 // An identifier for objects in the platform. Expected to be unique within the platform.
@@ -104,6 +104,7 @@ export type CrossAppNode = CrossAppBase & {
   slots?: Record<string, LocalId>;
   content: {
     direct: InlineCrossAppContent;
+    directAndDescription?: InlineCrossAppContent;
     full?: InlineCrossAppTypedContent;
   };
   // The assets referenced by `content.full` whose bytes are stored. One that could not

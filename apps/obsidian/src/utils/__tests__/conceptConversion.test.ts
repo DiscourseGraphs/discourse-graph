@@ -1,7 +1,11 @@
 import { TFile } from "obsidian";
 import { describe, expect, it } from "vitest";
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
-import { discourseNodeInstanceToLocalConcept } from "~/utils/conceptConversion";
+import type { DiscourseNode } from "~/types";
+import {
+  discourseNodeInstanceToLocalConcept,
+  discourseNodeSchemaToLocalConcept,
+} from "~/utils/conceptConversion";
 import type { SupabaseContext } from "~/utils/supabaseContext";
 
 const CONTEXT: SupabaseContext = {
@@ -84,5 +88,40 @@ describe("discourseNodeInstanceToLocalConcept source", () => {
         basename: "EVD - Evidence title",
       }),
     ).not.toHaveProperty("local_reference_content");
+  });
+});
+
+const NODE_TYPE: DiscourseNode = {
+  id: "type-1",
+  name: "Claim",
+  format: "CLM - {content}",
+  shortcut: "C",
+  color: "#7DA13E",
+  tag: "clm-candidate",
+  keyImage: true,
+  folderPath: "Claims",
+  authorId: 3,
+  created: 0,
+  modified: 0,
+};
+
+describe("discourseNodeSchemaToLocalConcept format", () => {
+  it("publishes the format at the top level of literal content", () => {
+    expect(
+      discourseNodeSchemaToLocalConcept({ context: CONTEXT, node: NODE_TYPE }),
+    ).toMatchObject({ literal_content: { format: "CLM - {content}" } });
+  });
+
+  it("keeps the other metadata in source data without the format", () => {
+    expect(
+      discourseNodeSchemaToLocalConcept({ context: CONTEXT, node: NODE_TYPE }),
+    ).toHaveProperty("literal_content.source_data", {
+      shortcut: "C",
+      color: "#7DA13E",
+      tag: "clm-candidate",
+      keyImage: true,
+      folderPath: "Claims",
+      authorId: 3,
+    });
   });
 });

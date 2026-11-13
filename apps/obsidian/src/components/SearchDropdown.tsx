@@ -1,5 +1,11 @@
 import { App, Scope, setIcon } from "obsidian";
-import { useEffect, useRef, type ReactElement, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  type KeyboardEvent,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 
 /** Which toolbar panel is open, so two can never be open at once. */
 export type SearchDropdownId =
@@ -7,6 +13,17 @@ export type SearchDropdownId =
   | "sort"
   | "display-options"
   | null;
+
+/** Keyboard-only ring for div items; inset so the panel's overflow-hidden can't clip it. */
+export const SEARCH_DROPDOWN_ITEM_FOCUS_RING =
+  "outline-none focus-visible:[box-shadow:inset_0_0_0_2px_var(--background-modifier-border-focus)]";
+
+// tabIndex -1 opts an item out of arrow navigation.
+const FOCUSABLE_SELECTOR =
+  ':is(input, button, [tabindex]):not([disabled], [tabindex="-1"])';
+
+const getFocusableItems = (panel: HTMLElement): HTMLElement[] =>
+  Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
 
 export const SearchDropdown = ({
   app,
@@ -34,6 +51,55 @@ export const SearchDropdown = ({
   title: string;
 }): ReactElement => {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const isKeyboardOpenRef = useRef(false);
+
+  // Runs after the panel's own effects, so a panel that focuses something itself keeps it.
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!isOpen || !panel || panel.contains(activeDocument.activeElement)) {
+      return;
+    }
+    // Chromium rings any item focused from a text input, so a pointer open parks focus on the panel instead.
+    if (!isKeyboardOpenRef.current) {
+      panel.focus();
+      return;
+    }
+    (
+      panel.querySelector<HTMLElement>('[aria-checked="true"]') ??
+      getFocusableItems(panel)[0]
+    )?.focus();
+  }, [isOpen]);
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
+    if (!isOpen) return;
+    // Panel keystrokes must not reach the modal's Enter and arrow result navigation; Escape never arrives here at all.
+    event.stopPropagation();
+    if (event.nativeEvent.isComposing) return;
+
+    if (event.key === "Tab") {
+      // Tab only closes; focus returns to the trigger instead of moving on.
+      event.preventDefault();
+      onOpenChange(false);
+      triggerRef.current?.focus();
+      return;
+    }
+
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+    const items = panelRef.current ? getFocusableItems(panelRef.current) : [];
+    if (!items.length) return;
+    event.preventDefault();
+    const delta = event.key === "ArrowDown" ? 1 : -1;
+    const index = items.indexOf(activeDocument.activeElement as HTMLElement);
+    const next =
+      index === -1
+        ? delta === 1
+          ? 0
+          : items.length - 1
+        : (index + delta + items.length) % items.length;
+    items[next]?.focus();
+  };
 
   // Obsidian's modal Escape is registered before React exists, and wins on its own scope too, so only a pushed scope gets it first.
   useEffect(() => {
@@ -63,20 +129,21 @@ export const SearchDropdown = ({
     <div
       ref={containerRef}
       className="relative shrink-0"
-      onKeyDown={(event) => {
-        if (!isOpen) return;
-        // Panel keystrokes must not reach the modal's Enter and arrow result navigation; Escape never arrives here at all.
-        event.stopPropagation();
-      }}
+      onKeyDown={handleKeyDown}
     >
       <button
+        ref={triggerRef}
         type="button"
         aria-expanded={isOpen}
         aria-label={ariaLabel}
         disabled={isDisabled}
         title={title}
-        onClick={() => onOpenChange(!isOpen)}
-        // Keeps focus in the search input, so arrow and Enter navigation stays live.
+        onClick={(event) => {
+          // `detail` is 0 when Enter or Space activated the button.
+          isKeyboardOpenRef.current = event.detail === 0;
+          onOpenChange(!isOpen);
+        }}
+        // Keeps the trigger from taking focus; opening moves focus into the panel instead.
         onMouseDown={(event) => event.preventDefault()}
         className={`clickable-icon relative ${isOpen || isActive ? "is-active" : ""}`}
       >
@@ -95,7 +162,10 @@ export const SearchDropdown = ({
       </button>
       {isOpen && (
         <div
-          className={`border-modifier-border absolute right-0 top-full z-50 mt-1 overflow-hidden rounded-md border bg-primary shadow-[shadow:var(--shadow-s)] ${panelClassName}`}
+          ref={panelRef}
+          tabIndex={-1}
+          data-search-dropdown-panel
+          className={`border-modifier-border absolute right-0 top-full z-50 mt-1 overflow-hidden rounded-md border bg-primary shadow-[shadow:var(--shadow-s)] outline-none ${panelClassName}`}
         >
           {children}
         </div>
