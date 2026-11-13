@@ -487,8 +487,8 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
   };
 
   // What supabase-js sends to upsert_concepts: JSON, so undefined fields drop out.
-  // upsert_concepts stores these alike, so a later PR may change them for that
-  // reason: a row's space_id (it sets every row's space_id from v_space_id), a
+  // upsert_concepts stores these alike, so changing only these changes no stored
+  // value: a row's space_id (it sets every row's space_id from v_space_id), a
   // missing literal_content (it defaults to {}), ".000" or a trailing "Z" in a UTC
   // timestamp (Concept and Content timestamps are timestamp without time zone,
   // which ignores the zone), and author_id versus an author_local_id naming the
@@ -545,7 +545,7 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
       sent = sentConcepts(upsertConcepts);
     });
 
-    it("sends every local schema, note and relation, and no imported note or relation", () => {
+    it("sends every schema, local or imported, and every local note and relation, but no imported note or relation", () => {
       expect(sent.map((concept) => concept.source_local_id).sort()).toEqual(
         [
           "claim-type",
@@ -719,10 +719,55 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
       });
     });
 
-    it("sends no sourceDocument for a note that cites no Source", () => {
-      expect(sentRow("source-node")).not.toHaveProperty(
-        "local_reference_content",
-      );
+    it("sends a note with no Source and no extra frontmatter without a sourceDocument and with an empty source_data", () => {
+      expect(sentRow("source-node")).toStrictEqual({
+        space_id: SPACE_ID,
+        source_local_id: "source-node",
+        schema_represented_by_local_id: "source-type",
+        is_schema: false,
+        author_id: USER_ID,
+        name: "Sources/SRC - Walker 2017.md",
+        created: NOTE_CREATED,
+        last_modified: NOTE_MODIFIED,
+        literal_content: {
+          label: "SRC - Walker 2017",
+          core_title: "Walker 2017",
+          source_data: {},
+        },
+        contents_inline: [
+          {
+            source_local_id: "source-node",
+            author_local_id: ACCOUNT_LOCAL_ID,
+            creator_local_id: ACCOUNT_LOCAL_ID,
+            scale: "document",
+            created: NOTE_CREATED,
+            last_modified: NOTE_MODIFIED,
+            variant: "direct",
+            content_type: "text/plain",
+            text: "SRC - Walker 2017",
+            metadata: { filePath: "Sources/SRC - Walker 2017.md" },
+            embedding_inline: {
+              model: "openai_text_embedding_3_small_1536",
+              vector: embeddingOf("SRC - Walker 2017"),
+            },
+          },
+          {
+            source_local_id: "source-node",
+            author_local_id: ACCOUNT_LOCAL_ID,
+            creator_local_id: ACCOUNT_LOCAL_ID,
+            scale: "document",
+            created: NOTE_CREATED,
+            last_modified: NOTE_MODIFIED,
+            variant: "full",
+            content_type: "text/obsidian+markdown",
+            text: "Walker, M. (2017). Why we sleep.",
+            metadata: {
+              nodeTypeId: "source-type",
+              nodeInstanceId: "source-node",
+            },
+          },
+        ],
+      });
     });
 
     it("sends a Source before the note that cites it", () => {
