@@ -36,6 +36,7 @@ import { SOURCE_SLOT, sourceIdOfNode, sourceSlotSchemaId } from "./sourceSlot";
 import renderToast from "roamjs-components/components/Toast";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import { publishNodeAssets, type NodeAssetResult } from "./publishNodeAssets";
+import { chunk } from "./syncDgNodesToSupabase";
 import { excludeProvisionalRelationSchemas } from "./relationSchemaAcceptance";
 
 export type NodeUidWithType = {
@@ -203,6 +204,11 @@ type PublishedSource = { uid: string; title: string; conceptId: number };
 
 const SOURCE_REFERENCE_PATH = `reference_content->>${SOURCE_SLOT}`;
 
+// A space holds at most one Concept per source_local_id, so a batch of UIDs returns at
+// most that many rows. The batch must stay below the API's 1,000-row response limit,
+// which truncates without error. It also keeps the UID list, sent in the URL, short.
+const SOURCE_DEPENDENT_BATCH_SIZE = 200;
+
 // A node published before its Source was in this space was stored without its source
 // reference (see omitMissingSource). Publishing the Source sets only that reference.
 // Re-upserting the node would either publish its unpublished edits or stamp its current
@@ -246,30 +252,31 @@ const restoreSourceReferences = async ({
     ({ dependentUids }) => dependentUids,
   );
   if (allDependentUids.length === 0) return;
-  const { data: storedDependents, error: readError } = await client
-    .from("Concept")
-    .select("source_local_id, name")
-    .eq("space_id", spaceId)
-    .in("source_local_id", allDependentUids)
-    .is(SOURCE_REFERENCE_PATH, null);
-  if (readError) throw readError;
-  const unrenamedUids = new Set(
-    storedDependents.flatMap(({ source_local_id: uid, name }) =>
-      uid !== null && name === titlesByUid.get(uid) ? [uid] : [],
-    ),
-  );
+  const unrenamedUids = new Set<string>();
+  for (const uids of chunk(allDependentUids, SOURCE_DEPENDENT_BATCH_SIZE)) {
+    const { data: storedDependents, error: readError } = await client
+      .from("Concept")
+      .select("source_local_id, name")
+      .eq("space_id", spaceId)
+      .in("source_local_id", uids)
+      .is(SOURCE_REFERENCE_PATH, null);
+    if (readError) throw readError;
+    for (const { source_local_id: uid, name } of storedDependents)
+      if (uid !== null && name === titlesByUid.get(uid)) unrenamedUids.add(uid);
+  }
   for (const { conceptId, dependentUids } of dependentsBySourceUid.values()) {
     const restorableUids = dependentUids.filter((uid) =>
       unrenamedUids.has(uid),
     );
-    if (restorableUids.length === 0) continue;
-    const { error } = await client
-      .from("Concept")
-      .update({ reference_content: { [SOURCE_SLOT]: conceptId } })
-      .eq("space_id", spaceId)
-      .in("source_local_id", restorableUids)
-      .is(SOURCE_REFERENCE_PATH, null);
-    if (error) throw error;
+    for (const uids of chunk(restorableUids, SOURCE_DEPENDENT_BATCH_SIZE)) {
+      const { error } = await client
+        .from("Concept")
+        .update({ reference_content: { [SOURCE_SLOT]: conceptId } })
+        .eq("space_id", spaceId)
+        .in("source_local_id", uids)
+        .is(SOURCE_REFERENCE_PATH, null);
+      if (error) throw error;
+    }
   }
 };
 

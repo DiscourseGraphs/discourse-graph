@@ -47,11 +47,21 @@ vi.mock("~/utils/importedSourceIdentity", () => ({
 }));
 
 vi.mock("roamjs-components/queries/getPageTitleByPageUid", () => ({
-  default: (uid: string) => (uid === SOURCE_UID ? SOURCE_TITLE : ""),
+  default: (uid: string) =>
+    uid === SOURCE_UID
+      ? SOURCE_TITLE
+      : uid === SECOND_SOURCE_UID
+        ? SECOND_SOURCE_TITLE
+        : "",
 }));
 
 vi.mock("roamjs-components/queries/getPageUidByPageTitle", () => ({
-  default: (title: string) => (title === SOURCE_TITLE ? SOURCE_UID : ""),
+  default: (title: string) =>
+    title === SOURCE_TITLE
+      ? SOURCE_UID
+      : title === SECOND_SOURCE_TITLE
+        ? SECOND_SOURCE_UID
+        : "",
 }));
 
 vi.mock("~/utils/roamToCrossAppConverters", () => ({
@@ -98,6 +108,8 @@ const GROUP_ID = "group-1";
 const SCHEMA_UID = "schema-1";
 const SOURCE_UID = "source-1";
 const SOURCE_TITLE = "@sun2019direct";
+const SECOND_SOURCE_UID = "source-2";
+const SECOND_SOURCE_TITLE = "@lee2020second";
 const SOURCE_RID = "orn:obsidian.note:vault-a/node-1";
 
 const claimSchema: DiscourseNode = {
@@ -150,12 +162,43 @@ type SelectResponse = {
 
 type FakeSelectBuilder = PromiseLike<SelectResponse> & {
   url: { search: string };
-  eq: () => FakeSelectBuilder;
+  eq: (column: string, value: unknown) => FakeSelectBuilder;
   in: (column: string, values: string[]) => FakeSelectBuilder;
-  is: () => FakeSelectBuilder;
+  is: (column: string, value: null) => FakeSelectBuilder;
   order: (column: string) => FakeSelectBuilder;
   range: () => Promise<SelectResponse>;
 };
+
+type StoredConcept = {
+  source_local_id: string;
+  name: string;
+  space_id?: number;
+  reference_content?: Record<string, unknown> | null;
+};
+
+// The API silently truncates a response at this many rows.
+const RESPONSE_ROW_LIMIT = 1000;
+
+type Filter = ["eq" | "in" | "is", string, unknown];
+
+const fieldValue = (row: StoredConcept, column: string): unknown => {
+  const [field, key] = column.split("->>");
+  const value =
+    field === "space_id"
+      ? (row.space_id ?? SPACE_ID)
+      : row[field as keyof StoredConcept];
+  return key === undefined
+    ? value
+    : ((value as Record<string, unknown> | null | undefined)?.[key] ?? null);
+};
+
+const matchesFilters = (row: StoredConcept, filters: Filter[]): boolean =>
+  filters.every(([op, column, value]) => {
+    const actual = fieldValue(row, column);
+    return op === "in"
+      ? (value as unknown[]).includes(actual)
+      : actual === value;
+  });
 
 const makeFakeClient = ({
   syncedUids = [],
@@ -165,7 +208,7 @@ const makeFakeClient = ({
   failedUpsertUids = [],
 }: {
   syncedUids?: string[];
-  storedConcepts?: { source_local_id: string; name: string }[];
+  storedConcepts?: StoredConcept[];
   rpcResponse?: { data: number[] | null; error: { message: string } | null };
   updateError?: { message: string };
   failedUpsertUids?: string[];
@@ -182,13 +225,20 @@ const makeFakeClient = ({
     values: Record<string, unknown>;
     filters: unknown[][];
   }[] = [];
-  const selectResult = (table: string): Promise<SelectResponse> =>
+  const storedRows = storedConcepts.map((row) => ({ ...row }));
+  const selectResult = (
+    table: string,
+    filters: Filter[],
+  ): Promise<SelectResponse> =>
     Promise.resolve({
       data:
         table === "my_concepts"
           ? syncedUids.map((uid) => ({ source_local_id: uid }))
           : table === "Concept"
-            ? storedConcepts
+            ? storedRows
+                .filter((row) => matchesFilters(row, filters))
+                .slice(0, RESPONSE_ROW_LIMIT)
+                .map(({ source_local_id, name }) => ({ source_local_id, name }))
             : [],
       error: null,
     });
@@ -196,21 +246,29 @@ const makeFakeClient = ({
   // the builder is awaitable on its own, which is the shape `publishNodeAssets` uses when
   // it reads a node's existing references with two `eq`s and no `in`.
   const makeSelectBuilder = (table: string): FakeSelectBuilder => {
+    const filters: Filter[] = [];
     const builder: FakeSelectBuilder = {
       url: { search: "" },
-      eq: () => builder,
-      in: (_column, values) => {
-        if (table === "my_concepts") conceptLookups.push(values);
+      eq: (column, value) => {
+        filters.push(["eq", column, value]);
         return builder;
       },
-      is: () => builder,
+      in: (column, values) => {
+        if (table === "my_concepts") conceptLookups.push(values);
+        filters.push(["in", column, values]);
+        return builder;
+      },
+      is: (column, value) => {
+        filters.push(["is", column, value]);
+        return builder;
+      },
       order: (column) => {
         builder.url.search += `&order=${column}`;
         return builder;
       },
-      range: () => selectResult(table),
+      range: () => selectResult(table, filters),
       then: (onfulfilled, onrejected) =>
-        selectResult(table).then(onfulfilled, onrejected),
+        selectResult(table, filters).then(onfulfilled, onrejected),
     };
     return builder;
   };
@@ -221,24 +279,28 @@ const makeFakeClient = ({
       Promise.resolve({ error: null }).then(resolve),
   });
   const updateFilter = (
-    filters: unknown[][],
+    table: string,
+    values: Record<string, unknown>,
+    filters: Filter[],
   ): Record<string, unknown> &
     PromiseLike<{ error: { message: string } | null }> => {
-    const filter =
-      (op: string) =>
-      (...args: unknown[]) => {
-        filters.push([op, ...args]);
-        return updateFilter(filters);
-      };
+    const filter = (op: Filter[0]) => (column: string, value: unknown) => {
+      filters.push([op, column, value]);
+      return updateFilter(table, values, filters);
+    };
     return {
       eq: filter("eq"),
       in: filter("in"),
       is: filter("is"),
-      then: (onfulfilled, onrejected) =>
-        Promise.resolve({ error: updateError ?? null }).then(
+      then: (onfulfilled, onrejected) => {
+        if (!updateError && table === "Concept")
+          for (const row of storedRows)
+            if (matchesFilters(row, filters)) Object.assign(row, values);
+        return Promise.resolve({ error: updateError ?? null }).then(
           onfulfilled,
           onrejected,
-        ),
+        );
+      },
     };
   };
   const client = {
@@ -246,9 +308,9 @@ const makeFakeClient = ({
       select: () => makeSelectBuilder(table),
       delete: () => deleteFilter(),
       update: (values: Record<string, unknown>) => {
-        const filters: unknown[][] = [];
+        const filters: Filter[] = [];
         updateCalls.push({ table, values, filters });
-        return updateFilter(filters);
+        return updateFilter(table, values, filters);
       },
       upsert: (
         rows: Record<string, unknown>[],
@@ -272,7 +334,14 @@ const makeFakeClient = ({
       );
     },
   } as unknown as DGSupabaseClient;
-  return { client, rpcCalls, conceptLookups, upsertCalls, updateCalls };
+  return {
+    client,
+    rpcCalls,
+    conceptLookups,
+    upsertCalls,
+    updateCalls,
+    storedRows,
+  };
 };
 
 describe("publishNodesToGroups", () => {
@@ -901,6 +970,117 @@ describe("publishNodesToGroups", () => {
         await publish(client, [sourceNode]);
 
         expect(updateCalls).toEqual([]);
+        expect(mocks.internalError).not.toHaveBeenCalled();
+      });
+
+      it("restores every dependent past the response row limit, across sources, and nothing else", async () => {
+        const secondSourceNode = makeCrossAppNode({
+          uid: SECOND_SOURCE_UID,
+          title: SECOND_SOURCE_TITLE,
+          nodeType: SOURCE_SCHEMA_UID,
+        });
+        const dependents = (
+          prefix: string,
+          sourceTitle: string,
+          count: number,
+        ): [string, string][] =>
+          Array.from({ length: count }, (_, i) => [
+            `${prefix}-${i}`,
+            `[[EVD]] - finding ${prefix} ${i} - [[${sourceTitle}]]`,
+          ]);
+        const firstDependents = dependents("first", SOURCE_TITLE, 600);
+        const secondDependents = dependents("second", SECOND_SOURCE_TITLE, 401);
+        const [otherSpace, alreadyReferenced, renamed] = dependents(
+          "skipped",
+          SOURCE_TITLE,
+          3,
+        );
+        const pagesByText: Record<string, [string, string][]> = {
+          [SOURCE_TITLE]: [
+            [SOURCE_UID, SOURCE_TITLE],
+            ...firstDependents,
+            otherSpace,
+            alreadyReferenced,
+            renamed,
+          ],
+          [SECOND_SOURCE_TITLE]: [
+            [SECOND_SOURCE_UID, SECOND_SOURCE_TITLE],
+            ...secondDependents,
+          ],
+        };
+        vi.stubGlobal("window", {
+          roamAlphaAPI: {
+            data: {
+              async: {
+                q: (_query: string, text: string) =>
+                  Promise.resolve(pagesByText[text] ?? []),
+              },
+            },
+          },
+        });
+        const eligible = [...firstDependents, ...secondDependents];
+        expect(eligible.length).toBeGreaterThan(1000);
+        const existingReference = { sourceDocument: 777 };
+        const { client, rpcCalls, upsertCalls, updateCalls, storedRows } =
+          makeFakeClient({
+            syncedUids: [SCHEMA_UID],
+            storedConcepts: [
+              ...eligible.map(([uid, name]) => ({
+                source_local_id: uid,
+                name,
+              })),
+              {
+                source_local_id: otherSpace[0],
+                name: otherSpace[1],
+                space_id: SPACE_ID + 1,
+              },
+              {
+                source_local_id: alreadyReferenced[0],
+                name: alreadyReferenced[1],
+                reference_content: existingReference,
+              },
+              {
+                source_local_id: renamed[0],
+                name: "[[EVD]] - finding renamed - [[@another2020]]",
+              },
+            ],
+          });
+
+        const result = await publish(client, [sourceNode, secondSourceNode]);
+
+        const conceptIdOf = (uid: string) =>
+          rpcCalls[0].args.data.findIndex(
+            (row) => row.source_local_id === uid,
+          ) + 1;
+        const referenceOf = (uid: string) =>
+          storedRows.find((row) => row.source_local_id === uid)
+            ?.reference_content;
+        for (const [uid] of firstDependents)
+          expect(referenceOf(uid)).toEqual({
+            sourceDocument: conceptIdOf(SOURCE_UID),
+          });
+        for (const [uid] of secondDependents)
+          expect(referenceOf(uid)).toEqual({
+            sourceDocument: conceptIdOf(SECOND_SOURCE_UID),
+          });
+        expect(referenceOf(otherSpace[0])).toBeUndefined();
+        expect(referenceOf(alreadyReferenced[0])).toEqual(existingReference);
+        expect(referenceOf(renamed[0])).toBeUndefined();
+        for (const { values } of updateCalls)
+          expect(Object.keys(values)).toEqual(["reference_content"]);
+        const upsertedUids = rpcCalls.flatMap((call) =>
+          call.args.data.map((row) => row.source_local_id),
+        );
+        expect(result.publishedNodeUids.sort()).toEqual(
+          [SOURCE_UID, SECOND_SOURCE_UID].sort(),
+        );
+        const grantedUids = upsertCalls.flatMap((call) =>
+          call.rows.map((row) => row.source_local_id),
+        );
+        for (const [uid] of eligible) {
+          expect(upsertedUids).not.toContain(uid);
+          expect(grantedUids).not.toContain(uid);
+        }
         expect(mocks.internalError).not.toHaveBeenCalled();
       });
 
