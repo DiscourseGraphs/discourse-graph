@@ -1,0 +1,37 @@
+https://linear.app/discourse-graphs/issue/ENG-2416/research-test-openspec-with-milestone-1 see if any current designs might clash/ reuse work from this spec that Sid is working on. check all the attached Spec to compare and constratst
+
+---
+
+can you access the 2 side chats? can u summarize these contexts for me into some short blurb to tell Michael about?
+
+---
+
+actually cut it down, explaining the CrossAppNode is only
+
+---
+
+anything else to do with the spec?
+
+---
+
+* confirm option A.
+   * because we confirmed A i don't think mcp-session-access from [[Spec:MCP token handoff]] is needed anymore?
+* add the missing dependency
+*
+
+---
+
+@"/Users/trang.doan/Downloads/Protocol Product Recording Nov 10 2026.vtt"
+why do i remember that we confirmed in option A instead of A2? my position was that because A2 is kinda an anti-pattern and don't offer THAT much more security any way (we don't care about read-only at db level that much was my take-away). was this my argument in the meeting? why did we end up with A2 over A?
+
+---
+
+hmm ok then go with A2 then. change the spec to reflect this
+
+---
+
+Yes, sync Roam
+
+---
+
+do we need to add dependencies like you previously mentioned?
