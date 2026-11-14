@@ -608,3 +608,7 @@ Looks good, continue
   
   Checks: `vitest run src/utils/__tests__/nodeSummonResults.test.ts` passes (6/6), and `tsc --noEmit` reports no errors in the changed files.
 </agent-message>
+
+---
+
+Commit and open PR
