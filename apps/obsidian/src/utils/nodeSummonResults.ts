@@ -17,12 +17,18 @@ export const groupNodesForSummonMenu = ({
   nodes,
   nodeTypes,
   query,
+  nodeTypeIds,
 }: {
   nodes: SearchableNode[];
   nodeTypes: DiscourseNode[];
   query: string;
+  nodeTypeIds?: string[];
 }): SummonMenuGroup[] => {
-  const ranked = rankDiscourseNodesByTitle({ candidates: nodes, query });
+  const ranked = rankDiscourseNodesByTitle({
+    candidates: nodes,
+    query,
+    nodeTypeIds,
+  });
 
   return nodeTypes
     .map((nodeType) => ({

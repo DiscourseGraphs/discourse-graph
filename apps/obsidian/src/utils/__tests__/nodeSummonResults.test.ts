@@ -91,6 +91,30 @@ describe("groupNodesForSummonMenu", () => {
     ]);
   });
 
+  it("drops the groups of unchecked types", () => {
+    const groups = groupNodesForSummonMenu({
+      nodes: [node("Actin cap", "claim"), node("Myosin KO", "evidence")],
+      nodeTypes: [CLAIM, EVIDENCE],
+      query: "",
+      nodeTypeIds: ["evidence"],
+    });
+
+    expect(summarize(groups)).toEqual([
+      { type: "Evidence", titles: ["Myosin KO"] },
+    ]);
+  });
+
+  it("keeps every group when no type is selected", () => {
+    const groups = groupNodesForSummonMenu({
+      nodes: [node("Actin cap", "claim"), node("Myosin KO", "evidence")],
+      nodeTypes: [CLAIM, EVIDENCE],
+      query: "",
+      nodeTypeIds: [],
+    });
+
+    expect(summarize(groups).map((g) => g.type)).toEqual(["Claim", "Evidence"]);
+  });
+
   it("returns no groups when nothing matches", () => {
     const groups = groupNodesForSummonMenu({
       nodes: [node("Actin cap", "claim")],

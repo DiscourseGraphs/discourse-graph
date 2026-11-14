@@ -57,21 +57,43 @@ const NodeTypeFilterRow = ({
   </div>
 );
 
-const NodeTypeFilterPanel = ({
-  isFilterActive,
+export const NodeTypeFilterPanel = ({
+  isInline = false,
   nodeTypes,
-  onSelectedIdsChange,
-  selectedIds,
+  onSelectOnly,
+  onSelectedNodeTypeIdsChange,
+  selectedNodeTypeIds,
 }: {
-  isFilterActive: boolean;
+  isInline?: boolean;
   nodeTypes: DiscourseNode[];
-  onSelectedIdsChange: (ids: string[]) => void;
-  selectedIds: string[];
+  onSelectOnly?: () => void;
+  onSelectedNodeTypeIdsChange: (ids: string[]) => void;
+  selectedNodeTypeIds: string[];
 }): ReactElement => {
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement | null>(null);
 
-  const showTypeSearch = nodeTypes.length > NODE_TYPE_FILTER_SEARCH_THRESHOLD;
+  const allTypeIds = useMemo(
+    () => nodeTypes.map((nodeType) => nodeType.id),
+    [nodeTypes],
+  );
+  const isFilterActive = hasActiveTypeFilter({
+    selectedTypeIds: selectedNodeTypeIds,
+    allTypeIds,
+  });
+  const selectedIds = useMemo(
+    () =>
+      toPanelSelectedIds({ selectedTypeIds: selectedNodeTypeIds, allTypeIds }),
+    [allTypeIds, selectedNodeTypeIds],
+  );
+  const onSelectedIdsChange = (panelIds: string[]): void =>
+    onSelectedNodeTypeIdsChange(
+      fromPanelSelectedIds({ panelSelectedIds: panelIds, allTypeIds }),
+    );
+
+  // Inline hosts keep focus in the editor, and the search box needs focus.
+  const showTypeSearch =
+    !isInline && nodeTypes.length > NODE_TYPE_FILTER_SEARCH_THRESHOLD;
 
   const colorsById = useMemo(() => {
     const byId = new Map<string, string>();
@@ -138,7 +160,14 @@ const NodeTypeFilterPanel = ({
           />
         </div>
       )}
-      <div className="max-h-64 overflow-y-auto py-1">
+      <div
+        className={
+          // Shorter inline, so the host's results keep room below the panel.
+          isInline
+            ? "max-h-40 overflow-y-auto py-1"
+            : "max-h-64 overflow-y-auto py-1"
+        }
+      >
         {filteredNodeTypes.length === 0 ? (
           <div className="text-muted p-4 text-center text-sm">
             No matching node types
@@ -150,7 +179,10 @@ const NodeTypeFilterPanel = ({
               color={colorsById.get(nodeType.id)}
               isChecked={selectedIdSet.has(nodeType.id)}
               nodeType={nodeType}
-              onSelectOnly={() => onSelectedIdsChange([nodeType.id])}
+              onSelectOnly={() => {
+                onSelectedIdsChange([nodeType.id]);
+                onSelectOnly?.();
+              }}
               onToggle={() => toggleType(nodeType.id)}
             />
           ))
@@ -185,12 +217,6 @@ export const NodeTypeFilterMenu = ({
     allTypeIds,
   });
 
-  const panelSelectedIds = useMemo(
-    () =>
-      toPanelSelectedIds({ selectedTypeIds: selectedNodeTypeIds, allTypeIds }),
-    [allTypeIds, selectedNodeTypeIds],
-  );
-
   const activeFilterCount = isFilterActive ? selectedNodeTypeIds.length : 0;
 
   return (
@@ -215,14 +241,9 @@ export const NodeTypeFilterMenu = ({
       }
     >
       <NodeTypeFilterPanel
-        isFilterActive={isFilterActive}
         nodeTypes={nodeTypes}
-        onSelectedIdsChange={(panelIds) =>
-          onSelectedNodeTypeIdsChange(
-            fromPanelSelectedIds({ panelSelectedIds: panelIds, allTypeIds }),
-          )
-        }
-        selectedIds={panelSelectedIds}
+        onSelectedNodeTypeIdsChange={onSelectedNodeTypeIdsChange}
+        selectedNodeTypeIds={selectedNodeTypeIds}
       />
     </SearchDropdown>
   );
