@@ -3,8 +3,13 @@
   "checkpoint_id": "01M7C3B8VYJD8ZNNR0DMX8A1JN",
   "strategy": "manual-commit",
   "branch": "eng-2478-add-a-type-filter-panel-to-the-obsidian-node",
-  "checkpoints_count": 8,
-  "files_touched": null,
+  "checkpoints_count": 15,
+  "files_touched": [
+    "apps/obsidian/src/components/NodeSummonMenu.tsx",
+    "apps/obsidian/src/components/NodeTypeFilterMenu.tsx",
+    "apps/obsidian/src/utils/__tests__/nodeSummonResults.test.ts",
+    "apps/obsidian/src/utils/nodeSummonResults.ts"
+  ],
   "sessions": [
     {
       "metadata": "/0/metadata.json",
@@ -12,20 +17,27 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": "/0/prompt.txt"
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 396,
-    "cache_creation_tokens": 1549769,
-    "cache_read_tokens": 43503975,
-    "output_tokens": 230151,
-    "api_call_count": 175,
+    "input_tokens": 634,
+    "cache_creation_tokens": 1951845,
+    "cache_read_tokens": 59228215,
+    "output_tokens": 298815,
+    "api_call_count": 285,
     "subagent_tokens": {
-      "input_tokens": 118,
-      "cache_creation_tokens": 789960,
-      "cache_read_tokens": 3973291,
-      "output_tokens": 38320,
-      "api_call_count": 59
+      "input_tokens": 160,
+      "cache_creation_tokens": 1064095,
+      "cache_read_tokens": 5026319,
+      "output_tokens": 62831,
+      "api_call_count": 80
     }
   }
 }
