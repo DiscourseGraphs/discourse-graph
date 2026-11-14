@@ -1,9 +1,11 @@
 import { Fragment, useEffect, useRef, type ReactElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { editorInfoField, Scope } from "obsidian";
+import { editorInfoField, Scope, setIcon } from "obsidian";
 import type { EditorView } from "@codemirror/view";
 import type DiscourseGraphPlugin from "~/index";
+import { NodeTypeFilterPanel } from "~/components/NodeTypeFilterMenu";
 import { QueryEngine, type SearchableNode } from "~/services/QueryEngine";
+import { hasActiveTypeFilter } from "~/utils/discourseNodeTypeFilter";
 import {
   groupNodesForSummonMenu,
   type SummonMenuGroup,
@@ -93,6 +95,9 @@ class NodeSummonMenu {
   private query = "";
   private activeIndex = 0;
   private groups: SummonMenuGroup[] = [];
+  // Per instance, so each opening starts with every type.
+  private selectedNodeTypeIds: string[] = [];
+  private isFilterOpen = false;
   private containerEl: HTMLElement;
   private root: Root;
   private scope: Scope;
@@ -119,6 +124,8 @@ class NodeSummonMenu {
     this.containerEl.addEventListener("mousedown", (event) =>
       event.preventDefault(),
     );
+    // Clicking a filter row's label still focuses its checkbox; hand focus back.
+    this.containerEl.addEventListener("focusin", () => view.focus());
     // Mounted directly so .suggestion is the flex child that scrolls inside the capped container.
     this.root = createRoot(this.containerEl);
 
@@ -268,21 +275,74 @@ class NodeSummonMenu {
       nodes: this.nodes,
       nodeTypes: this.plugin.settings.nodeTypes,
       query: this.query,
+      nodeTypeIds: this.selectedNodeTypeIds,
     });
   }
 
+  private setSelectedNodeTypeIds(ids: string[]): void {
+    this.selectedNodeTypeIds = ids;
+    this.activeIndex = 0;
+    this.regroup();
+    this.render();
+  }
+
   private render(): void {
+    const { nodeTypes } = this.plugin.settings;
+    const isFilterActive = hasActiveTypeFilter({
+      selectedTypeIds: this.selectedNodeTypeIds,
+      allTypeIds: nodeTypes.map((nodeType) => nodeType.id),
+    });
+    // Siblings of .suggestion, so they stay pinned while the results scroll.
     this.root.render(
-      <NodeSummonList
-        groups={this.groups}
-        activeIndex={this.activeIndex}
-        onSelect={(index) => this.select(index)}
-        onHover={(index) => {
-          if (index === this.activeIndex) return;
-          this.activeIndex = index;
-          this.render();
-        }}
-      />,
+      <>
+        <div className="flex shrink-0 justify-end px-1 pt-1">
+          <button
+            type="button"
+            aria-label="Filter by type"
+            aria-expanded={this.isFilterOpen}
+            className={
+              this.isFilterOpen || isFilterActive
+                ? "clickable-icon is-active"
+                : "clickable-icon"
+            }
+            onClick={() => {
+              this.isFilterOpen = !this.isFilterOpen;
+              this.render();
+            }}
+          >
+            <span
+              className="flex items-center"
+              ref={(el) => (el && setIcon(el, "filter")) || undefined}
+            />
+          </button>
+        </div>
+        {this.isFilterOpen && (
+          <div className="border-modifier-border shrink-0 border-0 border-b border-solid">
+            <NodeTypeFilterPanel
+              isInline
+              nodeTypes={nodeTypes}
+              selectedNodeTypeIds={this.selectedNodeTypeIds}
+              onSelectedNodeTypeIdsChange={(ids) =>
+                this.setSelectedNodeTypeIds(ids)
+              }
+              onSelectOnly={() => {
+                this.isFilterOpen = false;
+                this.render();
+              }}
+            />
+          </div>
+        )}
+        <NodeSummonList
+          groups={this.groups}
+          activeIndex={this.activeIndex}
+          onSelect={(index) => this.select(index)}
+          onHover={(index) => {
+            if (index === this.activeIndex) return;
+            this.activeIndex = index;
+            this.render();
+          }}
+        />
+      </>,
     );
   }
 
