@@ -3,7 +3,7 @@
   "checkpoint_id": "01M7ED6CH1838YY3PABBXP9Q89",
   "strategy": "manual-commit",
   "branch": "eng-2264-fix-advanced-node-search-preview-crash-can-blank-the-whole",
-  "checkpoints_count": 18,
+  "checkpoints_count": 19,
   "files_touched": [
     "packages/database/supabase/config.toml"
   ],
@@ -49,6 +49,10 @@
       "compact_transcript": "/5/transcript.jsonl",
       "content_hash": "/5/content_hash.txt",
       "prompt": "/5/prompt.txt"
+    },
+    {
+      "metadata": "/6/metadata.json",
+      "prompt": ""
     }
   ],
   "token_usage": {

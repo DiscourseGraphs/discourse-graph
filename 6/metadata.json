@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M7ED6CH1838YY3PABBXP9Q89",
+  "session_id": "b3c3ed61-afc1-4aed-840e-72966e8ebda6",
+  "strategy": "manual-commit",
+  "created_at": "2026-11-15T01:29:55.132855Z",
+  "branch": "eng-2264-fix-advanced-node-search-preview-crash-can-blank-the-whole",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/database/supabase/config.toml"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "7c662c48aa64",
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-11-15T01:29:55.130535Z",
+    "agent_lines": 0,
+    "agent_removed": 1,
+    "human_added": 6602,
+    "human_modified": 6,
+    "human_removed": 0,
+    "total_committed": 6606,
+    "total_lines_changed": 9272,
+    "agent_percentage": 0.010785159620362382,
+    "metric_version": 2
+  }
+}
