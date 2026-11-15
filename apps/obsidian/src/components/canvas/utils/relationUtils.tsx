@@ -1463,11 +1463,11 @@ function PatternFillDefForCanvas() {
       if (htmlLayer) {
         // Wait for `patternContext` to be picked up
         editor.timers.requestAnimationFrame(() => {
-          htmlLayer.style.display = "none";
+          htmlLayer.hide();
 
           // Wait for 'display = "none"' to take effect
           editor.timers.requestAnimationFrame(() => {
-            htmlLayer.style.display = "";
+            htmlLayer.show();
           });
         });
       }
