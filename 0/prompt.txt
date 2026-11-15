@@ -588,3 +588,11 @@ Comment 4 — PR comment, no inline thread
 <status>completed</status>
 <summary>Background command "Take over testVault2 and start the dev watcher" completed (exit code 0)</summary>
 </task-notification>
+
+---
+
+remove some obvious comments
+
+---
+
+create a build in the local test vault (whatever this vault lease is) so i can loom video
