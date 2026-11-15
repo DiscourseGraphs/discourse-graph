@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M7GGJH7QG8HQX9M65Y463JQ4",
+  "strategy": "manual-commit",
+  "branch": "eng-2478-add-a-type-filter-panel-to-the-obsidian-node",
+  "checkpoints_count": 11,
+  "files_touched": [
+    "apps/website/public/docs/roam/dg-schema02.PNG",
+    "openspec/changes/archive/.gitkeep",
+    "openspec/changes/headless-mcp-retrieval/design.md",
+    "openspec/changes/headless-mcp-retrieval/proposal.md",
+    "openspec/changes/headless-mcp-retrieval/specs/agent-read-access/spec.md",
+    "openspec/changes/headless-mcp-retrieval/specs/discourse-mcp/spec.md",
+    "openspec/changes/headless-mcp-retrieval/specs/discourse-retrieval/spec.md",
+    "openspec/changes/headless-mcp-retrieval/specs/headless-retrieval-api/spec.md",
+    "openspec/config.yaml",
+    "openspec/specs/.gitkeep",
+    "packages/database/supabase/.gitignore",
+    "packages/database/supabase/config.toml"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  }
+}
