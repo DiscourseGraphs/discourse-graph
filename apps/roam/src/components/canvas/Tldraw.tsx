@@ -22,8 +22,14 @@ import {
   TLUiComponents,
   TldrawEditor,
   TldrawHandles,
+  TldrawOverlays,
   TldrawScribble,
   TldrawSelectionForeground,
+  TldrawShapeIndicators,
+  TLTextOptions,
+  defaultAddFontsFromNode,
+  defaultEditorAssetUrls,
+  tipTapDefaultExtensions,
   TldrawUi,
   defaultBindingUtils,
   defaultShapeTools,
@@ -187,6 +193,12 @@ const CanvasOverlays = (): JSX.Element => (
 export const DEFAULT_WIDTH = 160;
 export const DEFAULT_HEIGHT = 64;
 export const MAX_WIDTH = "400px";
+
+// <Tldraw> supplies these; we compose TldrawEditor directly, so rich text needs them here.
+const TEXT_OPTIONS: TLTextOptions = {
+  addFontsFromNode: defaultAddFontsFromNode,
+  tipTapConfig: { extensions: tipTapDefaultExtensions },
+};
 
 // Replaces the 2.4.6 patch that dispatched tldraw:error from DefaultErrorFallback.
 const ReportingErrorFallback = ({
@@ -1042,6 +1054,8 @@ const TldrawCanvasShared = ({
     Scribble: TldrawScribble,
     CollaboratorScribble: TldrawScribble,
     SelectionForeground: TldrawSelectionForeground,
+    ShapeIndicators: TldrawShapeIndicators,
+    Overlays: TldrawOverlays,
     Handles: TldrawHandles,
     ErrorFallback: ReportingErrorFallback,
   };
@@ -1387,6 +1401,8 @@ const TldrawCanvasShared = ({
             tools={[...defaultTools, ...defaultShapeTools, ...customTools]}
             bindingUtils={[...defaultBindingUtils, ...customBindingUtils]}
             components={editorComponents}
+            textOptions={TEXT_OPTIONS}
+            assetUrls={defaultEditorAssetUrls}
             store={store}
             onMount={(app) => {
               const unregisterCanvasSessionStatePersistence =

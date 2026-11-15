@@ -2,9 +2,9 @@
 /* eslint-disable @typescript-eslint/consistent-type-definitions */
 /* eslint-disable preferArrows/prefer-arrow-functions */
 
-// from /packages/tldraw/src/lib/ui/components/Toolbar/DefaultToolbar.tsx
-import { useEditor, useValue } from "@tldraw/editor";
-import React, { ReactNode, memo } from "react";
+// from tldraw 3.14.2 packages/tldraw/src/lib/ui/components/Toolbar/DefaultToolbar.tsx
+import { useEditor, usePassThroughWheelEvents, useValue } from "@tldraw/editor";
+import React, { ReactNode, memo, useRef } from "react";
 import {
   useBreakpoint,
   useReadonly,
@@ -15,6 +15,7 @@ import {
   MobileStylePanel,
   TldrawUiButton,
   TldrawUiButtonIcon,
+  TldrawUiToolbar,
   useTranslation,
 } from "tldraw";
 import classNames from "classnames";
@@ -87,18 +88,32 @@ export const CustomDefaultToolbar = memo(function DefaultToolbar({
   const { isOpen: isClipboardOpen, toggleClipboard } = useClipboard();
 
   const { ActionsMenu, QuickActions } = useTldrawUiComponents();
+  const msg = useTranslation();
+  const ref = useRef<HTMLDivElement>(null);
+  usePassThroughWheelEvents(ref);
+
+  const showQuickActions =
+    editor.options.actionShortcutsLocation === "menu"
+      ? false
+      : editor.options.actionShortcutsLocation === "toolbar"
+        ? true
+        : breakpoint < PORTRAIT_BREAKPOINT.TABLET;
 
   return (
-    <div className="tlui-toolbar">
+    <div ref={ref} className="tlui-toolbar">
       <div className="tlui-toolbar__inner">
         <div className="tlui-toolbar__left">
           {!isReadonlyMode && (
             <div className="tlui-toolbar__extras">
-              {breakpoint < PORTRAIT_BREAKPOINT.TABLET && (
-                <div className="tlui-toolbar__extras__controls tlui-buttons__horizontal">
+              {/* 3.12+ toolbar buttons must sit inside a TldrawUiToolbar */}
+              {showQuickActions && (
+                <TldrawUiToolbar
+                  className="tlui-toolbar__extras__controls tlui-buttons__horizontal"
+                  label={msg("actions-menu.title")}
+                >
                   {QuickActions && <QuickActions />}
                   {ActionsMenu && <ActionsMenu />}
-                </div>
+                </TldrawUiToolbar>
               )}
 
               {/* Customized Clipboard toggle button */}
