@@ -1,0 +1,24 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M7EF3HJKP19SC3P1K3E9DRHF",
+  "strategy": "manual-commit",
+  "branch": "eng-2490-fix-the-obsidian-scanners-blocking-eslint-errors",
+  "checkpoints_count": 1,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 24,
+    "cache_creation_tokens": 22896,
+    "cache_read_tokens": 5627590,
+    "output_tokens": 14450,
+    "api_call_count": 12
+  }
+}
