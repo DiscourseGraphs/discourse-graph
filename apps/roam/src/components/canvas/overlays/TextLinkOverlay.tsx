@@ -56,10 +56,6 @@ export const TextLinkOverlay = (): JSX.Element => {
     },
     [editor],
   );
-  const zoomLevel = useValue("zoomLevel", () => editor.getZoomLevel(), [
-    editor,
-  ]);
-
   return (
     <div className="pointer-events-none absolute inset-0">
       {links.map(({ id, url, left, top }) => (
@@ -73,7 +69,7 @@ export const TextLinkOverlay = (): JSX.Element => {
             height: `${BUTTON_SIZE}px`,
           }}
         >
-          <HyperlinkButton url={url} zoomLevel={zoomLevel} />
+          <HyperlinkButton url={url} />
         </div>
       ))}
     </div>
