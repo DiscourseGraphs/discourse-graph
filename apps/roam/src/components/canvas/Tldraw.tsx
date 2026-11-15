@@ -14,13 +14,14 @@ import { OnloadArgs, PullBlock } from "roamjs-components/types";
 import renderWithUnmount from "roamjs-components/util/renderWithUnmount";
 
 import {
+  DefaultErrorFallback,
   Editor,
   TLEditorComponents,
+  TLErrorFallbackComponent,
   TLUiComponents,
   TldrawEditor,
   TldrawHandles,
   TldrawScribble,
-  TldrawSelectionBackground,
   TldrawSelectionForeground,
   TldrawUi,
   defaultBindingUtils,
@@ -32,6 +33,7 @@ import {
   createShapeId,
   TLPointerEventInfo,
   TLExternalContent,
+  TLTextExternalContent,
   MediaHelpers,
   AssetRecordType,
   TLAsset,
@@ -46,8 +48,6 @@ import {
   DEFAULT_SUPPORT_VIDEO_TYPES,
   registerDefaultExternalContentHandlers,
   registerDefaultSideEffects,
-  defaultEditorAssetUrls,
-  usePreloadAssets,
   StateNode,
   DefaultSpinner,
   Box,
@@ -186,6 +186,25 @@ const CanvasOverlays = (): JSX.Element => (
 export const DEFAULT_WIDTH = 160;
 export const DEFAULT_HEIGHT = 64;
 export const MAX_WIDTH = "400px";
+
+// Replaces the 2.4.6 patch that dispatched tldraw:error from DefaultErrorFallback.
+const ReportingErrorFallback: TLErrorFallbackComponent = ({
+  error,
+  editor,
+}) => {
+  useEffect(() => {
+    document.dispatchEvent(
+      new CustomEvent("tldraw:error", {
+        detail: {
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? (error.stack ?? null) : null,
+        },
+        bubbles: true,
+      }),
+    );
+  }, [error]);
+  return <DefaultErrorFallback error={error} editor={editor} />;
+};
 
 const ICON_URL = `data:image/svg+xml;utf8,${encodeURIComponent(WHITE_LOGO_SVG)}`;
 
@@ -1022,8 +1041,8 @@ const TldrawCanvasShared = ({
     Scribble: TldrawScribble,
     CollaboratorScribble: TldrawScribble,
     SelectionForeground: TldrawSelectionForeground,
-    SelectionBackground: TldrawSelectionBackground,
     Handles: TldrawHandles,
+    ErrorFallback: ReportingErrorFallback,
   };
   const editorComponents: TLEditorComponents = {
     ...defaultEditorComponents,
@@ -1080,7 +1099,6 @@ const TldrawCanvasShared = ({
     onCanvasSyncModeChange,
     toggleMaximized: handleMaximizedChange,
     setConvertToDialogOpen,
-    discourseContext,
   });
 
   // STORE
@@ -1153,9 +1171,6 @@ const TldrawCanvasShared = ({
     title,
   ]);
 
-  // ASSETS
-  const assetLoading = usePreloadAssets(defaultEditorAssetUrls);
-
   // Handle actions (roamjs:query-builder:action)
   useEffect(() => {
     const actionListener = ((
@@ -1212,7 +1227,7 @@ const TldrawCanvasShared = ({
     };
   }, [appRef, allNodes, pageUid]);
 
-  // Catch a custom event we used patch-package to add
+  // Catch the tldraw:error event dispatched by ReportingErrorFallback
   useEffect(() => {
     const handleTldrawError = (
       e: CustomEvent<{ message: string; stack: string | null }>,
@@ -1283,12 +1298,7 @@ const TldrawCanvasShared = ({
   }, [error, pageUid, title, customShapeTypes, customBindingTypes]);
 
   const isCanvasBlocked =
-    isLoading ||
-    !!error ||
-    !store ||
-    !assetLoading.done ||
-    !extensionAPI ||
-    !isPluginReady;
+    isLoading || !!error || !store || !extensionAPI || !isPluginReady;
 
   return (
     <div
@@ -1342,12 +1352,10 @@ const TldrawCanvasShared = ({
         <div className="flex h-full items-center justify-center">
           <div className="text-center">
             <h2 className="mb-2 text-2xl font-semibold">
-              {error || assetLoading.error
-                ? "Error Loading Canvas"
-                : "Loading Canvas"}
+              {error ? "Error Loading Canvas" : "Loading Canvas"}
             </h2>
             <p className="mb-4 text-gray-600">
-              {error || assetLoading.error ? (
+              {error ? (
                 <span>
                   {error?.message?.includes("invalidRecord")
                     ? "Cloudflare sync rejected a custom Discourse Graph record (invalidRecord). The sync worker schema must include DG custom shapes and bindings."
@@ -1538,7 +1546,7 @@ const InsideEditorAndUiContext = ({
       uid: string;
       nodeText: string;
       nodeType: string;
-      content: TLExternalContent & { type: "text" };
+      content: TLTextExternalContent;
     }): Promise<void> => {
       const { h, w, imageUrl } = await calcCanvasNodeSizeAndImg({
         nodeText,
@@ -1587,18 +1595,16 @@ const InsideEditorAndUiContext = ({
     const isImage = (ext: string) => ACCEPTED_IMG_TYPE.includes(ext);
 
     // Register default handlers for images and videos
-    registerDefaultExternalContentHandlers(
-      editor,
-      {
-        maxImageDimension: 5000,
-        maxAssetSize: 10 * 1024 * 1024, // 10mb
-        acceptedImageMimeTypes: DEFAULT_SUPPORTED_IMAGE_TYPES,
-        acceptedVideoMimeTypes: DEFAULT_SUPPORT_VIDEO_TYPES,
-      },
-      { toasts, msg },
-    );
+    registerDefaultExternalContentHandlers(editor, {
+      maxImageDimension: 5000,
+      maxAssetSize: 10 * 1024 * 1024, // 10mb
+      acceptedImageMimeTypes: DEFAULT_SUPPORTED_IMAGE_TYPES,
+      acceptedVideoMimeTypes: DEFAULT_SUPPORT_VIDEO_TYPES,
+      toasts,
+      msg,
+    });
     const callDefaultTextHandler = async (
-      content: TLExternalContent & { type: "text" },
+      content: TLTextExternalContent,
     ): Promise<void> => {
       return await defaultHandleExternalTextContent({
         point: content.point,
@@ -1608,9 +1614,7 @@ const InsideEditorAndUiContext = ({
     };
     // Register custom text handler that checks for [[pageName]] and ((uid)) patterns
     // If it matches, create discourse node; otherwise, delegate to default handler
-    const textHandler = (
-      content: TLExternalContent & { type: "text" },
-    ): void => {
+    const textHandler = (content: TLTextExternalContent): void => {
       void (async () => {
         try {
           const text = content.text ?? "";
@@ -1676,7 +1680,7 @@ const InsideEditorAndUiContext = ({
     editor.registerExternalContentHandler(
       "files",
       // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      async (content: TLExternalContent) => {
+      async (content: TLExternalContent<unknown>) => {
         if (content.type !== "files") {
           console.error("Expected files, received:", content.type);
           return;
@@ -1733,7 +1737,7 @@ const InsideEditorAndUiContext = ({
     editor.registerExternalContentHandler(
       "svg-text",
       // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      async (content: TLExternalContent) => {
+      async (content: TLExternalContent<unknown>) => {
         if (content.type !== "svg-text") {
           console.error("Expected svg-text, received:", content.type);
           return;

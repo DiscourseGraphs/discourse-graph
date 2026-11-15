@@ -1,10 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import type {
-  TLRecord,
-  TLSessionStateSnapshot,
-  TLStoreEventInfo,
-} from "tldraw";
+import type { TLPageId, TLRecord, TLStoreEventInfo } from "tldraw";
 import {
+  type CanvasSessionState,
   getCanvasSessionStorageKey,
   getValidCanvasSessionState,
   hasCameraRecordChange,
@@ -35,7 +32,7 @@ const createSession = ({
 }: {
   currentPageId?: string;
   pageId?: string;
-} = {}): TLSessionStateSnapshot =>
+} = {}): CanvasSessionState =>
   ({
     version: 0,
     currentPageId,
@@ -56,7 +53,7 @@ const createSession = ({
         focusedGroupId: "shape:focused",
       },
     ],
-  }) as TLSessionStateSnapshot;
+  }) as CanvasSessionState;
 
 const createCameraRecord = (z: number): TLRecord =>
   ({
@@ -115,7 +112,7 @@ describe("getValidCanvasSessionState", () => {
     const result = getValidCanvasSessionState({
       session,
       pageIds: ["page:current"],
-      currentPageId: "page:current" as TLSessionStateSnapshot["currentPageId"],
+      currentPageId: "page:current" as TLPageId,
     });
 
     expect(result).toEqual(session);
@@ -130,7 +127,7 @@ describe("getValidCanvasSessionState", () => {
     const result = getValidCanvasSessionState({
       session,
       pageIds: ["page:new"],
-      currentPageId: "page:new" as TLSessionStateSnapshot["currentPageId"],
+      currentPageId: "page:new" as TLPageId,
     });
 
     expect(result?.currentPageId).toBe("page:new");
@@ -154,7 +151,7 @@ describe("getValidCanvasSessionState", () => {
       getValidCanvasSessionState({
         session,
         pageIds: ["page:a", "page:b"],
-        currentPageId: "page:a" as TLSessionStateSnapshot["currentPageId"],
+        currentPageId: "page:a" as TLPageId,
       }),
     ).toBeNull();
   });

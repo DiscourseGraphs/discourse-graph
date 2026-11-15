@@ -1,4 +1,4 @@
-import type { TLSyncUserInfo } from "@tldraw/sync";
+import type { TLPresenceUserInfo } from "tldraw";
 
 const CURRENT_USER_PULL_PATTERN = "[*]";
 
@@ -30,7 +30,9 @@ const getCurrentRoamDisplayName = (userUid: string): string | undefined => {
   }
 };
 
-export const getCurrentRoamTldrawUserInfo = (): TLSyncUserInfo | undefined => {
+export const getCurrentRoamTldrawUserInfo = ():
+  | TLPresenceUserInfo
+  | undefined => {
   const userUid = getCurrentRoamUserUid();
   if (!userUid) return undefined;
 

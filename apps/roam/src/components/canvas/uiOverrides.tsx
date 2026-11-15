@@ -45,10 +45,7 @@ import {
 import { IKeyCombo } from "@blueprintjs/core";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import type { OnloadArgs } from "roamjs-components/types";
-import { DiscourseContextType } from "./Tldraw";
-import { formatHexColor } from "~/components/settings/DiscourseNodeCanvasSettings";
 import {
-  COLOR_ARRAY,
   getDiscourseNodeTypeId,
   isDiscourseNodeShape,
   type DiscourseNodeShape,
@@ -113,7 +110,11 @@ const SyncModeMenuSwitchItem = ({
             alignItems: "center",
           }}
         >
-          <TldrawUiIcon icon={checked ? "toggle-on" : "toggle-off"} small />
+          <TldrawUiIcon
+            icon={checked ? "toggle-on" : "toggle-off"}
+            label={checked ? "On" : "Off"}
+            small
+          />
         </span>
       </TldrawUiButton>
     </TldrawUiDropdownMenuItem>
@@ -203,7 +204,7 @@ export const getOnSelectForShape = ({
     });
   };
 
-  if (!isConvertibleShape(shape)) return () => {};
+  if (!isConvertibleShape({ editor, shape })) return () => {};
 
   if (shape.type === "image") {
     return async () => {
@@ -217,7 +218,10 @@ export const getOnSelectForShape = ({
       openDialogAndCreateShape({ initialText, imageUrl: src });
     };
   }
-  return () => openDialogAndCreateShape({ initialText: getShapeText(shape) });
+  return () =>
+    openDialogAndCreateShape({
+      initialText: getShapeText({ editor, shape }),
+    });
 };
 
 type ArrowBoundNodeInfo = {
@@ -408,7 +412,10 @@ export const CustomContextMenu = ({
   const shareableResults = getShareableCanvasSelectionResults({
     shapes: selectedShapes,
   });
-  const canConvertSelectedShape = isConvertibleShape(selectedShape);
+  const canConvertSelectedShape = isConvertibleShape({
+    editor,
+    shape: selectedShape,
+  });
   const isImageSelected = selectedShape?.type === "image";
   const arrowRelationOptions = useValue(
     "arrowRelationOptions",
@@ -595,7 +602,6 @@ export const createUiOverrides = ({
   allNodes,
   allRelationNames,
   allAddReferencedNodeByAction,
-  discourseContext,
   canvasSyncMode,
   onCanvasSyncModeChange,
   toggleMaximized,
@@ -604,7 +610,6 @@ export const createUiOverrides = ({
   allNodes: DiscourseNode[];
   allRelationNames: string[];
   allAddReferencedNodeByAction: AddReferencedNodeType;
-  discourseContext: DiscourseContextType;
   canvasSyncMode: CanvasSyncMode;
   onCanvasSyncModeChange: (mode: CanvasSyncMode) => void;
   toggleMaximized: () => void;
@@ -637,7 +642,7 @@ export const createUiOverrides = ({
         PERSONAL_KEYS.canvasNodeShortcuts,
       ]) ?? {};
 
-    allNodes.forEach((node, index) => {
+    allNodes.forEach((node) => {
       const nodeId = node.type;
       const override = canvasNodeShortcuts[nodeId];
       tools[nodeId] = {
@@ -649,15 +654,10 @@ export const createUiOverrides = ({
           editor.setCurrentTool(nodeId);
         },
         readonlyOk: true,
-        style: {
-          color:
-            formatHexColor(node.canvasSettings.color) ||
-            `${COLOR_ARRAY[index]}`,
-        },
       };
     });
 
-    allRelationNames.forEach((name, index) => {
+    allRelationNames.forEach((name) => {
       tools[name] = {
         id: name,
         icon: "tool-arrow",
@@ -667,20 +667,9 @@ export const createUiOverrides = ({
         onSelect: () => {
           editor.setCurrentTool(name);
         },
-        style: {
-          color: getRelationColor(name, index),
-        },
       };
     });
     Object.keys(allAddReferencedNodeByAction).forEach((name) => {
-      const action = allAddReferencedNodeByAction[name];
-      const nodeColorArray = Object.keys(discourseContext.nodes).map((key) => ({
-        text: discourseContext.nodes[key].text,
-        color: discourseContext.nodes[key].canvasSettings.color,
-      }));
-      const color =
-        nodeColorArray.find((n) => n.text === action[0].sourceName)?.color ||
-        "";
       tools[name] = {
         id: name,
         icon: "tool-arrow",
@@ -689,9 +678,6 @@ export const createUiOverrides = ({
         readonlyOk: true,
         onSelect: () => {
           editor.setCurrentTool(`${name}`);
-        },
-        style: {
-          color: formatHexColor(color) ?? `var(--palette-${COLOR_ARRAY[0]})`,
         },
       };
     });
