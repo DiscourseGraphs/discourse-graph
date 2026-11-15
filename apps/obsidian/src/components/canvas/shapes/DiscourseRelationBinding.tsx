@@ -275,8 +275,7 @@ function reparentArrow(editor: Editor, arrowId: TLShapeId) {
   const higherSiblings = editor
     .getSortedChildIdsForParent(highestSibling.parentId)
     .map((id) => editor.getShape(id)!)
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    .filter((sibling) => sibling.index > highestSibling!.index);
+    .filter((sibling) => sibling.index > highestSibling.index);
 
   if (higherSiblings.length) {
     // there are siblings above the highest bound sibling, we need to
