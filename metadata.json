@@ -3,8 +3,10 @@
   "checkpoint_id": "01M7EDV6JF9JHTX2FRX888WB0H",
   "strategy": "manual-commit",
   "branch": "eng-893-implement-node-summoning-menu-in-obsidian",
-  "checkpoints_count": 2,
-  "files_touched": null,
+  "checkpoints_count": 7,
+  "files_touched": [
+    "apps/obsidian/src/components/NodeSummonMenu.tsx"
+  ],
   "sessions": [
     {
       "metadata": "/0/metadata.json",
@@ -19,6 +21,13 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
