@@ -14,4 +14,9 @@ export default [
       },
     },
   },
+  {
+    // Copied from tldraw's arrow code, which uses function declarations throughout.
+    files: ["src/components/canvas/utils/relationUtils.tsx"],
+    rules: { "preferArrows/prefer-arrow-functions": "off" },
+  },
 ];

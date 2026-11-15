@@ -10,8 +10,6 @@ https://github.com/tldraw/tldraw/tree/main/packages/tldraw/src/lib/shapes/arrow
   @typescript-eslint/no-unnecessary-type-assertion,
   max-params
   -- kept close to the tldraw source this file is copied from */
-/* eslint-disable react-hooks/rules-of-hooks */
-/* eslint-disable preferArrows/prefer-arrow-functions */
 
 import React, { useRef, useEffect, useState } from "react";
 import {
@@ -554,7 +552,8 @@ function getBoundShapeRelationships(
 }
 function PatternFill(props: ShapeFillProps) {
   const { d, color } = props;
-  const theme = props.theme ?? useDefaultColorTheme();
+  const defaultTheme = useDefaultColorTheme();
+  const theme = props.theme ?? defaultTheme;
   const editor = useEditor();
   const svgExport = useSvgExportContext();
   const zoomLevel = useValue("zoomLevel", () => editor.getZoomLevel(), [
@@ -1886,10 +1885,18 @@ export const ArrowSvg = track(function ArrowSvg({
       : DEFAULT_TLDRAW_COLOR;
   const colorHex = (theme[colorName] as TLDefaultColorThemeColor).solid;
 
-  const changeIndex = React.useMemo<number>(() => {
-    return editor.environment.isSafari ? (globalRenderIndex += 1) : 0;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shape]);
+  // Bump once per new shape object, so Safari repaints the mask.
+  const changeRef = useRef<{
+    shape: DiscourseRelationShape;
+    index: number;
+  } | null>(null);
+  if (changeRef.current?.shape !== shape) {
+    changeRef.current = {
+      shape,
+      index: editor.environment.isSafari ? (globalRenderIndex += 1) : 0,
+    };
+  }
+  const changeIndex = changeRef.current.index;
 
   if (!info?.isValid) return null;
 

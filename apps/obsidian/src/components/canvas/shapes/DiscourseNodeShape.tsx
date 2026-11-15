@@ -18,7 +18,7 @@ import {
   toDomPrecision,
 } from "tldraw";
 import { App, TFile } from "obsidian";
-import { memo, createElement, useEffect } from "react";
+import { memo, createElement, useEffect, useRef } from "react";
 import DiscourseGraphPlugin from "~/index";
 import {
   getFrontmatterForFile,
@@ -282,14 +282,19 @@ const discourseNodeContent = memo(
       [editor, shape.id],
     );
 
+    // Only the deps below re-run the load; the rest is read from the render that ran it.
+    const latest = useRef({ props: shape.props, keyImage: nodeType?.keyImage });
+    latest.current = { props: shape.props, keyImage: nodeType?.keyImage };
+
     useEffect(() => {
+      const { props: shapeProps, keyImage } = latest.current;
       const loadNodeData = async () => {
         if (!src) {
           editor.updateShape<DiscourseNodeShape>({
             id: shape.id,
             type: "discourse-node",
             props: {
-              ...shape.props,
+              ...shapeProps,
               title: "(no source)",
             },
           });
@@ -307,39 +312,39 @@ const discourseNodeContent = memo(
             return;
           }
 
-          if (linkedFile.basename !== shape.props.title) {
+          if (linkedFile.basename !== shapeProps.title) {
             editor.updateShape<DiscourseNodeShape>({
               id: shape.id,
               type: "discourse-node",
               props: {
-                ...shape.props,
+                ...shapeProps,
                 title: linkedFile.basename,
               },
             });
           }
 
-          let currentImageSrc = shape.props.imageSrc;
-          if (nodeType?.keyImage) {
+          let currentImageSrc = shapeProps.imageSrc;
+          if (keyImage) {
             const imageSrc = await getFirstImageSrcForFile(app, linkedFile);
 
-            if (imageSrc && imageSrc !== shape.props.imageSrc) {
+            if (imageSrc && imageSrc !== shapeProps.imageSrc) {
               currentImageSrc = imageSrc;
               editor.updateShape<DiscourseNodeShape>({
                 id: shape.id,
                 type: "discourse-node",
                 props: {
-                  ...shape.props,
+                  ...shapeProps,
                   imageSrc,
                 },
               });
             }
-          } else if (shape.props.imageSrc) {
+          } else if (shapeProps.imageSrc) {
             currentImageSrc = undefined;
             editor.updateShape<DiscourseNodeShape>({
               id: shape.id,
               type: "discourse-node",
               props: {
-                ...shape.props,
+                ...shapeProps,
                 imageSrc: undefined,
               },
             });
@@ -348,22 +353,22 @@ const discourseNodeContent = memo(
           // Recalculate size when title, image, font size, or font family changes
           const { w, h } = await calcDiscourseNodeSize({
             title: linkedFile.basename,
-            nodeTypeId: shape.props.nodeTypeId,
+            nodeTypeId: shapeProps.nodeTypeId,
             imageSrc: currentImageSrc,
             plugin,
-            size: shape.props.size ?? "s",
-            fontFamily: shape.props.fontFamily ?? "draw",
+            size: shapeProps.size ?? "s",
+            fontFamily: shapeProps.fontFamily ?? "draw",
           });
           // Only update dimensions if they differ significantly (>1px)
           if (
-            Math.abs((shape.props.w || 0) - w) > 1 ||
-            Math.abs((shape.props.h || 0) - h) > 1
+            Math.abs((shapeProps.w || 0) - w) > 1 ||
+            Math.abs((shapeProps.h || 0) - h) > 1
           ) {
             editor.updateShape<DiscourseNodeShape>({
               id: shape.id,
               type: "discourse-node",
               props: {
-                ...shape.props,
+                ...shapeProps,
                 w,
                 h,
               },
@@ -381,7 +386,6 @@ const discourseNodeContent = memo(
         return;
       };
       // Trigger when content changes
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
       src,
       shape.id,
