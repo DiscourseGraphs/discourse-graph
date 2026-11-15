@@ -13,35 +13,11 @@ CREATE TYPE public."EpistemicStatus" AS ENUM (
 ALTER TYPE public."EpistemicStatus" OWNER TO postgres;
 
 CREATE OR REPLACE FUNCTION public.extract_references(refs JSONB)
-RETURNS BIGINT [] IMMUTABLE
+RETURNS BIGINT[] IMMUTABLE
 SET search_path = ''
 LANGUAGE sql
 AS $$
   SELECT COALESCE(array_agg(i::bigint), '{}') FROM (SELECT DISTINCT jsonb_array_elements(jsonb_path_query_array(refs, '$.*[*]')) i) exrefs;
-$$;
-
-CREATE OR REPLACE FUNCTION public.compute_arity_local(schema_id BIGINT, lit_content JSONB)
-RETURNS smallint STABLE
-SET search_path = ''
-LANGUAGE sql
-AS $$
-  SELECT CASE WHEN schema_id IS NULL THEN (
-    SELECT COALESCE(jsonb_array_length(lit_content->'roles'), 0)
-  ) ELSE (
-    SELECT COALESCE(jsonb_array_length(literal_content->'roles'), 0) FROM public."Concept" WHERE id=compute_arity_local.schema_id
-  ) END;
-$$;
-
-CREATE OR REPLACE FUNCTION public.compute_is_relation_local(schema_id BIGINT, lit_content JSONB)
-RETURNS boolean STABLE
-SET search_path = ''
-LANGUAGE sql
-AS $$
-  SELECT CASE WHEN schema_id IS NULL THEN (
-    SELECT lit_content @> '{"roles":["source","destination"]}'::jsonb
-  ) ELSE (
-    SELECT literal_content  @> '{"roles":["source","destination"]}'::jsonb FROM public."Concept" WHERE id=compute_is_relation_local.schema_id
-  ) END;
 $$;
 
 CREATE TABLE IF NOT EXISTS public."Concept" (
@@ -60,7 +36,7 @@ CREATE TABLE IF NOT EXISTS public."Concept" (
     schema_id bigint,
     literal_content jsonb NOT NULL DEFAULT '{}'::jsonb,
     reference_content jsonb NOT NULL DEFAULT '{}'::jsonb,
-    refs BIGINT [] NOT NULL GENERATED ALWAYS AS (extract_references(reference_content)) STORED,
+    refs BIGINT[] NOT NULL GENERATED ALWAYS AS (extract_references(reference_content)) STORED,
     is_schema boolean DEFAULT false NOT NULL,
     source_local_id character varying
 );
@@ -101,24 +77,19 @@ CREATE UNIQUE INDEX concept_space_and_name_idx ON public."Concept" (space_id, na
 ALTER TABLE ONLY public."Concept"
 ADD CONSTRAINT "Concept_author_id_fkey" FOREIGN KEY (
     author_id
-) REFERENCES public."PlatformAccount" (id) ON UPDATE CASCADE ON DELETE SET NULL;
+) REFERENCES public."PlatformAccount"(id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 ALTER TABLE ONLY public."Concept"
 ADD CONSTRAINT "Concept_schema_id_fkey" FOREIGN KEY (
     schema_id
-) REFERENCES public."Concept" (id) ON UPDATE CASCADE ON DELETE SET NULL;
+) REFERENCES public."Concept"(id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 ALTER TABLE ONLY public."Concept"
 ADD CONSTRAINT "Concept_space_id_fkey" FOREIGN KEY (
     space_id
-) REFERENCES public."Space" (
+) REFERENCES public."Space"(
     id
 ) ON UPDATE CASCADE ON DELETE CASCADE;
-
-
-REVOKE ALL ON TABLE public."Concept" FROM anon;
-GRANT ALL ON TABLE public."Concept" TO authenticated;
-GRANT ALL ON TABLE public."Concept" TO service_role;
 
 -- arity and is_relation are derived from the Concept's own literal_content, or, when
 -- it has a schema, from the schema's literal_content. That cross-row dependency is why
@@ -126,6 +97,30 @@ GRANT ALL ON TABLE public."Concept" TO service_role;
 -- 1. a BEFORE trigger (re)computes them on every write of a Concept, and
 -- 2. an AFTER trigger propagates a schema's literal_content change to its instances,
 --    so the columns stay correct whatever the order of writes within a transaction.
+
+CREATE OR REPLACE FUNCTION public.compute_arity_local(schema_id BIGINT, lit_content JSONB)
+RETURNS smallint STABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+  SELECT CASE WHEN schema_id IS NULL THEN (
+    SELECT COALESCE(jsonb_array_length(lit_content->'roles'), 0)
+  ) ELSE (
+    SELECT COALESCE(jsonb_array_length(literal_content->'roles'), 0) FROM public."Concept" WHERE id=compute_arity_local.schema_id
+  ) END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.compute_is_relation_local(schema_id BIGINT, lit_content JSONB)
+RETURNS boolean STABLE
+SET search_path = ''
+LANGUAGE sql
+AS $$
+  SELECT CASE WHEN schema_id IS NULL THEN (
+    SELECT lit_content @> '{"roles":["source","destination"]}'::jsonb
+  ) ELSE (
+    SELECT literal_content  @> '{"roles":["source","destination"]}'::jsonb FROM public."Concept" WHERE id=compute_is_relation_local.schema_id
+  ) END;
+$$;
 
 CREATE OR REPLACE FUNCTION public.concept_set_derived_columns() RETURNS TRIGGER
 SET search_path = ''
@@ -140,10 +135,12 @@ $$;
 
 COMMENT ON FUNCTION public.concept_set_derived_columns
 IS 'Maintains the derived arity and is_relation columns; values supplied by the writer are always overridden.';
+-- Only triggers call it. Postgres checks EXECUTE on a trigger function when the trigger is created, not when it fires.
+REVOKE ALL ON FUNCTION public.concept_set_derived_columns FROM authenticated;
 
 CREATE TRIGGER concept_set_derived_columns_trigger
-    BEFORE INSERT OR UPDATE ON public."Concept"
-    FOR EACH ROW EXECUTE FUNCTION public.concept_set_derived_columns();
+BEFORE INSERT OR UPDATE ON public."Concept"
+FOR EACH ROW EXECUTE FUNCTION public.concept_set_derived_columns();
 
 CREATE OR REPLACE FUNCTION public.concept_propagate_derived_columns() RETURNS TRIGGER
 SET search_path = ''
@@ -166,12 +163,14 @@ $$;
 
 COMMENT ON FUNCTION public.concept_propagate_derived_columns
 IS 'Recomputes arity and is_relation of the instances of a schema Concept whose literal_content changed.';
+-- Only triggers call it. Postgres checks EXECUTE on a trigger function when the trigger is created, not when it fires.
+REVOKE ALL ON FUNCTION public.concept_propagate_derived_columns FROM authenticated;
 
 -- The WHEN clause also stops the recursion: the propagated UPDATE does not touch literal_content.
 CREATE TRIGGER concept_propagate_derived_columns_trigger
-    AFTER UPDATE ON public."Concept"
-    FOR EACH ROW WHEN (NEW.is_schema AND OLD.literal_content IS DISTINCT FROM NEW.literal_content)
-    EXECUTE FUNCTION public.concept_propagate_derived_columns();
+AFTER UPDATE ON public."Concept"
+FOR EACH ROW WHEN (new.is_schema AND old.literal_content IS DISTINCT FROM new.literal_content)
+EXECUTE FUNCTION public.concept_propagate_derived_columns();
 
 -- Single SELECT from Concept: PostgREST cannot infer foreign keys through a UNION.
 -- (SELECT ...) runs each space lookup once per query, not per row; ::bigint [] keeps = any() an array comparison.
@@ -195,22 +194,15 @@ SELECT
     is_relation
 FROM public."Concept"
 WHERE
-    space_id = any((SELECT public.my_space_ids('reader'))::bigint [])
+    space_id = any((SELECT public.my_space_ids('reader'))::bigint[])
     OR (
-        space_id = any((SELECT public.my_space_ids('partial'))::bigint [])
+        space_id = any((SELECT public.my_space_ids('partial'))::bigint[])
         AND (space_id, source_local_id) IN (SELECT space_id, source_local_id FROM public.my_accessible_resources())
     );
 
 -- Single-table views are writable, and writes run as the view owner, bypassing Concept's RLS.
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.my_concepts FROM anon, authenticated;
-
-CREATE OR REPLACE FUNCTION public.can_view_concept(concept_id BIGINT) RETURNS BOOLEAN
-STABLE
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT public.can_view_specific_resource(space_id, source_local_id) FROM public."Concept" WHERE id=concept_id;
-$$;
+REVOKE INSERT, UPDATE, DELETE ON public.my_concepts FROM authenticated;
+GRANT SELECT ON public.my_concepts TO anon;
 
 -- following https://docs.postgrest.org/en/v13/references/api/resource_embedding.html#recursive-relationships
 CREATE OR REPLACE FUNCTION public.schema_of_concept(concept public."Concept")
@@ -387,7 +379,7 @@ CREATE TYPE public.concept_local_input AS (
     creator_local_id VARCHAR,
     document_local_id VARCHAR,
     -- inline values
-    contents_inline public.content_local_input [],
+    contents_inline public.content_local_input[],
     document_inline public.document_local_input,
     author_inline public.account_local_input,
     creator_inline public.account_local_input
@@ -613,13 +605,19 @@ ALTER TABLE public."Concept" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS concept_policy ON public."Concept";
 DROP POLICY IF EXISTS concept_select_policy ON public."Concept";
-CREATE POLICY concept_select_policy ON public."Concept" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_resource(space_id, source_local_id));
+CREATE POLICY concept_select_policy ON public."Concept" FOR SELECT USING (
+    space_id = any((SELECT public.my_space_ids('reader'))::bigint[])
+    OR (
+        space_id = any((SELECT public.my_space_ids('partial'))::bigint[])
+        AND EXISTS (SELECT 1 FROM public.my_resource_grants AS r WHERE r.space_id = "Concept".space_id AND r.source_local_id = "Concept".source_local_id)
+    )
+);
 DROP POLICY IF EXISTS concept_delete_policy ON public."Concept";
-CREATE POLICY concept_delete_policy ON public."Concept" FOR DELETE USING (public.in_space(space_id, 'editor'));
+CREATE POLICY concept_delete_policy ON public."Concept" FOR DELETE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint[]));
 DROP POLICY IF EXISTS concept_insert_policy ON public."Concept";
-CREATE POLICY concept_insert_policy ON public."Concept" FOR INSERT WITH CHECK (public.in_space(space_id, 'editor'));
+CREATE POLICY concept_insert_policy ON public."Concept" FOR INSERT WITH CHECK (space_id = any((SELECT public.my_space_ids('editor'))::bigint[]));
 DROP POLICY IF EXISTS concept_update_policy ON public."Concept";
-CREATE POLICY concept_update_policy ON public."Concept" FOR UPDATE USING (public.in_space(space_id, 'editor'));
+CREATE POLICY concept_update_policy ON public."Concept" FOR UPDATE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint[]));
 
 -- since ResourceAccess is used for both Content and Concepts,
 -- we cannot count on the usual foreign key delete cascades.
@@ -636,6 +634,9 @@ AS $$
        AND NOT EXISTS (SELECT id FROM public."Document" WHERE space_id=space_id_ AND source_local_id=source_local_id_ LIMIT 1);
 $$;
 
+-- Only the local reference triggers call it. Called directly, it would reveal whether a row exists in a space the caller can't read.
+REVOKE ALL ON FUNCTION public.is_last_local_reference FROM authenticated;
+
 CREATE OR REPLACE FUNCTION on_delete_local_reference() RETURNS TRIGGER
 SET search_path = ''
 SECURITY DEFINER
@@ -648,6 +649,9 @@ BEGIN
     RETURN OLD;
 END;
 $$;
+
+-- Only triggers call it. Postgres checks EXECUTE on a trigger function when the trigger is created, not when it fires.
+REVOKE ALL ON FUNCTION public.on_delete_local_reference FROM authenticated;
 
 CREATE TRIGGER on_delete_content_trigger AFTER DELETE ON public."Content" FOR EACH ROW EXECUTE FUNCTION public.on_delete_local_reference();
 CREATE TRIGGER on_delete_concept_trigger AFTER DELETE ON public."Concept" FOR EACH ROW EXECUTE FUNCTION public.on_delete_local_reference();
@@ -668,6 +672,9 @@ BEGIN
 END;
 $$;
 
+-- Only triggers call it. Postgres checks EXECUTE on a trigger function when the trigger is created, not when it fires.
+REVOKE ALL ON FUNCTION public.on_update_local_reference FROM authenticated;
+
 CREATE TRIGGER on_update_content_trigger AFTER UPDATE ON public."Content" FOR EACH ROW EXECUTE FUNCTION public.on_update_local_reference();
 CREATE TRIGGER on_update_concept_trigger AFTER UPDATE ON public."Concept" FOR EACH ROW EXECUTE FUNCTION public.on_update_local_reference();
 CREATE TRIGGER on_update_document_trigger AFTER UPDATE ON public."Document" FOR EACH ROW EXECUTE FUNCTION public.on_update_local_reference();
@@ -683,4 +690,26 @@ BEGIN
 END;
 $$;
 
+-- Only triggers call it. Postgres checks EXECUTE on a trigger function when the trigger is created, not when it fires.
+REVOKE ALL ON FUNCTION public.on_delete_space_revoke_local_access FROM authenticated;
+
 CREATE TRIGGER on_delete_space_revoke_access_trigger AFTER DELETE ON public."Space" FOR EACH ROW EXECUTE FUNCTION public.on_delete_space_revoke_local_access();
+
+-- Not SECURITY DEFINER: these run as the caller under RLS.
+GRANT EXECUTE ON FUNCTION public.extract_references TO anon;
+GRANT EXECUTE ON FUNCTION public.compute_arity_local TO anon;
+GRANT EXECUTE ON FUNCTION public.compute_is_relation_local TO anon;
+GRANT EXECUTE ON FUNCTION public.schema_of_concept(public."Concept") TO anon;
+GRANT EXECUTE ON FUNCTION public.schema_of_concept(public.my_concepts) TO anon;
+GRANT EXECUTE ON FUNCTION public.instances_of_schema(public."Concept") TO anon;
+GRANT EXECUTE ON FUNCTION public.instances_of_schema(public.my_concepts) TO anon;
+GRANT EXECUTE ON FUNCTION public.concept_in_relations(public."Concept") TO anon;
+GRANT EXECUTE ON FUNCTION public.concept_in_relations(public.my_concepts) TO anon;
+GRANT EXECUTE ON FUNCTION public.concepts_of_relation(public."Concept") TO anon;
+GRANT EXECUTE ON FUNCTION public.concepts_of_relation(public.my_concepts) TO anon;
+GRANT EXECUTE ON FUNCTION public.content_of_concept TO anon;
+GRANT EXECUTE ON FUNCTION public.author_of_concept TO anon;
+GRANT EXECUTE ON FUNCTION public.rid_to_space_id_and_local_id TO anon;
+GRANT EXECUTE ON FUNCTION public.rid_or_local_id_to_concept_db_id TO anon;
+GRANT EXECUTE ON FUNCTION public._local_concept_to_db_concept TO anon;
+GRANT EXECUTE ON FUNCTION public.concept_in_space TO anon;

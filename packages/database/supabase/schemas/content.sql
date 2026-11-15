@@ -43,12 +43,12 @@ ADD CONSTRAINT "Document_pkey" PRIMARY KEY (id);
 ALTER TABLE ONLY public."Document"
 ADD CONSTRAINT "Document_author_id_fkey" FOREIGN KEY (
     author_id
-) REFERENCES public."PlatformAccount" (id) ON UPDATE CASCADE ON DELETE CASCADE;
+) REFERENCES public."PlatformAccount"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE ONLY public."Document"
 ADD CONSTRAINT "Document_space_id_fkey" FOREIGN KEY (
     space_id
-) REFERENCES public."Space" (
+) REFERENCES public."Space"(
     id
 ) ON UPDATE CASCADE ON DELETE CASCADE;
 
@@ -99,27 +99,27 @@ ADD CONSTRAINT "Content_pkey" PRIMARY KEY (id);
 ALTER TABLE ONLY public."Content"
 ADD CONSTRAINT "Content_author_id_fkey" FOREIGN KEY (
     author_id
-) REFERENCES public."PlatformAccount" (id) ON UPDATE CASCADE ON DELETE SET NULL;
+) REFERENCES public."PlatformAccount"(id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 ALTER TABLE ONLY public."Content"
 ADD CONSTRAINT "Content_creator_id_fkey" FOREIGN KEY (
     creator_id
-) REFERENCES public."PlatformAccount" (id) ON UPDATE CASCADE ON DELETE SET NULL;
+) REFERENCES public."PlatformAccount"(id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 ALTER TABLE ONLY public."Content"
 ADD CONSTRAINT "Content_document_id_fkey" FOREIGN KEY (
     document_id
-) REFERENCES public."Document" (id) ON UPDATE CASCADE ON DELETE CASCADE;
+) REFERENCES public."Document"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE ONLY public."Content"
 ADD CONSTRAINT "Content_part_of_id_fkey" FOREIGN KEY (
     part_of_id
-) REFERENCES public."Content" (id) ON UPDATE CASCADE ON DELETE SET NULL;
+) REFERENCES public."Content"(id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 ALTER TABLE ONLY public."Content"
 ADD CONSTRAINT "Content_space_id_fkey" FOREIGN KEY (
     space_id
-) REFERENCES public."Space" (
+) REFERENCES public."Space"(
     id
 ) ON UPDATE CASCADE ON DELETE CASCADE;
 
@@ -182,44 +182,11 @@ COMMENT ON COLUMN public."ResourceAccess".account_uid IS 'The identity of the us
 ALTER TABLE ONLY public."ResourceAccess"
 ADD CONSTRAINT "ResourceAccess_account_uid_fkey" FOREIGN KEY (
     account_uid
-) REFERENCES auth.users (id) ON UPDATE CASCADE ON DELETE CASCADE;
+) REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 CREATE INDEX resource_access_content_local_id_idx ON public."ResourceAccess" (source_local_id, space_id);
 
 -- note that I cannot have a foreign key for Content because variant and content_type are part of the unique key.
-
-GRANT ALL ON TABLE public."ResourceAccess" TO authenticated;
-GRANT ALL ON TABLE public."ResourceAccess" TO service_role;
-REVOKE ALL ON TABLE public."ResourceAccess" FROM anon;
-
-REVOKE ALL ON TABLE public."Document" FROM anon;
-GRANT ALL ON TABLE public."Document" TO authenticated;
-GRANT ALL ON TABLE public."Document" TO service_role;
-
-REVOKE ALL ON TABLE public."Content" FROM anon;
-GRANT ALL ON TABLE public."Content" TO authenticated;
-GRANT ALL ON TABLE public."Content" TO service_role;
-
-CREATE OR REPLACE FUNCTION public.can_view_specific_resource(space_id_ BIGINT, source_local_id_ VARCHAR) RETURNS BOOLEAN
-STABLE SECURITY DEFINER
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT EXISTS(
-        SELECT true FROM public."ResourceAccess"
-        JOIN public.my_user_accounts() ON (account_uid=my_user_accounts)
-        WHERE space_id=space_id_
-        AND source_local_id = source_local_id_
-        LIMIT 1);
-$$;
-
-CREATE OR REPLACE FUNCTION public.can_view_content(content_id BIGINT) RETURNS BOOLEAN
-STABLE
-SET search_path = ''
-LANGUAGE sql
-AS $$
-    SELECT public.can_view_specific_resource(space_id, source_local_id) FROM public."Content" WHERE id=content_id;
-$$;
 
 CREATE TYPE public.accessible_resource AS (
     space_id bigint,
@@ -234,6 +201,19 @@ AS $$
     SELECT DISTINCT space_id, source_local_id FROM public."ResourceAccess"
     JOIN public.my_user_accounts() ON (account_uid = my_user_accounts);
 $$;
+
+-- Security invoker on purpose: under a policy, ResourceAccess's own select policy still applies, and callers can already read their own grants.
+-- Inside a SECURITY DEFINER function such as file_access, that policy is bypassed, so the account filter here is the only per-user guard on grants.
+-- Unlike my_accessible_resources(), the planner can inline a view, so a policy can check one row through the ResourceAccess index without building all the caller's grants.
+CREATE OR REPLACE VIEW public.my_resource_grants WITH (security_invoker) AS
+SELECT ra.space_id, ra.source_local_id
+FROM public."ResourceAccess" AS ra
+WHERE ra.account_uid = any((SELECT array_agg(my.uid) FROM public.my_user_accounts() AS my (uid))::uuid[]);
+
+COMMENT ON VIEW public.my_resource_grants IS 'security utility: the resources granted to me or my groups. Used by the select policies of the shared resources.';
+
+REVOKE ALL ON public.my_resource_grants FROM public, anon, authenticated, service_role;
+GRANT SELECT ON public.my_resource_grants TO anon, authenticated, service_role;
 
 -- explicit fields require more maintenance, but respects declared table order.
 CREATE OR REPLACE VIEW public.my_documents AS
@@ -250,14 +230,15 @@ SELECT
     content_type
 FROM public."Document"
 WHERE
-    space_id = any((SELECT public.my_space_ids('reader'))::bigint [])
+    space_id = any((SELECT public.my_space_ids('reader'))::bigint[])
     OR (
-        space_id = any((SELECT public.my_space_ids('partial'))::bigint [])
+        space_id = any((SELECT public.my_space_ids('partial'))::bigint[])
         AND (space_id, source_local_id) IN (SELECT space_id, source_local_id FROM public.my_accessible_resources())
     );
 
 -- Single-table views are writable, and writes run as the view owner, bypassing Document's RLS.
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.my_documents FROM anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.my_documents FROM authenticated;
+GRANT SELECT ON public.my_documents TO anon;
 
 CREATE OR REPLACE VIEW public.my_contents AS
 SELECT
@@ -278,14 +259,15 @@ SELECT
     original
 FROM public."Content"
 WHERE
-    space_id = any((SELECT public.my_space_ids('reader'))::bigint [])
+    space_id = any((SELECT public.my_space_ids('reader'))::bigint[])
     OR (
-        space_id = any((SELECT public.my_space_ids('partial'))::bigint [])
+        space_id = any((SELECT public.my_space_ids('partial'))::bigint[])
         AND (space_id, source_local_id) IN (SELECT space_id, source_local_id FROM public.my_accessible_resources())
     );
 
 -- Single-table views are writable, and writes run as the view owner, bypassing Content's RLS.
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.my_contents FROM anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.my_contents FROM authenticated;
+GRANT SELECT ON public.my_contents TO anon;
 
 CREATE OR REPLACE FUNCTION public.document_of_content(content public.my_contents)
 RETURNS SETOF public.my_documents STRICT STABLE
@@ -329,7 +311,7 @@ CREATE TYPE public.document_local_input AS (
 
 CREATE TYPE public.inline_embedding_input AS (
     model varchar,
-    vector float []
+    vector float[]
 );
 
 CREATE TYPE public.content_local_input AS (
@@ -521,7 +503,7 @@ $$;
 
 COMMENT ON FUNCTION public.upsert_documents IS 'batch document upsert';
 
-CREATE OR REPLACE FUNCTION public.upsert_content_embedding(content_id bigint, model varchar, embedding_array float []) RETURNS VOID
+CREATE OR REPLACE FUNCTION public.upsert_content_embedding(content_id bigint, model varchar, embedding_array float[]) RETURNS VOID
 SET search_path = ''
 LANGUAGE plpgsql
 AS $$
@@ -545,7 +527,7 @@ COMMENT ON FUNCTION public.upsert_content_embedding IS 'single content embedding
 -- The data should be an array of LocalContentDataInput
 -- Contents are upserted, based on space_id and local_id. New (or old) IDs are returned.
 -- This may trigger creation of PlatformAccounts and Documents appropriately.
-CREATE OR REPLACE FUNCTION public.upsert_content(v_space_id bigint, data jsonb, v_creator_id BIGINT, content_as_document boolean DEFAULT TRUE)
+CREATE OR REPLACE FUNCTION public.upsert_content(v_space_id bigint, data jsonb, v_creator_id BIGINT, content_as_document boolean DEFAULT true)
 RETURNS SETOF BIGINT
 SET search_path = ''
 LANGUAGE plpgsql
@@ -718,34 +700,61 @@ ALTER TABLE public."Document" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS document_policy ON public."Document";
 DROP POLICY IF EXISTS document_select_policy ON public."Document";
-CREATE POLICY document_select_policy ON public."Document" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_resource(space_id, source_local_id));
+CREATE POLICY document_select_policy ON public."Document" FOR SELECT USING (
+    space_id = any((SELECT public.my_space_ids('reader'))::bigint[])
+    OR (
+        space_id = any((SELECT public.my_space_ids('partial'))::bigint[])
+        AND EXISTS (SELECT 1 FROM public.my_resource_grants AS r WHERE r.space_id = "Document".space_id AND r.source_local_id = "Document".source_local_id)
+    )
+);
 DROP POLICY IF EXISTS document_delete_policy ON public."Document";
-CREATE POLICY document_delete_policy ON public."Document" FOR DELETE USING (public.in_space(space_id, 'editor'));
+CREATE POLICY document_delete_policy ON public."Document" FOR DELETE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint[]));
 DROP POLICY IF EXISTS document_insert_policy ON public."Document";
-CREATE POLICY document_insert_policy ON public."Document" FOR INSERT WITH CHECK (public.in_space(space_id, 'editor'));
+CREATE POLICY document_insert_policy ON public."Document" FOR INSERT WITH CHECK (space_id = any((SELECT public.my_space_ids('editor'))::bigint[]));
 DROP POLICY IF EXISTS document_update_policy ON public."Document";
-CREATE POLICY document_update_policy ON public."Document" FOR UPDATE USING (public.in_space(space_id, 'editor'));
+CREATE POLICY document_update_policy ON public."Document" FOR UPDATE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint[]));
 
 ALTER TABLE public."Content" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS content_policy ON public."Content";
 DROP POLICY IF EXISTS content_select_policy ON public."Content";
-CREATE POLICY content_select_policy ON public."Content" FOR SELECT USING (public.in_space(space_id) OR public.can_view_specific_resource(space_id, source_local_id));
+CREATE POLICY content_select_policy ON public."Content" FOR SELECT USING (
+    space_id = any((SELECT public.my_space_ids('reader'))::bigint[])
+    OR (
+        space_id = any((SELECT public.my_space_ids('partial'))::bigint[])
+        AND EXISTS (SELECT 1 FROM public.my_resource_grants AS r WHERE r.space_id = "Content".space_id AND r.source_local_id = "Content".source_local_id)
+    )
+);
 DROP POLICY IF EXISTS content_delete_policy ON public."Content";
-CREATE POLICY content_delete_policy ON public."Content" FOR DELETE USING (public.in_space(space_id, 'editor'));
+CREATE POLICY content_delete_policy ON public."Content" FOR DELETE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint[]));
 DROP POLICY IF EXISTS content_insert_policy ON public."Content";
-CREATE POLICY content_insert_policy ON public."Content" FOR INSERT WITH CHECK (public.in_space(space_id, 'editor'));
+CREATE POLICY content_insert_policy ON public."Content" FOR INSERT WITH CHECK (space_id = any((SELECT public.my_space_ids('editor'))::bigint[]));
 DROP POLICY IF EXISTS content_update_policy ON public."Content";
-CREATE POLICY content_update_policy ON public."Content" FOR UPDATE USING (public.in_space(space_id, 'editor'));
+CREATE POLICY content_update_policy ON public."Content" FOR UPDATE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint[]));
 
 ALTER TABLE public."ResourceAccess" ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS resource_access_policy ON public."ResourceAccess";
 DROP POLICY IF EXISTS resource_access_select_policy ON public."ResourceAccess";
-CREATE POLICY resource_access_select_policy ON public."ResourceAccess" FOR SELECT USING (public.in_space(space_id) OR public.can_access_account(account_uid));
+CREATE POLICY resource_access_select_policy ON public."ResourceAccess" FOR SELECT USING (
+    space_id = any((SELECT public.my_space_ids('reader'))::bigint[])
+    OR account_uid IN (SELECT public.my_user_accounts())
+);
 DROP POLICY IF EXISTS resource_access_delete_policy ON public."ResourceAccess";
-CREATE POLICY resource_access_delete_policy ON public."ResourceAccess" FOR DELETE USING (public.in_space(space_id, 'editor') OR public.can_access_account(account_uid));
+CREATE POLICY resource_access_delete_policy ON public."ResourceAccess" FOR DELETE USING (
+    space_id = any((SELECT public.my_space_ids('editor'))::bigint[])
+    OR account_uid IN (SELECT public.my_user_accounts())
+);
 DROP POLICY IF EXISTS resource_access_insert_policy ON public."ResourceAccess";
-CREATE POLICY resource_access_insert_policy ON public."ResourceAccess" FOR INSERT WITH CHECK (public.in_space(space_id, 'editor'));
+CREATE POLICY resource_access_insert_policy ON public."ResourceAccess" FOR INSERT WITH CHECK (space_id = any((SELECT public.my_space_ids('editor'))::bigint[]));
 DROP POLICY IF EXISTS resource_access_update_policy ON public."ResourceAccess";
-CREATE POLICY resource_access_update_policy ON public."ResourceAccess" FOR UPDATE USING (public.in_space(space_id, 'editor'));
+CREATE POLICY resource_access_update_policy ON public."ResourceAccess" FOR UPDATE USING (space_id = any((SELECT public.my_space_ids('editor'))::bigint[]));
+
+-- Not SECURITY DEFINER: these run as the caller under RLS.
+GRANT EXECUTE ON FUNCTION public.my_accessible_resources TO anon;
+GRANT EXECUTE ON FUNCTION public.document_of_content TO anon;
+GRANT EXECUTE ON FUNCTION public.author_of_content TO anon;
+GRANT EXECUTE ON FUNCTION public._local_document_to_db_document TO anon;
+GRANT EXECUTE ON FUNCTION public._local_content_to_db_content TO anon;
+GRANT EXECUTE ON FUNCTION public.content_in_space TO anon;
+GRANT EXECUTE ON FUNCTION public.document_in_space TO anon;

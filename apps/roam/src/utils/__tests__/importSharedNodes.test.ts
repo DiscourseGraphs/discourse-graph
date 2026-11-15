@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
-import type { SharedNode } from "@repo/database/lib/sharedNodes";
+import type { DbCrossAppNode } from "@repo/database/lib/dbToCrossAppConverters";
+import {
+  getNodeTypeRid,
+  type SharedNodeSpace,
+} from "@repo/database/lib/sharedNodes";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import {
   importSharedNodes,
@@ -52,29 +56,42 @@ const NODE_TYPE: DiscourseNode = {
 
 const client = {} as DGSupabaseClient;
 
-const makeSharedNode = (sourceLocalId: string): SharedNode => ({
-  rid: `orn:obsidian.note:vault-a/${sourceLocalId}`,
-  sourceLocalId,
-  schemaId: 200,
-  spaceId: 20,
-  spaceName: "Research vault",
-  spaceUri: "obsidian:vault-a",
+const vaultA: SharedNodeSpace = {
+  id: 20,
+  name: "Research vault",
   platform: "Obsidian",
-  title: `EVD - ${sourceLocalId}`,
-  created: "2026-06-14T12:30:00.000Z",
-  lastModified: "2026-06-14T15:00:00.000Z",
-  authorId: 7,
-  directMetadata: null,
+  url: "obsidian:vault-a",
+};
+
+const spaces: Record<string, SharedNodeSpace> = {
+  [vaultA.url]: vaultA,
+  "obsidian:vault-b": {
+    id: 21,
+    name: "Other vault",
+    platform: "Obsidian",
+    url: "obsidian:vault-b",
+  },
+};
+
+const makeSharedNode = (localId: string): DbCrossAppNode => ({
+  rid: `orn:obsidian.note:vault-a/${localId}`,
+  localId,
+  nodeType: "evd-type",
+  coreTitle: localId,
+  content: { direct: { value: `EVD - ${localId}` } },
+  createdAt: new Date("2026-06-14T12:30:00.000Z"),
+  modifiedAt: new Date("2026-06-14T15:00:00.000Z"),
+  authorId: "account-7",
 });
 
 const successResult = (
-  sharedNode: SharedNode,
+  sharedNode: DbCrossAppNode,
   action: "created" | "updated" | "skipped",
 ) => ({
   success: true as const,
   action,
-  pageUid: `page-${sharedNode.sourceLocalId}`,
-  sourceModifiedAt: sharedNode.lastModified,
+  pageUid: `page-${sharedNode.localId}`,
+  sourceModifiedAt: sharedNode.modifiedAt.toISOString(),
   sourceNodeRid: sharedNode.rid,
 });
 
@@ -95,7 +112,7 @@ describe("importSharedNodes", () => {
       .mockResolvedValueOnce(successResult(sharedNodes[2], "skipped"))
       .mockResolvedValueOnce({
         success: false,
-        sourceModifiedAt: sharedNodes[3].lastModified,
+        sourceModifiedAt: sharedNodes[3].modifiedAt.toISOString(),
         sourceNodeRid: sharedNodes[3].rid,
         error: { message: "title collision", stage: "title-collision" },
       });
@@ -105,6 +122,7 @@ describe("importSharedNodes", () => {
       client,
       sharedNodes,
       discoveredNodes: [],
+      spaces,
       onProgress,
     });
 
@@ -136,16 +154,17 @@ describe("importSharedNodes", () => {
     expect(mockedMaterializeSharedNode).toHaveBeenNthCalledWith(1, {
       client,
       sharedNode: sharedNodes[0],
+      space: vaultA,
     });
   });
 
   it("resolves node types once and gives each node the one for its schema", async () => {
     const sharedNodes = [
       makeSharedNode("node-1"),
-      { ...makeSharedNode("node-2"), schemaId: 300 },
+      { ...makeSharedNode("node-2"), nodeType: "other-type" },
     ];
     mockedResolveSharedNodeTypes.mockResolvedValue(
-      new Map([[sharedNodes[0].schemaId, NODE_TYPE]]),
+      new Map([[getNodeTypeRid(sharedNodes[0]), NODE_TYPE]]),
     );
     mockedMaterializeSharedNode
       .mockResolvedValueOnce(successResult(sharedNodes[0], "created"))
@@ -155,6 +174,7 @@ describe("importSharedNodes", () => {
       client,
       sharedNodes,
       discoveredNodes: [],
+      spaces,
       onProgress: vi.fn(),
     });
 
@@ -162,15 +182,18 @@ describe("importSharedNodes", () => {
     expect(mockedResolveSharedNodeTypes).toHaveBeenCalledWith({
       client,
       sharedNodes,
+      spaces,
     });
     expect(mockedMaterializeSharedNode).toHaveBeenNthCalledWith(1, {
       client,
       sharedNode: sharedNodes[0],
+      space: vaultA,
       nodeType: NODE_TYPE,
     });
     expect(mockedMaterializeSharedNode).toHaveBeenNthCalledWith(2, {
       client,
       sharedNode: sharedNodes[1],
+      space: vaultA,
       nodeType: undefined,
     });
   });
@@ -191,6 +214,7 @@ describe("importSharedNodes", () => {
       client,
       sharedNodes: [evidence, source, other],
       discoveredNodes: [],
+      spaces,
       onProgress: vi.fn(),
     });
 
@@ -213,7 +237,6 @@ describe("importSharedNodes", () => {
     const evidence = {
       ...makeSharedNode("evidence"),
       rid: "orn:obsidian.note:vault-b/evidence",
-      spaceUri: "obsidian:vault-b",
       slots: { sourceDocument: source.rid },
     };
     mockedMaterializeSharedNode.mockImplementation(({ sharedNode }) =>
@@ -223,6 +246,7 @@ describe("importSharedNodes", () => {
       client,
       sharedNodes: [evidence, source, root],
       discoveredNodes: [],
+      spaces,
       onProgress: vi.fn(),
     });
     expect(
@@ -250,6 +274,7 @@ describe("importSharedNodes", () => {
       client,
       sharedNodes: [first, second, missing],
       discoveredNodes: [],
+      spaces,
       onProgress: vi.fn(),
     });
     expect(items.map(({ sharedNode }) => sharedNode.rid)).toEqual([
@@ -271,6 +296,7 @@ describe("importSharedNodes", () => {
       client,
       sharedNodes,
       discoveredNodes: [],
+      spaces,
       onProgress: vi.fn(),
     });
 
@@ -294,6 +320,7 @@ describe("importSharedNodes", () => {
       client,
       sharedNodes,
       discoveredNodes: [],
+      spaces,
       onProgress: vi.fn(),
     });
 
@@ -314,7 +341,6 @@ describe("importSharedNodes", () => {
     const source = {
       ...makeSharedNode("source"),
       rid: "orn:obsidian.note:vault-b/source",
-      spaceUri: "obsidian:vault-b",
     };
     const evidence = {
       ...makeSharedNode("evidence"),
@@ -330,6 +356,7 @@ describe("importSharedNodes", () => {
       client,
       sharedNodes: [evidence],
       discoveredNodes: [evidence, source, other],
+      spaces,
       onProgress,
     });
 
@@ -339,6 +366,7 @@ describe("importSharedNodes", () => {
     expect(mockedResolveSharedNodeTypes).toHaveBeenCalledWith({
       client,
       sharedNodes: [evidence, source],
+      spaces,
     });
     expect(
       mockedMaterializeSharedNode.mock.calls.map(([args]) => args.sharedNode),
@@ -357,7 +385,7 @@ describe("importSharedNodes", () => {
     const source = makeSharedNode("source");
     const evidence = {
       ...makeSharedNode("evidence"),
-      slots: { sourceDocument: source.sourceLocalId },
+      slots: { sourceDocument: source.localId },
     };
     mockedFindImportedNodeUidBySourceRid.mockResolvedValue("source-page-uid");
     mockedMaterializeSharedNode.mockResolvedValueOnce(
@@ -368,6 +396,7 @@ describe("importSharedNodes", () => {
       client,
       sharedNodes: [evidence],
       discoveredNodes: [evidence, source],
+      spaces,
       onProgress: vi.fn(),
     });
 
@@ -383,7 +412,7 @@ describe("importSharedNodes", () => {
     const source = makeSharedNode("source");
     const evidence = {
       ...makeSharedNode("evidence"),
-      slots: { sourceDocument: source.sourceLocalId },
+      slots: { sourceDocument: source.localId },
     };
     mockedMaterializeSharedNode.mockImplementation(({ sharedNode }) =>
       Promise.resolve(successResult(sharedNode, "created")),
@@ -393,6 +422,7 @@ describe("importSharedNodes", () => {
       client,
       sharedNodes: [evidence, source],
       discoveredNodes: [evidence, source],
+      spaces,
       onProgress: vi.fn(),
     });
 
@@ -413,6 +443,7 @@ describe("importSharedNodes", () => {
       client,
       sharedNodes: [evidence],
       discoveredNodes: [evidence],
+      spaces,
       onProgress: vi.fn(),
     });
 
@@ -427,11 +458,11 @@ describe("importSharedNodes", () => {
     const source = makeSharedNode("source");
     const first = {
       ...makeSharedNode("first"),
-      slots: { sourceDocument: source.sourceLocalId },
+      slots: { sourceDocument: source.localId },
     };
     const second = {
       ...makeSharedNode("second"),
-      slots: { sourceDocument: source.sourceLocalId },
+      slots: { sourceDocument: source.localId },
     };
     mockedMaterializeSharedNode.mockImplementation(({ sharedNode }) =>
       Promise.resolve(successResult(sharedNode, "created")),
@@ -441,6 +472,7 @@ describe("importSharedNodes", () => {
       client,
       sharedNodes: [first, second],
       discoveredNodes: [first, second, source],
+      spaces,
       onProgress: vi.fn(),
     });
 
@@ -458,7 +490,7 @@ describe("importSharedNodes", () => {
     const source = makeSharedNode("source");
     const evidence = {
       ...makeSharedNode("evidence"),
-      slots: { sourceDocument: source.sourceLocalId },
+      slots: { sourceDocument: source.localId },
     };
     mockedFindImportedNodeUidBySourceRid.mockRejectedValue(
       new Error("roam api unavailable"),
@@ -472,6 +504,7 @@ describe("importSharedNodes", () => {
       client,
       sharedNodes: [evidence],
       discoveredNodes: [evidence, source],
+      spaces,
       onProgress,
     });
 

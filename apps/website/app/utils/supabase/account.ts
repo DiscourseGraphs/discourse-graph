@@ -50,10 +50,13 @@ export const getSessionUserData = async (
   const data = await getSessionBaseUserData(client);
   if (data === null) return null;
   if (!data.name && data.type === "person") {
+    // Clients can't filter on dg_account.
+    const accountIdsReq = await client.rpc("my_platform_account_ids");
+    if (accountIdsReq.error) return null;
     const accountReq = await client
       .from("PlatformAccount")
       .select("name")
-      .eq("dg_account", data.id)
+      .in("id", accountIdsReq.data)
       .eq("agent_type", "person")
       .maybeSingle();
     if (accountReq.error || !accountReq.data?.name) {

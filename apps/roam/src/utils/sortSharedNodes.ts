@@ -1,4 +1,8 @@
-import type { SharedNode } from "@repo/database/lib/sharedNodes";
+import type { DbCrossAppNode } from "@repo/database/lib/dbToCrossAppConverters";
+import {
+  getSharedNodeSpace,
+  type SharedNodeListing,
+} from "@repo/database/lib/sharedNodes";
 
 export type SharedNodeSortColumn = "spaceName" | "title" | "lastModified";
 
@@ -6,8 +10,6 @@ export type SharedNodeSort = {
   column: SharedNodeSortColumn;
   direction: "ascending" | "descending";
 };
-
-type SortableSharedNode = Pick<SharedNode, SharedNodeSortColumn>;
 
 export const DEFAULT_SHARED_NODE_SORT: SharedNodeSort = {
   column: "lastModified",
@@ -28,24 +30,49 @@ export const getNextSharedNodeSort = ({
       : "descending",
 });
 
-const compareByColumn =
-  (column: SharedNodeSortColumn) =>
-  (left: SortableSharedNode, right: SortableSharedNode): number =>
-    column === "lastModified"
-      ? Date.parse(left.lastModified) - Date.parse(right.lastModified)
-      : left[column].localeCompare(right[column], undefined, {
-          numeric: true,
-          sensitivity: "base",
-        });
+const getSortText = ({
+  node,
+  column,
+  spaces,
+}: {
+  node: DbCrossAppNode;
+  column: Exclude<SharedNodeSortColumn, "lastModified">;
+  spaces: SharedNodeListing["spaces"];
+}): string =>
+  column === "spaceName"
+    ? getSharedNodeSpace({ node, spaces }).name
+    : node.content.direct.value;
 
-export const sortSharedNodes = <T extends SortableSharedNode>({
+const compareByColumn =
+  ({
+    column,
+    spaces,
+  }: {
+    column: SharedNodeSortColumn;
+    spaces: SharedNodeListing["spaces"];
+  }) =>
+  (left: DbCrossAppNode, right: DbCrossAppNode): number =>
+    column === "lastModified"
+      ? left.modifiedAt.getTime() - right.modifiedAt.getTime()
+      : getSortText({ node: left, column, spaces }).localeCompare(
+          getSortText({ node: right, column, spaces }),
+          undefined,
+          {
+            numeric: true,
+            sensitivity: "base",
+          },
+        );
+
+export const sortSharedNodes = ({
   nodes,
+  spaces,
   sort,
 }: {
-  nodes: readonly T[];
+  nodes: readonly DbCrossAppNode[];
+  spaces: SharedNodeListing["spaces"];
   sort: SharedNodeSort;
-}): T[] => {
-  const compare = compareByColumn(sort.column);
+}): DbCrossAppNode[] => {
+  const compare = compareByColumn({ column: sort.column, spaces });
   return [...nodes].sort((left, right) =>
     sort.direction === "ascending"
       ? compare(left, right)

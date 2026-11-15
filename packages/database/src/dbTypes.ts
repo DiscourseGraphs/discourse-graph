@@ -11,53 +11,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      access_token: {
-        Row: {
-          access_token: string;
-          code: string | null;
-          created_date: string;
-          platform_account_id: number | null;
-          request_id: string;
-        };
-        ComputedFields: never;
-        Insert: {
-          access_token: string;
-          code?: string | null;
-          created_date?: string;
-          platform_account_id?: number | null;
-          request_id: string;
-        };
-        Update: {
-          access_token?: string;
-          code?: string | null;
-          created_date?: string;
-          platform_account_id?: number | null;
-          request_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "access_token_platform_account_id_fkey";
-            columns: ["platform_account_id"];
-            isOneToOne: false;
-            referencedRelation: "my_accounts";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "access_token_platform_account_id_fkey";
-            columns: ["platform_account_id"];
-            isOneToOne: false;
-            referencedRelation: "my_pseudo_accounts";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "access_token_platform_account_id_fkey";
-            columns: ["platform_account_id"];
-            isOneToOne: false;
-            referencedRelation: "PlatformAccount";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
       AgentIdentifier: {
         Row: {
           account_id: number;
@@ -1042,14 +995,41 @@ export type Database = {
       };
     };
     Views: {
+      accounts_in_my_partial_spaces: {
+        Row: {
+          account_id: number;
+        };
+        ComputedFields: never;
+        Relationships: [
+          {
+            foreignKeyName: "LocalAccess_account_id_fkey";
+            columns: ["account_id"];
+            isOneToOne: false;
+            referencedRelation: "my_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "LocalAccess_account_id_fkey";
+            columns: ["account_id"];
+            isOneToOne: false;
+            referencedRelation: "my_pseudo_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "LocalAccess_account_id_fkey";
+            columns: ["account_id"];
+            isOneToOne: false;
+            referencedRelation: "PlatformAccount";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       my_accounts: {
         Row: {
           account_local_id: string;
           active: boolean;
           agent_type: Database["public"]["Enums"]["AgentType"];
-          dg_account: string | null;
           id: number;
-          metadata: NonNullable<Json>;
           name: string;
           platform: Database["public"]["Enums"]["Platform"];
           write_permission: boolean;
@@ -1059,9 +1039,7 @@ export type Database = {
           account_local_id?: string | null;
           active?: boolean | null;
           agent_type?: Database["public"]["Enums"]["AgentType"] | null;
-          dg_account?: string | null;
           id?: number | null;
-          metadata?: Json | null;
           name?: string | null;
           platform?: Database["public"]["Enums"]["Platform"] | null;
           write_permission?: boolean | null;
@@ -1070,22 +1048,12 @@ export type Database = {
           account_local_id?: string | null;
           active?: boolean | null;
           agent_type?: Database["public"]["Enums"]["AgentType"] | null;
-          dg_account?: string | null;
           id?: number | null;
-          metadata?: Json | null;
           name?: string | null;
           platform?: Database["public"]["Enums"]["Platform"] | null;
           write_permission?: boolean | null;
         };
-        Relationships: [
-          {
-            foreignKeyName: "PlatformAccount_dg_account_fkey";
-            columns: ["dg_account"];
-            isOneToOne: false;
-            referencedRelation: "my_groups";
-            referencedColumns: ["id"];
-          },
-        ];
+        Relationships: [];
       };
       my_concepts: {
         Row: {
@@ -1109,9 +1077,7 @@ export type Database = {
             account_local_id: string;
             active: boolean;
             agent_type: Database["public"]["Enums"]["AgentType"];
-            dg_account: string | null;
             id: number;
-            metadata: NonNullable<Json>;
             name: string;
             platform: Database["public"]["Enums"]["Platform"];
             write_permission: boolean;
@@ -1326,9 +1292,7 @@ export type Database = {
             account_local_id: string;
             active: boolean;
             agent_type: Database["public"]["Enums"]["AgentType"];
-            dg_account: string | null;
             id: number;
-            metadata: NonNullable<Json>;
             name: string;
             platform: Database["public"]["Enums"]["Platform"];
             write_permission: boolean;
@@ -1750,6 +1714,22 @@ export type Database = {
           },
         ];
       };
+      my_resource_grants: {
+        Row: {
+          source_local_id: string;
+          space_id: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          source_local_id?: string | null;
+          space_id?: number | null;
+        };
+        Update: {
+          source_local_id?: string | null;
+          space_id?: number | null;
+        };
+        Relationships: [];
+      };
       my_spaces: {
         Row: {
           id: number;
@@ -1855,12 +1835,14 @@ export type Database = {
         };
       };
       accept_group_invitation: { Args: { token: string }; Returns: boolean };
-      account_in_shared_space: {
+      account_ids_in_shared_spaces: {
         Args: {
           access_level?: Database["public"]["Enums"]["SpaceAccessPermissions"];
-          p_account_id: number;
         };
-        Returns: boolean;
+        Returns: {
+          account_id: number;
+          unowned: boolean;
+        }[];
       };
       author_of_concept: {
         Args: {
@@ -1873,9 +1855,7 @@ export type Database = {
           account_local_id: string;
           active: boolean;
           agent_type: Database["public"]["Enums"]["AgentType"];
-          dg_account: string | null;
           id: number;
-          metadata: NonNullable<Json>;
           name: string;
           platform: Database["public"]["Enums"]["Platform"];
           write_permission: boolean;
@@ -1898,9 +1878,7 @@ export type Database = {
           account_local_id: string;
           active: boolean;
           agent_type: Database["public"]["Enums"]["AgentType"];
-          dg_account: string | null;
           id: number;
-          metadata: NonNullable<Json>;
           name: string;
           platform: Database["public"]["Enums"]["Platform"];
           write_permission: boolean;
@@ -1911,13 +1889,6 @@ export type Database = {
           isOneToOne: true;
           isSetofReturn: true;
         };
-      };
-      can_access_account: { Args: { account_uid: string }; Returns: boolean };
-      can_view_concept: { Args: { concept_id: number }; Returns: boolean };
-      can_view_content: { Args: { content_id: number }; Returns: boolean };
-      can_view_specific_resource: {
-        Args: { source_local_id_: string; space_id_: number };
-        Returns: boolean;
       };
       compute_arity_local: {
         Args: { lit_content: Json; schema_id: number };
@@ -2122,7 +2093,6 @@ export type Database = {
         };
         Returns: string;
       };
-      group_exists: { Args: { group_id_: string }; Returns: boolean };
       in_group: { Args: { group_id_: string }; Returns: boolean };
       in_space: {
         Args: {
@@ -2171,7 +2141,6 @@ export type Database = {
         Args: { source_local_id_: string; space_id_: number };
         Returns: boolean;
       };
-      is_my_account: { Args: { account_id: number }; Returns: boolean };
       match_content_embeddings: {
         Args: {
           current_document_id?: number;
@@ -2207,6 +2176,10 @@ export type Database = {
       my_permissions_in_space: {
         Args: { space_id_: number };
         Returns: Database["public"]["Enums"]["SpaceAccessPermissions"];
+      };
+      my_platform_account_ids: {
+        Args: Record<PropertyKey, never>;
+        Returns: number[];
       };
       my_space_ids: {
         Args: {
@@ -2274,13 +2247,6 @@ export type Database = {
               isSetofReturn: true;
             };
           };
-      unowned_account_in_shared_space: {
-        Args: {
-          access_level?: Database["public"]["Enums"]["SpaceAccessPermissions"];
-          p_account_id: number;
-        };
-        Returns: boolean;
-      };
       upsert_account_in_space: {
         Args: {
           local_account: Database["public"]["CompositeTypes"]["account_local_input"];

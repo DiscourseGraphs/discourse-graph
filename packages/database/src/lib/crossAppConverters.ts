@@ -50,12 +50,18 @@ const inlineCrossAppContentToDbContent = (
   });
 };
 
+const CONTENT_KEY_BY_VARIANT = {
+  direct: "direct",
+  direct_and_description: "directAndDescription",
+  full: "full",
+} as const;
+
 export const crossAppNodeToDbContent = (
   node: CrossAppNode | undefined,
-  variant: "full" | "direct",
+  variant: keyof typeof CONTENT_KEY_BY_VARIANT,
 ): LocalContentDataInput | undefined => {
   if (node === undefined) return undefined;
-  const content = node.content[variant];
+  const content = node.content[CONTENT_KEY_BY_VARIANT[variant]];
   if (content === undefined) return undefined;
   return inlineCrossAppContentToDbContent(
     {
@@ -85,6 +91,7 @@ export const crossAppNodeToDbConcept = (
     },
     contents_inline: filterUndefinedArray([
       crossAppNodeToDbContent(node, "direct"),
+      crossAppNodeToDbContent(node, "direct_and_description"),
       crossAppNodeToDbContent(node, "full"),
     ]),
     created: node.createdAt?.toISOString(),

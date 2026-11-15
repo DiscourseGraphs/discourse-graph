@@ -4,7 +4,7 @@ import type {
   CrossAppRelation,
   CrossAppRelationTripleSchema,
 } from "@repo/database/crossAppContracts";
-import type { RoamFullContentNode } from "./convertRoamNodeToFullContent";
+import type { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 import type { DiscourseNode } from "./getDiscourseNodes";
 import type { TreeNode, ViewType } from "roamjs-components/types";
 import type { NodeUidWithType } from "~/utils/publishNodesToGroups";
@@ -71,24 +71,53 @@ const buildFullInlineContent = ({
   };
 };
 
-export const fullContentNodeToCrossApp = (
-  node: RoamFullContentNode,
+export const discourseNodeToCrossApp = (
+  node: RoamDiscourseNodeData,
+  schema?: DiscourseNode,
 ): CrossAppNode => {
   const title = node.node_title ?? node.text;
+  const sourceId = sourceIdOfNode(title, schema);
 
   return {
-    authorId: node.author_local_id,
+    authorId: node.node_author_local_id ?? node.author_local_id,
     localId: node.source_local_id,
     createdAt: new Date(node.created || Date.now()),
     modifiedAt: new Date(node.last_modified || Date.now()),
-    nodeType: node.node_type_id,
-    coreTitle: extractContentFromTitle(node.format, title),
+    nodeType: node.type,
+    coreTitle: extractContentFromTitle(schema?.format ?? "", title),
     content: {
       direct: {
         localId: node.source_local_id,
         value: title,
       },
-      full: buildFullInlineContent({ uid: node.source_local_id, title }),
+      ...(node.node_title
+        ? {
+            directAndDescription: {
+              localId: node.source_local_id,
+              value: `${node.node_title} ${node.text}`,
+              authorId: node.author_local_id,
+            },
+          }
+        : {}),
+    },
+    ...(sourceId ? { slots: { [SOURCE_SLOT]: sourceId } } : {}),
+  };
+};
+
+export const fullContentNodeToCrossApp = (
+  node: RoamDiscourseNodeData,
+  schema: DiscourseNode,
+): CrossAppNode => {
+  const crossAppNode = discourseNodeToCrossApp(node, schema);
+
+  return {
+    ...crossAppNode,
+    content: {
+      ...crossAppNode.content,
+      full: buildFullInlineContent({
+        uid: node.source_local_id,
+        title: crossAppNode.content.direct.value,
+      }),
     },
   };
 };

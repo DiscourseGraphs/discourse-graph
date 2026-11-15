@@ -14,7 +14,6 @@ import {
 import { type RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 import getDiscourseNodes, { type DiscourseNode } from "./getDiscourseNodes";
 import {
-  discourseNodeBlockToLocalConcept,
   discourseNodeSchemaToLocalConcept,
   orderConceptsByDependency,
 } from "./conceptConversion";
@@ -22,8 +21,11 @@ import { fetchEmbeddingsForNodes } from "./upsertNodesAsContentWithEmbeddings";
 import { convertRoamNodeToLocalContent } from "./upsertNodesAsContentWithEmbeddings";
 import {
   convertRoamNodeToFullContent,
-  type RoamFullContentNode,
+  type SharedFullContentUpdate,
 } from "./convertRoamNodeToFullContent";
+import { discourseNodeToCrossApp } from "./roamToCrossAppConverters";
+import type { CrossAppNode } from "@repo/database/crossAppContracts";
+import { crossAppNodeToDbConcept } from "@repo/database/lib/crossAppConverters";
 import {
   publishNodeAssets,
   summarizeAssetResults,
@@ -49,6 +51,8 @@ import internalError from "~/utils/internalError";
 import { isSyncEnabled } from "~/components/settings/utils/accessors";
 import { FatalError } from "@repo/database/lib/contextFunctions";
 import { getAllPages } from "@repo/database/lib/pagination";
+import { isRid } from "@repo/database/lib/rid";
+import { SOURCE_SLOT } from "./sourceSlot";
 import type {
   LocalConceptDataInput,
   LocalContentDataInput,
@@ -63,8 +67,7 @@ const SYNC_INTERVAL = "130s";
 // Interval between syncs for each client individually
 const BASE_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 const SYNC_TIMEOUT = "60s"; // must be less than half the SYNC_INTERVAL.
-const BATCH_SIZE = 200;
-const CONCEPT_BATCH_SIZE = 200;
+const CONCEPT_BATCH_SIZE = 50;
 const END_SYNC_TASK_RESULT_VERSION = 1;
 const DEFAULT_SYNC_TIME = new Date("1970-01-01").getTime();
 
@@ -281,6 +284,15 @@ const summarizeFailedConceptUpsertIds = (failedIds: number[]): string => {
     .join(", ");
 };
 
+class ConceptRowFailuresError extends Error {
+  constructor(
+    message: string,
+    readonly sourceLocalIds: ReadonlySet<string>,
+  ) {
+    super(message);
+  }
+}
+
 const upsertConceptBatches = async ({
   concepts,
   supabaseClient,
@@ -291,6 +303,8 @@ const upsertConceptBatches = async ({
   spaceId: number;
 }): Promise<void> => {
   const batches = chunk(concepts, CONCEPT_BATCH_SIZE);
+  const failureSummaries: string[] = [];
+  const failedSourceLocalIds = new Set<string>();
 
   for (let idx = 0; idx < batches.length; idx++) {
     const batch = batches[idx];
@@ -306,12 +320,23 @@ const upsertConceptBatches = async ({
       );
     }
 
-    const failedIds = (data || []).filter((id) => id < 0);
+    const failedIds = data.filter((id) => id < 0);
     if (failedIds.length > 0) {
-      throw new Error(
-        `upsert_concepts returned row failures for batch ${idx + 1}/${batches.length}: ${summarizeFailedConceptUpsertIds(failedIds)}`,
+      failureSummaries.push(
+        `batch ${idx + 1}/${batches.length}: ${summarizeFailedConceptUpsertIds(failedIds)}`,
       );
+      batch.forEach((concept, i) => {
+        if (data[i] < 0 && concept.source_local_id)
+          failedSourceLocalIds.add(concept.source_local_id);
+      });
     }
+  }
+
+  if (failureSummaries.length > 0) {
+    throw new ConceptRowFailuresError(
+      `upsert_concepts returned row failures for ${failureSummaries.join("; ")}`,
+      failedSourceLocalIds,
+    );
   }
 };
 
@@ -599,17 +624,9 @@ export const proposeSyncTask = async ({
   }
 };
 
-const upsertNodeSchemaToContent = async ({
-  nodeTypesUids,
-  spaceId,
-  userId,
-  supabaseClient,
-}: {
-  nodeTypesUids: string[];
-  spaceId: number;
-  userId: number;
-  supabaseClient: DGSupabaseClient;
-}) => {
+const getNodeSchemaContents = async (
+  nodeTypesUids: string[],
+): Promise<LocalContentDataInput[]> => {
   const query = `[
     :find     ?uid    ?create-time    ?edit-time    ?user-uuid    ?title ?author-name
     :keys     source_local_id    created    last_modified    author_local_id    text author_name
@@ -632,23 +649,11 @@ const upsertNodeSchemaToContent = async ({
     nodeTypesUids,
   )) as unknown[] as RoamDiscourseNodeData[];
 
-  const contentData: LocalContentDataInput[] = convertRoamNodeToLocalContent({
-    nodes: result,
-  });
-  const { error } = await supabaseClient.rpc("upsert_content", {
-    data: contentData as Json,
-    v_space_id: spaceId,
-    v_creator_id: userId,
-    content_as_document: true,
-  });
-  if (error) {
-    console.error("upsert_content failed:", error);
-    throw new Error(error.message);
-  }
+  return convertRoamNodeToLocalContent({ nodes: result });
 };
 
 export const convertDgToSupabaseConcepts = async ({
-  nodesSince,
+  nodes,
   since,
   allNodeTypes,
   sharedNodeTypeIds = new Set<string>(),
@@ -656,7 +661,7 @@ export const convertDgToSupabaseConcepts = async ({
   supabaseClient,
   context,
 }: {
-  nodesSince: RoamDiscourseNodeData[];
+  nodes: CrossAppNode[];
   since: number | undefined;
   allNodeTypes: DiscourseNode[];
   sharedNodeTypeIds?: ReadonlySet<string>;
@@ -679,34 +684,20 @@ export const convertDgToSupabaseConcepts = async ({
   });
   const nodeTypes = Array.from(nodeTypesByUid.values());
 
-  await upsertNodeSchemaToContent({
-    nodeTypesUids: nodeTypes.map((node) => node.type),
-    spaceId: context.spaceId,
-    userId: context.userId,
-    supabaseClient,
-  });
-
-  const nodesTypesToLocalConcepts = nodeTypes.map((node) => {
-    return discourseNodeSchemaToLocalConcept(context, node);
-  });
-
-  const schemasByUid = new Map(
-    allNodeTypes.map((nodeType) => [nodeType.type, nodeType]),
+  const nodeSchemaContents = await getNodeSchemaContents(
+    nodeTypes.map((node) => node.type),
   );
 
-  const nodeBlockToLocalConcepts = nodesSince.map((node) => {
-    const localConcept = discourseNodeBlockToLocalConcept(context, {
-      nodeUid: node.source_local_id,
-      schemaUid: node.type,
-      title: node.node_title ?? node.text,
-      schema: schemasByUid.get(node.type),
-    });
-    return localConcept;
-  });
+  const nodesTypesToLocalConcepts = nodeTypes.map((node) => ({
+    ...discourseNodeSchemaToLocalConcept(context, node),
+    contents_inline: nodeSchemaContents.filter(
+      (content) => content.source_local_id === node.type,
+    ),
+  }));
 
   const conceptsToUpsert = [
     ...nodesTypesToLocalConcepts,
-    ...nodeBlockToLocalConcepts,
+    ...nodes.map((node) => crossAppNodeToDbConcept(node)),
   ];
   const { ordered, missing } = orderConceptsByDependency(conceptsToUpsert);
 
@@ -724,131 +715,150 @@ export const convertDgToSupabaseConcepts = async ({
   });
 };
 
-const uploadContentBatches = async ({
-  content,
+const toCrossAppNodesWithEmbeddings = async ({
+  nodes,
+  nodeTypes,
+  nodeIdsToEmbed,
+}: {
+  nodes: RoamDiscourseNodeData[];
+  nodeTypes: DiscourseNode[];
+  nodeIdsToEmbed: ReadonlySet<string>;
+}): Promise<CrossAppNode[]> => {
+  const nodeTypesById = new Map(
+    nodeTypes.map((nodeType) => [nodeType.type, nodeType]),
+  );
+  const crossAppNodes = nodes.map((node) =>
+    discourseNodeToCrossApp(node, nodeTypesById.get(node.type)),
+  );
+  const embeddedNodes = await fetchEmbeddingsForNodes(
+    crossAppNodes.filter((node) => nodeIdsToEmbed.has(node.localId)),
+  );
+  const embeddedNodesById = new Map(
+    embeddedNodes.map((node) => [node.localId, node]),
+  );
+  return crossAppNodes.map(
+    (node) => embeddedNodesById.get(node.localId) ?? node,
+  );
+};
+
+export const withFullContent = (
+  nodes: CrossAppNode[],
+  fullContentNodes: CrossAppNode[],
+): CrossAppNode[] => {
+  const nodeIds = new Set(nodes.map((node) => node.localId));
+  const fullContentNodesById = new Map(
+    fullContentNodes.map((node) => [node.localId, node]),
+  );
+  return [
+    ...nodes.map((node) => {
+      const fullContentNode = fullContentNodesById.get(node.localId);
+      return fullContentNode?.content.full === undefined
+        ? node
+        : {
+            ...node,
+            content: {
+              ...node.content,
+              full: {
+                ...fullContentNode.content.full,
+                modifiedAt: fullContentNode.modifiedAt,
+              },
+            },
+          };
+    }),
+    ...fullContentNodes.filter((node) => !nodeIds.has(node.localId)),
+  ];
+};
+
+export const omitMissingSources = ({
+  nodes,
+  conceptIds,
+}: {
+  nodes: CrossAppNode[];
+  conceptIds: ReadonlySet<string>;
+}): CrossAppNode[] => {
+  const nodeIds = new Set(nodes.map((node) => node.localId));
+  return nodes.map((node) => {
+    const sourceId = node.slots?.[SOURCE_SLOT];
+    return sourceId === undefined ||
+      isRid(sourceId) ||
+      nodeIds.has(sourceId) ||
+      conceptIds.has(sourceId)
+      ? node
+      : { ...node, slots: undefined };
+  });
+};
+
+/** Recomputes the embeddings of a node type's nodes, on demand from its settings. */
+export const upsertNodesWithEmbeddings = async ({
+  nodes,
+  nodeType,
   supabaseClient,
   context,
 }: {
-  content: LocalContentDataInput[];
+  nodes: RoamDiscourseNodeData[];
+  nodeType: DiscourseNode;
   supabaseClient: DGSupabaseClient;
   context: SupabaseContext;
 }): Promise<void> => {
-  if (content.length === 0) {
+  if (nodes.length === 0) {
     return;
   }
-
-  const batches = chunk(content, BATCH_SIZE);
-
-  for (let idx = 0; idx < batches.length; idx++) {
-    const batch = batches[idx];
-
-    const { error } = await supabaseClient.rpc("upsert_content", {
-      data: batch as Json,
-      v_space_id: context.spaceId,
-      v_creator_id: context.userId,
-      content_as_document: true,
-    });
-
-    if (error) {
-      throw new Error(`upsert_content failed for batch ${idx + 1}`, {
-        cause: error,
-      });
-    }
-  }
-};
-
-export const upsertNodesToSupabaseAsContentWithEmbeddings = async (
-  roamNodes: RoamDiscourseNodeData[],
-  supabaseClient: DGSupabaseClient,
-  context: SupabaseContext,
-): Promise<void> => {
-  if (roamNodes.length === 0) {
-    return;
-  }
-  const allNodeInstancesAsLocalContent = convertRoamNodeToLocalContent({
-    nodes: roamNodes,
+  const { synced } = await getNodeInstanceSourceLocalIds({
+    supabaseClient,
+    spaceId: context.spaceId,
   });
-
-  let nodesWithEmbeddings: LocalContentDataInput[];
-  try {
-    nodesWithEmbeddings = await fetchEmbeddingsForNodes(
-      allNodeInstancesAsLocalContent,
-    );
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(
-      `upsertNodesToSupabaseAsContentWithEmbeddings: Embedding service failed – ${message}`,
-    );
-    throw new Error(message);
-  }
-
-  if (nodesWithEmbeddings.length !== allNodeInstancesAsLocalContent.length) {
-    console.error(
-      "upsertNodesToSupabaseAsContentWithEmbeddings: Mismatch between node and embedding counts.",
-    );
-    throw new Error(
-      "upsertNodesToSupabaseAsContentWithEmbeddings: Mismatch between node and embedding counts.",
-    );
-  }
-
-  await uploadContentBatches({
-    content: nodesWithEmbeddings,
+  await convertDgToSupabaseConcepts({
+    nodes: omitMissingSources({
+      nodes: await toCrossAppNodesWithEmbeddings({
+        nodes,
+        nodeTypes: [nodeType],
+        nodeIdsToEmbed: new Set(nodes.map((node) => node.source_local_id)),
+      }),
+      conceptIds: synced,
+    }),
+    since: undefined,
+    allNodeTypes: [nodeType],
     supabaseClient,
     context,
   });
 };
 
-const upsertNodesToSupabaseAsContent = async (
-  roamNodes: RoamDiscourseNodeData[],
-  supabaseClient: DGSupabaseClient,
-  context: SupabaseContext,
-): Promise<void> => {
-  if (roamNodes.length === 0) {
-    return;
-  }
-  const content = convertRoamNodeToLocalContent({ nodes: roamNodes });
-  await uploadContentBatches({ content, supabaseClient, context });
-};
-
 /** The asset stage runs here too, so an asset added after sharing still gets a row. */
-export const upsertSharedNodesFullContentWithAssets = async ({
-  nodes,
-  supabaseClient,
-  context,
+export const upsertNodesWithAssets = async ({
   phases,
-}: {
-  nodes: RoamFullContentNode[];
-  supabaseClient: DGSupabaseClient;
-  context: SupabaseContext;
+  ...upsertArgs
+}: Parameters<typeof convertDgToSupabaseConcepts>[0] & {
   phases: SyncPhaseDurations;
-}): Promise<NodeAssetResult[]> => {
-  // Building the markdown is the expensive half of the upload, so it stays inside the
-  // phase it has always been timed under.
-  const converted = await measureSyncPhase({
-    phase: "upsertFullContent",
-    phases,
-    operation: async () => {
-      const converted = convertRoamNodeToFullContent({ nodes });
-      await uploadContentBatches({
-        content: converted.map(({ content }) => content),
-        supabaseClient,
-        context,
-      });
-      return converted;
-    },
-  });
-  // A failed upload throws above, so every converted node now has the Content row
-  // that publishNodeAssets requires.
-  return measureSyncPhase({
+}): Promise<{
+  assetResults: NodeAssetResult[];
+  rowFailures?: ConceptRowFailuresError;
+}> => {
+  let rowFailures: ConceptRowFailuresError | undefined;
+  try {
+    await measureSyncPhase({
+      phase: "convertConcepts",
+      phases,
+      operation: () => convertDgToSupabaseConcepts(upsertArgs),
+    });
+  } catch (error) {
+    if (!(error instanceof ConceptRowFailuresError)) throw error;
+    rowFailures = error;
+  }
+  // Any other failure throws above, so every node whose row upserted now has the
+  // Content row that publishNodeAssets requires.
+  const assetResults = await measureSyncPhase({
     phase: "publishSharedNodeAssets",
     phases,
     operation: () =>
       publishNodeAssets({
-        client: supabaseClient,
-        spaceId: context.spaceId,
-        nodes: converted.map(({ node }) => node),
+        client: upsertArgs.supabaseClient,
+        spaceId: upsertArgs.context.spaceId,
+        nodes: upsertArgs.nodes.filter(
+          (node) => !rowFailures?.sourceLocalIds.has(node.localId),
+        ),
       }),
   });
+  return { assetResults, rowFailures };
 };
 
 const getAllUsers = async (): Promise<LocalAccountDataInput[]> => {
@@ -1032,13 +1042,13 @@ const getAllMissingOrNewDiscourseNodes = async ({
   };
 };
 
-const getSharedNodeInstanceSourceLocalIds = async ({
+const getNodeInstanceSourceLocalIds = async ({
   supabaseClient,
   spaceId,
 }: {
   supabaseClient: DGSupabaseClient;
   spaceId: number;
-}): Promise<Set<string>> => {
+}): Promise<{ synced: Set<string>; shared: Set<string> }> => {
   const sharedResources = await getAllPages(
     supabaseClient
       .from("ResourceAccess")
@@ -1073,7 +1083,10 @@ const getSharedNodeInstanceSourceLocalIds = async ({
       .filter((id): id is string => id !== null),
   );
 
-  return intersection(syncedInstanceSourceLocalIds, sharedSourceLocalIds);
+  return {
+    synced: syncedInstanceSourceLocalIds,
+    shared: intersection(syncedInstanceSourceLocalIds, sharedSourceLocalIds),
+  };
 };
 
 const getSharedSourceLocalIdsMissingFullContent = async ({
@@ -1117,11 +1130,6 @@ type SharedFullContentUpdateRow = {
   node_edit_time: number;
   page_edit_time: number;
   text: string;
-};
-
-type SharedFullContentUpdate = {
-  fullContentNode: RoamFullContentNode;
-  nodeTypeId: string;
 };
 
 const getSharedRoamNodesWithFullContentUpdatesSince = async ({
@@ -1183,10 +1191,9 @@ const getSharedRoamNodesWithFullContentUpdatesSince = async ({
           created: row.created,
           last_modified: Math.max(row.node_edit_time, row.page_edit_time),
           text: row.text,
-          node_type_id: matchingNodeType.type,
-          format: matchingNodeType.format,
+          type: matchingNodeType.type,
         },
-        nodeTypeId: matchingNodeType.type,
+        nodeType: matchingNodeType,
       },
     ];
   });
@@ -1429,15 +1436,16 @@ export const createOrUpdateDiscourseEmbedding = async (
                 coreTitleBackfill: null,
               },
       });
-    const sharedSourceLocalIds = await measureSyncPhase({
-      phase: "getSharedNodeInstanceSourceLocalIds",
-      phases,
-      operation: () =>
-        getSharedNodeInstanceSourceLocalIds({
-          supabaseClient: activeSupabaseClient,
-          spaceId: activeContext.spaceId,
-        }),
-    });
+    const { synced: syncedSourceLocalIds, shared: sharedSourceLocalIds } =
+      await measureSyncPhase({
+        phase: "getSharedNodeInstanceSourceLocalIds",
+        phases,
+        operation: () =>
+          getNodeInstanceSourceLocalIds({
+            supabaseClient: activeSupabaseClient,
+            spaceId: activeContext.spaceId,
+          }),
+      });
     const importedNodeUids = await measureSyncPhase({
       phase: "getImportedNodeUids",
       phases,
@@ -1497,11 +1505,8 @@ export const createOrUpdateDiscourseEmbedding = async (
         return [...refreshed, ...backfilled];
       },
     });
-    const sharedFullContentNodes = sharedFullContentUpdates.map(
-      (update) => update.fullContentNode,
-    );
     const sharedNodeTypeIds = new Set(
-      sharedFullContentUpdates.map((update) => update.nodeTypeId),
+      sharedFullContentUpdates.map((update) => update.nodeType.type),
     );
 
     await measureSyncPhase({
@@ -1510,48 +1515,46 @@ export const createOrUpdateDiscourseEmbedding = async (
       operation: () =>
         upsertUsers(allUsers, activeSupabaseClient, activeContext),
     });
-    await measureSyncPhase({
-      phase: "upsertNodes",
+    const nodesToUpsert = await measureSyncPhase({
+      phase: "convertNodes",
       phases,
       operation: () =>
-        sharedNodesOnlySync
-          ? upsertNodesToSupabaseAsContent(
-              nodeInstancesToSync,
-              activeSupabaseClient,
-              activeContext,
-            )
-          : upsertNodesToSupabaseAsContentWithEmbeddings(
-              nodeInstancesToSync,
-              activeSupabaseClient,
-              activeContext,
-            ),
-    });
-    const sharedNodeAssetResults = await upsertSharedNodesFullContentWithAssets(
-      {
-        nodes: sharedFullContentNodes,
-        supabaseClient: activeSupabaseClient,
-        context: activeContext,
-        phases,
-      },
-    );
-    reportSharedNodeAssets({
-      results: sharedNodeAssetResults,
-      retried: await requestAssetRetries(sharedNodeAssetResults),
-    });
-    await measureSyncPhase({
-      phase: "convertConcepts",
-      phases,
-      operation: () =>
-        convertDgToSupabaseConcepts({
-          nodesSince: conceptNodesToSync,
-          since: sinceTime,
-          allNodeTypes: allDgNodeTypes,
-          sharedNodeTypeIds,
-          backfillNodeTypeIds: schemaFormatBackfill?.nodeTypeIdsToBackfill,
-          supabaseClient: activeSupabaseClient,
-          context: activeContext,
+        toCrossAppNodesWithEmbeddings({
+          nodes: conceptNodesToSync,
+          nodeTypes: allDgNodeTypes,
+          nodeIdsToEmbed: new Set(
+            sharedNodesOnlySync
+              ? []
+              : nodeInstancesToSync.map((node) => node.source_local_id),
+          ),
         }),
     });
+    const sharedNodesWithFullContent = await measureSyncPhase({
+      phase: "buildFullContent",
+      phases,
+      operation: () =>
+        Promise.resolve(
+          convertRoamNodeToFullContent({ nodes: sharedFullContentUpdates }),
+        ),
+    });
+    const { assetResults, rowFailures } = await upsertNodesWithAssets({
+      nodes: omitMissingSources({
+        nodes: withFullContent(nodesToUpsert, sharedNodesWithFullContent),
+        conceptIds: syncedSourceLocalIds,
+      }),
+      since: sinceTime,
+      allNodeTypes: allDgNodeTypes,
+      sharedNodeTypeIds,
+      backfillNodeTypeIds: schemaFormatBackfill?.nodeTypeIdsToBackfill,
+      supabaseClient: activeSupabaseClient,
+      context: activeContext,
+      phases,
+    });
+    reportSharedNodeAssets({
+      results: assetResults,
+      retried: await requestAssetRetries(assetResults),
+    });
+    if (rowFailures !== undefined) throw rowFailures;
     if (schemaFormatBackfill !== null) {
       reportSchemaFormatBackfill({
         backfilled: schemaFormatBackfill.nodeTypeIdsToBackfill.size,

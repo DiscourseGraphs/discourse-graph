@@ -24,9 +24,13 @@ COMMENT ON TABLE public."Space" IS
 
 ALTER TABLE public."Space" OWNER TO "postgres";
 
-GRANT ALL ON TABLE public."Space" TO anon;
-GRANT ALL ON TABLE public."Space" TO authenticated;
-GRANT ALL ON TABLE public."Space" TO service_role;
+-- Made ahead of public access. Space's policy shows anon no rows today.
+-- create-space runs a test query on Space with the caller's key, and refuses the call if it fails.
+GRANT SELECT ON TABLE public."Space" TO anon;
+
+-- Only create-space creates spaces: it writes Space and SpaceAccess together with the service key.
+-- A Space row inserted directly has no SpaceAccess, so nobody can see it, and it takes its url.
+REVOKE INSERT ON TABLE public."Space" FROM authenticated;
 
 CREATE OR REPLACE FUNCTION public.get_space_anonymous_email(platform public."Platform", space_id BIGINT)
 RETURNS character varying IMMUTABLE
@@ -35,6 +39,9 @@ LANGUAGE sql
 AS $$
     SELECT concat(lower(platform::text), '-', space_id, '-anon@database.discoursegraphs.com')
 $$;
+
+-- Not SECURITY DEFINER: runs as the caller.
+GRANT EXECUTE ON FUNCTION public.get_space_anonymous_email TO anon;
 
 
 -- on delete trigger anonymous user. Needs to be DEFINER to allow delete on user.auth.
@@ -52,6 +59,9 @@ BEGIN
     RETURN NEW;
 END;
 $$;
+
+-- Only triggers call it. Postgres checks EXECUTE on a trigger function when the trigger is created, not when it fires.
+REVOKE ALL ON FUNCTION public.after_delete_space FROM authenticated;
 
 CREATE TRIGGER on_delete_space_trigger AFTER DELETE ON public."Space" FOR EACH ROW EXECUTE FUNCTION public.after_delete_space();
 

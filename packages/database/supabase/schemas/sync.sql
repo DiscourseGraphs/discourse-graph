@@ -233,59 +233,6 @@ ALTER FUNCTION public.propose_sync_task(
 ) OWNER TO "postgres";
 
 
-GRANT ALL ON TABLE public.sync_info TO "anon";
-GRANT ALL ON TABLE public.sync_info TO "authenticated";
-GRANT ALL ON TABLE public.sync_info TO "service_role";
-
-GRANT ALL ON SEQUENCE public.sync_info_id_seq TO "anon";
-GRANT ALL ON SEQUENCE public.sync_info_id_seq TO "authenticated";
-GRANT ALL ON SEQUENCE public.sync_info_id_seq TO "service_role";
-
-GRANT ALL ON FUNCTION public.end_sync_task(
-    s_target bigint,
-    s_function character varying,
-    s_worker character varying,
-    s_status public.task_status,
-    s_started_at timestamptz
-) TO "anon";
-GRANT ALL ON FUNCTION public.end_sync_task(
-    s_target bigint,
-    s_function character varying,
-    s_worker character varying,
-    s_status public.task_status,
-    s_started_at timestamptz
-) TO "authenticated";
-GRANT ALL ON FUNCTION public.end_sync_task(
-    s_target bigint,
-    s_function character varying,
-    s_worker character varying,
-    s_status public.task_status,
-    s_started_at timestamptz
-) TO "service_role";
-
-GRANT ALL ON FUNCTION public.propose_sync_task(
-    s_target bigint,
-    s_function character varying,
-    s_worker character varying,
-    "timeout" interval,
-    "task_interval" interval
-) TO "anon";
-GRANT ALL ON FUNCTION public.propose_sync_task(
-    s_target bigint,
-    s_function character varying,
-    s_worker character varying,
-    "timeout" interval,
-    "task_interval" interval
-) TO "authenticated";
-GRANT ALL ON FUNCTION public.propose_sync_task(
-    s_target bigint,
-    s_function character varying,
-    s_worker character varying,
-    "timeout" interval,
-    "task_interval" interval
-) TO "service_role";
-
-
 CREATE OR REPLACE FUNCTION public.generic_entity_access(target_id BIGINT, target_type public."EntityType") RETURNS boolean
 STABLE SECURITY DEFINER
 SET search_path = ''
@@ -295,7 +242,7 @@ LANGUAGE sql AS $$
         WHEN target_type = 'Content' THEN public.content_in_space(target_id, 'editor')
         WHEN target_type = 'Concept' THEN public.concept_in_space(target_id, 'editor')
         WHEN target_type = 'Document' THEN public.document_in_space(target_id, 'editor')
-        WHEN target_type = 'PlatformAccount' THEN public.account_in_shared_space(target_id, 'editor')
+        WHEN target_type = 'PlatformAccount' THEN EXISTS (SELECT 1 FROM public."LocalAccess" AS la WHERE la.account_id = target_id AND la.space_id = any(public.my_space_ids('editor')))
         ELSE false
     END;
 $$;

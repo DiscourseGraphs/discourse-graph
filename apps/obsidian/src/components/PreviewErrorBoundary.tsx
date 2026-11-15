@@ -26,6 +26,9 @@ export class PreviewErrorBoundary extends Component<Props, State> {
   }
 
   render(): ReactNode {
+    // Children are `false` while the preview is toggled closed, and the fallback
+    // must not render then: it would sit beside a full-width result list.
+    if (!this.props.children) return null;
     if (this.state.error) {
       return (
         <div className="text-error flex flex-1 items-center justify-center">

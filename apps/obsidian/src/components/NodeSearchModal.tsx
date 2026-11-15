@@ -82,6 +82,18 @@ const formatTimestamp = (epochMs: number): string =>
 
 const PREVIEW_FLASH_CLASS = "dg-search-preview-flash";
 
+// An editable span has no selectionEnd, so compare the caret against the end of its contents.
+const isCaretAtEnd = (field: HTMLElement | null): boolean => {
+  const selection = field?.ownerDocument.getSelection();
+  if (!field || field.ownerDocument.activeElement !== field) return false;
+  if (!selection?.isCollapsed || !selection.anchorNode) return false;
+  if (!field.contains(selection.anchorNode)) return false;
+  const rest = field.ownerDocument.createRange();
+  rest.setStart(selection.anchorNode, selection.anchorOffset);
+  rest.setEnd(field, field.childNodes.length);
+  return rest.toString() === "";
+};
+
 // An image reserves no height until it loads, which would shift a line scrolled to before then.
 const waitForImages = async (container: HTMLElement): Promise<void> => {
   const pending = Array.from(container.querySelectorAll("img")).filter(
@@ -367,6 +379,9 @@ const NodeSearch = ({
   const [openDropdown, setOpenDropdown] = useState<SearchDropdownId>(null);
   const [sortKey, setSortKey] = useState<SortKey>(DEFAULT_SORT_KEY);
   const [showCandidates, setShowCandidates] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  // Mirrors the caret, so the footer shows the toggle only where ← and → reach it.
+  const [isCaretAtQueryEnd, setIsCaretAtQueryEnd] = useState(true);
   const [tagCandidates, setTagCandidates] = useState<SearchableNode[]>([]);
   const [sortDirection, setSortDirection] = useState<SortDirection>(
     DEFAULT_SORT_DIRECTION,
@@ -392,6 +407,19 @@ const NodeSearch = ({
 
   useEffect(() => {
     inputRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const field = inputRef.current;
+    if (!field) return;
+    const doc = field.ownerDocument;
+    const update = (): void => setIsCaretAtQueryEnd(isCaretAtEnd(field));
+    update();
+    // Focus moves leave the old selection behind, so they need their own listeners.
+    const events = ["selectionchange", "focusin", "focusout"] as const;
+    events.forEach((name) => doc.addEventListener(name, update));
+    return () =>
+      events.forEach((name) => doc.removeEventListener(name, update));
   }, []);
 
   // The fetch is synchronous today, so there is nothing to await or cancel yet.
@@ -489,6 +517,9 @@ const NodeSearch = ({
   const activeIndexInRange = activeIndex < results.length ? activeIndex : 0;
   const activeResult = results[activeIndexInRange];
 
+  // Shared by the footer and →, so the key and the button agree on when there is something to act on.
+  const canAct = nodesState.status === "ready" && !!activeResult;
+
   // Only the preview shows an author, so resolve the selection, not all 50 rows.
   const authorName = useMemo(
     () =>
@@ -555,6 +586,30 @@ const NodeSearch = ({
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    // Only at the end of the query, so ← and → still edit the text everywhere else.
+    if (
+      (event.key === "ArrowRight" || event.key === "ArrowLeft") &&
+      !event.defaultPrevented &&
+      !event.nativeEvent.isComposing &&
+      !event.shiftKey &&
+      !event.altKey &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      event.target === inputRef.current &&
+      isCaretAtEnd(inputRef.current)
+    ) {
+      if (event.key === "ArrowRight" && !isPreviewOpen && canAct) {
+        event.preventDefault();
+        setIsPreviewOpen(true);
+        return;
+      }
+      if (event.key === "ArrowLeft" && isPreviewOpen) {
+        event.preventDefault();
+        setIsPreviewOpen(false);
+        return;
+      }
+    }
+
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       // Otherwise the caret jumps to the start or end of the query.
       event.preventDefault();
@@ -641,7 +696,14 @@ const NodeSearch = ({
         />
       </div>
       <div className="border-modifier-border mt-3 flex flex-1 overflow-hidden rounded border">
-        <div className="border-modifier-border flex w-2/5 flex-col border-r">
+        {/* No preflight here: without `border-0 border-solid`, `border-r` draws nothing. */}
+        <div
+          className={`flex flex-col ${
+            isPreviewOpen
+              ? "border-modifier-border w-2/5 border-0 border-r border-solid"
+              : "w-full"
+          }`}
+        >
           {nodesState.status === "loading" && (
             <div className="text-muted p-4">Loading discourse nodes…</div>
           )}
@@ -661,26 +723,31 @@ const NodeSearch = ({
             />
           )}
         </div>
-        {/* Keep the boundary outside any conditional around PreviewPane: unmounting
-            it with the preview would let a teardown throw blank the modal again. */}
+        {/* The boundary wraps the toggle, not the reverse: unmounting it along with
+            the preview would let a teardown throw blank the modal again. */}
         <PreviewErrorBoundary
           resetKey={`${activeResult?.file.path ?? ""}:${activeResult?.tagLine?.line ?? ""}:${activeResult?.nodeTypeId ?? ""}`}
         >
-          <PreviewPane
-            app={app}
-            result={activeResult}
-            authorName={authorName}
-          />
+          {isPreviewOpen && (
+            <PreviewPane
+              app={app}
+              result={activeResult}
+              authorName={authorName}
+            />
+          )}
         </PreviewErrorBoundary>
       </div>
       <NodeSearchFooter
-        canAct={nodesState.status === "ready" && !!activeResult}
+        canAct={canAct}
         canInsertLink={!!insertTarget}
         isActiveResultLinkable={isActiveResultLinkable}
+        isPreviewOpen={isPreviewOpen}
+        isPreviewToggleVisible={isCaretAtQueryEnd}
         onClose={onClose}
         onInsertLink={insertLinkToActiveResult}
         onOpenInNewTab={() => openActiveResult(openFileInNewTab)}
         onOpenInSplit={() => openActiveResult(openFileInNewLeaf)}
+        onTogglePreview={() => setIsPreviewOpen((isOpen) => !isOpen)}
       />
     </div>
   );
