@@ -5,6 +5,7 @@ import React, {
   useMemo,
   useEffect,
   useCallback,
+  type ComponentProps,
 } from "react";
 import { Icon } from "@blueprintjs/core";
 import ExtensionApiContextProvider, {
@@ -188,10 +189,10 @@ export const DEFAULT_HEIGHT = 64;
 export const MAX_WIDTH = "400px";
 
 // Replaces the 2.4.6 patch that dispatched tldraw:error from DefaultErrorFallback.
-const ReportingErrorFallback: TLErrorFallbackComponent = ({
+const ReportingErrorFallback = ({
   error,
   editor,
-}) => {
+}: ComponentProps<TLErrorFallbackComponent>) => {
   useEffect(() => {
     document.dispatchEvent(
       new CustomEvent("tldraw:error", {
