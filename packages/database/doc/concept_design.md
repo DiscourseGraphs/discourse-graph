@@ -115,6 +115,7 @@ Residual (not otherwise accounted for) keys in Obsidian frontmatter are mapped t
 | CrossAppNodeSchema     | Concept                             | value |
 | ---------------------- | ----------------------------------- | ----- |
 | `label`                | `name`                              | {}    |
+| `label`                | `literal_content->label`            |       |
 | `template`             | `literal_content->template_content` |       |
 | `templateTitle`        | `literal_content->template`         |       |
 | `format`               | `literal_content->format`           |       |
@@ -132,8 +133,6 @@ In the case of a node with ObjectRelations, such as Evidence, we would see somet
 | -                      | `arity`                  | 1                                     |
 | `slotDefinitions`      | `reference_content`      | {"sourceDocument": <id of Reference>} |
 | `keys(slotDefinition)` | `literal_content->roles` | {"roles":["sourceDocument"]}          |
-
-Also note: In Obsidian, where we do not go through CrossAppNodeSchema, the label is also assigned to `literal_content->label`.
 
 Query filter: `.eq("is_relation", false).eq("is_schema", true)`
 

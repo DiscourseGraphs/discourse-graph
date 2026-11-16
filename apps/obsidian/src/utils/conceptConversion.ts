@@ -42,9 +42,8 @@ const getNodeExtraData = (
 };
 
 // The shared converters build each schema row from its CrossApp type. The values
-// added after them are the ones the CrossApp types cannot carry. The upsert route
-// converts on the server, so each has to become a CrossApp field or stop being
-// stored before sync can use the route.
+// set after them have no CrossApp field, so each one needs a field, or has to stop
+// being stored, before sync can send CrossApp objects instead of rows.
 export const discourseNodeSchemaToLocalConcept = ({
   accountLocalId,
   node,
@@ -77,7 +76,7 @@ export const discourseNodeSchemaToLocalConcept = ({
     description,
     literal_content: {
       ...(concept.literal_content as Record<string, Json>),
-      template_content: templateContent || null,
+      ...(templateContent ? {} : { template_content: null }),
       source_data: otherData,
       ...(importedFromRid ? { importedFromRid } : {}),
     },

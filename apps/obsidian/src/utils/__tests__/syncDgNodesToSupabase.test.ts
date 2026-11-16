@@ -169,6 +169,7 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
     id: "source-type",
     name: "Source",
     format: "SRC - {content}",
+    template: "",
     ...schemaTimes,
   };
   const IMPORTED_EVIDENCE_TYPE: DiscourseNode = {
