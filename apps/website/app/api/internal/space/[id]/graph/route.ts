@@ -19,6 +19,10 @@ import {
 } from "~/utils/supabase/apiUtils";
 import { createBearerTokenClient } from "~/utils/supabase/server";
 
+// The schema lookup puts every reference in its URL, which a gateway refuses past
+// a few kilobytes. Real bodies reference tens of schemas.
+const MAX_SCHEMA_REFERENCES = 100;
+
 export const POST = async (
   request: NextRequest,
   segmentData: SegmentDataType,
@@ -74,6 +78,10 @@ export const POST = async (
     const { data } = parsed;
 
     const references = schemaReferences(data);
+    if (references.length > MAX_SCHEMA_REFERENCES)
+      return respond(400, {
+        error: `The body references more than ${MAX_SCHEMA_REFERENCES} schemas it does not define`,
+      });
     const stored =
       references.length === 0
         ? { data: [], error: null }

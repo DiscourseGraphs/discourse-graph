@@ -196,6 +196,37 @@ describe("POST /api/internal/space/[id]/graph", () => {
     expect(rpc).not.toHaveBeenCalledWith("upsert_concepts", expect.anything());
   });
 
+  it.each([
+    {
+      when: "has a date Postgres can't store",
+      body: { nodes: [{ ...node, createdAt: "0000-06-01T00:00:00Z" }] },
+      path: ["nodes", 0, "createdAt"],
+    },
+    {
+      when: "has a node whose type is a RID",
+      body: { nodes: [{ ...node, nodeType: `${SPACE_URL}/no-such-type` }] },
+      path: ["nodes", 0, "nodeType"],
+    },
+  ])("refuses a body that $when, writing nothing", async ({ body, path }) => {
+    const { rpc } = fakeClient();
+    await expectResponse(await post({ body }), {
+      status: 400,
+      body: { issues: [{ path }] },
+    });
+    expect(rpc).not.toHaveBeenCalledWith("upsert_concepts", expect.anything());
+  });
+
+  it("refuses a body referencing more than 100 schemas, before any lookup", async () => {
+    const { from } = fakeClient();
+    const nodes = Array.from({ length: 101 }, (_, i) => ({
+      ...node,
+      localId: `claim-${i}`,
+      nodeType: `type-${i}`,
+    }));
+    await expectResponse(await post({ body: { nodes } }), { status: 400 });
+    expect(from).not.toHaveBeenCalledWith("my_concepts");
+  });
+
   it("answers 422 for a schema in neither the body nor the space", async () => {
     const { rpc } = fakeClient();
     await expectResponse(await post({ body: { nodes: [node] } }), {
