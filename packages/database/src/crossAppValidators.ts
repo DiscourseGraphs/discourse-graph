@@ -8,7 +8,8 @@ import { isRid } from "./lib/rid";
 const dateValidator = z
   .string()
   .datetime({ offset: true })
-  .transform((value) => new Date(value));
+  .transform((value) => new Date(value))
+  .pipe(z.date());
 
 const jsonValidator: z.ZodType<Json> = z.lazy(() =>
   z.union([
