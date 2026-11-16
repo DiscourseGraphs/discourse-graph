@@ -45,7 +45,9 @@ export const POST = async (
     // A plugin reads 401 as "sign in again", so only the auth server's verdict
     // on the token gets it; an unreachable or rate-limiting auth server is a 502.
     if (
-      (isAuthApiError(authError) && authError.status !== 429) ||
+      (isAuthApiError(authError) &&
+        authError.status < 500 &&
+        authError.status !== 429) ||
       isAuthSessionMissingError(authError)
     )
       return respond(401, { error: authError.message });

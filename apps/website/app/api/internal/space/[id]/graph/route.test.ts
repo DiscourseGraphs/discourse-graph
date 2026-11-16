@@ -160,6 +160,10 @@ describe("POST /api/internal/space/[id]/graph", () => {
         "over_request_rate_limit",
       ),
     },
+    {
+      when: "fails with a status the client does not retry",
+      authError: new AuthApiError("Internal Server Error", 505, undefined),
+    },
   ])(
     "answers 502 and reports it when the auth server $when",
     async ({ authError }) => {
