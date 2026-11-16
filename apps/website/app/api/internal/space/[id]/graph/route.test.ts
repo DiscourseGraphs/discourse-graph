@@ -219,6 +219,10 @@ describe("POST /api/internal/space/[id]/graph", () => {
   it.each([
     { when: "one schema id of 5,000 characters", types: ["t".repeat(5_000)] },
     {
+      when: "one schema id of 1,500 characters the URL encodes three times over",
+      types: ["~".repeat(1_500)],
+    },
+    {
       when: "1,000 schema ids",
       types: Array.from({ length: 1_000 }, (_, i) => `type-${i}`),
     },

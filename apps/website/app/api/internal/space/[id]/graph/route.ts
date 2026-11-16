@@ -19,9 +19,10 @@ import {
 } from "~/utils/supabase/apiUtils";
 import { createBearerTokenClient } from "~/utils/supabase/server";
 
-// The schema lookup puts every reference in its URL, and a gateway refuses a long
-// URL (the local one at about 33 KB). Real bodies reference tens of schemas, far
-// below this bound.
+// The schema lookup puts every reference in its URL query, and a gateway refuses a
+// long URL (the local one past about 8,200 characters). The length is measured as
+// postgrest-js encodes it, through URLSearchParams with each id quoted at most.
+// Real bodies reference tens of schemas, far below this bound.
 const MAX_SCHEMA_LOOKUP_CHARS = 4_000;
 
 export const POST = async (
@@ -79,9 +80,10 @@ export const POST = async (
     const { data } = parsed;
 
     const references = schemaReferences(data);
-    if (
-      encodeURIComponent(references.join(",")).length > MAX_SCHEMA_LOOKUP_CHARS
-    )
+    const lookupQuery = new URLSearchParams({
+      source_local_id: `in.(${references.map((id) => `"${id}"`).join(",")})`,
+    }).toString();
+    if (lookupQuery.length > MAX_SCHEMA_LOOKUP_CHARS)
       return respond(400, {
         error:
           "The schemas this body references but does not define are too long to look up",
