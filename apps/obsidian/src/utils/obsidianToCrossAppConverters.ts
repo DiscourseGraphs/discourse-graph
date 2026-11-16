@@ -14,6 +14,7 @@ import type {
   RelationInstance,
 } from "~/types";
 import type { DiscourseNodeInVault } from "./getDiscourseNodes";
+import { referenceIdOf } from "./sourceSlot";
 import type { ObsidianDiscourseNodeData } from "./syncDgNodesToSupabase";
 import type { ChangedNodeContent } from "./upsertNodesAsContentWithEmbeddings";
 
@@ -129,12 +130,8 @@ export const relationInstanceToCrossApp = ({
 }): CrossAppRelation => ({
   localId: relation.id,
   relationType: relation.type,
-  source:
-    (sourceNode.frontmatter.importedFromRid as string | undefined) ??
-    relation.source,
-  destination:
-    (destinationNode.frontmatter.importedFromRid as string | undefined) ??
-    relation.destination,
+  source: referenceIdOf(sourceNode),
+  destination: referenceIdOf(destinationNode),
   authorId: accountLocalId,
   createdAt: new Date(relation.created),
   modifiedAt: new Date(relation.lastModified ?? relation.created),

@@ -193,8 +193,7 @@ export const relationInstanceToLocalConcept = ({
   allNodesById: Record<string, DiscourseNodeInVault>;
   relationInstanceData: RelationInstance;
 }): LocalConceptDataInput | null => {
-  const { type, source, destination, importedFromRid, authorId } =
-    relationInstanceData;
+  const { type, source, destination, authorId } = relationInstanceData;
   const relationType = relationTypesById[type];
 
   if (!relationType) {
@@ -222,7 +221,6 @@ export const relationInstanceToLocalConcept = ({
       ? { author_id: authorId }
       : { author_local_id }),
     name: `[[${sourceNode.file.basename}]] -${relationType.label}-> [[${destinationNode.file.basename}]]`,
-    ...(importedFromRid ? { literal_content: { importedFromRid } } : {}),
   };
 };
 

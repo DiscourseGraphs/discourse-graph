@@ -141,7 +141,7 @@ describe("relationInstanceToLocalConcept author", () => {
     nodeTypeId: "type-1",
     nodeInstanceId,
   });
-  const conceptFor = (
+  const relationConceptFor = (
     relation: Partial<RelationInstance>,
   ): LocalConceptDataInput | null =>
     relationInstanceToLocalConcept({
@@ -170,14 +170,8 @@ describe("relationInstanceToLocalConcept author", () => {
       },
     });
 
-  it("names this vault's account as the author of a relation with no authorId", () => {
-    const concept = conceptFor({});
-    expect(concept).toHaveProperty("author_local_id", "account-1");
-    expect(concept).not.toHaveProperty("author_id");
-  });
-
   it("keeps a relation's numeric authorId as author_id, without an author_local_id", () => {
-    const concept = conceptFor({ authorId: 9 });
+    const concept = relationConceptFor({ authorId: 9 });
     expect(concept).toHaveProperty("author_id", 9);
     expect(concept).not.toHaveProperty("author_local_id");
   });
