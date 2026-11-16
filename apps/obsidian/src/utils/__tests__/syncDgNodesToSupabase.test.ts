@@ -203,6 +203,16 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
     authorId: 9,
     ...schemaTimes,
   };
+  const PROVISIONAL_REFUTES_TYPE: DiscourseRelationType = {
+    id: "refutes-type",
+    label: "refutes",
+    complement: "is refuted by",
+    color: "orange",
+    importedFromRid: "orn:obsidian.schema:other-vault/refutes-type",
+    status: "provisional",
+    authorId: 9,
+    ...schemaTimes,
+  };
   const CLAIM_CITES_SOURCE: DiscourseRelation = {
     id: "claim-cites-source",
     relationshipTypeId: "cites-type",
@@ -224,6 +234,16 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
     destinationId: "claim-type",
     importedFromRid: "orn:obsidian.schema:other-vault/claim-opposes-claim",
     status: "accepted",
+    authorId: 9,
+    ...schemaTimes,
+  };
+  const PROVISIONAL_EVIDENCE_OPPOSES_CLAIM: DiscourseRelation = {
+    id: "evidence-opposes-claim",
+    relationshipTypeId: "opposes-type",
+    sourceId: "evidence-type",
+    destinationId: "claim-type",
+    importedFromRid: "orn:obsidian.schema:other-vault/evidence-opposes-claim",
+    status: "provisional",
     authorId: 9,
     ...schemaTimes,
   };
@@ -301,13 +321,20 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
     type: "cites-type",
     source: "claim-node",
     destination: "source-node",
-    ...relationTimes,
+    created: Date.parse(RELATION_CREATED),
   };
   const CLAIM_SUPPORTS_IMPORTED: RelationInstance = {
     id: "rel-supports-imported",
     type: "supports-type",
     source: "claim-node",
     destination: "imported-claim",
+    ...relationTimes,
+  };
+  const IMPORTED_SUPPORTS_CLAIM: RelationInstance = {
+    id: "rel-imported-supports",
+    type: "supports-type",
+    source: "imported-claim",
+    destination: "claim-node",
     ...relationTimes,
   };
   const IMPORTED_RELATION: RelationInstance = {
@@ -455,11 +482,17 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
       settings: {
         accountLocalId: ACCOUNT_LOCAL_ID,
         nodeTypes: [CLAIM_TYPE, SOURCE_TYPE, IMPORTED_EVIDENCE_TYPE],
-        relationTypes: [CITES_TYPE, SUPPORTS_TYPE, IMPORTED_OPPOSES_TYPE],
+        relationTypes: [
+          CITES_TYPE,
+          SUPPORTS_TYPE,
+          IMPORTED_OPPOSES_TYPE,
+          PROVISIONAL_REFUTES_TYPE,
+        ],
         discourseRelations: [
           CLAIM_CITES_SOURCE,
           CLAIM_SUPPORTS_CLAIM,
           IMPORTED_CLAIM_OPPOSES_CLAIM,
+          PROVISIONAL_EVIDENCE_OPPOSES_CLAIM,
         ],
       },
       app: {
@@ -538,6 +571,7 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
           relations: [
             CLAIM_CITES_WALKER,
             CLAIM_SUPPORTS_IMPORTED,
+            IMPORTED_SUPPORTS_CLAIM,
             IMPORTED_RELATION,
           ],
         }),
@@ -561,6 +595,7 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
           "source-node",
           "rel-cites",
           "rel-supports-imported",
+          "rel-imported-supports",
         ].sort(),
       );
     });
@@ -770,15 +805,25 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
       });
     });
 
-    it("sends a Source before the note that cites it", () => {
+    it("sends every row after the rows it references in the same payload", () => {
       const ids = sent.map((concept) => concept.source_local_id);
-      expect(ids.indexOf("source-node")).toBeGreaterThanOrEqual(0);
-      expect(ids.indexOf("claim-node")).toBeGreaterThan(
-        ids.indexOf("source-node"),
+      const referencesAfter = sent.flatMap((concept, index) =>
+        [
+          concept.schema_represented_by_local_id,
+          ...Object.values(
+            (concept.local_reference_content ?? {}) as Record<
+              string,
+              string | string[]
+            >,
+          ).flat(),
+        ]
+          .filter((reference) => ids.indexOf(reference) >= index)
+          .map((reference) => `${concept.source_local_id} -> ${reference}`),
       );
+      expect(referencesAfter).toEqual([]);
     });
 
-    it("sends a relation as a Concept between its notes' ids, named by their titles", () => {
+    it("sends a relation with no lastModified as a Concept between its notes' ids, named by their titles and last modified when created", () => {
       expect(sentRow("rel-cites")).toStrictEqual({
         space_id: SPACE_ID,
         source_local_id: "rel-cites",
@@ -787,7 +832,7 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
         author_id: USER_ID,
         name: "[[CLM - Sleep consolidates memory]] -cites-> [[SRC - Walker 2017]]",
         created: RELATION_CREATED,
-        last_modified: RELATION_MODIFIED,
+        last_modified: RELATION_CREATED,
         literal_content: {},
         local_reference_content: {
           source: "claim-node",
@@ -796,7 +841,22 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
       });
     });
 
-    it("points a relation at an imported note by the note's origin RID", () => {
+    it("points a relation at an imported note by the note's origin RID, at either end", () => {
+      expect(sentRow("rel-imported-supports")).toStrictEqual({
+        space_id: SPACE_ID,
+        source_local_id: "rel-imported-supports",
+        schema_represented_by_local_id: "supports-type",
+        is_schema: false,
+        author_id: USER_ID,
+        name: "[[CLM - Dreams replay the day]] -supports-> [[CLM - Sleep consolidates memory]]",
+        created: RELATION_CREATED,
+        last_modified: RELATION_MODIFIED,
+        literal_content: {},
+        local_reference_content: {
+          source: IMPORTED_CLAIM_RID,
+          destination: "claim-node",
+        },
+      });
       expect(sentRow("rel-supports-imported")).toStrictEqual({
         space_id: SPACE_ID,
         source_local_id: "rel-supports-imported",
