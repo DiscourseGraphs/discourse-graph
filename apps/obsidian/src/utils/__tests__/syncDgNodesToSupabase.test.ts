@@ -330,9 +330,9 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
     destination: "imported-claim",
     ...relationTimes,
   };
-  const IMPORTED_SUPPORTS_CLAIM: RelationInstance = {
-    id: "rel-imported-supports",
-    type: "supports-type",
+  const IMPORTED_NOTE_OPPOSES_CLAIM: RelationInstance = {
+    id: "rel-imported-opposes",
+    type: "opposes-type",
     source: "imported-claim",
     destination: "claim-node",
     ...relationTimes,
@@ -571,7 +571,7 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
           relations: [
             CLAIM_CITES_WALKER,
             CLAIM_SUPPORTS_IMPORTED,
-            IMPORTED_SUPPORTS_CLAIM,
+            IMPORTED_NOTE_OPPOSES_CLAIM,
             IMPORTED_RELATION,
           ],
         }),
@@ -595,7 +595,7 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
           "source-node",
           "rel-cites",
           "rel-supports-imported",
-          "rel-imported-supports",
+          "rel-imported-opposes",
         ].sort(),
       );
     });
@@ -823,7 +823,7 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
       expect(referencesAfter).toEqual([]);
     });
 
-    it("sends a relation with no lastModified as a Concept between its notes' ids, named by their titles and last modified when created", () => {
+    it("sends a relation with no lastModified as a Concept between its notes' ids, named by their titles, with its created time as last_modified", () => {
       expect(sentRow("rel-cites")).toStrictEqual({
         space_id: SPACE_ID,
         source_local_id: "rel-cites",
@@ -842,13 +842,13 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
     });
 
     it("points a relation at an imported note by the note's origin RID, at either end", () => {
-      expect(sentRow("rel-imported-supports")).toStrictEqual({
+      expect(sentRow("rel-imported-opposes")).toStrictEqual({
         space_id: SPACE_ID,
-        source_local_id: "rel-imported-supports",
-        schema_represented_by_local_id: "supports-type",
+        source_local_id: "rel-imported-opposes",
+        schema_represented_by_local_id: "opposes-type",
         is_schema: false,
         author_id: USER_ID,
-        name: "[[CLM - Dreams replay the day]] -supports-> [[CLM - Sleep consolidates memory]]",
+        name: "[[CLM - Dreams replay the day]] -opposes-> [[CLM - Sleep consolidates memory]]",
         created: RELATION_CREATED,
         last_modified: RELATION_MODIFIED,
         literal_content: {},
