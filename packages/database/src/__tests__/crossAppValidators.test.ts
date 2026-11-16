@@ -219,6 +219,18 @@ describe("cross-app validators", () => {
     },
     {
       validator: crossAppNodeValidator,
+      when: "node created date is in year 0",
+      value: { ...node, createdAt: "0000-06-01T00:00:00Z" },
+      path: ["createdAt"],
+    },
+    {
+      validator: crossAppNodeValidator,
+      when: "node modified date passes year 9999 in UTC",
+      value: { ...node, modifiedAt: "9999-12-31T23:00:00-02:00" },
+      path: ["modifiedAt"],
+    },
+    {
+      validator: crossAppNodeValidator,
       when: "node created date is a number",
       value: { ...node, createdAt: 1749736800000 },
       path: ["createdAt"],
