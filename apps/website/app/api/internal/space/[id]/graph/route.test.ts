@@ -216,16 +216,25 @@ describe("POST /api/internal/space/[id]/graph", () => {
     expect(rpc).not.toHaveBeenCalledWith("upsert_concepts", expect.anything());
   });
 
-  it("refuses a body referencing more than 100 schemas, before any lookup", async () => {
-    const { from } = fakeClient();
-    const nodes = Array.from({ length: 101 }, (_, i) => ({
-      ...node,
-      localId: `claim-${i}`,
-      nodeType: `type-${i}`,
-    }));
-    await expectResponse(await post({ body: { nodes } }), { status: 400 });
-    expect(from).not.toHaveBeenCalledWith("my_concepts");
-  });
+  it.each([
+    { when: "one schema id of 5,000 characters", types: ["t".repeat(5_000)] },
+    {
+      when: "1,000 schema ids",
+      types: Array.from({ length: 1_000 }, (_, i) => `type-${i}`),
+    },
+  ])(
+    "refuses a body referencing $when it does not define, before any lookup",
+    async ({ types }) => {
+      const { from } = fakeClient();
+      const nodes = types.map((nodeType, i) => ({
+        ...node,
+        localId: `claim-${i}`,
+        nodeType,
+      }));
+      await expectResponse(await post({ body: { nodes } }), { status: 400 });
+      expect(from).not.toHaveBeenCalledWith("my_concepts");
+    },
+  );
 
   it("answers 422 for a schema in neither the body nor the space", async () => {
     const { rpc } = fakeClient();
