@@ -213,6 +213,12 @@ describe("cross-app validators", () => {
     },
     {
       validator: crossAppNodeValidator,
+      when: "node created date has an offset no time zone uses",
+      value: { ...node, createdAt: "2026-06-12T14:00:00+24:00" },
+      path: ["createdAt"],
+    },
+    {
+      validator: crossAppNodeValidator,
       when: "node created date is a number",
       value: { ...node, createdAt: 1749736800000 },
       path: ["createdAt"],
