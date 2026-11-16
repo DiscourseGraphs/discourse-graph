@@ -119,7 +119,7 @@ Residual (not otherwise accounted for) keys in Obsidian frontmatter are mapped t
 | `template`             | `literal_content->template_content` |       |
 | `templateTitle`        | `literal_content->template`         |       |
 | `format`               | `literal_content->format`           |       |
-| `color`                | `literal_content->color`            |       |
+| `color`                | `literal_content->color`            | hex   |
 | -                      | `is_schema`                         | true  |
 | -                      | `schema_id`                         | null  |
 | -                      | `arity`                             | 0     |
@@ -170,7 +170,7 @@ Query filter: `.eq("is_relation", false).eq("is_schema", false)`
 | -                          | `reference_content`              | {}                          |
 | `label`                    | `name`, `literal_content->label` |                             |
 | `complement`               | `literal_content->complement`    |                             |
-| `color`                    | `literal_content->color`         |                             |
+| `color`                    | `literal_content->color`         | tldraw color name           |
 | -                          | `is_relation`                    | true                        |
 
 Query filter: `.eq("is_relation", true).eq("is_schema", true).is("reference_content->source", "null")`
