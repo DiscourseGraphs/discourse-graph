@@ -4,12 +4,18 @@ import { Constants, type Json } from "./dbTypes";
 import { isRid } from "./lib/rid";
 
 // JSON carries a Date as an ISO 8601 string. One without an offset is refused because
-// `new Date` would read it in the server's local time zone.
+// `new Date` would read it in the server's local time zone. Postgres refuses a UTC
+// year outside 1 to 9999.
 const dateValidator = z
   .string()
   .datetime({ offset: true })
   .transform((value) => new Date(value))
-  .pipe(z.date());
+  .pipe(
+    z.date().refine((date) => {
+      const year = date.getUTCFullYear();
+      return year >= 1 && year <= 9999;
+    }, "Year must be between 1 and 9999 in UTC"),
+  );
 
 const jsonValidator: z.ZodType<Json> = z.lazy(() =>
   z.union([
