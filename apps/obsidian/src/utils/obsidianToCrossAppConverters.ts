@@ -81,11 +81,10 @@ export const nodeInstanceToCrossApp = ({
   accountLocalId: string;
   changedContent?: ChangedNodeContent;
 }): CrossAppNode => {
-  const { nodeInstanceId, nodeTypeId } = nodeData.frontmatter;
   const title = nodeData.file.basename;
   return {
-    localId: nodeInstanceId as string,
-    nodeType: nodeTypeId as string,
+    localId: nodeData.nodeInstanceId,
+    nodeType: nodeData.nodeTypeId,
     coreTitle: extractContentFromTitle(format ?? "", title),
     authorId: accountLocalId,
     createdAt: new Date(nodeData.created),

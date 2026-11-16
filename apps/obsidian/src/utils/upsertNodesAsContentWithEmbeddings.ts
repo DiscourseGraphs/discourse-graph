@@ -63,7 +63,7 @@ const fetchEmbeddings = async (texts: string[]): Promise<number[][]> => {
   return allEmbeddings;
 };
 
-export const buildNodeContentsWithEmbeddings = async ({
+export const buildChangedNodeContent = async ({
   obsidianNodes,
   plugin,
 }: {
@@ -100,7 +100,7 @@ export const buildNodeContentsWithEmbeddings = async ({
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(
-      `buildNodeContentsWithEmbeddings: Embedding service failed – ${errorMessage}`,
+      `buildChangedNodeContent: Embedding service failed – ${errorMessage}`,
     );
     throw new Error(errorMessage);
   }

@@ -5,7 +5,7 @@ import type {
   ChangeType,
   ObsidianDiscourseNodeData,
 } from "~/utils/syncDgNodesToSupabase";
-import { buildNodeContentsWithEmbeddings } from "~/utils/upsertNodesAsContentWithEmbeddings";
+import { buildChangedNodeContent } from "~/utils/upsertNodesAsContentWithEmbeddings";
 
 const plugin = {
   app: {
@@ -53,9 +53,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("buildNodeContentsWithEmbeddings", () => {
+describe("buildChangedNodeContent", () => {
   it("gives a new node its title's embedding and its full text", async () => {
-    const contentsByNodeId = await buildNodeContentsWithEmbeddings({
+    const contentsByNodeId = await buildChangedNodeContent({
       obsidianNodes: [
         changedNode({
           nodeInstanceId: "node-1",
@@ -75,7 +75,7 @@ describe("buildNodeContentsWithEmbeddings", () => {
   });
 
   it("gives a content-only edit its full text and fetches no embedding", async () => {
-    const contentsByNodeId = await buildNodeContentsWithEmbeddings({
+    const contentsByNodeId = await buildChangedNodeContent({
       obsidianNodes: [
         changedNode({
           nodeInstanceId: "node-1",
@@ -93,7 +93,7 @@ describe("buildNodeContentsWithEmbeddings", () => {
   });
 
   it("keeps each node's title embedding and full text under its own id", async () => {
-    const contentsByNodeId = await buildNodeContentsWithEmbeddings({
+    const contentsByNodeId = await buildChangedNodeContent({
       obsidianNodes: [
         changedNode({
           nodeInstanceId: "node-1",

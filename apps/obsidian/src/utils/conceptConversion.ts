@@ -23,8 +23,8 @@ import {
   relationTypeToCrossApp,
 } from "./obsidianToCrossAppConverters";
 
-// The shared converters build each schema row from its CrossApp type. The values
-// set after them have no CrossApp field, so each one needs a field, or has to stop
+// The shared converters build each row from its CrossApp type. The values set
+// after them have no CrossApp field, so each one needs a field, or has to stop
 // being stored, before sync can send CrossApp objects instead of rows.
 export const discourseNodeSchemaToLocalConcept = ({
   accountLocalId,
@@ -146,8 +146,7 @@ export const discourseNodeInstanceToLocalConcept = ({
   changedContent?: ChangedNodeContent;
 }): LocalConceptDataInput => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- exclude the ids from source_data
-  const { nodeInstanceId, nodeTypeId, importedFromRid, ...otherData } =
-    nodeData.frontmatter;
+  const { nodeInstanceId, nodeTypeId, ...otherData } = nodeData.frontmatter;
   const { contents_inline: convertedContents = [], ...concept } =
     crossAppNodeToDbConcept(
       nodeInstanceToCrossApp({
@@ -177,9 +176,6 @@ export const discourseNodeInstanceToLocalConcept = ({
       ...(concept.literal_content as Record<string, Json>),
       label: nodeData.file.basename,
       source_data: otherData as unknown as Json,
-      ...(importedFromRid && typeof importedFromRid === "string"
-        ? { importedFromRid }
-        : {}),
     },
     ...(contents.length > 0 ? { contents_inline: contents } : {}),
   };

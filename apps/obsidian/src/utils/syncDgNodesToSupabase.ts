@@ -13,7 +13,7 @@ import {
 } from "./supabaseContext";
 import { default as DiscourseGraphPlugin } from "~/index";
 import { ensurePublishedRelationsAccuracy } from "./publishNode";
-import { buildNodeContentsWithEmbeddings } from "./upsertNodesAsContentWithEmbeddings";
+import { buildChangedNodeContent } from "./upsertNodesAsContentWithEmbeddings";
 import {
   orderConceptsByDependency,
   discourseNodeInstanceToLocalConcept,
@@ -854,7 +854,7 @@ const convertDgToSupabaseConcepts = async ({
     spaceId: context.spaceId,
     pendingNodeIds: new Set(nodesSince.map((node) => node.nodeInstanceId)),
   });
-  const contentsByNodeId = await buildNodeContentsWithEmbeddings({
+  const contentsByNodeId = await buildChangedNodeContent({
     obsidianNodes: nodesSince,
     plugin,
   });
