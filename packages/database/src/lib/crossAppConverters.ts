@@ -109,6 +109,7 @@ export const crossAppNodeSchemaToDbConcept = (
     template: node.templateTitle,
     template_content: node.template,
     format: node.format,
+    color: node.color,
     roles: slots.length > 0 ? slots : undefined,
   });
   const referenceContent = slots.length ? node.slotDefinitions : undefined;
@@ -141,11 +142,12 @@ export const crossAppRelationTypeSchemaToDbConcept = (
     name: node.label,
     author_local_id: node.authorId,
     is_schema: true,
-    literal_content: {
+    literal_content: filterUndefined({
       roles: ["source", "destination"],
       label: node.label,
       complement: node.complement,
-    },
+      color: node.color,
+    }),
     created: node.createdAt?.toISOString(),
     last_modified: node.modifiedAt?.toISOString(),
   });
