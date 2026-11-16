@@ -41,7 +41,7 @@ type UpsertEntry = {
 };
 
 type UpsertFailure = Omit<UpsertEntry, "concept"> & {
-  reason: "name_conflict" | "error";
+  reason: "unique_conflict" | "error";
 };
 
 export type StoredSchema = Pick<
@@ -123,6 +123,25 @@ const findContentScaleIssues = (data: CrossAppUpsertData): UpsertIssue[] =>
     ),
   );
 
+// upsert_concepts stores a node or relation whose RID type names no concept with
+// a NULL schema_id and no error, and the schema check looks up local ids only, so
+// a RID type is refused until a caller needs one.
+const findRidTypeIssues = (data: CrossAppUpsertData): UpsertIssue[] =>
+  [
+    ...(data.nodes ?? []).map((node, index) => ({
+      path: ["nodes", index, "nodeType"],
+      type: node.nodeType,
+    })),
+    ...(data.relations ?? []).map((relation, index) => ({
+      path: ["relations", index, "relationType"],
+      type: relation.relationType,
+    })),
+  ].flatMap(({ path, type }) =>
+    isRid(type)
+      ? [{ path, message: "This route does not take a RID type yet" }]
+      : [],
+  );
+
 type ParseResult =
   | { success: true; data: CrossAppUpsertData }
   | { success: false; issues: UpsertIssue[] };
@@ -154,6 +173,7 @@ export const parseUpsertData = ({
   const issues = [
     ...findItemIssues({ data: result.data, spaceUrl }),
     ...findContentScaleIssues(result.data),
+    ...findRidTypeIssues(result.data),
   ];
   if (issues.length > 0) return refuse(issues);
   return { success: true, data: result.data };
@@ -238,20 +258,32 @@ const relatedConcepts = (concept: LocalConceptDataInput): string[] =>
 
 // upsert_concepts resolves a reference only to a row already written. Local ids
 // are caller input and may be "constructor", so they key a Map, not an object.
+// The walk keeps its own stack: a chain of thousands of references would overflow
+// the call stack.
 const orderByDependency = (entries: UpsertEntry[]): UpsertEntry[] => {
-  const remainder = new Map(entries.map((e) => [e.localId, e]));
+  const byId = new Map(entries.map((e) => [e.localId, e]));
   const processed = new Set<string>();
   const ordered: UpsertEntry[] = [];
-  const visit = (entry: UpsertEntry): void => {
+  const enter = (entry: UpsertEntry) => {
     processed.add(entry.localId);
-    for (const id of relatedConcepts(entry.concept)) {
-      const related = remainder.get(id);
-      if (related !== undefined && !processed.has(id)) visit(related);
-    }
-    ordered.push(entry);
-    remainder.delete(entry.localId);
+    return { entry, pending: relatedConcepts(entry.concept).reverse() };
   };
-  for (const entry of remainder.values()) visit(entry);
+  for (const root of entries) {
+    if (processed.has(root.localId)) continue;
+    const stack = [enter(root)];
+    while (stack.length > 0) {
+      const top = stack[stack.length - 1]!;
+      const id = top.pending.pop();
+      if (id === undefined) {
+        ordered.push(top.entry);
+        stack.pop();
+        continue;
+      }
+      const related = byId.get(id);
+      if (related !== undefined && !processed.has(id))
+        stack.push(enter(related));
+    }
+  }
   return ordered;
 };
 
@@ -291,8 +323,8 @@ export const toOrderedEntries = ({
   return orderByDependency(UPSERT_KINDS.flatMap((kind) => toEntries(kind)));
 };
 
-// upsert_concepts returns one id per input row, in input order: -1 for a name
-// conflict and -2 for any other error.
+// upsert_concepts returns one id per input row, in input order: -1 for any
+// unique violation, such as a name or a Content clash, and -2 for any other error.
 export const mapUpsertResults = ({
   entries,
   ids,
@@ -309,7 +341,7 @@ export const mapUpsertResults = ({
       failed.push({
         localId,
         kind,
-        reason: id === -1 ? "name_conflict" : "error",
+        reason: id === -1 ? "unique_conflict" : "error",
       });
   });
   return { upserted: Object.fromEntries(upserted), failed };
