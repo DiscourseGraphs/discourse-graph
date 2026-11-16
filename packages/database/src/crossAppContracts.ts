@@ -26,6 +26,7 @@ export type CrossAppNodeSchema = CrossAppSchemaBase & {
   template?: string;
   templateTitle?: string;
   format?: string;
+  color?: string;
   slotDefinitions?: Record<string, LocalId | undefined>;
 };
 
@@ -33,7 +34,8 @@ export type CrossAppNodeSchema = CrossAppSchemaBase & {
 export type CrossAppRelationTypeSchema = CrossAppSchemaBase & {
   label: string;
   complement: string;
-  // should we add colour? format?
+  color?: string;
+  // should we add format?
 };
 
 // A relation triple schema
