@@ -184,6 +184,32 @@ describe("parseUpsertData", () => {
       }),
     ),
     {
+      when: "has a node whose type is a RID",
+      body: {
+        nodes: [toJson(node("claim-1", `${SPACE_URL}/no-such-type`))],
+      },
+      issues: [
+        {
+          path: ["nodes", 0, "nodeType"],
+          message: "This route does not take a RID type yet",
+        },
+      ],
+    },
+    {
+      when: "has a relation whose type is a RID",
+      body: {
+        relations: [
+          toJson({ ...relation, relationType: "orn:roam.schema:graph-b/x" }),
+        ],
+      },
+      issues: [
+        {
+          path: ["relations", 0, "relationType"],
+          message: "This route does not take a RID type yet",
+        },
+      ],
+    },
+    {
       when: "has metadata nested 100,000 levels deep",
       body: deeplyNested(100_000),
       issues: [{ path: [], message: "The body is nested too deeply" }],
@@ -364,6 +390,19 @@ describe("toOrderedEntries", () => {
     before("claim-1", "relation-1");
   });
 
+  it("orders a chain of 10,000 nodes, each citing the next as its Source", () => {
+    const length = 10_000;
+    const nodes = Array.from({ length }, (_, i) =>
+      i + 1 < length
+        ? node(`n-${i}`, "source-type", { source: `n-${i + 1}` })
+        : node(`n-${i}`, "source-type"),
+    );
+    const ids = toOrderedEntries({ data: { nodes }, storedSchemas: [] }).map(
+      (e) => e.localId,
+    );
+    expect(ids).toEqual(nodes.map((n) => n.localId).reverse());
+  });
+
   it.each([
     { from: "the body", data: graph, storedSchemas: [] },
     {
@@ -418,7 +457,7 @@ describe("mapUpsertResults", () => {
     const ids = entries.map((e, index) => failures[e.localId] ?? 100 + index);
     const { upserted, failed } = mapUpsertResults({ entries, ids });
     expect(failed).toEqual([
-      { localId: "evidence-1", kind: "nodes", reason: "name_conflict" },
+      { localId: "evidence-1", kind: "nodes", reason: "unique_conflict" },
       { localId: "relation-1", kind: "relations", reason: "error" },
     ]);
     expect(upserted["source-1"]).toBe(
