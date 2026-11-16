@@ -4,8 +4,8 @@ import { Constants, type Json } from "./dbTypes";
 import { isRid } from "./lib/rid";
 
 // JSON carries a Date as an ISO 8601 string. One without an offset is refused because
-// `new Date` would read it in the server's local time zone. Postgres refuses a UTC
-// year outside 1 to 9999.
+// `new Date` would read it in the server's local time zone. Postgres can't read the
+// string `toISOString` writes for a UTC year outside 1 to 9999.
 const dateValidator = z
   .string()
   .datetime({ offset: true })

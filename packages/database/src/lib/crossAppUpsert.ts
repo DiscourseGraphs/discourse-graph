@@ -271,8 +271,7 @@ const orderByDependency = (entries: UpsertEntry[]): UpsertEntry[] => {
   for (const root of entries) {
     if (processed.has(root.localId)) continue;
     const stack = [enter(root)];
-    while (stack.length > 0) {
-      const top = stack[stack.length - 1]!;
+    for (let top = stack.at(-1); top !== undefined; top = stack.at(-1)) {
       const id = top.pending.pop();
       if (id === undefined) {
         ordered.push(top.entry);
