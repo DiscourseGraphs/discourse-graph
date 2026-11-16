@@ -227,6 +227,26 @@ describe("parseUpsertData", () => {
     },
   );
 
+  it("refuses inline content with a scale other than document", () => {
+    const claim = node("claim-1", "claim-type");
+    const withScales = {
+      ...claim,
+      content: {
+        direct: { ...claim.content.direct, scale: "document" },
+        full: { value: "Body", contentType: "text/plain", scale: "block" },
+      },
+    };
+    expect(parse({ nodes: [toJson(withScales)] })).toEqual({
+      success: false,
+      issues: [
+        {
+          path: ["nodes", 0, "content", "full", "scale"],
+          message: "This route stores inline content as a document",
+        },
+      ],
+    });
+  });
+
   it("refuses a key outside the five root types", () => {
     expect(parse({ edges: [] })).toMatchObject({
       success: false,

@@ -107,6 +107,22 @@ const findItemIssues = ({
   });
 };
 
+// upsert_concepts stores every inline content with scale "document", so another
+// scale is refused, not rewritten.
+const findContentScaleIssues = (data: CrossAppUpsertData): UpsertIssue[] =>
+  (data.nodes ?? []).flatMap((node, index) =>
+    Object.entries(node.content).flatMap(([variant, content]) =>
+      content.scale === undefined || content.scale === "document"
+        ? []
+        : [
+            {
+              path: ["nodes", index, "content", variant, "scale"],
+              message: "This route stores inline content as a document",
+            },
+          ],
+    ),
+  );
+
 type ParseResult =
   | { success: true; data: CrossAppUpsertData }
   | { success: false; issues: UpsertIssue[] };
@@ -135,7 +151,10 @@ export const parseUpsertData = ({
   }
   if (!result.success)
     return refuse(result.error.issues.flatMap(toUpsertIssues));
-  const issues = findItemIssues({ data: result.data, spaceUrl });
+  const issues = [
+    ...findItemIssues({ data: result.data, spaceUrl }),
+    ...findContentScaleIssues(result.data),
+  ];
   if (issues.length > 0) return refuse(issues);
   return { success: true, data: result.data };
 };
