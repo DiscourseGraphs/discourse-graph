@@ -856,22 +856,19 @@ const convertDgToSupabaseConcepts = async ({
   });
   const contentsByNodeId = await buildNodeContentsWithEmbeddings({
     obsidianNodes: nodesSince,
-    accountLocalId,
     plugin,
   });
-  const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
-    return {
-      ...discourseNodeInstanceToLocalConcept({
-        context,
-        nodeData: {
-          ...node,
-          sourceDocument: sourceSlotByNodeId[node.nodeInstanceId],
-        },
-        nodeTypesById,
-      }),
-      contents_inline: contentsByNodeId[node.nodeInstanceId],
-    };
-  });
+  const nodeInstanceToLocalConcepts = nodesSince.map((node) =>
+    discourseNodeInstanceToLocalConcept({
+      accountLocalId,
+      nodeData: {
+        ...node,
+        sourceDocument: sourceSlotByNodeId[node.nodeInstanceId],
+      },
+      nodeTypesById,
+      changedContent: contentsByNodeId[node.nodeInstanceId],
+    }),
+  );
 
   const relationInstanceToLocalConcepts = relationInstances
     .filter(

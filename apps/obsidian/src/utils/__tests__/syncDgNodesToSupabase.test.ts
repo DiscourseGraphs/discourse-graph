@@ -351,11 +351,9 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
     [...text].map((char) => char.charCodeAt(0));
 
   const CLAIM_CONCEPT: LocalConceptDataInput = {
-    space_id: SPACE_ID,
     source_local_id: "claim-node",
     schema_represented_by_local_id: "claim-type",
-    is_schema: false,
-    author_id: USER_ID,
+    author_local_id: ACCOUNT_LOCAL_ID,
     name: CLAIM_PATH,
     created: NOTE_CREATED,
     last_modified: NOTE_MODIFIED,
@@ -750,11 +748,9 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
 
     it("sends a note with no Source and no extra frontmatter without a sourceDocument and with an empty source_data", () => {
       expect(sentRow("source-node")).toStrictEqual({
-        space_id: SPACE_ID,
         source_local_id: "source-node",
         schema_represented_by_local_id: "source-type",
-        is_schema: false,
-        author_id: USER_ID,
+        author_local_id: ACCOUNT_LOCAL_ID,
         name: "Sources/SRC - Walker 2017.md",
         created: NOTE_CREATED,
         last_modified: NOTE_MODIFIED,
