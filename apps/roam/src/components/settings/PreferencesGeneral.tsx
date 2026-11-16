@@ -191,6 +191,22 @@ const PreferencesGeneral = ({
           }
         }}
       />
+      <FeatureFlagPanel
+        title="Enable left sidebar"
+        description="Whether or not to enable the left sidebar."
+        featureKey="Enable left sidebar"
+        initialValue={featureFlags["Enable left sidebar"]}
+        {...legacyBlocks.leftSidebarFlag}
+        onAfterChange={(checked: boolean) => {
+          if (checked && !featureFlags["Use new settings store"]) {
+            setIsLeftSidebarAlertOpen(true);
+          }
+          posthog.capture("General Settings: Left Sidebar Toggled", {
+            enabled: checked,
+          });
+        }}
+      />
+      {/* Last on the page: a heading claims every row under it, so no ungrouped row may follow. */}
       <SettingsGroup title="Node menu trigger">
         <GlobalTextPanel
           title="Graph-wide default"
@@ -221,21 +237,6 @@ const PreferencesGeneral = ({
           )}
         />
       </SettingsGroup>
-      <FeatureFlagPanel
-        title="Enable left sidebar"
-        description="Whether or not to enable the left sidebar."
-        featureKey="Enable left sidebar"
-        initialValue={featureFlags["Enable left sidebar"]}
-        {...legacyBlocks.leftSidebarFlag}
-        onAfterChange={(checked: boolean) => {
-          if (checked && !featureFlags["Use new settings store"]) {
-            setIsLeftSidebarAlertOpen(true);
-          }
-          posthog.capture("General Settings: Left Sidebar Toggled", {
-            enabled: checked,
-          });
-        }}
-      />
       <Alert
         isOpen={isLeftSidebarAlertOpen}
         onConfirm={() => window.location.reload()}
