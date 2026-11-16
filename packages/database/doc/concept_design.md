@@ -54,12 +54,14 @@ CrossAppNodeSchema:
   label: string
   template?: string
   templateTitle?: string
+  color?: string
 
 CrossAppRelationTypeSchema:
   # Base and...
   metadata?: Json
   label: string
   complement: string
+  color?: string
 
 CrossAppRelationTripleSchema (Roam):
   # Base and...
