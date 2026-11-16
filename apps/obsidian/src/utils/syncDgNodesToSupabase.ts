@@ -881,7 +881,7 @@ const convertDgToSupabaseConcepts = async ({
     )
     .map((relationInstanceData) =>
       relationInstanceToLocalConcept({
-        context,
+        accountLocalId,
         relationTypesById,
         allNodesById,
         relationInstanceData,

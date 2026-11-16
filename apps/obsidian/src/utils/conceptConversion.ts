@@ -4,7 +4,6 @@ import type {
   DiscourseRelationType,
   RelationInstance,
 } from "~/types";
-import type { SupabaseContext } from "./supabaseContext";
 import type { DiscourseNodeInVault } from "./getDiscourseNodes";
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 import type { ObsidianDiscourseNodeData } from "./syncDgNodesToSupabase";
@@ -13,12 +12,14 @@ import type { ChangedNodeContent } from "./upsertNodesAsContentWithEmbeddings";
 import {
   crossAppNodeSchemaToDbConcept,
   crossAppNodeToDbConcept,
+  crossAppRelationToDbConcept,
   crossAppRelationTripleSchemaToDbConcept,
   crossAppRelationTypeSchemaToDbConcept,
 } from "@repo/database/lib/crossAppConverters";
 import {
   nodeInstanceToCrossApp,
   nodeTypeToCrossApp,
+  relationInstanceToCrossApp,
   relationTripleToCrossApp,
   relationTypeToCrossApp,
 } from "./obsidianToCrossAppConverters";
@@ -182,17 +183,17 @@ export const discourseNodeInstanceToLocalConcept = ({
 };
 
 export const relationInstanceToLocalConcept = ({
-  context,
+  accountLocalId,
   relationTypesById,
   allNodesById,
   relationInstanceData,
 }: {
-  context: SupabaseContext;
+  accountLocalId: string;
   relationTypesById: Record<string, DiscourseRelationType>;
   allNodesById: Record<string, DiscourseNodeInVault>;
   relationInstanceData: RelationInstance;
 }): LocalConceptDataInput | null => {
-  const { type, created, lastModified, source, destination, importedFromRid } =
+  const { type, source, destination, importedFromRid, authorId } =
     relationInstanceData;
   const relationType = relationTypesById[type];
 
@@ -207,26 +208,21 @@ export const relationInstanceToLocalConcept = ({
     return null;
   }
 
-  const literal_content: Record<string, Json> = {};
-  if (importedFromRid) literal_content.importedFromRid = importedFromRid;
+  const { author_local_id, ...concept } = crossAppRelationToDbConcept(
+    relationInstanceToCrossApp({
+      relation: relationInstanceData,
+      sourceNode,
+      destinationNode,
+      accountLocalId,
+    }),
+  );
   return {
-    space_id: context.spaceId,
+    ...concept,
+    ...(typeof authorId === "number"
+      ? { author_id: authorId }
+      : { author_local_id }),
     name: `[[${sourceNode.file.basename}]] -${relationType.label}-> [[${destinationNode.file.basename}]]`,
-    source_local_id: relationInstanceData.id,
-    author_id: relationInstanceData.authorId ?? context.userId,
-    schema_represented_by_local_id: type,
-    is_schema: false,
-    created: new Date(created).toISOString(),
-    last_modified: new Date(lastModified ?? created).toISOString(),
-    literal_content,
-    local_reference_content: {
-      source:
-        (sourceNode.frontmatter.importedFromRid as string | undefined) ??
-        source,
-      destination:
-        (destinationNode.frontmatter.importedFromRid as string | undefined) ??
-        destination,
-    },
+    ...(importedFromRid ? { literal_content: { importedFromRid } } : {}),
   };
 };
 
