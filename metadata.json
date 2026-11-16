@@ -3,7 +3,7 @@
   "checkpoint_id": "01M7JS829XWXFGZ0TW3ET9SSKT",
   "strategy": "manual-commit",
   "branch": "roam-setting-overhaul",
-  "checkpoints_count": 4,
+  "checkpoints_count": 14,
   "files_touched": [
     "apps/roam/src/components/settings/PreferencesGeneral.tsx"
   ],
@@ -14,20 +14,27 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": "/0/prompt.txt"
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 98,
-    "cache_creation_tokens": 710188,
-    "cache_read_tokens": 15271088,
-    "output_tokens": 20221,
-    "api_call_count": 46,
+    "input_tokens": 348,
+    "cache_creation_tokens": 908073,
+    "cache_read_tokens": 46911780,
+    "output_tokens": 119231,
+    "api_call_count": 155,
     "subagent_tokens": {
-      "input_tokens": 0,
-      "cache_creation_tokens": 0,
-      "cache_read_tokens": 0,
-      "output_tokens": 0,
-      "api_call_count": 0
+      "input_tokens": 394,
+      "cache_creation_tokens": 1281638,
+      "cache_read_tokens": 38272693,
+      "output_tokens": 188494,
+      "api_call_count": 195
     }
   }
 }
