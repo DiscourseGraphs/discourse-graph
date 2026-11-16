@@ -108,13 +108,19 @@ const NODE_TYPE: DiscourseNode = {
 describe("discourseNodeSchemaToLocalConcept format", () => {
   it("publishes the format at the top level of literal content", () => {
     expect(
-      discourseNodeSchemaToLocalConcept({ context: CONTEXT, node: NODE_TYPE }),
+      discourseNodeSchemaToLocalConcept({
+        accountLocalId: "account-1",
+        node: NODE_TYPE,
+      }),
     ).toMatchObject({ literal_content: { format: "CLM - {content}" } });
   });
 
   it("keeps the other metadata in source data without the format", () => {
     expect(
-      discourseNodeSchemaToLocalConcept({ context: CONTEXT, node: NODE_TYPE }),
+      discourseNodeSchemaToLocalConcept({
+        accountLocalId: "account-1",
+        node: NODE_TYPE,
+      }),
     ).toHaveProperty("literal_content.source_data", {
       shortcut: "C",
       color: "#7DA13E",

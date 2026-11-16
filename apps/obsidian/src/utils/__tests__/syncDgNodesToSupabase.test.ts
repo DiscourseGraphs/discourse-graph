@@ -602,10 +602,9 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
 
     it("sends a node type as a schema Concept with its format, settings and template", () => {
       expect(sentRow("claim-type")).toStrictEqual({
-        space_id: SPACE_ID,
         source_local_id: "claim-type",
         is_schema: true,
-        author_id: USER_ID,
+        author_local_id: ACCOUNT_LOCAL_ID,
         name: "Claim",
         description: "An assertion that evidence can support",
         created: SCHEMA_CREATED,
@@ -628,10 +627,9 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
 
     it("sends template_content null for a node type with no template", () => {
       expect(sentRow("source-type")).toStrictEqual({
-        space_id: SPACE_ID,
         source_local_id: "source-type",
         is_schema: true,
-        author_id: USER_ID,
+        author_local_id: ACCOUNT_LOCAL_ID,
         name: "Source",
         created: SCHEMA_CREATED,
         last_modified: SCHEMA_MODIFIED,
@@ -646,10 +644,9 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
 
     it("sends an imported node type with its origin RID, authored by this space's user", () => {
       expect(sentRow("evidence-type")).toStrictEqual({
-        space_id: SPACE_ID,
         source_local_id: "evidence-type",
         is_schema: true,
-        author_id: USER_ID,
+        author_local_id: ACCOUNT_LOCAL_ID,
         name: "Evidence",
         created: SCHEMA_CREATED,
         last_modified: SCHEMA_MODIFIED,
@@ -665,10 +662,9 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
 
     it("sends a relation type as a schema Concept named by its label", () => {
       expect(sentRow("cites-type")).toStrictEqual({
-        space_id: SPACE_ID,
         source_local_id: "cites-type",
         is_schema: true,
-        author_id: USER_ID,
+        author_local_id: ACCOUNT_LOCAL_ID,
         name: "cites",
         created: SCHEMA_CREATED,
         last_modified: SCHEMA_MODIFIED,
@@ -683,10 +679,9 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
 
     it("sends an accepted imported relation type with its origin RID and without its status", () => {
       expect(sentRow("opposes-type")).toStrictEqual({
-        space_id: SPACE_ID,
         source_local_id: "opposes-type",
         is_schema: true,
-        author_id: USER_ID,
+        author_local_id: ACCOUNT_LOCAL_ID,
         name: "opposes",
         created: SCHEMA_CREATED,
         last_modified: SCHEMA_MODIFIED,
@@ -702,10 +697,9 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
 
     it("names a relation triple '<source type> -<label>-> <destination type>' and references its types", () => {
       expect(sentRow("claim-cites-source")).toStrictEqual({
-        space_id: SPACE_ID,
         source_local_id: "claim-cites-source",
         is_schema: true,
-        author_id: USER_ID,
+        author_local_id: ACCOUNT_LOCAL_ID,
         name: "Claim -cites-> Source",
         created: SCHEMA_CREATED,
         last_modified: SCHEMA_MODIFIED,
@@ -724,10 +718,9 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
 
     it("sends an accepted imported relation triple with its origin RID", () => {
       expect(sentRow("claim-opposes-claim")).toStrictEqual({
-        space_id: SPACE_ID,
         source_local_id: "claim-opposes-claim",
         is_schema: true,
-        author_id: USER_ID,
+        author_local_id: ACCOUNT_LOCAL_ID,
         name: "Claim -opposes-> Claim",
         created: SCHEMA_CREATED,
         last_modified: SCHEMA_MODIFIED,

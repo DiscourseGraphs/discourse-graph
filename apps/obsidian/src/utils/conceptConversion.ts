@@ -10,8 +10,18 @@ import type { DiscourseNodeInVault } from "./getDiscourseNodes";
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 import type { ObsidianDiscourseNodeData } from "./syncDgNodesToSupabase";
 import type { Json } from "@repo/database/dbTypes";
+import {
+  crossAppNodeSchemaToDbConcept,
+  crossAppRelationTripleSchemaToDbConcept,
+  crossAppRelationTypeSchemaToDbConcept,
+} from "@repo/database/lib/crossAppConverters";
 import { extractContentFromTitle } from "@repo/database/lib/extractContentFromTitle";
 import { SOURCE_SLOT } from "~/constants";
+import {
+  nodeTypeToCrossApp,
+  relationTripleToCrossApp,
+  relationTypeToCrossApp,
+} from "./obsidianToCrossAppConverters";
 
 /**
  * Get extra data (author, timestamps) from file metadata
@@ -31,12 +41,16 @@ const getNodeExtraData = (
   };
 };
 
+// The shared converters build each schema row from its CrossApp type. The values
+// added after them are the ones the CrossApp types cannot carry. The upsert route
+// converts on the server, so each has to become a CrossApp field or stop being
+// stored before sync can use the route.
 export const discourseNodeSchemaToLocalConcept = ({
-  context,
+  accountLocalId,
   node,
   templateContent,
 }: {
-  context: SupabaseContext;
+  accountLocalId: string;
   node: DiscourseNode;
   templateContent?: string;
 }): LocalConceptDataInput => {
@@ -51,33 +65,32 @@ export const discourseNodeSchemaToLocalConcept = ({
     importedFromRid,
     ...otherData
   } = node;
-  const literal_content: Record<string, Json> = {
-    label: name,
-    format,
-    source_data: otherData,
-  };
-  if (template) literal_content.template = template;
-  literal_content.template_content = templateContent || null;
-  if (importedFromRid) literal_content.importedFromRid = importedFromRid;
+  const concept = crossAppNodeSchemaToDbConcept(
+    nodeTypeToCrossApp({
+      nodeType: { id, name, format, template, created, modified },
+      templateContent,
+      accountLocalId,
+    }),
+  );
   return {
-    space_id: context.spaceId,
-    name,
-    source_local_id: id,
-    is_schema: true,
-    author_id: context.userId,
-    created: new Date(created).toISOString(),
-    last_modified: new Date(modified).toISOString(),
-    description: description,
-    literal_content,
+    ...concept,
+    description,
+    literal_content: {
+      ...(concept.literal_content as Record<string, Json>),
+      template_content: templateContent || null,
+      source_data: otherData,
+      ...(importedFromRid ? { importedFromRid } : {}),
+    },
   };
 };
 
-const STANDARD_ROLES = ["source", "destination"];
-
-export const discourseRelationTypeToLocalConcept = (
-  context: SupabaseContext,
-  relationType: DiscourseRelationType,
-): LocalConceptDataInput => {
+export const discourseRelationTypeToLocalConcept = ({
+  accountLocalId,
+  relationType,
+}: {
+  accountLocalId: string;
+  relationType: DiscourseRelationType;
+}): LocalConceptDataInput => {
   const {
     id,
     label,
@@ -89,71 +102,50 @@ export const discourseRelationTypeToLocalConcept = (
     status, //destructuring status to not upload it to the database
     ...otherData
   } = relationType;
-  const literal_content: Record<string, Json> = {
-    roles: STANDARD_ROLES,
-    label,
-    complement,
-    source_data: otherData,
-  };
-  if (importedFromRid) literal_content.importedFromRid = importedFromRid;
-
+  const concept = crossAppRelationTypeSchemaToDbConcept(
+    relationTypeToCrossApp({
+      relationType: { id, label, complement, created, modified },
+      accountLocalId,
+    }),
+  );
   return {
-    space_id: context.spaceId,
-    name: label,
-    source_local_id: id,
-    is_schema: true,
-    author_id: context.userId,
-    created: new Date(created).toISOString(),
-    last_modified: new Date(modified).toISOString(),
-    literal_content,
+    ...concept,
+    literal_content: {
+      ...(concept.literal_content as Record<string, Json>),
+      source_data: otherData,
+      ...(importedFromRid ? { importedFromRid } : {}),
+    },
   };
 };
 
 export const discourseRelationTripleSchemaToLocalConcept = ({
-  context,
+  accountLocalId,
   relation,
   nodeTypesById,
   relationTypesById,
 }: {
-  context: SupabaseContext;
+  accountLocalId: string;
   relation: DiscourseRelation;
   nodeTypesById: Record<string, DiscourseNode>;
   relationTypesById: Record<string, DiscourseRelationType>;
 }): LocalConceptDataInput | null => {
-  const {
-    id,
-    relationshipTypeId,
-    sourceId,
-    destinationId,
-    created,
-    modified,
-    importedFromRid,
-  } = relation;
+  const { relationshipTypeId, sourceId, destinationId, importedFromRid } =
+    relation;
   const sourceName = nodeTypesById[sourceId]?.name ?? sourceId;
   const destinationName = nodeTypesById[destinationId]?.name ?? destinationId;
   const relationType = relationTypesById[relationshipTypeId];
   if (!relationType) return null;
-  const { label, complement } = relationType;
-  const literal_content: Record<string, Json> = {
-    roles: STANDARD_ROLES,
-    label,
-    complement,
-  };
-  if (importedFromRid) literal_content.importedFromRid = importedFromRid;
-
+  const concept = crossAppRelationTripleSchemaToDbConcept(
+    relationTripleToCrossApp({ relation, accountLocalId }),
+    relationTypeToCrossApp({ relationType, accountLocalId }),
+  );
+  if (concept === undefined) return null;
   return {
-    space_id: context.spaceId,
-    name: `${sourceName} -${label}-> ${destinationName}`,
-    source_local_id: id,
-    is_schema: true,
-    author_id: context.userId,
-    created: new Date(created).toISOString(),
-    last_modified: new Date(modified).toISOString(),
-    literal_content,
-    local_reference_content: {
-      relation_type: relationshipTypeId,
-      source: sourceId,
-      destination: destinationId,
+    ...concept,
+    name: `${sourceName} -${relationType.label}-> ${destinationName}`,
+    literal_content: {
+      ...(concept.literal_content as Record<string, Json>),
+      ...(importedFromRid ? { importedFromRid } : {}),
     },
   };
 };
