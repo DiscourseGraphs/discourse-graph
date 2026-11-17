@@ -1,0 +1,38 @@
+Can you create a ticket from roam issue candidate ((0nLVRPvPo)) ?
+
+---
+
+I've done the Roam part. I would recreate the index without the nulls distinct, and add that in done when.
+
+---
+
+Ah, we have the same logic for Content and Document? Then I think we should generalize the ticket.
+
+---
+
+We should move from upsert_content to upsert_concept with embedded content anyway, so it does not matter long-term. There are no cases of Content with source_local_id=null, but 2 Documents. (One in discourse-dev-graph, one in megacoglab.) I guess they are safe to delete?
+
+---
+
+Results:
+id,space_id,space,url,created,last_modified,contents,with_assets
+21177,21176,discourse-dev-graph,null,2025-05-16 02:56:52.364,2025-05-29 19:28:11.048276,0,0
+21212,21209,megacoglab,null,2025-05-22 14:52:57.163,2025-05-22 14:52:57.163,72,0
+
+So I deleted 21177. The other one is annoying, tons of Contents refer to it, with different values for source_local_id.
+
+---
+
+Hmmm. I want to understand better how that happened in the first place. Why should these concepts point to a broken Document?
+
+---
+
+Ah, so possibly old code... May not be worth analyzing then.
+
+---
+
+Run the repair. No rows returned at each step, and queries return 0. Committed. Apply the redraft. I think we can keep the upsert_content reporting, since the move is still in the future.
+
+---
+
+good. Moved to triage, thank you.
