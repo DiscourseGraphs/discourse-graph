@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M7T31Q3HZMF3FFY913CF17RM",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 9,
+  "files_touched": [
+    "apps/website/public/docs/roam/dg-schema02.PNG",
+    "dg_agent_diagrams/dg-accounts-attack-scripts.md",
+    "dg_agent_diagrams/dg-accounts-attacker-skill.md",
+    "dg_agent_diagrams/dg-accounts-refactor-outline.md",
+    "dg_agent_diagrams/team-deck/accounts-deck-roam-render.js",
+    "dg_agent_diagrams/team-deck/deck.md",
+    "dg_agent_diagrams/team-deck/figures.py",
+    "dg_agent_diagrams/team-deck/wrap-for-roam.mjs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 525,
+    "cache_creation_tokens": 1775308,
+    "cache_read_tokens": 60315116,
+    "output_tokens": 182526,
+    "api_call_count": 219
+  }
+}

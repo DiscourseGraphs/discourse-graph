@@ -1,0 +1,37 @@
+Ok, I think we have a good first version. Please put it into a roam html block in the spec page.
+
+---
+
+It does render. Would it be easier to update if you could put it somewhere else?
+
+---
+
+I created the directory /var/www/conversence.com/html/dg/presentations/account_deck on conversence.com, you can scp directly, it'll be visible as https://www.conversence.com/dg/presentations/accounts-deck/
+
+---
+
+my mistake
+
+---
+
+Is that adding a `add_header Content-Security-Policy frame roamresearch.com` to nginx config? Or is that not for the other way around?
+
+---
+
+hmmm... I wonder if it's playing havoc with other server options.
+
+---
+
+/etc/nginx/sites-enabled/www.conversence.com. Don't write to it. I already added the previous stanza but did not restart yet.
+
+---
+
+reloaded
+
+---
+
+It does.
+
+---
+
+Good. Let's reset the session here.
