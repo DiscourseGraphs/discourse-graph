@@ -1,0 +1,17 @@
+> . Our Decision 5 builds its own payload: ID = Concept.id as a decimal string, plus title, type, body and provenance. His work makes CrossAppNode the standard.
+
+
+
+i want to understand this a bit more. i don't have much context on the CrossAppNode. what is this type? how is it being used? why is it becoming the representation of a node? is this an approved/agreed upon decision? what would need to be changed from the way we'ere doing things to make this happen?
+
+---
+
+Rewrite Decision 5
+
+---
+
+mention that we change the node identifier here to match with this Sid's spec
+
+---
+
+Update Roam copy
