@@ -1,0 +1,3 @@
+> Limit above 30: the spec scenario says the service caps it at 30. Decision 8 says it’s rejected with invalid_request. Pick one; I’d keep the rejection.
+
+explain this a bit more im out of context
