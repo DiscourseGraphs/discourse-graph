@@ -1,0 +1,47 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M7T31KK87DZSD54ECPW6MJT6",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 29,
+  "files_touched": [
+    "apps/website/public/docs/roam/dg-schema02.PNG",
+    "dg_agent_diagrams/dg-accounts-refactor-outline.md",
+    "dg_agent_diagrams/team-deck/Makefile",
+    "dg_agent_diagrams/team-deck/account-page-v0.puml",
+    "dg_agent_diagrams/team-deck/account-page-v0.svg",
+    "dg_agent_diagrams/team-deck/attack1-1.svg",
+    "dg_agent_diagrams/team-deck/attack1-2.svg",
+    "dg_agent_diagrams/team-deck/attack1-3.svg",
+    "dg_agent_diagrams/team-deck/attack1-4.svg",
+    "dg_agent_diagrams/team-deck/deck.html",
+    "dg_agent_diagrams/team-deck/deck.md",
+    "dg_agent_diagrams/team-deck/dg-accounts-account-page-later.svg",
+    "dg_agent_diagrams/team-deck/dg-accounts-account-page-v0.svg",
+    "dg_agent_diagrams/team-deck/figures.py",
+    "dg_agent_diagrams/team-deck/ideal.svg",
+    "dg_agent_diagrams/team-deck/identities-1.svg",
+    "dg_agent_diagrams/team-deck/identities-2.svg",
+    "dg_agent_diagrams/team-deck/identities-3.svg",
+    "dg_agent_diagrams/team-deck/login-again-1.svg",
+    "dg_agent_diagrams/team-deck/login-again-2.svg",
+    "dg_agent_diagrams/team-deck/login-again-3.svg",
+    "dg_agent_diagrams/team-deck/revealjs.template"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1038,
+    "cache_creation_tokens": 2455436,
+    "cache_read_tokens": 96535387,
+    "output_tokens": 341227,
+    "api_call_count": 412
+  }
+}

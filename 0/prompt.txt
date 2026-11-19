@@ -1,0 +1,430 @@
+Looking one last time at our work on DiscourseGraphs accounts.  https://roamresearch.com/#/app/discourse-graphs/page/H3a0tja8D 
+One thing that I think is missing: What are the UX touchpoints. We have to make people of whether and how they are logged in on each platform, and sometimes in non-obvious places like if they're doing a non-local search, for example. I may be worth enumerating this.
+
+---
+
+I replaced "minimum" with "most likely first target." Otherwise I'll read in details and try to think of what's missing. Meanwhile, another thing I'd like: A diagram showing the relation between all the identities: Space, Person, Agent, group, everyone ... not sure what's the best way to convey the connections, but I want to convey which different logins allow to reach (and maybe how.) So more functionality-centric than database-centric. Please write it locally first, ideally with a text format (dot or plantuml or mermaid, for example.)
+
+---
+
+Ah, maybe we need more than one diagram. One thing that's hard to follow for cold readers is the "How far a claim reaches" (by identity vs attestation). May be worth explaining the difference here.
+
+---
+
+please separate in two diagrams, and stack each option horizontally
+
+---
+
+More readable, yes. A bit jargon heavy: We should have a glossary about what claim and attestation mean. Roam's mermaid rendering does not give space to the text at the top of each block, which is covered by the first sub-block.
+
+---
+
+The second option is back to vertical stacking
+
+---
+
+ok, they're horizontal now. the colours are wrong, but... yes, the Roam mermaid is obviously an ancient version.
+
+---
+
+wrong colours. The section boxes are always yellow; the first box representing the case is always blue; the last boxes representing the cases are the right colour.
+
+---
+
+huh... the boxes are grey now.
+
+---
+
+yes. But one second, are the failure cases not supposed to be a different colour?
+
+---
+
+actually, I said horizontal stacking, but that's now a bit small. Could option 2 be made a 2x2 matrix?
+
+---
+
+I get b, a d, c
+
+---
+
+unchanged. badc
+
+---
+
+still unchanged. I wonder if there's a render limit on roam
+
+---
+
+TEST appears
+
+---
+
+order unchanged
+
+---
+
+Still unchanged. Yes, we'll have to nest
+
+---
+
+that worked. Ok, maybe we should not rely on roam mermaid in the future... How hard is it for you to write tldraw?
+
+---
+
+yes, let's try svg from graphviz.
+
+---
+
+So much better... yes, let's convert the others.
+
+---
+
+yes, please.
+
+---
+
+moved to dg_agent_diagrams/
+
+---
+
+3
+
+---
+
+I was asked to review your performance, hit the wrong key, tried to correct, and here we are. Forget it. Could you go through the Linear projects and tell me which projects are touched by DiscourseGraph accounts? Include past projects where we used space accounts as a workaround, and how we may want to review them.
+
+---
+
+Ok. let's wrap up memory and close this session.
+
+---
+
+Ok. I need to iterate on the DG account spec. Let me give you a roadmap, of course we won't do everything at once. (Giving numbers to itemize, this may not be the order in which we'll do things.) First: some of the diagrams can be simplified, because we're changing the read-only access not to use separate principals for agents. Second, the whole question of vector of attacks did not land well when I explained it. We need to make it clearer what could happen, maybe with slides showing the steps of the attack. That's for later. But now, we need to make sure the spec goes from generic to specific. Third, we should give an idea of what users are expected to do (and where) to get and manage the account, maybe with a wireframe or dead html page showing the account management. Fourth I think we'll want to explore what it will mean to let users to decide what aspect of their personal information gets published where. (This involves both UX and data structures.) Any order you would prefer to tackle this in?
+
+---
+
+Oh, I wonder if we mean the same thing by "generic to specific", I was no referring to a decision! But I forgot a major point: We want to distinguish long-term vision from v0. The v0 will almost certainly not include advanced claim checking. (And using the firebase token is unlikely.) There may be intermediate steps. We want to explain what v0 consists of, what we could add, and what each additional step buys us (either security or functionality.)
+
+---
+
+Much better reading of generic to specific, and agreed with the ladder as proposed.
+
+---
+
+I removed three prerequisites, ENG-2438 ENG-2447 ENG-2443 which are done. As for 'the branch of `upsert_account_in_space`', is that not an issue candidate already? 
+The staging draft uses vocabulary from implementation, notably `asserted`. This is a good example of general to specific: We should talk about the abstract notion (weak identity claims?), not the proposed implementation names at this stage. We may allow a weak claim to have a bit more reach in v0, tightening as we introduce stronger claims.
+
+---
+
+Let's settle on narrow, and I'll reread the draft.
+
+---
+
+You can do the other staleness corrections while I read.
+
+---
+
+A few things. Your writing seems to imply we would always create the DG account on the web first, then connect the platform second. I would see a scenario where we'd start from the platform, create the account, then connect social logins second. (It should be possible to create the account directly with social login that way but I'm less sure, we might have to start with password account.) 
+When you mention the OAuth route, you realize that we can use the supabase OAuth mechanism, right?
+
+---
+
+Much better already. To add as a step: One benefit of DG accounts is MCP tokens that act as the user for cross-space search. So add a step with UX for creating such tokens (assuming we have MCP tokens for spaces, which are being worked on in parallel.)
+Another potential later step: When we have web views of nodes, as being designed on mira-collab branch, we can send a node link to another DG users. That would exist independently. But a step would be to send a link to someone who does not have a DG account, in a way that clicking on the link invites them to create an account that _will_ access the resource. These invitations probably need new db tables.
+Can you think of other steps?
+
+---
+
+Very good! These are all post-v0, but I agree that 3 should be the first post-v0 step for regulatory reasons.
+
+---
+
+Go ahead, we have a solid first draft, even if we iterate. Then I'll need to put the laptop to sleep while I change locations, before we tackle the next steps.
+
+---
+
+ok. You could go on to the diagrams. What are ways to do wireframes you're comfortable with? Or should we go straight to HTML?
+
+---
+
+Paper adds another tool. No fundamental objection to simple HTML. What do you think of plantuml/salt ?
+
+---
+
+Yeah. I wish roam had a plantuml renderer. Not an urgent concern.
+
+---
+
+Note that if we wanted to build one, I have a plantuml server running on https://www.conversence.com/plantuml/
+
+---
+
+It's the right level of detail. I'm thinking... this is the account management page, there will be one where you'd just do searches etc. Probably premature to show that page, but should we mention a link to it? I don't know if I want people to land on this complex account management page after login.
+
+---
+
+Ok. I think "Reaches" is a bit obscure, what would be clearer? And what are values other than "this space only"?
+
+---
+
+ah, is it not simple to have each space be a row? Then each one could be disconnected independently, and we can drop the "gives access to" column. The platform comes after the space name, probably, or it could actually be a table subheader, simpler. Platform accounts: Some of them like orcid are part of provenance we'll want to show. They  will eventually need a visibility toggle... per group? That is more complex. Not keen on a 2x2 table, but we could have "public" and "group" with a drop-down in the group header.
+
+---
+
+Yeah, I'm mixing levels here. Even visibility is post-v0. We'll need more than one version of the diagram.
+
+---
+
+For post-v0: Adding multiple emails. (also as a step.) Not sure what you mean by leave out.
+
+---
+
+I think this should be a separate thing, maybe default search preferences.
+
+---
+
+yes.
+
+---
+
+ok. the second column of connected spaces (postv0) is a bit obscure for end users. I think you intend it for claim strength? Then we should have a "next action" if the claim strength is less than it could be. Or did you have something else in mind?
+
+---
+
+Again, not proven is going to feel negative for users, esp. if ways to prove are not implemented yet! It's better to say that a potential proof is missing, and nothing otherwise.
+
+---
+
+Not sure you can have disabled checkboxes in salt? If a credential is public, it cannot be disabled in a group.
+
+---
+
+What does it mean to change an email? Remove makes sense, and validate as a button (action) or a checkmark.
+
+---
+
+In the obsidian table header, you give a vault id. That would be per row.
+
+---
+
+We could show the vault url on hover, but that's not part of the wireframe. Having the username is useful however.
+
+---
+
+Ah, and the "proven by email" in roam, which I was not crazy about, becomes "as Alice Martin <alice@example.com>". Actually, if it were a different email, it would be part of the linked identities.
+
+---
+
+should we then not have a roam row in the linked identities?
+
+---
+
+ah, good point. Hmmm... I think Obsidian verifies the email... sometimes?
+
+---
+
+I think we should assume Obsidian email is not readable.
+
+---
+
+It's not a known fact, but the more conservative assumption. But Obsidian is very protective of user privacy, so I think it's a safe one.
+
+---
+
+Oh, btw I learnt roam only shows your own email, not that of other group members. I was wrong about this because we have info in our old graph from before that was implemented. It may have some impact on design.
+
+---
+
+yes.
+
+---
+
+Good point about L6, I missed that. Agree on the second open question. On the wireframe, could we show that each section should be collapsable?
+
+---
+
+I think showing they're foldable is enough for wireframes. Can you upload both of these to Roam? Maybe have a PlantUML code block as reference, but make the SVG visible. Upload the svg, my server is not relevant yet. Not sure where they'll live in the page, but I'm sure you can find a plausible place.
+
+---
+
+Good. What's the next step, is it slides? How do you think of doing it? May be easiest to do svg slides in html, but open to suggestions. (I've used plantuml with different shapes hidden sometimes, but I'm not sure it's what's easiest for you.)
+
+---
+
+iframe it is. Yes, let's have the scripts.
+
+---
+
+Will read tomorrow, unfortunately. Otherwise I just noticed something I'd like you to remember: When we add text to Roam that contains a hashtag, such as #1234, it becomes a Roam page. The easy way to avoid that is to wrap it in backticks.
+
+---
+
+Argh! Sorry, there was a reboot, and the tmp file was lost. You may have to rewrite it.
+
+---
+
+Yes, that's probably safer. Still sorry about that. Reading the document now, I think it's a good start but there are many ways to improve it. What I would like ideally: Separate 1. the pure attack scenario, 2. the reach mitigations we plan at the outset (with their usability cost); and the risks we accept until then and 3. the steps we plan to close the attack gap; and exactly how that last step allows to remove some of the reach limits introduced in 2. These need to be clearly laid out. As an example of the discrepancy, take your case 3. Until there are admins, in reality everyone is admin and can change the password etc. In this case we are unlikely to be able to close that door until much later, and have to accept the risk for some time.  There's another thing, but I think it should be another section or even another document: I often get pushback on "how technically savvy would the attacker have to be.". I think that's irrelevant in the age of LLMs, but the argument should be explicit. Finally, in most of your scenarios so far, Mallory is in the same roam graph as Alice. Are there attack scenarios where Mallory is admin of another graph in the group?
+
+---
+
+I'm not sure I understand the first question. We have access to the account local ids in roam, and we have to since the DG roam plugin uses that to fill in the PlatformAccounts. I feel it should be obvious enough that I may have misunderstood your question. 
+Attack 4: I think that https://supabase.com/docs/reference/javascript/auth-updateuser allows to update the password having an active session and the base password, so I would say yes to the first. The other two are clearly the case.
+
+---
+
+Correct, as a group admin you can remove someone else. My turn to push back: Do we know that we can attach an arbitrary account to a roam graph using its account id? (Attack 1, step 3.) We can add it at the database level (eng-2456) but that does not mean it can be added in roam.
+
+---
+
+Ok. Thinking in general; a lot of this is independent from dg accounts. For example, should we restrict the view to the PlatformAccount's account_local_id? It may not need to be exposed across the group.
+
+---
+
+Yes.
+
+---
+
+Did you remove the other two candidates? Was there anything else that pointed to them? (Maybe in linear)
+
+---
+
+Ok, no need to check in that case.
+
+---
+
+yes
+
+---
+
+Just so you know, I want to iterate on this, but I also want others to see it, so I pasted it at ((97tr4Tlhm)).
+
+---
+
+Good, we'll keep editing in roam. I notice the spec is a mess now, with many local decisions and explorations that did not reach the spec structure. 
+Partly, it's because we'll do things in stage; I'm not sure what's the canonical OpenSpec way to do things with progressive scoping. Is it a spec for v0, and then one for each added layer, or as we did start with the end result and then layer it? Let's agree on method before doing any refactoring.
+
+---
+
+When you say "design document", do you mean it would play the same role as design.md, but for the overarching project?
+
+---
+
+That makes sense to me. Let's wait on this, and settle a few more decisions first, though. 
+I was going through the latest issue candidate, and I saw "stop renaming a row that exists in another space". Now, in Roam, PlatformAccounts are shared between spaces; so other spaces need _some_ edit powers. Maybe we should not allow updates to account_id? But yes, in theory that means they can sabotage names. But is your solution allowing for the cross-space nature of roam PlatformAccounts?
+
+---
+
+Hrm... not happy with this option. I created PlatformAccounts in the database precisely because this information is actually shared between graphs in Roam. If someone legitimately updates the display name in a roam graph, it is propagated to all graphs in Roam and should be propagated to all graphs in the database. I understand that we have trust issues with the database content, but I think we can progressively move from accepting the risk to hardening it without having to handle conflicting information.
+
+---
+
+Yes, that sounds much better.
+
+---
+
+Ok. How many other decisions do we have to settle before we can reasonably refactor the spec page as discussed?
+
+---
+
+Regandirg 2 (session storage): You can assume this will land after the MCP token handoff spec, and probably after the agent read-only access spec. Note that we settled not to have separate agent accounts in the latter. 5: I lean towards unlimited leases. 6. yes, it can wait. 4. can wait too. 3 still needs pointing out, but we can act on it. 1. Will require thought. Social login: probably not within the plugin. We'll hand off to the web for this.
+
+---
+
+Leave it open and draft the refactor.
+
+---
+
+Ah, thank you, but can you replace roam references with full roam web links? It's hard to get roam to go to a block by reference...
+
+---
+
+Yes, this looks good, at least as a starting point. Go ahead.
+
+---
+
+Go ahead with these other changes. Another few things: In "What personal accounts unblock", let's separate v0 and post-v0. In steps after v0, separate claim hardening from expanded use cases.
+
+---
+
+Ok, I'll spend time reading this for small changes. In the facts to verify, I see: "Can the Supabase OAuth 2.1 Server flow complete inside the plugins?". I am not sure this is something I would expect to do, I think we'll use the website for OAuth, and probably even supabase's oauth process.
+
+---
+
+Hmmm... I suspect the first, but let's write it in terms of mhat's the difference from the user point of view? When you start from the platform, the platform account is known; if there is a user behind it, we may need to login on the web to set the web cookies, and then tell the platform that is done, but before that, do we accept to act as the user within the platform? My basic intuition is that there is little the user can do _on the platform_ that is not allowed simply by virtue of being logged into the platform with the platform account. (Account management happens on the web and requires login, of course.) Let's think of it with a concrete example: If I have connected many spaces through my user account, I think I should be able to do a cross-space search on the platform by virtue of being logged into the platform. Or is that a security risk I'm missing?
+
+---
+
+Yes, do both.
+
+---
+
+ok, we might still iterate, but let's take this as a solid basis. I would like to present this to the team today. They heard an earlier version, before the v0 distinction was made, but I'd still like an overall narrative: What we plan to do, when, etc. We should negotiate content first. Second, we went through this a bit, but what's a good way to make a slideshow? Do you need a skill? I'm used to making my presentations in revealjs, with svg figures, is that easier for you than powerpoint?
+
+---
+
+Let's settle the format first, because it's smaller: I usually generate revealjs from markdown using pandoc, if that's any easier for you.
+
+---
+
+I often use solarized. You can look at /Users/maparent/Conversence/presentations/hk3 for an example.
+
+---
+
+Ok, I updated the conversence revealjs to 6.0.2. Let's go back to content. I'm not sure how much time I'll have so let's aim for under minutes. No time slots yet, I see other priorities coming to bear. Looking through the narrative. I really want to rethink the order of the slides. Here's a proposal, feel free to counter-propose or poke holes in it.
+1. The overall aims of accounts. Order with v0 use cases first, so we can draw a line through with v0.
+   * Followed by before/v0/after diagrams.
+   * Maybe an estimate on scale for v0
+2. Describe the ideal scenario if we did not have to worry about false claims: One person would automatically have access to all their roam spaces.
+3. Explain Attack 1, and its reach.
+4. What we can do against attack 1: 
+  a. Short term: restrict reach. Explain what users have to do to get around it.
+     * Ask: Are we comfortable with asking for per-space confirmation. I suspect this would be fine.
+  b. Also short term: email warnings when an account is taken. Explain why it is not enough.
+  c. Longer term: Allow to contest an email claim.
+  d. Stronger claims
+  * Ask: I want to make clear that the stronger claims can wait, but recording claim strength should be now.
+5. Outline the longer term strategy for admins
+6. go back to next usability steps: Outline scale.
+
+---
+
+Estimates, yes. I expect very rough at this point. 4b. Good point. I was going to say let's use both, but most of the time we won't have the email unless we have the plugin. 4c yes the ask goes there. 4d Yes, maybe use colour to distinguish degree of safety. 
+Under 20 minutes. Agree with backups. As for "why login again, I wonder if we can also make it into ideal/attack/mitigation cycle? But maybe not, it takes time and that one is more obvious. What do you think?
+
+---
+
+Yes
+
+---
+
+Realizining I missed a point: hiding the platform account id, as a mitigation stretegy. Nit on slide 9: reverse order, from weak to strong. Also: in many slides, the text does not fit, we should play with style or split as needed. Slide 2: split before/v0/after into two slides. Ah, we should add the wireframes, not sure where.
+
+---
+
+Go ahead with figures. Separately, I realize I'm vague on what device keys entail, I want to be sure I understand it before presenting it.
+
+---
+
+Thinking a bit more about device keys. In most systems with such keys, you get a recovey key (usually as a list of words.) This would handle the lost device, and even the cross-device case.
+
+---
+
+I think leave the speaker notes lightweight. We can point to the spec. Yes do update the spec. Agree that for new devices, it's an alternative, not the primary way. Passkeys are great too, I was actually wondering if that's what you meant by device keys; but they're a separate design, maybe?
+Presentation: I like the in-place transition for the first diagrams, but the sliding transition between before/v0 and v0/after breaks this. Unify after all, unless you can change the transition (so the title would change. In which case, have three titles: Now / v0 / after )
+
+---
+
+Very nice. Yes to enlarging graphviz fonts. 
+Just to be sure: Do you think defence 2 is still worth the effort?
+
+---
+
+Yes.
+
+---
+
+Great. Also: I looked at the first wireframe, and it speaks to a lot of "after v0" in the bottom section. Not needed here.
+
+---
+
+Great, thanks. Detail: The backup slide titles don't need the backup title. Maybe just a Q: prefix, as those would be questions.
