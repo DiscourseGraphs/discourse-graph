@@ -121,19 +121,6 @@ describe("parseUpsertData", () => {
       },
     },
     {
-      when: "has inline content whose rid names the path's space",
-      body: {
-        nodes: [
-          toJson({
-            ...node("claim-1", "claim-type"),
-            content: {
-              direct: { value: "claim-1", rid: `${SPACE_URL}/claim-1` },
-            },
-          }),
-        ],
-      },
-    },
-    {
       when: "has a relation whose destination is a RID in another space",
       body: {
         relations: [
@@ -197,26 +184,21 @@ describe("parseUpsertData", () => {
       }),
     ),
     {
-      when: "has inline content whose rid names another space",
+      when: "has inline content with its own rid",
       body: {
         nodes: [
           toJson({
             ...node("claim-1", "claim-type"),
             content: {
-              direct: { value: "claim-1" },
-              full: {
-                value: "Body",
-                contentType: "text/plain",
-                rid: "https://roamresearch.com/#/app/graph-b/claim-1",
-              },
+              direct: { value: "claim-1", rid: `${SPACE_URL}/claim-1` },
             },
           }),
         ],
       },
       issues: [
         {
-          path: ["nodes", 0, "content", "full", "rid"],
-          message: "The rid names a space other than the one in the path",
+          path: ["nodes", 0, "content", "direct", "rid"],
+          message: "This route does not write this field yet",
         },
       ],
     },
