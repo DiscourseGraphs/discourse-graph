@@ -279,6 +279,26 @@ describe("POST /api/internal/space/[id]/graph", () => {
     });
   });
 
+  it("writes a node after the node it cites by a RID in this space", async () => {
+    const { rpc } = fakeClient({
+      stored: storedClaimType,
+      upsert: { data: [42, 43], error: null },
+    });
+    const citing = { ...node, slots: { source: `${SPACE_URL}/source-1` } };
+    const cited = { ...node, localId: "source-1" };
+    await expectResponse(await post({ body: { nodes: [citing, cited] } }), {
+      status: 200,
+      body: { upserted: { "source-1": 42, "claim-1": 43 }, failed: [] },
+    });
+    expect(rpc).toHaveBeenCalledWith("upsert_concepts", {
+      v_space_id: 5,
+      data: [
+        expect.objectContaining({ source_local_id: "source-1" }),
+        expect.objectContaining({ source_local_id: "claim-1" }),
+      ],
+    });
+  });
+
   it("answers 200 to an empty body after an empty upsert", async () => {
     const { rpc, from } = fakeClient();
     await expectResponse(await post(), {

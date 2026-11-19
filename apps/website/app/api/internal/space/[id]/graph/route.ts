@@ -105,7 +105,11 @@ export const POST = async (
         missing,
       });
 
-    const entries = toOrderedEntries({ data, storedSchemas: stored.data });
+    const entries = toOrderedEntries({
+      data,
+      storedSchemas: stored.data,
+      spaceUrl: space.data.url,
+    });
     const upsert = await client.rpc("upsert_concepts", {
       v_space_id: spaceId,
       data: entries.map((e) => e.concept),
