@@ -123,6 +123,29 @@ const findContentScaleIssues = (data: CrossAppUpsertData): UpsertIssue[] =>
     ),
   );
 
+// Inline content is written to its node's space, so a content's own rid must
+// name that space too.
+const findContentRidIssues = ({
+  data,
+  spaceUrl,
+}: {
+  data: CrossAppUpsertData;
+  spaceUrl: string;
+}): UpsertIssue[] =>
+  (data.nodes ?? []).flatMap((node, index) =>
+    Object.entries(node.content).flatMap(([variant, content]) =>
+      content.rid === undefined ||
+      ridToSpaceUriAndLocalId(content.rid).spaceUri === spaceUrl
+        ? []
+        : [
+            {
+              path: ["nodes", index, "content", variant, "rid"],
+              message: "The rid names a space other than the one in the path",
+            },
+          ],
+    ),
+  );
+
 // upsert_concepts stores a node or relation whose RID type names no concept with
 // a NULL schema_id and no error, and the schema check looks up local ids only, so
 // a RID type is refused until a caller needs one.
@@ -173,6 +196,7 @@ export const parseUpsertData = ({
   const issues = [
     ...findItemIssues({ data: result.data, spaceUrl }),
     ...findContentScaleIssues(result.data),
+    ...findContentRidIssues({ data: result.data, spaceUrl }),
     ...findRidTypeIssues(result.data),
   ];
   if (issues.length > 0) return refuse(issues);
@@ -259,14 +283,28 @@ const relatedConcepts = (concept: LocalConceptDataInput): string[] =>
 // upsert_concepts resolves a reference only to a row already written. Local ids
 // are caller input and may be "constructor", so they key a Map, not an object.
 // The walk keeps its own stack: a chain of thousands of references would overflow
-// the call stack.
-const orderByDependency = (entries: UpsertEntry[]): UpsertEntry[] => {
+// the call stack. A reference written as a RID in this space names the same row
+// as its local id, so it is looked up by that local id.
+const orderByDependency = ({
+  entries,
+  spaceUrl,
+}: {
+  entries: UpsertEntry[];
+  spaceUrl: string;
+}): UpsertEntry[] => {
   const byId = new Map(entries.map((e) => [e.localId, e]));
   const processed = new Set<string>();
   const ordered: UpsertEntry[] = [];
+  const toLocalId = (reference: string): string => {
+    const { spaceUri, sourceLocalId } = ridToSpaceUriAndLocalId(reference);
+    return spaceUri === spaceUrl ? sourceLocalId : reference;
+  };
   const enter = (entry: UpsertEntry) => {
     processed.add(entry.localId);
-    return { entry, pending: relatedConcepts(entry.concept).reverse() };
+    return {
+      entry,
+      pending: relatedConcepts(entry.concept).map(toLocalId).reverse(),
+    };
   };
   for (const root of entries) {
     if (processed.has(root.localId)) continue;
@@ -289,9 +327,11 @@ const orderByDependency = (entries: UpsertEntry[]): UpsertEntry[] => {
 export const toOrderedEntries = ({
   data,
   storedSchemas,
+  spaceUrl,
 }: {
   data: CrossAppUpsertData;
   storedSchemas: StoredSchema[];
+  spaceUrl: string;
 }): UpsertEntry[] => {
   const relationLabels = relationLabelsById({ data, storedSchemas });
   const converters: {
@@ -319,7 +359,10 @@ export const toOrderedEntries = ({
       kind,
       concept: converters[kind](item),
     }));
-  return orderByDependency(UPSERT_KINDS.flatMap((kind) => toEntries(kind)));
+  return orderByDependency({
+    entries: UPSERT_KINDS.flatMap((kind) => toEntries(kind)),
+    spaceUrl,
+  });
 };
 
 // upsert_concepts returns one id per input row, in input order: -1 for any
