@@ -4,9 +4,10 @@
  * (written by Obsidian before ENG-2208). Roam writes the top-level key as of
  * ENG-2158, and ENG-2175 backfills Roam rows published before it.
  *
- * The top-level key is the contract and is always authoritative; the nested
- * key is read only as a fallback. The dual read is temporary and goes away
- * once Obsidian rows published before ENG-2208 are backfilled.
+ * The top-level key is the contract. A missing or empty top-level key counts
+ * as not set, and the nested key is read in its place. The dual read is
+ * temporary and goes away once Obsidian rows published before ENG-2208 are
+ * backfilled.
  */
 export const resolveSchemaFormat = ({
   format,
