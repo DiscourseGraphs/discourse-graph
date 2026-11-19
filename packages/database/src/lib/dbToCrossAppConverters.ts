@@ -109,17 +109,27 @@ const getSchemaFormatMap = async (
   );
 };
 
+// A batch of ids returns at most that many rows. The batch must stay below the API's
+// 1,000-row response limit, which truncates without error. It also keeps the id list,
+// sent in the URL, short.
+const SLOT_TARGET_BATCH_SIZE = 200;
+
 const getSlotTargetMap = async (
   client: DGSupabaseClient,
   conceptIds: number[],
 ): Promise<Record<number, DbSlotTarget>> => {
-  if (conceptIds.length === 0) return {};
-  const { data, error } = await client
-    .from("my_concepts")
-    .select("id, space_id, source_local_id")
-    .in("id", conceptIds);
-  if (error) throw error;
-  return Object.fromEntries(data.map((target) => [target.id, target]));
+  const slotTargetMap: Record<number, DbSlotTarget> = {};
+  for (let i = 0; i < conceptIds.length; i += SLOT_TARGET_BATCH_SIZE) {
+    const { data, error } = await client
+      .from("my_concepts")
+      .select("id, space_id, source_local_id")
+      .in("id", conceptIds.slice(i, i + SLOT_TARGET_BATCH_SIZE));
+    if (error) throw error;
+    data.forEach((target) => {
+      slotTargetMap[target.id] = target;
+    });
+  }
+  return slotTargetMap;
 };
 
 export const getAccountMap = async (
