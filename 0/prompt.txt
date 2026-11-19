@@ -1,0 +1,61 @@
+I'd like you to have a look at https://roamresearch.com/#/app/discourse-graphs/page/igzkQFr4r . There is a decision there that the MCP client will consume the CrossApp node format. When we designed that format, we said it would be an internal format, to abstract communication of the platform plugins with the DB; Ideally I'd like all external communication to be JSON-LD, so DiscourseGraph graphs are fully in the web of LinkedOpenData. I also think the JSON-LD is more self-documenting than the CrossApp format, for MCP consumption. Now, we control the MCP for now; but ideally it could become a skill, and then its status as internal tool vs external protocol becomes fuzzier. I also feel that whatever the MCP receives is more likely to be exposed to other users for further treatment, solidifying the CrossApp data format as something others are likely to use. 
+Now, I also think it is something we can change later; starting with CrossApp data, and moving on to JSON-LD later. The CrossApp data is easier to use now than JSON-LD, which still sits in the mira-collab branch. But I don't think it's a huge difference to make that ready either. It's also not a huge extra cost to switch the MCP from one to another when both are ready. So... am I missing costs or benefits of using JSON-LD at the outset, or after an intermediate period? Can we do a cost-benefit analysis?
+
+---
+
+Ok, all that is useful. Actually, let's open the ID issue, which is currently unsettled: see ((38_5EFk3P)), I was going to bring it up next. (Detail first: I thought the crossApp would have a distinct API point than the JSON-LD, I did not think of negotiation, and I'm not sure that's the right call, but not strictly against it either.) 
+Right now, the JSON-LD is, as you noted, using database Ids. I saw it as the easiest way to create a RESTful identity; but I have been thinking of using the source_local_id as the last part of the URI. I cannot use the RID, as it can be a full URI and not a fragment. For the same reason, I cannot use the space URL in the first segment of the api, and have to use the space's database Id. I'm now less sure, and my mind is going in another direction: Maybe maintain the database centric @id, but also give the RID with a owl:sameAs. This should dovetail with a more generic idea I had for MIRA: Read /Users/maparent/OpenSource/mira-repos/linkedopendata-at/atproto-linked-data-proposal.md
+
+---
+
+skos feels wrong, but dct:identifier is worth considering; but then I would apply it to everything. We may coin our own relation, if needed. When you say MCP could start with RID, and use the sameAs to bridge, we would have to tell it about that identifier, though. Still doable. But do you think this is enough to allow the delay?
+Adding an indirection: Yeah, that makes the RESTful API less transparent, does it not?
+
+---
+
+Still thinking. The way you redesigned the JSON-LD Ids, (following the broker specifications tbh) they carry much of the same information as the RID; indeed the RID could be reconstituted from them (with rather a lot of shared knowledge however.) Is it still worth having the RID?
+
+---
+
+Ok. Let's look at what the pro/con table looks like now. I'd like to leave the dgb:rid vs owl:sameAs issue open for now.
+
+---
+
+There's also a risk that people start building on CrossApp because it's visible through the MCP, please add this back.
+We have to make this intelligible for people who do not yet know much about the broker design, and we have to explain the benefits of JSON-LD. So explicit is better than implicit.
+
+---
+
+Oh, just one thing about the api endpoint: Trang's work is more recent, but earlier we had settled on `/api/internal/space/[space_id]/concept/[id]`, see ((1OhxQeTEs))
+
+---
+
+Correct, not implemented. I was thinking the internal route would be RESTful CrossApp, and the mira-collab would still use /api/data/ (with your added platform)
+
+---
+
+I don't think we should have separate RESTful and retrieval. We need to settle no api/v1 or internal. I'm not deadly attached to the latter, but it did convey something.
+
+---
+
+Yes, with the big caveat that it's a recommendation for team review.
+
+---
+
+Great. Ready to post. Where should we post it? Thinking under ((qWNTFDfk1)) and then we can point to it in Trang's spec.
+
+---
+
+Yes.
+
+---
+
+I'd say both, with abbreviated wording the second time (also see...)
+
+---
+
+Just a small correction: You have it locked that we will provide the text as markdown. I actually would like that to be subject to content negotiation, with HTML as primary, since it allows for text anchors. That is also to be negotiated with the team, but just don't take the Markdown for locked-in.
+
+---
+
+Leave it for later, thank you. Correct call not changing Trang's text there.
