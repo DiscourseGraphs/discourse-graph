@@ -14,20 +14,19 @@ import { ridToSpaceUriAndLocalId, spaceUriAndLocalIdToRid, isRid } from "./rid";
 
 type Concept = ColumnRow<"Concept">;
 
+type DbSlotTarget = Pick<Concept, "id" | "space_id" | "source_local_id">;
+
 export type DbNodeConcept = Pick<
-  Tables<"my_concepts">,
+  Concept,
   | "is_schema"
   | "last_modified"
+  | "literal_content"
   | "schema_id"
   | "source_local_id"
   | "space_id"
   | "reference_content"
 > & {
-  core_title: string | null;
-  concepts_of_relation: Pick<
-    Tables<"my_concepts">,
-    "id" | "space_id" | "source_local_id"
-  >[];
+  concepts_of_relation?: DbSlotTarget[];
 };
 export type DbNodeContent = Pick<
   Tables<"my_contents">,
@@ -108,6 +107,19 @@ const getSchemaFormatMap = async (
       resolveSchemaFormat({ format, sourceDataFormat }),
     ]),
   );
+};
+
+const getSlotTargetMap = async (
+  client: DGSupabaseClient,
+  conceptIds: number[],
+): Promise<Record<number, DbSlotTarget>> => {
+  if (conceptIds.length === 0) return {};
+  const { data, error } = await client
+    .from("my_concepts")
+    .select("id, space_id, source_local_id")
+    .in("id", conceptIds);
+  if (error) throw error;
+  return Object.fromEntries(data.map((target) => [target.id, target]));
 };
 
 export const getAccountMap = async (
@@ -246,6 +258,12 @@ const getLatestTimestamp = (timestamps: (string | null)[]): string | null => {
   );
 };
 
+const getCoreTitle = (concept: DbNodeConcept): string | null => {
+  const coreTitle = (concept.literal_content as Record<string, Json>)
+    .core_title;
+  return typeof coreTitle === "string" ? coreTitle : null;
+};
+
 const groupDbNodeRows = ({
   nodes,
   directContents,
@@ -286,12 +304,14 @@ export const dbNodeToCrossApp = ({
   accountMap,
   schemaMap,
   formatMap,
+  slotTargetMap,
 }: {
   row: DbNodeRow;
   spaceMap: Record<number, string>;
   accountMap: Record<number, string>;
   schemaMap: Record<number, string>;
   formatMap: Record<number, string>;
+  slotTargetMap: Record<number, DbSlotTarget>;
 }): DbCrossAppNode => {
   if (concept.is_schema !== false) throw new Error("Not a node instance");
   if (concept.schema_id === null) throw new Error("Missing node type");
@@ -316,8 +336,12 @@ export const dbNodeToCrossApp = ({
     "note",
   );
 
+  const referenceContent = concept.reference_content as Record<string, number>;
+  const slotTargets =
+    concept.concepts_of_relation ??
+    Object.values(referenceContent).flatMap((id) => slotTargetMap[id] ?? []);
   const nodeRidById = Object.fromEntries(
-    concept.concepts_of_relation.map((c) => {
+    slotTargets.map((c) => {
       if (c.space_id === concept.space_id)
         return [c.id, c.source_local_id ?? undefined];
       const slotSpaceUrl = spaceMap[c.space_id];
@@ -329,7 +353,6 @@ export const dbNodeToCrossApp = ({
       ];
     }),
   );
-  const referenceContent = concept.reference_content as Record<string, number>;
   const slots = Object.fromEntries(
     Object.entries(referenceContent)
       .map(([k, v]) => [k, nodeRidById[v]])
@@ -339,7 +362,7 @@ export const dbNodeToCrossApp = ({
   const authorId = accountMap[direct.author_id || 0];
   if (authorId === undefined) throw new Error("Missing author");
   const coreTitle =
-    concept.core_title ??
+    getCoreTitle(concept) ??
     extractContentFromTitle(formatMap[concept.schema_id] ?? "", direct.text);
   const nodeType = asSimpleLocalId(schemaMap[concept.schema_id], spaceUrl);
   if (nodeType === undefined) throw new Error("Missing node type");
@@ -376,13 +399,22 @@ export const dbNodesToCrossApp = async ({
       concepts.map((c) => c.schema_id).filter((id) => typeof id === "number"),
     ),
   ];
-  const [accountMap, schemaMap, formatMap] = await Promise.all([
+  const slotTargetIds = new Set<number>(
+    nodes
+      .filter((n) => n.concepts_of_relation === undefined)
+      .flatMap((n) =>
+        Object.values(n.reference_content as Record<string, Json>),
+      )
+      .filter((id) => typeof id === "number"),
+  );
+  const [accountMap, schemaMap, formatMap, slotTargetMap] = await Promise.all([
     getAccountMap(client, [...authorIds]),
     getConceptMap(client, getSchemaIds(nodes), spaceMap),
     getSchemaFormatMap(
       client,
-      getSchemaIds(nodes.filter((n) => n.core_title === null)),
+      getSchemaIds(nodes.filter((n) => getCoreTitle(n) === null)),
     ),
+    getSlotTargetMap(client, [...slotTargetIds]),
   ]);
   return groupDbNodeRows({
     nodes,
@@ -391,7 +423,14 @@ export const dbNodesToCrossApp = async ({
   }).flatMap((row) => {
     try {
       return [
-        dbNodeToCrossApp({ row, spaceMap, accountMap, schemaMap, formatMap }),
+        dbNodeToCrossApp({
+          row,
+          spaceMap,
+          accountMap,
+          schemaMap,
+          formatMap,
+          slotTargetMap,
+        }),
       ];
     } catch (error) {
       console.warn(

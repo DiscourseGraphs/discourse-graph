@@ -23,7 +23,7 @@ export type SharedNodeRows = DbNodeRows & {
 };
 
 const CONCEPT_COLUMNS_WITH_SLOTS =
-  "core_title:literal_content->>core_title, is_schema, last_modified, schema_id, source_local_id, space_id, reference_content, concepts_of_relation(id, space_id, source_local_id)";
+  "is_schema, last_modified, literal_content, schema_id, source_local_id, space_id, reference_content, concepts_of_relation(id, space_id, source_local_id)";
 const DIRECT_CONTENT_COLUMNS =
   "author_id, created, last_modified, source_local_id, space_id, text, variant";
 const FULL_CONTENT_SUMMARY_COLUMNS = "last_modified, source_local_id, space_id";
@@ -36,7 +36,7 @@ const getAssociatedSpaces = async ({
   currentSpaceId,
 }: {
   client: DGSupabaseClient;
-  concepts: DbNodeConcept[];
+  concepts: Required<DbNodeConcept>[];
   currentSpace?: SharedNodeSpace;
   currentSpaceId?: number;
 }): Promise<SharedNodeSpace[]> => {
