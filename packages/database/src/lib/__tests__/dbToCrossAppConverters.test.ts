@@ -683,7 +683,10 @@ describe("dbNodesToCrossApp", () => {
     { id: 6, space_id: 21, source_local_id: "node-6" },
   ];
   const makeClient = () => {
-    const rowsByTable: Record<string, unknown[]> = {
+    const rowsByTable: Record<
+      string,
+      ({ id: number } & Record<string, unknown>)[]
+    > = {
       my_accounts: [{ id: 42, account_local_id: "account-local-1" }],
       my_concepts: [
         {
@@ -695,22 +698,17 @@ describe("dbNodesToCrossApp", () => {
           format: null,
           sourceDataFormat: "EVD - {content}",
         },
+        ...slotTargets,
       ],
     };
     const inCalls: Record<string, unknown[][]> = {};
     const from = vi.fn((table: string) => {
-      const result: { data: unknown[] | undefined; error: null } = {
-        data: rowsByTable[table],
-        error: null,
-      };
+      const result = { data: rowsByTable[table], error: null };
       const builder = {
-        select: vi.fn((columns: string) => {
-          if (columns === "id, space_id, source_local_id")
-            result.data = slotTargets;
-          return builder;
-        }),
+        select: vi.fn(),
         in: vi.fn((column: string, values: unknown[]) => {
           (inCalls[table] ??= []).push(values);
+          result.data = result.data?.filter(({ id }) => values.includes(id));
           return builder;
         }),
         not: vi.fn(),
@@ -719,6 +717,7 @@ describe("dbNodesToCrossApp", () => {
           reject?: (reason: unknown) => unknown,
         ) => Promise.resolve(result).then(resolve, reject),
       };
+      builder.select.mockReturnValue(builder);
       builder.not.mockReturnValue(builder);
       return builder;
     });
@@ -769,9 +768,7 @@ describe("dbNodesToCrossApp", () => {
       literal_content: { core_title: "Title of node-1" },
       reference_content: { evidence: 5, claim: 6, dangling: 7 },
     });
-    const convert = async (
-      node: DbNodeConcept,
-    ): Promise<{ converted: unknown; conceptLookups: unknown }> => {
+    const convert = async (node: DbNodeConcept) => {
       const { client, inCalls } = makeClient();
       const converted = await dbNodesToCrossApp({
         client,

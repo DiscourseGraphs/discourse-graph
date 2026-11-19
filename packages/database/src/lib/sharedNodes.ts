@@ -18,12 +18,17 @@ export type SharedNodeListing = {
   spaces: Record<string, SharedNodeSpace>;
 };
 
-export type SharedNodeRows = DbNodeRows & {
+type SharedNodeConcept = Omit<Required<DbNodeConcept>, "literal_content"> & {
+  core_title: string | null;
+};
+
+export type SharedNodeRows = Omit<DbNodeRows, "nodes"> & {
+  nodes: SharedNodeConcept[];
   spaces: SharedNodeSpace[];
 };
 
 const CONCEPT_COLUMNS_WITH_SLOTS =
-  "is_schema, last_modified, literal_content, schema_id, source_local_id, space_id, reference_content, concepts_of_relation(id, space_id, source_local_id)";
+  "core_title:literal_content->>core_title, is_schema, last_modified, schema_id, source_local_id, space_id, reference_content, concepts_of_relation(id, space_id, source_local_id)";
 const DIRECT_CONTENT_COLUMNS =
   "author_id, created, last_modified, source_local_id, space_id, text, variant";
 const FULL_CONTENT_SUMMARY_COLUMNS = "last_modified, source_local_id, space_id";
@@ -36,7 +41,7 @@ const getAssociatedSpaces = async ({
   currentSpaceId,
 }: {
   client: DGSupabaseClient;
-  concepts: Required<DbNodeConcept>[];
+  concepts: SharedNodeConcept[];
   currentSpace?: SharedNodeSpace;
   currentSpaceId?: number;
 }): Promise<SharedNodeSpace[]> => {
@@ -111,6 +116,7 @@ const getSharedNodeRows = async ({
 const toSharedNodeListing = async ({
   client,
   spaces,
+  nodes: concepts,
   ...rows
 }: SharedNodeRows & {
   client: DGSupabaseClient;
@@ -118,6 +124,10 @@ const toSharedNodeListing = async ({
   const nodes = await dbNodesToCrossApp({
     client,
     ...rows,
+    nodes: concepts.map(({ core_title: coreTitle, ...concept }) => ({
+      ...concept,
+      literal_content: { core_title: coreTitle },
+    })),
     spaceMap: Object.fromEntries(spaces.map(({ id, url }) => [id, url])),
   });
   return {

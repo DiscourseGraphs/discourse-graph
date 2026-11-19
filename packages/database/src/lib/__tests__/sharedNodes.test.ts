@@ -18,7 +18,7 @@ const spaces: SharedNodeRows["spaces"] = [
 ];
 const nodes: SharedNodeRows["nodes"] = [
   {
-    literal_content: { core_title: "REM sleep and recall" },
+    core_title: "REM sleep and recall",
     is_schema: false,
     last_modified: "2026-06-14T12:00:00",
     schema_id: 200,
