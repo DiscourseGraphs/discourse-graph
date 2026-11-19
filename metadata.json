@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M7TGQGH5FDJPJV7CPM4RRDT4",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 7,
+  "files_touched": [
+    "apps/website/public/docs/roam/dg-schema02.PNG",
+    "openspec/changes/headless-mcp-retrieval/design.md",
+    "openspec/changes/headless-mcp-retrieval/tasks.md",
+    "packages/database/supabase/.gitignore",
+    "packages/database/supabase/config.toml"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 542,
+    "cache_creation_tokens": 1807898,
+    "cache_read_tokens": 87010779,
+    "output_tokens": 318599,
+    "api_call_count": 231,
+    "subagent_tokens": {
+      "input_tokens": 70,
+      "cache_creation_tokens": 121921,
+      "cache_read_tokens": 2866723,
+      "output_tokens": 15000,
+      "api_call_count": 35
+    }
+  }
+}
