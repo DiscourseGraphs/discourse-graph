@@ -121,6 +121,19 @@ describe("parseUpsertData", () => {
       },
     },
     {
+      when: "has inline content whose rid names the path's space",
+      body: {
+        nodes: [
+          toJson({
+            ...node("claim-1", "claim-type"),
+            content: {
+              direct: { value: "claim-1", rid: `${SPACE_URL}/claim-1` },
+            },
+          }),
+        ],
+      },
+    },
+    {
       when: "has a relation whose destination is a RID in another space",
       body: {
         relations: [
@@ -183,6 +196,30 @@ describe("parseUpsertData", () => {
         ],
       }),
     ),
+    {
+      when: "has inline content whose rid names another space",
+      body: {
+        nodes: [
+          toJson({
+            ...node("claim-1", "claim-type"),
+            content: {
+              direct: { value: "claim-1" },
+              full: {
+                value: "Body",
+                contentType: "text/plain",
+                rid: "https://roamresearch.com/#/app/graph-b/claim-1",
+              },
+            },
+          }),
+        ],
+      },
+      issues: [
+        {
+          path: ["nodes", 0, "content", "full", "rid"],
+          message: "The rid names a space other than the one in the path",
+        },
+      ],
+    },
     {
       when: "has a node whose type is a RID",
       body: {
@@ -362,9 +399,11 @@ describe("findMissingSchemas", () => {
 
 describe("toOrderedEntries", () => {
   it("puts every concept after the concepts it references", () => {
-    const ids = toOrderedEntries({ data: graph, storedSchemas: [] }).map(
-      (e) => e.localId,
-    );
+    const ids = toOrderedEntries({
+      data: graph,
+      storedSchemas: [],
+      spaceUrl: SPACE_URL,
+    }).map((e) => e.localId);
     expect([...ids].sort()).toEqual(
       [
         "claim-1",
@@ -397,10 +436,65 @@ describe("toOrderedEntries", () => {
         ? node(`n-${i}`, "source-type", { source: `n-${i + 1}` })
         : node(`n-${i}`, "source-type"),
     );
-    const ids = toOrderedEntries({ data: { nodes }, storedSchemas: [] }).map(
-      (e) => e.localId,
-    );
+    const ids = toOrderedEntries({
+      data: { nodes },
+      storedSchemas: [],
+      spaceUrl: SPACE_URL,
+    }).map((e) => e.localId);
     expect(ids).toEqual(nodes.map((n) => n.localId).reverse());
+  });
+
+  it.each([
+    {
+      when: "the cited node has no rid",
+      spaceUrl: SPACE_URL,
+      rid: `${SPACE_URL}/source-1`,
+      source: node("source-1", "source-type"),
+    },
+    {
+      when: "the cited node has its own rid",
+      spaceUrl: SPACE_URL,
+      rid: `${SPACE_URL}/source-1`,
+      source: {
+        ...node("source-1", "source-type"),
+        rid: `${SPACE_URL}/source-1`,
+      },
+    },
+    {
+      when: "the RID is an orn",
+      spaceUrl: "obsidian:vault-a",
+      rid: "orn:obsidian.note:vault-a/source-1",
+      source: node("source-1", "source-type"),
+    },
+  ])(
+    "puts a node cited by a RID in this space first when $when",
+    ({ spaceUrl, rid, source }) => {
+      const nodes = [
+        node("evidence-1", "evidence-type", { source: rid }),
+        source,
+      ];
+      const ids = toOrderedEntries({
+        data: { nodes },
+        storedSchemas: [],
+        spaceUrl,
+      }).map((e) => e.localId);
+      expect(ids).toEqual(["source-1", "evidence-1"]);
+    },
+  );
+
+  it("leaves a node citing a RID in another space where the body put it", () => {
+    const nodes = [
+      node("evidence-1", "evidence-type", {
+        source: "https://roamresearch.com/#/app/graph-b/source-1",
+      }),
+      node("source-1", "source-type"),
+    ];
+    const ids = toOrderedEntries({
+      data: { nodes },
+      storedSchemas: [],
+      spaceUrl: SPACE_URL,
+    }).map((e) => e.localId);
+    expect(ids).toEqual(["evidence-1", "source-1"]);
   });
 
   it.each([
@@ -413,9 +507,11 @@ describe("toOrderedEntries", () => {
   ])(
     "gives a triple its relation type's label and complement from $from",
     ({ data, storedSchemas }) => {
-      const triple = toOrderedEntries({ data, storedSchemas }).find(
-        (e) => e.localId === "evidence-supports-claim",
-      );
+      const triple = toOrderedEntries({
+        data,
+        storedSchemas,
+        spaceUrl: SPACE_URL,
+      }).find((e) => e.localId === "evidence-supports-claim");
       expect(triple?.concept.literal_content).toEqual({
         roles: ["source", "destination"],
         label: "supports",
@@ -431,6 +527,7 @@ describe("toOrderedEntries", () => {
     const rows = toOrderedEntries({
       data: parsed.data,
       storedSchemas: [],
+      spaceUrl: SPACE_URL,
     }).flatMap(({ concept }) => [concept, ...(concept.contents_inline ?? [])]);
     expect(rows.map((row) => row.last_modified)).toEqual(
       new Array<string>(12).fill("2026-06-14T11:00:00.000Z"),
@@ -442,6 +539,7 @@ describe("toOrderedEntries", () => {
       toOrderedEntries({
         data: { relationTripleSchemas: [evidenceSupportsClaim] },
         storedSchemas: [],
+        spaceUrl: SPACE_URL,
       }),
     ).toThrow("evidence-supports-claim");
   });
@@ -449,7 +547,11 @@ describe("toOrderedEntries", () => {
 
 describe("mapUpsertResults", () => {
   it("maps each result to the local id at its position after ordering", () => {
-    const entries = toOrderedEntries({ data: graph, storedSchemas: [] });
+    const entries = toOrderedEntries({
+      data: graph,
+      storedSchemas: [],
+      spaceUrl: SPACE_URL,
+    });
     const failures: Record<string, number> = {
       "evidence-1": -1,
       "relation-1": -2,
