@@ -1,0 +1,7 @@
+> A possible second read API. For the upsert route’s name (FEE-890, open, Michael’s call), one option on record is Michael’s /api/internal/space/[id]/graph/upsert, “or /graph if a GET comes later”. A GET on /graph would be a read API next to our /api/v1/nodes/.... The two route sets should share a namespace, decided together.
+
+has this API been built yet? what's the proposal for the read api here?
+
+---
+
+so we can just build another read path right? namespaces are changable so it's wahtever
