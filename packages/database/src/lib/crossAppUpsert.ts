@@ -32,6 +32,8 @@ const UNWRITTEN_FIELDS: { [K in UpsertKind]?: keyof ItemOf<K> } = {
   nodes: "assets",
 };
 
+const UNWRITTEN_FIELD_MESSAGE = "This route does not write this field yet";
+
 type UpsertIssue = { path: (string | number)[]; message: string };
 
 type UpsertEntry = {
@@ -101,7 +103,7 @@ const findItemIssues = ({
     if (unwritten !== undefined && unwritten in item)
       issues.push({
         path: [kind, index, unwritten],
-        message: "This route does not write this field yet",
+        message: UNWRITTEN_FIELD_MESSAGE,
       });
     return issues;
   });
@@ -123,24 +125,17 @@ const findContentScaleIssues = (data: CrossAppUpsertData): UpsertIssue[] =>
     ),
   );
 
-// Inline content is written to its node's space, so a content's own rid must
-// name that space too.
-const findContentRidIssues = ({
-  data,
-  spaceUrl,
-}: {
-  data: CrossAppUpsertData;
-  spaceUrl: string;
-}): UpsertIssue[] =>
+// No converter writes an inline content's own rid: the content goes to its
+// node's space under its localId, or its node's when it has none.
+const findContentRidIssues = (data: CrossAppUpsertData): UpsertIssue[] =>
   (data.nodes ?? []).flatMap((node, index) =>
     Object.entries(node.content).flatMap(([variant, content]) =>
-      content.rid === undefined ||
-      ridToSpaceUriAndLocalId(content.rid).spaceUri === spaceUrl
+      content.rid === undefined
         ? []
         : [
             {
               path: ["nodes", index, "content", variant, "rid"],
-              message: "The rid names a space other than the one in the path",
+              message: UNWRITTEN_FIELD_MESSAGE,
             },
           ],
     ),
@@ -196,7 +191,7 @@ export const parseUpsertData = ({
   const issues = [
     ...findItemIssues({ data: result.data, spaceUrl }),
     ...findContentScaleIssues(result.data),
-    ...findContentRidIssues({ data: result.data, spaceUrl }),
+    ...findContentRidIssues(result.data),
     ...findRidTypeIssues(result.data),
   ];
   if (issues.length > 0) return refuse(issues);
