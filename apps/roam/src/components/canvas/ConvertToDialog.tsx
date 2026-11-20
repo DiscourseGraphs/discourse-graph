@@ -25,7 +25,8 @@ const ConvertToDialog = ({
   const isImageSelected = selectedShapes[0]?.type === "image";
   const oneShapeSelected = selectedShapes.length === 1;
   const isNodeSelected =
-    oneShapeSelected && isConvertibleShape(selectedShapes[0]);
+    oneShapeSelected &&
+    isConvertibleShape({ editor, shape: selectedShapes[0] });
 
   let errorMessage =
     "Please select an unlocked image, text shape, or a sticky note or shape containing text";

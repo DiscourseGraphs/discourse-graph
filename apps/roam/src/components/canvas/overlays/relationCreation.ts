@@ -183,12 +183,14 @@ export const createDefaultRelationBetweenNodes = async ({
     normalizedAnchor: { x: 0.5, y: 0.5 },
     isPrecise: false,
     isExact: false,
+    snap: "none",
   });
   createOrUpdateArrowBinding(editor, newArrow, targetId, {
     terminal: "end",
     normalizedAnchor: { x: 0.5, y: 0.5 },
     isPrecise: false,
     isExact: false,
+    snap: "none",
   });
 
   editor.select(arrowId);

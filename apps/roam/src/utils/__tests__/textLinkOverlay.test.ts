@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createTLSchema, TLShape } from "tldraw";
+import { createTLSchema, TLShape, toRichText } from "tldraw";
 import { getTextShapeLinkUrl } from "~/components/canvas/overlays/TextLinkOverlay";
 
 const makeShape = ({
@@ -27,7 +27,7 @@ const makeShape = ({
       font: "draw",
       textAlign: "middle",
       w: 100,
-      text: "hello",
+      richText: toRichText("hello"),
       scale: 1,
       autoSize: true,
     },

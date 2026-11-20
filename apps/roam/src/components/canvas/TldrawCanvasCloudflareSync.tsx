@@ -45,7 +45,7 @@ const createRoamAssetStore = (): TLAssetStore => {
   return {
     upload: async (_asset, file) => {
       const response = await window.roamAlphaAPI.file.upload({ file });
-      return parseRoamUploadResponse(response);
+      return { src: parseRoamUploadResponse(response) };
     },
     resolve: (asset) => asset.props.src,
   };

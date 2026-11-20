@@ -1,5 +1,6 @@
 import type {
   Editor,
+  TLPageId,
   TLRecord,
   TLSessionStateSnapshot,
   TLStoreEventInfo,
@@ -9,12 +10,20 @@ const CANVAS_SESSION_STORAGE_VERSION = 1;
 const CANVAS_SESSION_STORAGE_PREFIX = "dg:tldraw-session";
 const CANVAS_SESSION_SAVE_DELAY_MS = 750;
 
+type PageState = NonNullable<TLSessionStateSnapshot["pageStates"]>[number];
+
+// tldraw 3.x made these optional; stored sessions always have both.
+export type CanvasSessionState = TLSessionStateSnapshot & {
+  currentPageId: TLPageId;
+  pageStates: PageState[];
+};
+
 type CanvasSessionStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
 type StoredCanvasSessionState = {
   version: typeof CANVAS_SESSION_STORAGE_VERSION;
   savedAt: number;
-  session: TLSessionStateSnapshot;
+  session: CanvasSessionState;
 };
 
 type UnknownRecordChange = [TLRecord, TLRecord];
@@ -27,9 +36,7 @@ const isFiniteNumber = (value: unknown): value is number =>
 const isStringArray = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === "string");
 
-const isCameraState = (
-  value: unknown,
-): value is TLSessionStateSnapshot["pageStates"][number]["camera"] => {
+const isCameraState = (value: unknown): value is PageState["camera"] => {
   return (
     typeof value === "object" &&
     value !== null &&
@@ -39,9 +46,7 @@ const isCameraState = (
   );
 };
 
-const isPageState = (
-  value: unknown,
-): value is TLSessionStateSnapshot["pageStates"][number] => {
+const isPageState = (value: unknown): value is PageState => {
   if (typeof value !== "object" || value === null) return false;
   const pageState = value as Record<string, unknown>;
   return (
@@ -53,9 +58,7 @@ const isPageState = (
   );
 };
 
-const isCanvasSessionState = (
-  value: unknown,
-): value is TLSessionStateSnapshot => {
+const isCanvasSessionState = (value: unknown): value is CanvasSessionState => {
   if (typeof value !== "object" || value === null) return false;
   const session = value as Record<string, unknown>;
   return (
@@ -119,7 +122,7 @@ export const readCanvasSessionState = ({
 }: {
   storage: CanvasSessionStorage;
   storageKey: string;
-}): TLSessionStateSnapshot | null => {
+}): CanvasSessionState | null => {
   const raw = storage.getItem(storageKey);
   if (!raw) return null;
 
@@ -139,10 +142,10 @@ export const getValidCanvasSessionState = ({
   pageIds,
   currentPageId,
 }: {
-  session: TLSessionStateSnapshot;
+  session: CanvasSessionState;
   pageIds: readonly string[];
-  currentPageId: TLSessionStateSnapshot["currentPageId"];
-}): TLSessionStateSnapshot | null => {
+  currentPageId: TLPageId;
+}): CanvasSessionState | null => {
   const pageIdSet = new Set(pageIds);
   const pageStates = session.pageStates.filter((pageState) =>
     pageIdSet.has(pageState.pageId),
@@ -226,6 +229,7 @@ const saveCanvasSessionState = ({
 }): void => {
   try {
     const { session } = editor.getSnapshot();
+    if (!isCanvasSessionState(session)) return;
     const stored: StoredCanvasSessionState = {
       version: CANVAS_SESSION_STORAGE_VERSION,
       savedAt: Date.now(),
