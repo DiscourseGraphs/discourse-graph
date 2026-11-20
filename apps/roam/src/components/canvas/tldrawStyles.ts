@@ -74,6 +74,66 @@ export default /* css */ `
   position: static;
 }
 
+.dg-tiny-hand {
+  position: absolute;
+  inset: 0;
+  z-index: calc(var(--layer-panels) - 1);
+  pointer-events: none;
+}
+
+.dg-tiny-hand-surface {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  cursor: none;
+  touch-action: none;
+  pointer-events: auto;
+  user-select: none;
+}
+
+.dg-tiny-hand-surface svg {
+  display: block;
+  pointer-events: none;
+}
+
+.dg-tiny-hand-pointer {
+  filter: drop-shadow(1px 2px 2px #0005);
+}
+
+.dg-tiny-hand-controls {
+  position: absolute;
+  left: 50%;
+  top: 44px;
+  transform: translateX(-50%);
+  display: flex;
+  width: max-content;
+  max-width: calc(100% - 12px);
+  flex-wrap: wrap;
+  justify-content: center;
+  border-radius: var(--radius-2);
+  background: var(--color-panel);
+  box-shadow: var(--shadow-2);
+  pointer-events: auto;
+}
+
+.dg-tiny-hand-controls button {
+  height: 32px;
+  padding: 0 8px;
+}
+
+.dg-tiny-hand-controls button[aria-pressed="true"] {
+  color: var(--color-selected);
+}
+
+.dg-tiny-hand-tap {
+  animation: dg-tiny-hand-tap 450ms ease-out both;
+}
+
+@keyframes dg-tiny-hand-tap {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
 /* Clipboard toggle button in toolbar */
 .tlui-toolbar__lock-button[data-clipboard-open="true"]::after {
   background-color: var(--color-muted-2);

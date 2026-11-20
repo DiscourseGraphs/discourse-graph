@@ -189,6 +189,7 @@ export const compile = ({
         },
       ],
       loader: {
+        ".wav": "base64",
         ".woff": "file",
         ".woff2": "file",
         ".yaml": "text",

@@ -1,3 +1,8 @@
+declare module "*.wav" {
+  const base64: string;
+  export default base64;
+}
+
 declare module "*.png" {
   const value: string;
   export default value;

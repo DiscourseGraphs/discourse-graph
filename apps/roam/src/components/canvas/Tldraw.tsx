@@ -54,6 +54,11 @@ import {
 } from "tldraw";
 import "tldraw/tldraw.css";
 import tldrawStyles from "./tldrawStyles";
+import { TinyHandOverlay } from "./tinyHand/TinyHandOverlay";
+import {
+  createTinyHandTool,
+  TINY_HAND_ICON_URL,
+} from "./tinyHand/TinyHandTool";
 import { DragHandleOverlay } from "./overlays/DragHandleOverlay";
 import { ImageConvertOverlay } from "./overlays/ImageConvertOverlay";
 import { TextLinkOverlay } from "./overlays/TextLinkOverlay";
@@ -1030,12 +1035,6 @@ const TldrawCanvasShared = ({
     OnTheCanvas: ToastListener,
     InFrontOfTheCanvas: CanvasOverlays,
   };
-  const customUiComponents: TLUiComponents = createUiComponents({
-    allNodes,
-    allRelationNames,
-    canvasSyncMode,
-  });
-
   const storeAdapterArgs = useCanvasStoreAdapterArgs({
     pageUid,
     isCloudflareSync,
@@ -1064,16 +1063,28 @@ const TldrawCanvasShared = ({
   const referencedNodeTools = createAllReferencedNodeTools(
     allAddReferencedNodeByAction,
   );
-  const customTools = [
+  const canvasTools = [
+    ...defaultTools,
+    ...defaultShapeTools,
     discourseGraphTool,
     ...discourseNodeTools,
     ...discourseRelationTools,
     ...referencedNodeTools,
   ];
 
+  const TinyHandTool = createTinyHandTool(canvasTools.map((tool) => tool.id));
+  const tinyHandToolId = TinyHandTool.id;
+
   // UI OVERRIDES
+  const customUiComponents: TLUiComponents = createUiComponents({
+    allNodes,
+    allRelationNames,
+    canvasSyncMode,
+    tinyHandToolId,
+  });
   const uiOverrides = createUiOverrides({
     allNodes,
+    tinyHandToolId,
     allRelationNames,
     allAddReferencedNodeByAction,
     canvasSyncMode,
@@ -1375,7 +1386,7 @@ const TldrawCanvasShared = ({
             autoFocus={false}
             initialState="select"
             shapeUtils={[...defaultShapeUtils, ...customShapeUtils]}
-            tools={[...defaultTools, ...defaultShapeTools, ...customTools]}
+            tools={[...canvasTools, TinyHandTool]}
             bindingUtils={[...defaultBindingUtils, ...customBindingUtils]}
             components={editorComponents}
             store={store}
@@ -1484,13 +1495,19 @@ const TldrawCanvasShared = ({
               <TldrawUi
                 overrides={uiOverrides}
                 components={customUiComponents}
-                assetUrls={{ icons: { discourseNodeIcon: ICON_URL } }}
+                assetUrls={{
+                  icons: {
+                    discourseNodeIcon: ICON_URL,
+                    tinyHandIcon: TINY_HAND_ICON_URL,
+                  },
+                }}
               >
                 <InsideEditorAndUiContext
                   extensionAPI={extensionAPI}
                   allNodes={allNodes}
                   // allRelationIds={allRelationIds}
                 />
+                <TinyHandOverlay toolId={tinyHandToolId} />
                 <CanvasDrawerPanel />
                 <ClipboardPanel />
               </TldrawUi>
