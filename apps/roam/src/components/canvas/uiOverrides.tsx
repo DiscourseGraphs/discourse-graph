@@ -647,7 +647,7 @@ export const createUiOverrides = ({
     tools[tinyHandToolId] = {
       id: tinyHandToolId,
       icon: "tinyHandIcon",
-      label: "TinyHand" as TLUiTranslationKey,
+      label: "TinyHand",
       kbd: "",
       readonlyOk: true,
       onSelect: () => {
