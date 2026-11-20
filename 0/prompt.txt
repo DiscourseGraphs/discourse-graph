@@ -58,3 +58,7 @@ And that does not stay in scope: a copy of a hosted graph offline. Don't worry a
 ---
 
 Why does \`get Supabase context\` require these early exits? Is it called from somewhere that can't use that check? I'm not sure. I want to change the Supabase context. Is that the best way? Is that required? If we remove that, what would the negatives be?
+
+---
+
+What does global \`this\` do? I want to make sure that we're not putting in an early return here for something that maybe the API doesn't return \`true\`. I'd rather default to letting people through rather than not. I want to make sure we don't accidentally gate someone who shouldn't be gated.
