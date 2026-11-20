@@ -41,7 +41,7 @@ const isSourceNodeType = (nodeType: DiscourseNode | undefined): boolean =>
 const byCreatedThenId = (a: RelationInstance, b: RelationInstance): number =>
   a.created - b.created || a.id.localeCompare(b.id);
 
-const sourceDocumentIdOf = (node: DiscourseNodeInVault): string => {
+export const referenceIdOf = (node: DiscourseNodeInVault): string => {
   const importedFromRid = node.frontmatter.importedFromRid;
   return typeof importedFromRid === "string"
     ? importedFromRid
@@ -80,7 +80,7 @@ export const indexSourceSlotValues = ({
   return Object.fromEntries(
     Object.entries(earliestByNodeId).map(([nodeInstanceId, candidate]) => [
       nodeInstanceId,
-      sourceDocumentIdOf(candidate.sourceDocumentNode),
+      referenceIdOf(candidate.sourceDocumentNode),
     ]),
   );
 };
