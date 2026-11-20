@@ -210,6 +210,7 @@ const registerDiscourseDatalogTranslators = (snapshot?: SettingsSnapshot) => {
   unregisters.add(
     registerDatalogTranslator({
       key: "is a",
+      builtIn: true,
       callback: isACallback,
       targetOptions: discourseNodes
         .map((d) => d.text)
@@ -221,6 +222,7 @@ const registerDiscourseDatalogTranslators = (snapshot?: SettingsSnapshot) => {
   unregisters.add(
     registerDatalogTranslator({
       key: "is a candidate",
+      builtIn: true,
       callback: isACandidateCallback,
       targetOptions: discourseNodes
         .filter((d) => d.tag)
@@ -232,6 +234,7 @@ const registerDiscourseDatalogTranslators = (snapshot?: SettingsSnapshot) => {
   unregisters.add(
     registerDatalogTranslator({
       key: "self",
+      builtIn: true,
       callback: ({ source, uid }) =>
         isACallback({ source, target: source, uid }),
     }),
@@ -239,6 +242,7 @@ const registerDiscourseDatalogTranslators = (snapshot?: SettingsSnapshot) => {
   unregisters.add(
     registerDatalogTranslator({
       key: "is involved with query",
+      builtIn: true,
       targetOptions: () =>
         getPageTitlesStartingWithPrefix("discourse-graph/queries/").map((q) =>
           q.substring("discourse-graph/queries/".length),
@@ -412,6 +416,7 @@ const registerDiscourseDatalogTranslators = (snapshot?: SettingsSnapshot) => {
     unregisters.add(
       registerDatalogTranslator({
         key: label,
+        builtIn: label === ANY_RELATION_NAME,
         callback: ({ source, target, uid }) => {
           const storedRelationsEnabled = getStoredRelationsEnabled();
           const relationPageUid = getExistingRelationPageUid();
