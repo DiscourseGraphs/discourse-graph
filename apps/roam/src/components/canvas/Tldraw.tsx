@@ -495,11 +495,7 @@ export const isPageUid = (uid: string) =>
     ":node/title"
   ];
 
-export const TldrawCanvas = ({
-  title,
-}: {
-  title: string;
-}): React.ReactElement => {
+export const TldrawCanvas = ({ title }: { title: string }) => {
   const { name, type } = window.roamAlphaAPI.graph;
   return (
     <GraphCanvas key={JSON.stringify([type, name, title])} title={title} />
