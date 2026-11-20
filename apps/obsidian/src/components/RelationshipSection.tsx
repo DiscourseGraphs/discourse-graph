@@ -29,9 +29,6 @@ import {
 import { InfoTooltip } from "./InfoTooltip";
 import { setFileDragData } from "./fileDragData";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const plantedScannerError: any = null;
-
 type RelationTypeOption = {
   id: string;
   label: string;
