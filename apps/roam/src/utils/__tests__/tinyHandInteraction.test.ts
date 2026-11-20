@@ -136,6 +136,16 @@ describe("TinyHand native interaction", () => {
     expect(tool()).toBe(toolId);
   });
 
+  it("recovers when an iframe receives pointerup and the canvas receives Alt-up", () => {
+    const { key, pointer, tool } = fixture;
+    key("keydown", "Alt");
+    pointer("pointerdown", true);
+    key("keyup", "Alt", window);
+    expect(tool()).toBe("select");
+    pointer("pointermove", false);
+    expect(tool()).toBe(toolId);
+  });
+
   it("leaves each pointer sequence with the tool where it began", () => {
     const { key, pointer, tool, canvas } = fixture;
     pointer("pointerdown");

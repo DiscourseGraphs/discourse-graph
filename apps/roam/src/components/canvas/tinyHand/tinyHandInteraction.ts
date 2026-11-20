@@ -160,18 +160,13 @@ export const listenForTinyHandInteraction = ({
     "pointermove",
     (event) => {
       trackPoint(event);
-      // Native media controls can consume keyup inside the browser's shadow tree.
-      if (
-        held &&
-        interacting.get() &&
-        event.isPrimary &&
-        event.pointerType !== "touch" &&
-        !event.altKey
-      ) {
-        held = false;
-        if (!event.buttons) pointers.delete(event.pointerId);
-        sync();
-      }
+      if (!event.isPrimary || event.pointerType === "touch") return;
+      // A native control may consume keyup, or an iframe may receive pointerup.
+      const missedKeyUp = held && !event.altKey;
+      const missedPointerUp =
+        !event.buttons && pointers.delete(event.pointerId);
+      if (missedKeyUp) held = false;
+      if (missedKeyUp || missedPointerUp) sync();
     },
     capture,
   );
