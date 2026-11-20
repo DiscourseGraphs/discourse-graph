@@ -58,6 +58,15 @@ const platformOfSpaceUrl = (spaceUrl: string): Platform | undefined =>
     spaceUrl.startsWith(SPACE_URL_PREFIXES[platform]),
   );
 
+export const spacePathFromSpaceUrl = (
+  spaceUrl: string,
+): Omit<NodePath, "localId"> | undefined => {
+  const platform = platformOfSpaceUrl(spaceUrl);
+  if (!platform) return undefined;
+  const spaceKey = spaceKeyFromSpaceUrl({ platform, spaceUrl });
+  return spaceKey ? { platform, spaceKey } : undefined;
+};
+
 export const nodePathFromRid = (rid: string): NodePath | undefined => {
   const { spaceUri, sourceLocalId } = ridToSpaceUriAndLocalId(rid);
   const platform = platformOfSpaceUrl(spaceUri);

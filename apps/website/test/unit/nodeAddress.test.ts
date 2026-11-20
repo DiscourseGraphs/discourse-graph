@@ -8,6 +8,7 @@ import {
   ridFromNodePath,
   spaceDataUrl,
   spaceKeyFromSpaceUrl,
+  spacePathFromSpaceUrl,
   spaceUrlFromSpaceKey,
 } from "../../app/utils/conversion/nodeAddress";
 
@@ -70,6 +71,17 @@ describe("space keys", () => {
     expect(spaceUrlFromSpaceKey(obsidianPath)).toBe(
       "obsidian:837541d3a06d1871",
     );
+  });
+
+  it("finds the platform and key of a space URL", () => {
+    expect(
+      spacePathFromSpaceUrl("https://roamresearch.com/#/app/akamatsulab"),
+    ).toEqual({ platform: "Roam", spaceKey: "akamatsulab" });
+    expect(spacePathFromSpaceUrl("obsidian:837541d3a06d1871")).toEqual({
+      platform: "Obsidian",
+      spaceKey: "837541d3a06d1871",
+    });
+    expect(spacePathFromSpaceUrl("https://example.com/space")).toBeUndefined();
   });
 
   it("maps platform segments to platforms", () => {

@@ -91,6 +91,7 @@ vi.mock("~/utils/roamToCrossAppConverters", () => ({
 }));
 
 vi.mock("@repo/database/lib/groups", () => ({
+  EVERYONE_UID: "00000000-0000-0000-0000-000000000000",
   getAvailableGroupIds: mocks.getAvailableGroupIds,
   ensurePartialSpaceAccess: mocks.ensurePartialSpaceAccess,
   getPublishedGroupIdsByRid: mocks.getPublishedGroupIdsByRid,
@@ -434,6 +435,49 @@ describe("publishNodesToGroups", () => {
     expect(result.syncedNodeSchemaUids).toEqual([SCHEMA_UID]);
     expect(result.okGroupIds).toEqual([GROUP_ID]);
     expect(result.failedUpsertUids).toEqual([]);
+  });
+
+  it("publishes to the web for someone in no group", async () => {
+    const everyone = "00000000-0000-0000-0000-000000000000";
+    mocks.getAvailableGroupIds.mockResolvedValue([]);
+    const { client, upsertCalls } = makeFakeClient({});
+
+    const result = await publishNodesToGroups({
+      client,
+      spaceId: SPACE_ID,
+      groupIds: [everyone],
+      nodes: [makeCrossAppNode({ uid: "node-1", title: "CLM - public" })],
+    });
+
+    expect(mocks.ensurePartialSpaceAccess).toHaveBeenCalledWith(
+      expect.objectContaining({ groupIds: [everyone] }),
+    );
+    expect(upsertCalls[0].rows).toEqual(
+      expect.arrayContaining([
+        {
+          account_uid: everyone,
+          source_local_id: "node-1",
+          space_id: SPACE_ID,
+        },
+      ]),
+    );
+    expect(result.okGroupIds).toEqual([everyone]);
+    expect(result.failedGroupIds).toEqual([]);
+  });
+
+  it("still refuses a group the user is not a member of", async () => {
+    mocks.getAvailableGroupIds.mockResolvedValue([]);
+    const { client, upsertCalls } = makeFakeClient({});
+
+    const result = await publishNodesToGroups({
+      client,
+      spaceId: SPACE_ID,
+      groupIds: [GROUP_ID],
+      nodes: [makeCrossAppNode({ uid: "node-1", title: "CLM - private" })],
+    });
+
+    expect(upsertCalls).toHaveLength(0);
+    expect(result.failedGroupIds).toEqual([GROUP_ID]);
   });
 
   it("still upserts title and full content when republishing an already-synced node", async () => {

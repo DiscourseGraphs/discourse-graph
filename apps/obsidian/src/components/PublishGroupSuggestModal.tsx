@@ -19,7 +19,7 @@ export class PublishGroupSuggestModal extends SuggestModal<PublishGroupSuggestIt
   }
 
   getItemText(item: PublishGroupSuggestItem): string {
-    if (item.isPublishToAll) {
+    if (item.isPublishToAll || item.isPublishToWeb) {
       return item.name;
     }
     return item.isPublished ? `${item.name} (shared)` : item.name;
@@ -36,7 +36,9 @@ export class PublishGroupSuggestModal extends SuggestModal<PublishGroupSuggestIt
     const row = el.createDiv({
       cls: item.isPublishToAll
         ? "border-b border-border pb-1 font-medium"
-        : "flex items-center gap-2",
+        : item.isPublishToWeb
+          ? "flex items-center gap-2 border-b border-border pb-1 font-medium"
+          : "flex items-center gap-2",
     });
 
     if (item.isPublishToAll) {
@@ -52,7 +54,8 @@ export class PublishGroupSuggestModal extends SuggestModal<PublishGroupSuggestIt
   }
 
   onChooseSuggestion(item: PublishGroupSuggestItem): void {
-    if (item.isPublished) {
+    // Choosing the web again republishes, which also publishes new relations.
+    if (item.isPublished && !item.isPublishToWeb) {
       return;
     }
     void this.onChoose(item);
