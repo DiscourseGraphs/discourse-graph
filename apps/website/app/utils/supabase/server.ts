@@ -1,7 +1,9 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import type { Database } from "@repo/database/dbTypes";
 import { envContents } from "@repo/database/dbDotEnv";
+import type { DGSupabaseClient } from "@repo/database/lib/client";
 
 // This is a supabase client to be used in a server process such as NextJS
 // Inspired by https://supabase.com/ui/docs/nextjs/password-based-auth
@@ -49,4 +51,23 @@ export const createClient = async () => {
       },
     },
   });
+};
+
+// For callers signed in through a plugin rather than website cookies. Queries
+// run as the token's user under RLS, so this must never take the service key.
+export const createBearerTokenClient = (
+  accessToken: string,
+): DGSupabaseClient => {
+  const dbEnv = envContents();
+  if (!dbEnv.SUPABASE_URL || !dbEnv.SUPABASE_PUBLISHABLE_KEY) {
+    throw new Error("Missing required Supabase environment variables");
+  }
+  return createSupabaseClient<Database, "public">(
+    dbEnv.SUPABASE_URL,
+    dbEnv.SUPABASE_PUBLISHABLE_KEY,
+    {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    },
+  );
 };
