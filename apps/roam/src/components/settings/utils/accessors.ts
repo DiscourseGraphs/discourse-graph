@@ -9,7 +9,6 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import { getSubTree } from "roamjs-components/util";
 import getSettingValueFromTree from "roamjs-components/util/getSettingValueFromTree";
 import internalError from "~/utils/internalError";
-import { canUseRoamCloud } from "~/utils/roamCloudAccess";
 import { getSetting } from "~/utils/extensionSettings";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import { getRoamMarkdownApi } from "~/utils/materializeSharedNode";
@@ -763,10 +762,10 @@ export const readAllLegacyDiscourseNodeSettings = (
 };
 
 export const isSyncEnabled = (): boolean =>
-  canUseRoamCloud() && getFeatureFlag("Suggestive mode overlay enabled");
+  getFeatureFlag("Suggestive mode overlay enabled");
 
 export const isNodeSharingEnabled = (): boolean =>
-  canUseRoamCloud() && getFeatureFlag("Enable node sharing");
+  getFeatureFlag("Enable node sharing");
 
 export const setFeatureFlag = (
   key: keyof FeatureFlags,

@@ -1,14 +1,7 @@
 import React, { useState } from "react";
 import { OnloadArgs } from "roamjs-components/types";
 import { render as renderToast } from "roamjs-components/components/Toast";
-import {
-  Label,
-  Dialog,
-  Button,
-  Callout,
-  Intent,
-  Classes,
-} from "@blueprintjs/core";
+import { Label, Dialog, Button, Intent, Classes } from "@blueprintjs/core";
 import Description from "~/components/settings/SettingsDescription";
 import { addStyle } from "roamjs-components/dom";
 import { NodeMenuTriggerComponent } from "~/components/DiscourseNodeMenu";
@@ -38,10 +31,6 @@ import migrateRelations from "~/utils/migrateRelations";
 import { countReifiedRelations } from "~/utils/createReifiedBlock";
 import posthog from "posthog-js";
 import internalError from "~/utils/internalError";
-import {
-  canUseRoamCloud,
-  ROAM_CLOUD_UNAVAILABLE_MESSAGE,
-} from "~/utils/roamCloudAccess";
 import { setPersonalSetting, type SettingsSnapshot } from "./utils/accessors";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import { ROAM_DOCS, withDocsLink } from "./utils/docs";
@@ -127,9 +116,6 @@ const HomePersonalSettings = ({
   };
   return (
     <div className="flex flex-col gap-4 p-1">
-      {!canUseRoamCloud() && (
-        <Callout icon="info-sign">{ROAM_CLOUD_UNAVAILABLE_MESSAGE}</Callout>
-      )}
       <Label>
         Personal node menu trigger
         <Description
