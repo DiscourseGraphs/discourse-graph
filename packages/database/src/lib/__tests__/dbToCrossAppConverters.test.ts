@@ -93,6 +93,20 @@ describe("dbNodeSchemaToCrossApp", () => {
     expect(result.metadata).toEqual({ extra: "kept" });
   });
 
+  it("splits color out of metadata onto the result", () => {
+    const schema = baseConcept({
+      literal_content: { color: "#7DA13E", extra: "kept" },
+    });
+    const result = dbNodeSchemaToCrossApp({
+      schema,
+      spaceMap,
+      accountMap,
+      schemaMap: {},
+    });
+    expect(result.color).toBe("#7DA13E");
+    expect(result.metadata).toEqual({ extra: "kept" });
+  });
+
   it("keeps format undefined when literal_content has no format", () => {
     const schema = baseConcept({
       literal_content: { extra: "kept" },
@@ -197,6 +211,21 @@ describe("dbRelationTypeSchemaToCrossApp", () => {
       complement: "is supported by",
       authorId: "account-local-1",
     });
+  });
+
+  it("splits color out of metadata onto the result", () => {
+    const schema = baseConcept({
+      literal_content: {
+        roles: ["source", "destination"],
+        label: "supports",
+        complement: "is supported by",
+        color: "green",
+        extra: "kept",
+      },
+    });
+    const result = dbRelationTypeSchemaToCrossApp(schema, spaceMap, accountMap);
+    expect(result.color).toBe("green");
+    expect(result.metadata).toEqual({ extra: "kept" });
   });
 });
 
