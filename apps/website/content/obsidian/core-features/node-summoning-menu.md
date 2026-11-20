@@ -41,10 +41,4 @@ Click the funnel icon at the top of the menu. The type filter opens inside the m
 
 ![Type filter open inside the node summoning menu, with Question unchecked](/docs/obsidian/node-summoning-menu-type-filter.png)
 
-- **Uncheck a type** to remove its group from the results. Unchecking the last checked type brings every group back.
 - **Only** appears when you hover a row. It narrows the filter to that type and closes the filter.
-- **Clear filter (N)** appears while a filter is active, where N is the number of types selected. It checks every type again.
-
-The funnel icon is highlighted while the filter is open or active. Unchecking every type is the same as checking every type: both show all your nodes. The filter resets to all types each time the menu opens.
-
-[Node search](/docs/obsidian/core-features/node-search) uses the same type filter, plus a search box for long lists of node types.
