@@ -74,16 +74,10 @@ export default /* css */ `
   position: static;
 }
 
-.dg-tiny-hand {
-  position: absolute;
-  inset: 0;
-  z-index: calc(var(--layer-panels) - 1);
-  pointer-events: none;
-}
-
 .dg-tiny-hand-surface {
   position: absolute;
   inset: 0;
+  z-index: calc(var(--layer-canvas-blocker) + 1);
   overflow: hidden;
   cursor: none;
   touch-action: none;
@@ -102,6 +96,7 @@ export default /* css */ `
 
 .dg-tiny-hand-controls {
   position: absolute;
+  z-index: calc(var(--layer-panels) - 1);
   left: 50%;
   top: 44px;
   transform: translateX(-50%);

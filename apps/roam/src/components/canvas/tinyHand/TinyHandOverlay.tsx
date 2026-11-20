@@ -21,6 +21,7 @@
  * SOFTWARE.
  */
 import React, { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { TldrawUiButton, useEditor, useValue } from "tldraw";
 import {
   extendTinyHandStroke,
@@ -62,9 +63,11 @@ const TinyHandPointer = ({ x, y }: { x: number; y: number }): JSX.Element => (
 );
 
 const ActiveTinyHand = ({
+  canvas,
   soundEnabled,
   setSoundEnabled,
 }: {
+  canvas: HTMLElement;
   soundEnabled: boolean;
   setSoundEnabled: (enabled: boolean) => void;
 }): JSX.Element => {
@@ -93,9 +96,19 @@ const ActiveTinyHand = ({
     setPointer({ x: event.clientX - left, y: event.clientY - top });
   };
 
+  const cancelGesture = (): void => {
+    gesture.current = null;
+    setPreview(null);
+    setPointer(null);
+  };
+
   const onPointerDown = (event: PointerEvent): void => {
     event.stopPropagation();
-    if (event.button !== 0 || !event.isPrimary || gesture.current) return;
+    if (!event.isPrimary) {
+      cancelGesture();
+      return;
+    }
+    if (event.button !== 0 || gesture.current) return;
 
     editor.focus();
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -107,7 +120,8 @@ const ActiveTinyHand = ({
   };
 
   const onPointerMove = (event: PointerEvent): void => {
-    if (!event.isPrimary) return;
+    if (!event.isPrimary || (event.pointerType === "touch" && !gesture.current))
+      return;
 
     movePointer(event);
     if (gesture.current?.id !== event.pointerId) return;
@@ -156,12 +170,8 @@ const ActiveTinyHand = ({
     }
   };
 
-  const cancelGesture = (event: PointerEvent): void => {
-    if (gesture.current?.id !== event.pointerId) return;
-
-    gesture.current = null;
-    setPreview(null);
-    setPointer(null);
+  const onPointerInterrupted = (event: PointerEvent): void => {
+    if (gesture.current?.id === event.pointerId) cancelGesture();
   };
 
   const clearMarks = (): void => {
@@ -181,58 +191,61 @@ const ActiveTinyHand = ({
   );
 
   return (
-    <div className="dg-tiny-hand">
-      <div
-        className="dg-tiny-hand-surface"
-        data-testid="tiny-hand-surface"
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={cancelGesture}
-        onLostPointerCapture={cancelGesture}
-        onPointerLeave={() => setPointer(null)}
-        onContextMenu={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-        }}
-      >
-        <svg aria-hidden="true" width="100%" height="100%">
-          <defs>
-            <marker
-              id={arrowId}
-              markerWidth="4"
-              markerHeight="4"
-              refX="4"
-              refY="2"
-              orient="auto"
+    <>
+      {createPortal(
+        <div
+          className="dg-tiny-hand-surface"
+          data-testid="tiny-hand-surface"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerInterrupted}
+          onLostPointerCapture={onPointerInterrupted}
+          onPointerLeave={() => setPointer(null)}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+        >
+          <svg aria-hidden="true" width="100%" height="100%">
+            <defs>
+              <marker
+                id={arrowId}
+                markerWidth="4"
+                markerHeight="4"
+                refX="4"
+                refY="2"
+                orient="auto"
+              >
+                <path d="M 0 0 L 4 2 L 0 4 Z" fill="var(--color-accent)" />
+              </marker>
+            </defs>
+            <g
+              transform={`scale(${z}) translate(${x} ${y})`}
+              fill="none"
+              stroke="var(--color-accent)"
+              strokeWidth={4 / z}
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              <path d="M 0 0 L 4 2 L 0 4 Z" fill="var(--color-accent)" />
-            </marker>
-          </defs>
-          <g
-            transform={`scale(${z}) translate(${x} ${y})`}
-            fill="none"
-            stroke="var(--color-accent)"
-            strokeWidth={4 / z}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            {marks.map(drawMark)}
-            {preview && drawMark(preview, marks.length)}
-            {tap && (
-              <circle
-                key={tap.id}
-                className="dg-tiny-hand-tap"
-                cx={tap.x}
-                cy={tap.y}
-                r={12 / z}
-                onAnimationEnd={() => setTap(null)}
-              />
-            )}
-          </g>
-          {pointer && <TinyHandPointer {...pointer} />}
-        </svg>
-      </div>
+              {marks.map(drawMark)}
+              {preview && drawMark(preview, marks.length)}
+              {tap && (
+                <circle
+                  key={tap.id}
+                  className="dg-tiny-hand-tap"
+                  cx={tap.x}
+                  cy={tap.y}
+                  r={12 / z}
+                  onAnimationEnd={() => setTap(null)}
+                />
+              )}
+            </g>
+            {pointer && <TinyHandPointer {...pointer} />}
+          </svg>
+        </div>,
+        canvas,
+      )}
       <div className="dg-tiny-hand-controls" role="group" aria-label="TinyHand">
         <TldrawUiButton type="normal" onClick={clearMarks}>
           Clear marks
@@ -255,7 +268,7 @@ const ActiveTinyHand = ({
           Exit TinyHand
         </TldrawUiButton>
       </div>
-    </div>
+    </>
   );
 };
 
@@ -274,11 +287,18 @@ export const TinyHandOverlay = ({
   ]);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
-  return active ? (
+  if (!active) return null;
+
+  // tldraw listens for wheel and pinch gestures on the canvas element.
+  const canvas = editor.getContainer().querySelector<HTMLElement>(".tl-canvas");
+  if (!canvas) return null;
+
+  return (
     <ActiveTinyHand
       key={pageId}
+      canvas={canvas}
       soundEnabled={soundEnabled}
       setSoundEnabled={setSoundEnabled}
     />
-  ) : null;
+  );
 };
