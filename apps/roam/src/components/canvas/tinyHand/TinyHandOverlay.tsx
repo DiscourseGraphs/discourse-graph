@@ -35,6 +35,9 @@ const TAP_SOUND_URL = `data:audio/wav;base64,${tapSoundBase64}`;
 type Mark = { path: string; arrow: boolean };
 type PointerEvent = React.PointerEvent<HTMLDivElement>;
 
+const stopControlInput = (event: React.SyntheticEvent): void =>
+  event.stopPropagation();
+
 const TinyHandPointer = ({ x, y }: { x: number; y: number }): JSX.Element => (
   <g
     className="dg-tiny-hand-pointer"
@@ -292,8 +295,10 @@ const ActiveTinyHand = ({
           className="dg-tiny-hand-controls"
           role="group"
           aria-label="TinyHand"
-          onPointerDown={(event) => event.stopPropagation()}
-          onPointerUp={(event) => event.stopPropagation()}
+          onPointerDown={stopControlInput}
+          onPointerUp={stopControlInput}
+          onTouchStart={stopControlInput}
+          onTouchEnd={stopControlInput}
         >
           <TldrawUiButton type="normal" onClick={clearMarks}>
             Clear marks
