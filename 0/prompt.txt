@@ -38,3 +38,7 @@ Can we create a PR from this? Are the changes simple enough, or what's going on?
 ---
 
 Why did you add \`React.ReactElement\` to taildrop canvas line 497? Remove that if it's not needed. This should be the most minimal change. Don't add unnecessary changes.&#x20;
+
+---
+
+For the cloud canvas sync, I think it's actually simple enough of a change that, if a graph is offline, we just disable the ability to change a canvas to a cloud canvas. Can you explain to me what the changes in tldraw cloud canvas flare sync.tsx and canvas sync mode are doing? Do we need those? If we're okay with just blocking the fact that they can create cloud canvases, I do believe that would be enough. Correct me if I'm wrong.
