@@ -1,6 +1,5 @@
 import getBlockProps, { json } from "~/utils/getBlockProps";
 import setBlockProps from "~/utils/setBlockProps";
-import { canUseRoamCloud } from "~/utils/roamCloudAccess";
 import {
   TLAnyBindingUtilConstructor,
   TLAnyShapeUtilConstructor,
@@ -85,7 +84,6 @@ export const getEffectiveCanvasSyncMode = ({
 }: {
   pageUid: string;
 }): CanvasSyncMode => {
-  if (!canUseRoamCloud()) return DEFAULT_CANVAS_SYNC_MODE;
   return getPersistedCanvasSyncMode({ pageUid }) ?? DEFAULT_CANVAS_SYNC_MODE;
 };
 
@@ -154,7 +152,6 @@ export const ensureCanvasSyncMode = ({
 }: {
   pageUid: string;
 }): CanvasSyncMode => {
-  if (!canUseRoamCloud()) return DEFAULT_CANVAS_SYNC_MODE;
   const mode = getPersistedCanvasSyncMode({ pageUid });
   if (mode) return mode;
   setCanvasSyncMode({ pageUid, mode: DEFAULT_CANVAS_SYNC_MODE });

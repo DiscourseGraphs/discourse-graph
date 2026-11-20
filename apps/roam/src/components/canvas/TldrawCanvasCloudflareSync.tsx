@@ -10,10 +10,6 @@ import {
 } from "tldraw";
 import { useMemo } from "react";
 import { getCurrentRoamTldrawUserInfo } from "~/utils/roamTldrawUserInfo";
-import {
-  getHostedRoamGraphName,
-  ROAM_CLOUD_UNAVAILABLE_MESSAGE,
-} from "~/utils/roamCloudAccess";
 
 /** Base URL for tldraw-sync-cloudflare worker. Use https (not wss) - useSync upgrades to WebSocket. */
 export const TLDRAW_CLOUDFLARE_SYNC_WS_BASE_URL =
@@ -27,8 +23,7 @@ export type CloudflareCanvasStoreAdapterResult = {
 
 // TODO: this should be more secure, but using graphName/UID is probably fine for now
 export const getSyncRoomId = ({ pageUid }: { pageUid: string }): string => {
-  const graphName = getHostedRoamGraphName();
-  if (!graphName) throw new Error(ROAM_CLOUD_UNAVAILABLE_MESSAGE);
+  const graphName = window.roamAlphaAPI.graph.name;
   const payload = JSON.stringify({ graphName, pageUid });
   const bytes = new TextEncoder().encode(payload);
   let binary = "";
@@ -82,8 +77,8 @@ export const useCloudflareSyncStore = ({
   );
   const userInfo = useMemo(() => getCurrentRoamTldrawUserInfo(), []);
 
-  const roomId = getSyncRoomId({ pageUid });
   const uri = useMemo(() => {
+    const roomId = getSyncRoomId({ pageUid });
     const query = new URLSearchParams();
     for (const shapeType of customShapeTypes) {
       query.append("shapeType", shapeType);
@@ -92,7 +87,7 @@ export const useCloudflareSyncStore = ({
       query.append("bindingType", bindingType);
     }
     return `${TLDRAW_CLOUDFLARE_SYNC_WS_BASE_URL}/connect/${roomId}?${query.toString()}`;
-  }, [customShapeTypes, customBindingTypes, roomId]);
+  }, [customShapeTypes, customBindingTypes, pageUid]);
 
   const store = useSync({
     uri,
