@@ -1,13 +1,11 @@
-import { InputTextNode } from "roamjs-components/types";
 import getBlockProps from "./getBlockProps";
 import { DiscourseNode } from "./getDiscourseNodes";
 import {
   SOURCE_SLOT,
   schemaHasSourceSlot,
   sourceSlotSchemaId,
-  sourceIdOfNode,
 } from "./sourceSlot";
-import extractContentFromTitle from "./extractContentFromTitle";
+import { nodeTemplateContent } from "./nodeTemplateContent";
 import getDiscourseRelations from "./getDiscourseRelations";
 import type { DiscourseRelation } from "./getDiscourseRelations";
 import type { SupabaseContext } from "~/utils/supabaseContext";
@@ -65,33 +63,17 @@ const getNodeExtraData = (
   /* eslint-enable @typescript-eslint/naming-convention */
 };
 
-const indent = (s: string): string =>
-  s
-    .split("\n")
-    .map((l) => "   " + l)
-    .join("\n") + "\n";
-
-const templateToText = (template: InputTextNode[]): string =>
-  template
-    .filter((itn) => !itn.text.startsWith("{{"))
-    .map(
-      (itn) =>
-        `* ${itn.text}\n${itn.children?.length ? indent(templateToText(itn.children)) : ""}`,
-    )
-    .join("");
-
 export const discourseNodeSchemaToLocalConcept = (
   context: SupabaseContext,
   node: DiscourseNode,
 ): LocalConceptDataInput => {
-  const titleParts = node.text.split("/");
-  const label = titleParts[titleParts.length - 1] ?? node.text;
   const literalContent: Record<string, Json> = {
-    label,
+    label: node.text,
     format: node.format,
   };
-  if (node.template !== undefined)
-    literalContent.template = templateToText(node.template);
+  const templateContent = nodeTemplateContent(node.template);
+  if (templateContent !== undefined)
+    literalContent.template_content = templateContent;
   const hasSourceSlot = schemaHasSourceSlot(node);
   if (hasSourceSlot) literalContent.roles = [SOURCE_SLOT];
   return {
@@ -105,40 +87,6 @@ export const discourseNodeSchemaToLocalConcept = (
       : {}),
     /* eslint-enable @typescript-eslint/naming-convention */
     ...getNodeExtraData(node.type),
-  };
-};
-
-export const discourseNodeBlockToLocalConcept = (
-  context: SupabaseContext,
-  {
-    nodeUid,
-    schemaUid,
-    title,
-    schema,
-  }: {
-    nodeUid: string;
-    schemaUid: string;
-    title?: string;
-    schema?: DiscourseNode;
-  },
-): LocalConceptDataInput => {
-  const sourceId = title ? sourceIdOfNode(title, schema) : undefined;
-  return {
-    space_id: context.spaceId,
-    name: title,
-    source_local_id: nodeUid,
-    schema_represented_by_local_id: schemaUid,
-    is_schema: false,
-    literal_content: {
-      core_title: extractContentFromTitle(title ?? "", {
-        format: schema?.format ?? "",
-      }),
-    },
-    ...(sourceId
-      ? { local_reference_content: { [SOURCE_SLOT]: sourceId } }
-      : {}),
-    /* eslint-enable @typescript-eslint/naming-convention */
-    ...getNodeExtraData(nodeUid),
   };
 };
 

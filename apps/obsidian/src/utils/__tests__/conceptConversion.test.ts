@@ -1,0 +1,127 @@
+import { TFile } from "obsidian";
+import { describe, expect, it } from "vitest";
+import type { LocalConceptDataInput } from "@repo/database/inputTypes";
+import type { DiscourseNode } from "~/types";
+import {
+  discourseNodeInstanceToLocalConcept,
+  discourseNodeSchemaToLocalConcept,
+} from "~/utils/conceptConversion";
+import type { SupabaseContext } from "~/utils/supabaseContext";
+
+const CONTEXT: SupabaseContext = {
+  platform: "Obsidian",
+  spaceId: 1,
+  userId: 2,
+  spacePassword: "",
+};
+
+const conceptFor = ({
+  format,
+  basename,
+  sourceDocument,
+}: {
+  format: string;
+  basename: string;
+  sourceDocument?: string;
+}): LocalConceptDataInput => {
+  const file = new TFile();
+  file.basename = basename;
+  file.path = `${basename}.md`;
+  return discourseNodeInstanceToLocalConcept({
+    context: CONTEXT,
+    nodeData: {
+      file,
+      frontmatter: { nodeInstanceId: "node-1", nodeTypeId: "type-1" },
+      nodeTypeId: "type-1",
+      nodeInstanceId: "node-1",
+      created: "",
+      last_modified: "",
+      changeTypes: [],
+      sourceDocument,
+    },
+    nodeTypesById: {
+      "type-1": {
+        id: "type-1",
+        name: "Claim",
+        format,
+        created: 0,
+        modified: 0,
+      },
+    },
+  });
+};
+
+describe("discourseNodeInstanceToLocalConcept core_title", () => {
+  it("extracts the content from a title matching the node type's format", () => {
+    expect(
+      conceptFor({ format: "CLM - {content}", basename: "CLM - sleep" }),
+    ).toMatchObject({ literal_content: { core_title: "sleep" } });
+  });
+
+  it("extracts the content from a format with regex metacharacters", () => {
+    expect(
+      conceptFor({
+        format: "Claim (draft) - {content}",
+        basename: "Claim (draft) - sleep improves memory",
+      }),
+    ).toMatchObject({
+      literal_content: { core_title: "sleep improves memory" },
+    });
+  });
+});
+
+describe("discourseNodeInstanceToLocalConcept source", () => {
+  it("publishes the Source as local reference content", () => {
+    expect(
+      conceptFor({
+        format: "EVD - {content}",
+        basename: "EVD - Evidence title",
+        sourceDocument: "source",
+      }),
+    ).toMatchObject({ local_reference_content: { sourceDocument: "source" } });
+  });
+
+  it("omits reference content when the node has no Source", () => {
+    expect(
+      conceptFor({
+        format: "EVD - {content}",
+        basename: "EVD - Evidence title",
+      }),
+    ).not.toHaveProperty("local_reference_content");
+  });
+});
+
+const NODE_TYPE: DiscourseNode = {
+  id: "type-1",
+  name: "Claim",
+  format: "CLM - {content}",
+  shortcut: "C",
+  color: "#7DA13E",
+  tag: "clm-candidate",
+  keyImage: true,
+  folderPath: "Claims",
+  authorId: 3,
+  created: 0,
+  modified: 0,
+};
+
+describe("discourseNodeSchemaToLocalConcept format", () => {
+  it("publishes the format at the top level of literal content", () => {
+    expect(
+      discourseNodeSchemaToLocalConcept({ context: CONTEXT, node: NODE_TYPE }),
+    ).toMatchObject({ literal_content: { format: "CLM - {content}" } });
+  });
+
+  it("keeps the other metadata in source data without the format", () => {
+    expect(
+      discourseNodeSchemaToLocalConcept({ context: CONTEXT, node: NODE_TYPE }),
+    ).toHaveProperty("literal_content.source_data", {
+      shortcut: "C",
+      color: "#7DA13E",
+      tag: "clm-candidate",
+      keyImage: true,
+      folderPath: "Claims",
+      authorId: 3,
+    });
+  });
+});

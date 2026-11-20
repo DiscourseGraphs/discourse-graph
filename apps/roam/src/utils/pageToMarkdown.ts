@@ -109,6 +109,20 @@ const handleFrontmatter = ({
   return output;
 };
 
+const indentContinuationLines = ({
+  text,
+  width,
+}: {
+  text: string;
+  width: number;
+}): string => {
+  const padding = "".padStart(width, " ");
+  return text
+    .split("\n")
+    .map((line, index) => (index === 0 || !line ? line : `${padding}${line}`))
+    .join("\n");
+};
+
 export const toMarkdown = ({
   c,
   i = 0,
@@ -191,6 +205,15 @@ export const toMarkdown = ({
       : v;
   const viewTypePrefix = viewTypeToPrefix[effectiveViewType];
   const headingPrefix = c.heading ? `${"".padStart(c.heading, "#")} ` : "";
+  // CommonMark ends a list item at a column-0 fence, heading, quote or table,
+  // so continuation lines must sit at the item's content column.
+  const blockText =
+    flatten || effectiveViewType === "document"
+      ? finalProcessedText
+      : indentContinuationLines({
+          text: finalProcessedText,
+          width: indentation.length + viewTypePrefix.length,
+        });
   const childrenMarkdown = (c.children || [])
     .filter((nested) => !!nested.text || !!nested.children?.length)
     .map((nested) => {
@@ -206,7 +229,7 @@ export const toMarkdown = ({
     .join("");
   const lineBreak = v === "document" ? "\n" : "";
 
-  return `${indentation}${viewTypePrefix}${headingPrefix}${finalProcessedText}${lineBreak}${childrenMarkdown}`;
+  return `${indentation}${viewTypePrefix}${headingPrefix}${blockText}${lineBreak}${childrenMarkdown}`;
 };
 
 export const pageToMarkdown = async (

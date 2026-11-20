@@ -20,6 +20,7 @@ import {
 } from "react";
 import { createRoot, Root } from "react-dom/client";
 import type DiscourseGraphPlugin from "~/index";
+import { NodeDisplayOptionsMenu } from "~/components/NodeDisplayOptionsMenu";
 import { NodeSearchFooter } from "~/components/NodeSearchFooter";
 import { NodeSortMenu } from "~/components/NodeSortMenu";
 import { NodeTypeChipsSearchInput } from "~/components/NodeTypeChipsSearchInput";
@@ -37,14 +38,10 @@ import {
 import {
   QueryEngine,
   rankDiscourseNodesByTitle,
-  type DiscourseNodeCandidate,
+  type SearchableNode,
   type RankedDiscourseNode,
 } from "~/services/QueryEngine";
-import {
-  getNodeTypeBadge,
-  getFallbackNodeTypeBadge,
-  type NodeTypeBadge,
-} from "~/utils/nodeTypeBadge";
+import { getNodeTypeBadge, type NodeTypeBadge } from "~/utils/nodeTypeBadge";
 import {
   buildAuthorNameByPath,
   resolveAuthorName,
@@ -57,19 +54,19 @@ import {
   type SortDirection,
   type SortKey,
 } from "~/utils/discourseNodeSort";
+import { findTaggedLineElement } from "~/utils/taggedLineLocator";
 
 const MAX_VISIBLE_RESULTS = 50;
 const SEARCH_DEBOUNCE_MS = 250;
 
-type CandidateState =
+type NodesState =
   | { status: "loading" }
-  | { status: "ready"; candidates: DiscourseNodeCandidate[] }
+  | { status: "ready"; nodes: SearchableNode[] }
   | { status: "error"; message: string };
 
 type NodeTypeDisplay = {
   name: string;
-  /** Null when neither the config nor the title says what type this is. */
-  badge: NodeTypeBadge | null;
+  badge: NodeTypeBadge;
 };
 
 type SearchResultRow = RankedDiscourseNode & {
@@ -81,6 +78,39 @@ const formatTimestamp = (epochMs: number): string =>
     dateStyle: "medium",
     timeStyle: "short",
   });
+
+const PREVIEW_FLASH_CLASS = "dg-search-preview-flash";
+
+// An editable span has no selectionEnd, so compare the caret against the end of its contents.
+const isCaretAtEnd = (field: HTMLElement | null): boolean => {
+  const selection = field?.ownerDocument.getSelection();
+  if (!field || field.ownerDocument.activeElement !== field) return false;
+  if (!selection?.isCollapsed || !selection.anchorNode) return false;
+  if (!field.contains(selection.anchorNode)) return false;
+  const rest = field.ownerDocument.createRange();
+  rest.setStart(selection.anchorNode, selection.anchorOffset);
+  rest.setEnd(field, field.childNodes.length);
+  return rest.toString() === "";
+};
+
+// An image reserves no height until it loads, which would shift a line scrolled to before then.
+const waitForImages = async (container: HTMLElement): Promise<void> => {
+  const pending = Array.from(container.querySelectorAll("img")).filter(
+    (img) => !img.complete,
+  );
+  await Promise.race([
+    Promise.all(
+      pending.map(
+        (img) =>
+          new Promise<void>((resolve) => {
+            img.addEventListener("load", () => resolve(), { once: true });
+            img.addEventListener("error", () => resolve(), { once: true });
+          }),
+      ),
+    ),
+    new Promise<void>((resolve) => window.setTimeout(resolve, 1000)),
+  ]);
+};
 
 const PreviewPane = ({
   app,
@@ -97,6 +127,7 @@ const PreviewPane = ({
   const [loaded, setLoaded] = useState<{ file: TFile; text: string } | null>(
     null,
   );
+  const [renderedFile, setRenderedFile] = useState<TFile | null>(null);
 
   const file = result?.file;
 
@@ -119,20 +150,58 @@ const PreviewPane = ({
     if (!container || !file || loaded?.file !== file) return;
 
     container.empty();
+    setRenderedFile(null);
     const component = new Component();
-    void MarkdownRenderer.render(
-      app,
-      loaded.text.trim() || "This note is empty.",
-      container,
-      file.path,
-      component,
-    );
+    let cancelled = false;
+    void (async () => {
+      await MarkdownRenderer.render(
+        app,
+        loaded.text.trim() || "This note is empty.",
+        container,
+        file.path,
+        component,
+      );
+      await waitForImages(container);
+      if (!cancelled) setRenderedFile(file);
+    })();
 
     return () => {
+      cancelled = true;
       component.unload();
       container.empty();
     };
   }, [app, file, loaded]);
+
+  // Separate from rendering, so moving between two lines of one note only re-scrolls.
+  const taggedLine = result?.tagLine?.line;
+  useEffect(() => {
+    const container = containerRef.current;
+    // `loaded` still holds the previous note until the new file's read finishes.
+    if (!container || !loaded || !file || renderedFile !== file) return;
+
+    const target =
+      taggedLine === undefined
+        ? null
+        : findTaggedLineElement({
+            container,
+            cache: app.metadataCache.getFileCache(file),
+            text: loaded.text,
+            line: taggedLine,
+          });
+    // Same-note switches don't re-render, so an unlocated line would keep the last scroll.
+    if (!target) {
+      container.scrollTop = 0;
+      return;
+    }
+    target.scrollIntoView({ block: "center" });
+    target.addClass(PREVIEW_FLASH_CLASS);
+    const clearFlash = (): void => target.removeClass(PREVIEW_FLASH_CLASS);
+    target.addEventListener("animationend", clearFlash, { once: true });
+    return () => {
+      target.removeEventListener("animationend", clearFlash);
+      clearFlash();
+    };
+  }, [app, file, loaded, renderedFile, taggedLine]);
 
   if (!result || !file) {
     return (
@@ -185,6 +254,31 @@ const HighlightedTitle = ({
   );
 };
 
+// Filled for a node, outlined for a candidate; both keep one box size.
+const NodeTypePill = ({
+  badge,
+  isCandidate,
+  label,
+}: {
+  badge: NodeTypeBadge;
+  isCandidate: boolean;
+  label: string;
+}): ReactElement => (
+  <span
+    aria-label={isCandidate ? `${label} candidate` : label}
+    style={{
+      borderColor: badge.backgroundColor,
+      backgroundColor: isCandidate ? "transparent" : badge.backgroundColor,
+      ...(isCandidate ? {} : { color: badge.textColor }),
+    }}
+    className={`w-full rounded-full border border-solid py-px text-center text-xs font-semibold ${
+      isCandidate ? "text-normal" : ""
+    }`}
+  >
+    {badge.text}
+  </span>
+);
+
 const ResultList = ({
   results,
   activeIndex,
@@ -228,7 +322,7 @@ const ResultList = ({
     >
       {results.map((result, index) => (
         <div
-          key={result.file.path}
+          key={`${result.file.path}:${result.tagLine?.line ?? ""}:${result.nodeTypeId}`}
           role="option"
           aria-selected={index === activeIndex}
           onMouseEnter={(event) => hasPointerMoved(event) && onActivate(index)}
@@ -236,23 +330,26 @@ const ResultList = ({
           // Keeps focus in the search input, so the keyboard path stays live
           // after a click.
           onMouseDown={(event) => event.preventDefault()}
-          className={`border-modifier-border flex cursor-pointer items-center gap-2 border-b px-3 py-2 ${
+          className={`border-modifier-border flex cursor-pointer items-start gap-2 border-b px-3 py-2 ${
             index === activeIndex ? "bg-modifier-hover" : ""
           }`}
         >
-          {result.nodeType.badge && (
-            <span
-              aria-label={result.nodeType.name}
-              style={{
-                backgroundColor: result.nodeType.badge.backgroundColor,
-                color: result.nodeType.badge.textColor,
-              }}
-              className="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold"
-            >
-              {result.nodeType.badge.text}
-            </span>
-          )}
-          <HighlightedTitle title={result.title} match={result.match} />
+          {/* Fixed-width column, so every title starts at the same x. */}
+          <span className="flex w-11 shrink-0">
+            <NodeTypePill
+              badge={result.nodeType.badge}
+              isCandidate={!!result.tagLine}
+              label={result.nodeType.name}
+            />
+          </span>
+          <div className="min-w-0 flex-1">
+            <HighlightedTitle title={result.title} match={result.match} />
+            {result.tagLine && (
+              <div className="text-muted truncate text-xs">
+                {`#${result.tagLine.tag} · ${result.file.basename} · L${result.tagLine.line + 1}`}
+              </div>
+            )}
+          </div>
         </div>
       ))}
     </div>
@@ -269,7 +366,7 @@ const NodeSearch = ({
   onClose: () => void;
 }): ReactElement => {
   const { app } = plugin;
-  const [candidateState, setCandidateState] = useState<CandidateState>({
+  const [nodesState, setNodesState] = useState<NodesState>({
     status: "loading",
   });
   const [query, setQuery] = useState("");
@@ -280,6 +377,11 @@ const NodeSearch = ({
   // One value per toolbar, so two panels can never be open at once.
   const [openDropdown, setOpenDropdown] = useState<SearchDropdownId>(null);
   const [sortKey, setSortKey] = useState<SortKey>(DEFAULT_SORT_KEY);
+  const [showCandidates, setShowCandidates] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  // Mirrors the caret, so the footer shows the toggle only where ← and → reach it.
+  const [isCaretAtQueryEnd, setIsCaretAtQueryEnd] = useState(true);
+  const [tagCandidates, setTagCandidates] = useState<SearchableNode[]>([]);
   const [sortDirection, setSortDirection] = useState<SortDirection>(
     DEFAULT_SORT_DIRECTION,
   );
@@ -288,8 +390,7 @@ const NodeSearch = ({
   const userNames = useAuthorNames({
     app,
     plugin,
-    candidates:
-      candidateState.status === "ready" ? candidateState.candidates : null,
+    candidates: nodesState.status === "ready" ? nodesState.nodes : null,
   });
 
   const nodeTypesById = useMemo(() => {
@@ -307,20 +408,59 @@ const NodeSearch = ({
     inputRef.current?.focus();
   }, []);
 
+  useEffect(() => {
+    const field = inputRef.current;
+    if (!field) return;
+    const doc = field.ownerDocument;
+    const update = (): void => setIsCaretAtQueryEnd(isCaretAtEnd(field));
+    update();
+    // Focus moves leave the old selection behind, so they need their own listeners.
+    const events = ["selectionchange", "focusin", "focusout"] as const;
+    events.forEach((name) => doc.addEventListener(name, update));
+    return () =>
+      events.forEach((name) => doc.removeEventListener(name, update));
+  }, []);
+
   // The fetch is synchronous today, so there is nothing to await or cancel yet.
   // Effects run after paint, so the loading state still renders for a frame; if
   // this ever becomes a network call, only this body changes.
   useEffect(() => {
     try {
-      const candidates = new QueryEngine(app).getDiscourseNodeCandidates();
-      setCandidateState({ status: "ready", candidates });
+      const nodes = new QueryEngine(app).getSearchableNodes(
+        plugin.settings.nodeTypes,
+      );
+      setNodesState({ status: "ready", nodes });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unexpected error";
       new Notice(`Could not load discourse nodes: ${message}`);
-      setCandidateState({ status: "error", message });
+      setNodesState({ status: "error", message });
     }
-  }, [app]);
+  }, [app, plugin.settings.nodeTypes]);
+
+  // Rescans on every toggle-on, so node type edits made meanwhile are picked up.
+  useEffect(() => {
+    if (!showCandidates) {
+      setTagCandidates([]);
+      return;
+    }
+    let cancelled = false;
+    const load = async (): Promise<void> => {
+      try {
+        const candidates = await new QueryEngine(app).getCandidateNodes(
+          plugin.settings.nodeTypes,
+        );
+        if (!cancelled) setTagCandidates(candidates);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        new Notice(`Could not load candidate nodes: ${message}`);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [app, plugin.settings.nodeTypes, showCandidates]);
 
   useEffect(() => {
     const timeout = window.setTimeout(
@@ -332,9 +472,9 @@ const NodeSearch = ({
 
   // Sort before truncating, so a date or alphabetical sort covers every match.
   const results = useMemo<SearchResultRow[]>(() => {
-    if (candidateState.status !== "ready") return [];
+    if (nodesState.status !== "ready") return [];
     const ranked = rankDiscourseNodesByTitle({
-      candidates: candidateState.candidates,
+      candidates: [...nodesState.nodes, ...tagCandidates],
       query: debouncedQuery,
       nodeTypeIds: selectedNodeTypeIds,
     });
@@ -353,21 +493,20 @@ const NodeSearch = ({
       authorNameByPath,
     })
       .slice(0, MAX_VISIBLE_RESULTS)
-      .map((result) => ({
-        ...result,
-        nodeType: nodeTypesById.get(result.nodeTypeId) ?? {
-          name: "Unknown type",
-          badge: getFallbackNodeTypeBadge(result.title),
-        },
-      }));
+      .flatMap((result) => {
+        // Loaders already drop unconfigured types; this covers a type deleted before they rerun.
+        const nodeType = nodeTypesById.get(result.nodeTypeId);
+        return nodeType ? [{ ...result, nodeType }] : [];
+      });
   }, [
     app,
-    candidateState,
+    nodesState,
     debouncedQuery,
     nodeTypesById,
     selectedNodeTypeIds,
     sortDirection,
     sortKey,
+    tagCandidates,
     userNames,
   ]);
 
@@ -376,6 +515,9 @@ const NodeSearch = ({
   // here keeps the preview and the highlighted row from blanking for that frame.
   const activeIndexInRange = activeIndex < results.length ? activeIndex : 0;
   const activeResult = results[activeIndexInRange];
+
+  // Shared by the footer and →, so the key and the button agree on when there is something to act on.
+  const canAct = nodesState.status === "ready" && !!activeResult;
 
   // Only the preview shows an author, so resolve the selection, not all 50 rows.
   const authorName = useMemo(
@@ -403,12 +545,12 @@ const NodeSearch = ({
   // Closes before opening: `close()` unmounts this React root, so the file and
   // app are read first and nothing touches state afterwards.
   const openActiveResult = (
-    open: (app: App, file: TFile) => Promise<void>,
+    open: (app: App, file: TFile, options: { line?: number }) => Promise<void>,
   ): void => {
     if (!activeResult) return;
-    const { file } = activeResult;
+    const { file, tagLine } = activeResult;
     onClose();
-    void open(app, file).catch((error: unknown) => {
+    void open(app, file, { line: tagLine?.line }).catch((error: unknown) => {
       const message = error instanceof Error ? error.message : String(error);
       new Notice(`Could not open ${file.basename}: ${message}`);
     });
@@ -426,9 +568,12 @@ const NodeSearch = ({
     if (!isOpen) inputRef.current?.focus();
   };
 
+  // A candidate is a line, not a node yet, so there is nothing to link to.
+  const isActiveResultLinkable = !!activeResult && !activeResult.tagLine;
+
   // Closes before inserting, like `openActiveResult`.
   const insertLinkToActiveResult = (): void => {
-    if (!activeResult || !insertTarget) return;
+    if (!activeResult || !insertTarget || !isActiveResultLinkable) return;
     const { file } = activeResult;
     onClose();
     try {
@@ -440,6 +585,30 @@ const NodeSearch = ({
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    // Only at the end of the query, so ← and → still edit the text everywhere else.
+    if (
+      (event.key === "ArrowRight" || event.key === "ArrowLeft") &&
+      !event.defaultPrevented &&
+      !event.nativeEvent.isComposing &&
+      !event.shiftKey &&
+      !event.altKey &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      event.target === inputRef.current &&
+      isCaretAtEnd(inputRef.current)
+    ) {
+      if (event.key === "ArrowRight" && !isPreviewOpen && canAct) {
+        event.preventDefault();
+        setIsPreviewOpen(true);
+        return;
+      }
+      if (event.key === "ArrowLeft" && isPreviewOpen) {
+        event.preventDefault();
+        setIsPreviewOpen(false);
+        return;
+      }
+    }
+
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       // Otherwise the caret jumps to the start or end of the query.
       event.preventDefault();
@@ -456,7 +625,7 @@ const NodeSearch = ({
       (event.metaKey || event.ctrlKey) &&
       !event.altKey &&
       insertTarget &&
-      activeResult
+      isActiveResultLinkable
     ) {
       event.preventDefault();
       insertLinkToActiveResult();
@@ -515,21 +684,37 @@ const NodeSearch = ({
           sortDirection={sortDirection}
           sortKey={sortKey}
         />
+        <NodeDisplayOptionsMenu
+          app={app}
+          isOpen={openDropdown === "display-options"}
+          onOpenChange={(isOpen) =>
+            handleDropdownOpenChange({ id: "display-options", isOpen })
+          }
+          onShowCandidatesChange={setShowCandidates}
+          showCandidates={showCandidates}
+        />
       </div>
       <div className="border-modifier-border mt-3 flex flex-1 overflow-hidden rounded border">
-        <div className="border-modifier-border flex w-2/5 flex-col border-r">
-          {candidateState.status === "loading" && (
+        {/* No preflight here: without `border-0 border-solid`, `border-r` draws nothing. */}
+        <div
+          className={`flex flex-col ${
+            isPreviewOpen
+              ? "border-modifier-border w-2/5 border-0 border-r border-solid"
+              : "w-full"
+          }`}
+        >
+          {nodesState.status === "loading" && (
             <div className="text-muted p-4">Loading discourse nodes…</div>
           )}
-          {candidateState.status === "error" && (
+          {nodesState.status === "error" && (
             <div className="text-error p-4">
-              Could not load discourse nodes. {candidateState.message}
+              Could not load discourse nodes. {nodesState.message}
             </div>
           )}
-          {candidateState.status === "ready" && results.length === 0 && (
+          {nodesState.status === "ready" && results.length === 0 && (
             <div className="text-muted p-4">No results</div>
           )}
-          {candidateState.status === "ready" && results.length > 0 && (
+          {nodesState.status === "ready" && results.length > 0 && (
             <ResultList
               results={results}
               activeIndex={activeIndexInRange}
@@ -537,15 +722,25 @@ const NodeSearch = ({
             />
           )}
         </div>
-        <PreviewPane app={app} result={activeResult} authorName={authorName} />
+        {isPreviewOpen && (
+          <PreviewPane
+            app={app}
+            result={activeResult}
+            authorName={authorName}
+          />
+        )}
       </div>
       <NodeSearchFooter
-        canAct={candidateState.status === "ready" && !!activeResult}
+        canAct={canAct}
         canInsertLink={!!insertTarget}
+        isActiveResultLinkable={isActiveResultLinkable}
+        isPreviewOpen={isPreviewOpen}
+        isPreviewToggleVisible={isCaretAtQueryEnd}
         onClose={onClose}
         onInsertLink={insertLinkToActiveResult}
         onOpenInNewTab={() => openActiveResult(openFileInNewTab)}
         onOpenInSplit={() => openActiveResult(openFileInNewLeaf)}
+        onTogglePreview={() => setIsPreviewOpen((isOpen) => !isOpen)}
       />
     </div>
   );

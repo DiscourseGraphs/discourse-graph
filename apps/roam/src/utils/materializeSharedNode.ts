@@ -1,13 +1,14 @@
 import {
   contentTypes,
+  normalizeLineEndings,
   stripFrontmatter,
-  stripTitleHeading,
   trimBlankLines,
 } from "@repo/content-model";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { decorateTitle } from "@repo/database/lib/decorateTitle";
 import { isRid } from "@repo/database/lib/rid";
-import type { SharedNode } from "@repo/database/lib/sharedNodes";
+import type { DbCrossAppNode } from "@repo/database/lib/dbToCrossAppConverters";
+import type { SharedNodeSpace } from "@repo/database/lib/sharedNodes";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
@@ -22,6 +23,7 @@ import {
 } from "./importedSourceIdentity";
 import { getErrorMessage } from "./getErrorMessage";
 import { importNodeAssets, type AssetImportReport } from "./importNodeAssets";
+import { protectMediaEmbeds } from "./protectMediaEmbeds";
 import {
   MISSING_SOURCE_PLACEHOLDER,
   schemaHasSourceSlot,
@@ -98,6 +100,18 @@ const isImportUpToDate = ({
   );
 };
 
+// A copy imported before its Source was published holds the placeholder. Publishing the
+// Source restores the node's reference without changing its modified time, so the copy
+// would otherwise stay up to date with the placeholder.
+const awaitsPublishedSource = (
+  sharedNode: DbCrossAppNode,
+  importedPageUid: string,
+): boolean =>
+  Boolean(sharedNode.slots?.[SOURCE_SLOT]) &&
+  getPageTitleByPageUid(importedPageUid).includes(
+    `[[${MISSING_SOURCE_PLACEHOLDER}]]`,
+  );
+
 const failure = ({
   error,
   identity,
@@ -121,33 +135,31 @@ const failure = ({
 });
 
 const validateSharedNode = (
-  sharedNode: SharedNode,
-): { error: string } | { sourceModifiedAt: string; title: string } => {
+  sharedNode: DbCrossAppNode,
+): { error: string } | { title: string } => {
   if (!isRid(sharedNode.rid))
     return { error: `Source node RID "${sharedNode.rid}" is not a RID` };
 
-  const modifiedAt = new Date(sharedNode.lastModified);
-  if (Number.isNaN(modifiedAt.getTime()))
-    return {
-      error: `Source modified time "${sharedNode.lastModified}" is invalid`,
-    };
-
-  const title = sharedNode.title.trim();
+  const title = sharedNode.content.direct.value.trim();
   if (!title) return { error: "Source node title is required" };
 
-  return { sourceModifiedAt: modifiedAt.toISOString(), title };
+  return { title };
 };
 
 // The Source page a node's sourceDocument slot names, when this graph has it.
-const resolveSourceTitle = async (
-  sharedNode: SharedNode,
-): Promise<{ sourceTitle: string } | { warning: string }> => {
+const resolveSourceTitle = async ({
+  sharedNode,
+  space,
+}: {
+  sharedNode: DbCrossAppNode;
+  space: SharedNodeSpace;
+}): Promise<{ sourceTitle: string } | { warning: string }> => {
   const slotValue = sharedNode.slots?.[SOURCE_SLOT];
   if (!slotValue)
     return {
       warning: "No source was published with this node.",
     };
-  const sourceUid = await findTargetUid(slotValue, sharedNode.spaceUri);
+  const sourceUid = await findTargetUid(slotValue, space.url);
   const sourceTitle = sourceUid ? getPageTitleByPageUid(sourceUid) : "";
   if (!sourceTitle)
     return {
@@ -158,11 +170,13 @@ const resolveSourceTitle = async (
 
 const buildPageTitle = async ({
   sharedNode,
+  space,
   nodeType,
   incomingTitle,
   importedPageUid,
 }: {
-  sharedNode: SharedNode;
+  sharedNode: DbCrossAppNode;
+  space: SharedNodeSpace;
   nodeType?: Pick<DiscourseNode, "format">;
   incomingTitle: string;
   importedPageUid: string | null;
@@ -173,7 +187,7 @@ const buildPageTitle = async ({
     return {
       title: decorateTitle(nodeType.format, coreTitle) ?? incomingTitle,
     };
-  const source = await resolveSourceTitle(sharedNode);
+  const source = await resolveSourceTitle({ sharedNode, space });
   const title = titleWithSource({
     format: nodeType.format,
     coreTitle,
@@ -197,32 +211,36 @@ const buildPageTitle = async ({
 const fetchFullMarkdown = async ({
   client,
   sharedNode,
+  space,
 }: {
   client: DGSupabaseClient;
-  sharedNode: SharedNode;
+  sharedNode: DbCrossAppNode;
+  space: SharedNodeSpace;
 }): Promise<{ markdown: string } | { error: string }> => {
   const { data, error } = await client
     .from("my_contents")
     .select("text, content_type")
-    .eq("space_id", sharedNode.spaceId)
-    .eq("source_local_id", sharedNode.sourceLocalId)
+    .eq("space_id", space.id)
+    .eq("source_local_id", sharedNode.localId)
     .eq("variant", "full")
     .eq("original", true)
     .maybeSingle();
   if (error) return { error: error.message };
   if (!data?.text) return { markdown: "" };
   const expectedContentType =
-    sharedNode.platform === "Roam"
+    space.platform === "Roam"
       ? contentTypes.roamMarkdown
       : contentTypes.obsidianMarkdown;
   if (data.content_type !== expectedContentType)
     return {
       error: `Unsupported full content type "${data.content_type}" — expected "${expectedContentType}"`,
     };
+  // Obsidian's `full` is the file bytes, so it opens with frontmatter that must
+  // not cross spaces. Roam's is the body alone.
   const withoutPreamble =
-    sharedNode.platform === "Roam"
-      ? stripTitleHeading({ markdown: data.text, title: sharedNode.title })
-      : stripFrontmatter(data.text);
+    data.content_type === contentTypes.obsidianMarkdown
+      ? stripFrontmatter(data.text)
+      : normalizeLineEndings(data.text);
   const markdown = trimBlankLines(withoutPreamble);
   return { markdown: markdown.trim() ? markdown : "" };
 };
@@ -272,7 +290,7 @@ const createImportedPage = async ({
     if (markdown) {
       await getRoamMarkdownApi().page.fromMarkdown({
         page: { title, uid: pageUid },
-        "markdown-string": markdown,
+        "markdown-string": protectMediaEmbeds(markdown),
       });
     } else {
       await window.roamAlphaAPI.data.page.create({
@@ -337,7 +355,7 @@ const updateImportedPage = async ({
     if (markdown) {
       await getRoamMarkdownApi().block.fromMarkdown({
         location: { "parent-uid": pageUid, order: "last" },
-        "markdown-string": markdown,
+        "markdown-string": protectMediaEmbeds(markdown),
       });
     }
     await Promise.all(previousChildren.map(({ uid }) => deleteBlock(uid)));
@@ -383,31 +401,28 @@ const updateImportedPage = async ({
 export const materializeSharedNode = async ({
   client,
   sharedNode,
+  space,
   nodeType,
   force = false,
 }: {
   client: DGSupabaseClient;
-  sharedNode: SharedNode;
+  sharedNode: DbCrossAppNode;
+  space: SharedNodeSpace;
   nodeType?: Pick<DiscourseNode, "format">;
   force?: boolean;
 }): Promise<MaterializeSharedNodeResult> => {
-  const rawIdentity: SourceIdentity = {
-    sourceModifiedAt: sharedNode.lastModified,
+  const identity: SourceIdentity = {
+    sourceModifiedAt: sharedNode.modifiedAt.toISOString(),
     sourceNodeRid: sharedNode.rid,
   };
 
   const validated = validateSharedNode(sharedNode);
   if ("error" in validated)
     return failure({
-      identity: rawIdentity,
+      identity,
       message: validated.error,
       stage: "validate-input",
     });
-
-  const identity: SourceIdentity = {
-    sourceModifiedAt: validated.sourceModifiedAt,
-    sourceNodeRid: sharedNode.rid,
-  };
 
   let importedPageUid: string | null;
   let storedIdentity: ImportedSourceIdentity | undefined;
@@ -420,7 +435,7 @@ export const materializeSharedNode = async ({
     return failure({
       error,
       identity,
-      message: `Failed to look up an existing import of "${sharedNode.title}"`,
+      message: `Failed to look up an existing import of "${sharedNode.content.direct.value}"`,
       stage: "find-imported-node",
     });
   }
@@ -432,7 +447,8 @@ export const materializeSharedNode = async ({
     isImportUpToDate({
       sourceModifiedAt: identity.sourceModifiedAt,
       storedModifiedAt: storedIdentity.sourceModifiedAt,
-    })
+    }) &&
+    !awaitsPublishedSource(sharedNode, importedPageUid)
   )
     return {
       ...identity,
@@ -443,18 +459,19 @@ export const materializeSharedNode = async ({
 
   const { title: pageTitle, warning } = await buildPageTitle({
     sharedNode,
+    space,
     nodeType,
     incomingTitle: validated.title,
     importedPageUid,
   });
 
-  const content = await fetchFullMarkdown({ client, sharedNode }).catch(
+  const content = await fetchFullMarkdown({ client, sharedNode, space }).catch(
     (error: unknown) => ({ error: getErrorMessage(error) }),
   );
   if ("error" in content)
     return failure({
       identity,
-      message: `Could not fetch the content of "${sharedNode.title}" from "${sharedNode.spaceName}": ${content.error}`,
+      message: `Could not fetch the content of "${sharedNode.content.direct.value}" from "${space.name}": ${content.error}`,
       stage: "fetch-content",
     });
 
@@ -470,13 +487,14 @@ export const materializeSharedNode = async ({
   const assets = await importNodeAssets({
     client,
     sharedNode,
+    space,
     markdown: content.markdown,
   }).catch((error: unknown) => ({ error }));
   if ("error" in assets)
     return failure({
       error: assets.error,
       identity,
-      message: `Failed to copy the assets of "${sharedNode.title}"`,
+      message: `Failed to copy the assets of "${sharedNode.content.direct.value}"`,
       stage: "copy-assets",
     });
   const { markdown, report } = assets;

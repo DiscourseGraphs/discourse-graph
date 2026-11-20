@@ -14,30 +14,15 @@ import ModifyNodeModal from "~/components/ModifyNodeModal";
 import { addRelationIfRequested } from "~/components/canvas/utils/relationJsonUtils";
 import { getNodeTagColors } from "./colorUtils";
 import { createDiscourseNodeFile, formatNodeName } from "./createNode";
+import { extractListPrefix, titleFromTaggedLine } from "./taggedLine";
 
 const HOVER_DELAY = 200;
 const HIDE_DELAY = 100;
 const TOOLTIP_OFFSET = 40;
-const STYLE_ELEMENT_ID = "dg-discourse-tag-colors";
 const DISCOURSE_TAG_CLASS = "dg-discourse-tag";
 const NODE_ID_ATTR = "data-dg-discourse-tag-node";
 
-const LIST_INDICATOR_REGEX = /^(\s*)(\d+[.)]\s+|[-*+]\s+(?:\[[ xX]\]\s+)?)/;
-
 const TAG_SEGMENT_PREFIX = "tag-";
-
-const sanitizeTitle = (title: string): string =>
-  title
-    .replace(LIST_INDICATOR_REGEX, "")
-    .replace(/[\\/:]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-
-const extractListPrefix = (line: string): string =>
-  line.match(LIST_INDICATOR_REGEX)?.[0] ?? "";
-
-const titleFromTaggedLine = (lineText: string): string =>
-  sanitizeTitle(lineText.replace(/#[^\s]+/g, ""));
 
 // Nodes are named like `hashtag_hashtag-end_meta_tag-clm-candidate`; reading the tag
 // from the tree inherits Obsidian's rules for code blocks, URLs and headings.
@@ -82,76 +67,31 @@ const mergeAdjacentRanges = <TStyle extends { nodeTypeId: string }>(
   return merged;
 };
 
-type TagStyle = { nodeTypeId: string };
+// A mark can only render inside Obsidian's `.cm-hashtag`, so colours ride on it as
+// CSS variables that styles.css paints across the parent's box.
+type TagStyle = { nodeTypeId: string; cssVars: string };
 type TagRange = TaggedRange<TagStyle>;
-
-// A decoration can only create a span inside Obsidian's `.cm-hashtag`, which owns
-// the tag's padding and radius, so colours target that parent via `:has()`.
-export const discourseTagClassForNode = (nodeTypeId: string): string =>
-  `dg-tag-${nodeTypeId.replace(/[^A-Za-z0-9_-]/g, "-")}`;
-
-// Beats Obsidian's own `.cm-hashtag` rule on specificity, so no `!important`.
-const buildStyleSheet = (plugin: DiscourseGraphPlugin): string =>
-  plugin.settings.nodeTypes
-    .map((nodeType, nodeIndex) => {
-      if (!nodeType.tag) return null;
-      const { backgroundColor, textColor } = getNodeTagColors(
-        nodeType,
-        nodeIndex,
-      );
-      return (
-        `span.cm-hashtag:has(> .${discourseTagClassForNode(nodeType.id)}) {\n` +
-        `  background-color: ${backgroundColor};\n` +
-        `  color: ${textColor};\n` +
-        `}`
-      );
-    })
-    .filter((rule): rule is string => rule !== null)
-    .join("\n\n");
-
-export class DiscourseTagStyleManager {
-  constructor(private plugin: DiscourseGraphPlugin) {}
-
-  apply(): void {
-    const css = buildStyleSheet(this.plugin);
-    this.documents().forEach((doc) => {
-      const styleEl =
-        doc.getElementById(STYLE_ELEMENT_ID) ??
-        doc.head.createEl("style", { attr: { id: STYLE_ELEMENT_ID } });
-      styleEl.textContent = css;
-    });
-  }
-
-  destroy(): void {
-    this.documents().forEach((doc) =>
-      doc.getElementById(STYLE_ELEMENT_ID)?.remove(),
-    );
-  }
-
-  // Popout windows have their own document, which the bundled styles.css does not reach.
-  private documents(): Document[] {
-    const documents = new Set<Document>([document]);
-    this.plugin.app.workspace.iterateAllLeaves((leaf) => {
-      const doc = leaf.view.containerEl.ownerDocument;
-      if (doc) documents.add(doc);
-    });
-    return Array.from(documents);
-  }
-}
 
 const buildTagStyleIndex = (
   plugin: DiscourseGraphPlugin,
 ): Map<string, TagStyle> => {
   const index = new Map<string, TagStyle>();
-  plugin.settings.nodeTypes.forEach((nodeType) => {
+  plugin.settings.nodeTypes.forEach((nodeType, nodeIndex) => {
     if (!nodeType.tag) return;
-    index.set(nodeType.tag, { nodeTypeId: nodeType.id });
+    const { backgroundColor, textColor } = getNodeTagColors(
+      nodeType,
+      nodeIndex,
+    );
+    index.set(nodeType.tag, {
+      nodeTypeId: nodeType.id,
+      cssVars: `--dg-tag-bg: ${backgroundColor}; --dg-tag-fg: ${textColor};`,
+    });
   });
   return index;
 };
 
 const tagSettingsSignature = (plugin: DiscourseGraphPlugin): string =>
-  plugin.settings.nodeTypes.map((n) => `${n.id}:${n.tag ?? ""}`).join("|");
+  JSON.stringify(Array.from(buildTagStyleIndex(plugin)));
 
 const collectTaggedRanges = (
   view: EditorView,
@@ -187,8 +127,8 @@ const buildTagDecorations = (
     collectTaggedRanges(view, styles),
   ).map(({ from, to, style }) =>
     Decoration.mark({
-      class: `${DISCOURSE_TAG_CLASS} ${discourseTagClassForNode(style.nodeTypeId)}`,
-      attributes: { [NODE_ID_ATTR]: style.nodeTypeId },
+      class: DISCOURSE_TAG_CLASS,
+      attributes: { [NODE_ID_ATTR]: style.nodeTypeId, style: style.cssVars },
     }).range(from, to),
   );
 

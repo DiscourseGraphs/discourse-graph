@@ -32,6 +32,13 @@ jobs:
       #   uses: AndreKurait/docker-cache@0.6.0
       #   with:
       #     key: docker-${{ runner.os }}-${{ env.SUPABASE_VERSION }}
+      # lintSchemas.ts passes silently when sqruff is missing, so install it
+      # here; keep the version in step with the one developers run locally.
+      - name: Install sqruff
+        run: pipx install sqruff==0.44.0
+      - name: Check schema files against migrations
+        working-directory: ./packages/database
+        run: pnpm run check-schema
       - name: Setup database
         working-directory: ./packages/database
         run: pnpm run setup

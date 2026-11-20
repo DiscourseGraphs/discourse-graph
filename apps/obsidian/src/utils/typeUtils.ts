@@ -95,3 +95,42 @@ export const getUserNameById = (
 ): string => {
   return (plugin.settings.userNames || {})[id] || `user ${id}`;
 };
+
+export const isCompleteRelationType = (rt: DiscourseRelationType): boolean =>
+  !!rt.id && !!rt.label && !!rt.complement;
+
+/**
+ * Flags relation types whose label or complement repeats another's, keyed by
+ * index. Types missing a label or complement are skipped.
+ */
+export const getRelationTypeErrors = (
+  relationTypes: DiscourseRelationType[],
+): Record<number, string> => {
+  const errors: Record<number, string> = {};
+  const completeTypes = relationTypes.filter(isCompleteRelationType);
+
+  const seenLabels = new Map<string, number>();
+  for (const rt of completeTypes) {
+    const idx = relationTypes.indexOf(rt);
+    const prev = seenLabels.get(rt.label);
+    if (prev !== undefined) {
+      errors[idx] = `Duplicate label "${rt.label}"`;
+      if (!errors[prev]) errors[prev] = `Duplicate label "${rt.label}"`;
+    }
+    seenLabels.set(rt.label, idx);
+  }
+
+  const seenComplements = new Map<string, number>();
+  for (const rt of completeTypes) {
+    const idx = relationTypes.indexOf(rt);
+    const prev = seenComplements.get(rt.complement);
+    if (prev !== undefined) {
+      errors[idx] = `Duplicate complement "${rt.complement}"`;
+      if (!errors[prev])
+        errors[prev] = `Duplicate complement "${rt.complement}"`;
+    }
+    seenComplements.set(rt.complement, idx);
+  }
+
+  return errors;
+};

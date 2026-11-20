@@ -38,10 +38,7 @@ vi.hoisted(() => {
   };
 });
 
-import {
-  discourseNodeBlockToLocalConcept,
-  discourseNodeSchemaToLocalConcept,
-} from "~/utils/conceptConversion";
+import { discourseNodeSchemaToLocalConcept } from "~/utils/conceptConversion";
 
 const CONTEXT = { spaceId: 1, userId: 2 } as never;
 
@@ -108,141 +105,48 @@ describe("discourseNodeSchemaToLocalConcept source slot", () => {
     });
   });
 
+  // Not covered: an upsert whose author_local_id doesn't resolve nulls author_id.
   it("carries the type author as author_local_id", () => {
     const concept = discourseNodeSchemaToLocalConcept(CONTEXT, nodeType({}));
     expect(concept.author_local_id).toBe("author-1");
   });
+});
 
-  it("keeps the label and template it already carried", () => {
+describe("discourseNodeSchemaToLocalConcept label and template", () => {
+  it("writes the template body to template_content, with no template title", () => {
     const concept = discourseNodeSchemaToLocalConcept(
       CONTEXT,
-      nodeType({ template: [{ text: "Question:" }] }),
+      nodeType({
+        template: [{ text: "Question:", children: [{ text: "Answer" }] }],
+      }),
     );
     expect(concept.literal_content).toEqual({
       label: "Evidence",
       format: "[[EVD]] - {content} - {Source}",
-      template: "* Question:\n",
+      template_content: "* Question:\n   * Answer\n   \n",
       roles: ["sourceDocument"],
     });
   });
-});
 
-describe("discourseNodeBlockToLocalConcept core title", () => {
-  it("writes the undecorated core title into literal_content", () => {
-    const concept = discourseNodeBlockToLocalConcept(CONTEXT, {
-      nodeUid: "node-1",
-      schemaUid: "clm",
-      title: "[[CLM]] - my claim",
-      schema: nodeType({
-        text: "Claim",
-        type: "clm",
-        format: "[[CLM]] - {content}",
-      }),
-    });
-    expect(concept.literal_content).toEqual({ core_title: "my claim" });
-    expect(concept.name).toBe("[[CLM]] - my claim");
-    expect(concept.source_local_id).toBe("node-1");
-  });
-
-  it("keeps the whole title when the schema is unknown", () => {
-    const concept = discourseNodeBlockToLocalConcept(CONTEXT, {
-      nodeUid: "node-1",
-      schemaUid: "clm",
-      title: "[[CLM]] - my claim",
-    });
-    expect(concept.literal_content).toEqual({
-      core_title: "[[CLM]] - my claim",
-    });
-  });
-});
-
-describe("discourseNodeBlockToLocalConcept source slot", () => {
-  const convert = (title: string, schema: DiscourseNode = nodeType({})) =>
-    discourseNodeBlockToLocalConcept(CONTEXT, {
-      nodeUid: "node-1",
-      schemaUid: schema.type,
-      title,
-      schema,
-    });
-
-  it("resolves the source page named in the title", () => {
-    const concept = convert(
-      "[[EVD]] - REM sleep aids recall - [[@sun2019direct]]",
+  it.each([
+    ["no template", undefined],
+    ["an empty template", []],
+    ["a template of only components", [{ text: "{{query block}}" }]],
+  ])("omits template_content for %s", (_label, template) => {
+    const concept = discourseNodeSchemaToLocalConcept(
+      CONTEXT,
+      nodeType({ template }),
     );
-    expect(concept.local_reference_content).toEqual({
-      sourceDocument: "source-1",
-    });
+    expect(concept.literal_content).not.toHaveProperty("template_content");
+    expect(concept.literal_content).not.toHaveProperty("template");
   });
 
-  it("writes the origin RID when the source page was imported from another app", () => {
-    mockedReadImportedSourceIdentity.mockReturnValue({
-      sourceModifiedAt: "2026-06-14T15:00:00.000Z",
-      sourceNodeRid: "orn:obsidian.note:vault-a/node-1",
-    });
-    const concept = convert(
-      "[[EVD]] - REM sleep aids recall - [[@sun2019direct]]",
+  it("keeps a slash-separated name whole in label and name", () => {
+    const concept = discourseNodeSchemaToLocalConcept(
+      CONTEXT,
+      nodeType({ text: "Evidence/Figure" }),
     );
-    expect(concept.local_reference_content).toEqual({
-      sourceDocument: "orn:obsidian.note:vault-a/node-1",
-    });
-    expect(mockedReadImportedSourceIdentity).toHaveBeenCalledWith("source-1");
-  });
-
-  // Leniency on the target type: see sourceSlot.ts
-  it("accepts a source that is a node of another type", () => {
-    mockedGetDiscourseNodes.mockReturnValue([
-      SOURCE_TYPE,
-      nodeType({ text: "Claim", type: "clm", format: "[[CLM]] - {content}" }),
-    ]);
-    mockedGetPageUidByPageTitle.mockImplementation(() => "claim-1");
-    const concept = convert(
-      "[[EVD]] - REM sleep aids recall - [[CLM]] - a claim",
-    );
-    expect(concept.local_reference_content).toEqual({
-      sourceDocument: "claim-1",
-    });
-  });
-
-  it("omits the slot when the source page is not a discourse node", () => {
-    mockedGetPageUidByPageTitle.mockImplementation(() => "some-page");
-    const concept = convert(
-      "[[EVD]] - REM sleep aids recall - [[a plain page]]",
-    );
-    expect(concept.local_reference_content).toBeUndefined();
-  });
-
-  it("omits the slot when the source page does not exist", () => {
-    const concept = convert(
-      "[[EVD]] - REM sleep aids recall - [[@unknownref]]",
-    );
-    expect(concept.local_reference_content).toBeUndefined();
-  });
-
-  it("skips a source containing a slash, even when the page exists", () => {
-    const concept = convert(
-      "[[EVD]] - REM sleep aids recall - [[@sun2019direct/fig2]]",
-    );
-    expect(concept.local_reference_content).toBeUndefined();
-    expect(mockedGetPageUidByPageTitle).not.toHaveBeenCalled();
-  });
-
-  it("omits the slot when the node type has no source placeholder", () => {
-    const concept = convert(
-      "[[CLM]] - REM sleep aids recall",
-      nodeType({ text: "Claim", type: "clm", format: "[[CLM]] - {content}" }),
-    );
-    expect(concept.local_reference_content).toBeUndefined();
-  });
-
-  it("uses the page title, not the block text, of a block-backed node", () => {
-    const concept = discourseNodeBlockToLocalConcept(CONTEXT, {
-      nodeUid: "node-1",
-      schemaUid: "_EVD-node",
-      title: "[[EVD]] - REM sleep aids recall - [[@sun2019direct]]",
-      schema: nodeType({}),
-    });
-    expect(concept.local_reference_content).toEqual({
-      sourceDocument: "source-1",
-    });
+    expect(concept.name).toBe("Evidence/Figure");
+    expect(concept.literal_content).toMatchObject({ label: "Evidence/Figure" });
   });
 });

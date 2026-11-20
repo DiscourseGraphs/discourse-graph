@@ -60,12 +60,12 @@ import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import { Dispatch, SetStateAction } from "react";
 import { SettingsDialog } from "./settings/Settings";
+import { SETTINGS_TAB_IDS } from "./settings/utils/settingsTabs";
 import { OnloadArgs } from "roamjs-components/types";
 import renderOverlay from "roamjs-components/util/renderOverlay";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
-import { migrateLeftSidebarSettings } from "~/utils/migrateLeftSidebarSettings";
 import posthog from "posthog-js";
 import { commands, cleanCommandName } from "~/components/LeftSidebarCommands";
 import { isSmartBlockUid } from "~/utils/isSmartBlockUid";
@@ -730,7 +730,6 @@ const buildConfig = (snapshot?: SettingsSnapshot): LeftSidebarConfig => {
   return {
     uid: oldConfig.uid,
     favoritesMigrated: oldConfig.favoritesMigrated,
-    sidebarMigrated: oldConfig.sidebarMigrated,
     global: mergeGlobalSectionWithAccessor(oldConfig.global, globalValues),
     globalSectionFolded: {
       uid: oldConfig.globalSectionFolded.uid,
@@ -743,7 +742,6 @@ const buildConfig = (snapshot?: SettingsSnapshot): LeftSidebarConfig => {
         personalValues,
       ),
     },
-    allPersonalSections: oldConfig.allPersonalSections,
   };
 };
 
@@ -862,16 +860,9 @@ const FavoritesPopover = ({ onloadArgs }: { onloadArgs: OnloadArgs }) => {
           content={
             <Menu>
               <MenuItem
-                text="Global Section"
+                text="Left sidebar"
                 onClick={() => {
-                  renderSettingsDialog("left-sidebar-global-settings");
-                  setIsMenuOpen(false);
-                }}
-              />
-              <MenuItem
-                text="Personal Section"
-                onClick={() => {
-                  renderSettingsDialog("left-sidebar-personal-settings");
+                  renderSettingsDialog(SETTINGS_TAB_IDS.featuresLeftSidebar);
                   setIsMenuOpen(false);
                 }}
               />
@@ -1067,7 +1058,6 @@ export const mountLeftSidebar = async ({
   let root = wrapper.querySelector(`#${id}`) as HTMLDivElement;
   if (!root) {
     await migrateFavorites();
-    await migrateLeftSidebarSettings();
     wrapper.innerHTML = "";
     root = document.createElement("div");
     root.id = id;

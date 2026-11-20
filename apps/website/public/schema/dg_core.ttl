@@ -22,22 +22,24 @@
   owl:versionInfo "0.1 (tentative)".
 
 dg:Argument a owl:Class;
+  rdfs:label "Argument"@en;
   rdfs:comment "A marker class for nodes that can serve as arguments".
 
-dg:Question a dgb:NodeSchema;
+dg:Question a owl:Class;
+  rdfs:subClassOf dgb:Node;
   rdfs:label "Question"@en;
   rdfs:comment "Scientific unknowns that we want to make known, and are addressable by the systematic application of research methods"@en.
 
-dg:Claim a dgb:NodeSchema;
-  rdfs:subClassOf dg:Argument;
+dg:Claim a owl:Class;
+  rdfs:subClassOf dgb:Node, dg:Argument;
   rdfs:label "Claim"@en;
   rdfs:comment "Atomic, generalized assertions about the world that (propose to) answer research questions"@en.
 
-dg:Evidence a dgb:NodeSchema;
-  rdfs:subClassOf dg:Argument;
+dg:Evidence a owl:Class;
+  rdfs:subClassOf dgb:Node, dg:Argument;
   rdfs:label "Evidence"@en;
   rdfs:comment "A specific empirical observation from a particular application of a research method"@en;
-  owl:subClassOf [rdf:type owl:Restriction ; owl:onProperty dg:observationStatement ; owl:cardinality 1],
+  rdfs:subClassOf [rdf:type owl:Restriction ; owl:onProperty dg:observationStatement ; owl:cardinality 1],
     [rdf:type owl:Restriction ; owl:onProperty dg:observationBase ; owl:cardinality 1].
   # Ideally also dg:observationOriginActivity, but maybe not a hard constraint.
 
@@ -47,10 +49,11 @@ dg:describesActivity a dgb:RelationDef;
   rdfs:domain schema:CreativeWork;
   rdfs:range prov:Activity.
 
-dg:SourceDocument a dgb:NodeSchema;
+dg:SourceDocument a owl:Class;
+  rdfs:subClassOf dgb:Node;
   rdfs:label "Source document"@en;
   rdfs:comment "Some research source document that reports/generates evidence, like a book, conference paper, or journal article"@en;
-  owl:subClassOf schema:CreativeWork, [rdf:type owl:Restriction ; owl:onProperty dg:describesActivity ; owl:minCardinality 1].
+  rdfs:subClassOf schema:CreativeWork, [rdf:type owl:Restriction ; owl:onProperty dg:describesActivity ; owl:minCardinality 1].
 
 dg:observationStatement a dgb:RelationDef;
   rdfs:label "Observation statement"@en;

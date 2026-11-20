@@ -4,12 +4,5 @@
   "prettier.prettierPath": "./node_modules/prettier",
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "eslint.useFlatConfig": true,
-  "eslint.workingDirectories": [{ "mode": "auto" }],
-  "eslint.rules.customizations": [
-    { "rule": "obsidianmd/*", "severity": "error" },
-    { "rule": "eslint-comments/*", "severity": "error" },
-    { "rule": "no-unsanitized/*", "severity": "error" },
-    { "rule": "no-eval", "severity": "error" },
-    { "rule": "no-implied-eval", "severity": "error" }
-  ]
+  "eslint.workingDirectories": [{ "mode": "auto" }]
 }

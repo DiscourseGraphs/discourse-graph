@@ -7,11 +7,16 @@ import type {
 type SchemaSelectionPanelProps = {
   source: SchemaSelectionSource;
   selection: SchemaSelectionState;
+  /** Import-only: marks what the vault already has. Export has nothing to compare against and passes neither. */
+  nodeTypeNotes?: ReadonlyMap<string, string>;
+  relationTypeNotes?: ReadonlyMap<string, string>;
 };
 
 export const SchemaSelectionPanel = ({
   source,
   selection,
+  nodeTypeNotes,
+  relationTypeNotes,
 }: SchemaSelectionPanelProps) => {
   const {
     selectedNodeTypeIds,
@@ -107,6 +112,11 @@ export const SchemaSelectionPanel = ({
                     disabled={isRequired}
                   />
                   <span>{nodeType.name}</span>
+                  {nodeTypeNotes?.get(nodeType.id) && (
+                    <span className="text-muted rounded bg-secondary px-1.5 py-0.5 text-xs">
+                      {nodeTypeNotes.get(nodeType.id)}
+                    </span>
+                  )}
                   {isRequired && (
                     <span className="text-muted text-xs">
                       required by selected triple
@@ -160,6 +170,11 @@ export const SchemaSelectionPanel = ({
                     disabled={isRequired}
                   />
                   <span>{relationType.label}</span>
+                  {relationTypeNotes?.get(relationType.id) && (
+                    <span className="text-muted rounded bg-secondary px-1.5 py-0.5 text-xs">
+                      {relationTypeNotes.get(relationType.id)}
+                    </span>
+                  )}
                   {isRequired && (
                     <span className="text-muted text-xs">
                       required by selected triple

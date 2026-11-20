@@ -3,15 +3,31 @@ import { type DiscourseNode } from "~/utils/getDiscourseNodes";
 import {
   DISCOURSE_NODE_MIN_SEARCH_SCORE,
   DISCOURSE_NODE_MINI_SEARCH_OPTIONS,
+  CANDIDATE_BLOCK_SEARCH_PULL,
   DISCOURSE_NODE_SEARCH_METADATA_PULL,
+  getCandidateTagTitle,
   getPulledDiscourseNodeAuthorName,
   getPulledDiscourseNodeTitle,
   getPulledDiscourseNodeUid,
+  hasCandidateTag,
+  queryCandidateBlocksByTag,
   queryDiscourseNodesByFormat,
+  stripCandidateTags,
+  type PulledDiscourseNode,
 } from "~/utils/discourseNodeSearch";
+import {
+  MAX_RESULTS,
+  type ScoredSearchResult,
+  type SearchResult,
+} from "~/utils/discourseNodeSearchTypes";
+
+export type {
+  ScoredSearchResult,
+  SearchResult,
+} from "~/utils/discourseNodeSearchTypes";
 
 export const DEBOUNCE_MS = 250;
-export const MAX_RESULTS = 50;
+export { MAX_RESULTS };
 
 export const getSearchKeywords = (searchTerm: string): string[] =>
   searchTerm.split(/\s+/).filter(Boolean);
@@ -36,29 +52,14 @@ export const SORT_FIELD_LABELS: Record<SortField, string> = {
   author: "Author",
 };
 
-export type SearchResult = {
-  uid: string;
-  title: string;
-  type: string;
-  nodeTypeLabel: string;
-  excerpt: string;
-  createdAt: string;
-  lastModified: string;
-  authorName: string;
-};
-
 export type DockedSearchState = {
   query: string;
   results: SearchResult[];
   selectedNodeTypeIds: string[];
   sort: SortConfig;
+  showCandidates?: boolean;
   windowId?: string;
   dgSearchId?: string;
-};
-
-export type ScoredSearchHit = {
-  result: SearchResult;
-  score: number;
 };
 
 type MiniSearchDocument = SearchResult & {
@@ -111,6 +112,30 @@ export const splitWithHighlights = (
     }));
 };
 
+const toSearchResult = ({
+  node,
+  pulled,
+  title,
+}: {
+  node: DiscourseNode;
+  pulled: PulledDiscourseNode;
+  title: string;
+}): SearchResult | null => {
+  const uid = getPulledDiscourseNodeUid(pulled);
+  if (!uid || !title) return null;
+
+  return {
+    uid,
+    title,
+    type: node.type,
+    nodeTypeLabel: node.text,
+    excerpt: "",
+    createdAt: String(pulled[":create/time"] || ""),
+    lastModified: String(pulled[":edit/time"] || pulled[":create/time"] || ""),
+    authorName: getPulledDiscourseNodeAuthorName(pulled),
+  };
+};
+
 const queryNodesForType = async (
   node: DiscourseNode,
 ): Promise<SearchResult[]> => {
@@ -121,24 +146,13 @@ const queryNodesForType = async (
     });
 
     return pulledNodes
-      .map((result) => {
-        const uid = getPulledDiscourseNodeUid(result);
-        const title = getPulledDiscourseNodeTitle(result);
-        if (!uid || !title) return null;
-
-        return {
-          uid,
-          title,
-          type: node.type,
-          nodeTypeLabel: node.text,
-          excerpt: "",
-          createdAt: String(result[":create/time"] || ""),
-          lastModified: String(
-            result[":edit/time"] || result[":create/time"] || "",
-          ),
-          authorName: getPulledDiscourseNodeAuthorName(result),
-        };
-      })
+      .map((pulled) =>
+        toSearchResult({
+          node,
+          pulled,
+          title: getPulledDiscourseNodeTitle(pulled),
+        }),
+      )
       .filter((result): result is SearchResult => !!result);
   } catch (error) {
     console.error(`Error querying for node type ${node.type}:`, error);
@@ -146,15 +160,72 @@ const queryNodesForType = async (
   }
 };
 
-export const buildSearchIndex = async (
+const queryCandidatesForType = async ({
+  node,
+  tagTitles,
+}: {
+  node: DiscourseNode & { tag: string };
+  tagTitles: string[];
+}): Promise<SearchResult[]> => {
+  try {
+    const pulledBlocks = await queryCandidateBlocksByTag({
+      node,
+      pullExpression: CANDIDATE_BLOCK_SEARCH_PULL,
+    });
+
+    return pulledBlocks
+      .map((pulled): SearchResult | null => {
+        const result = toSearchResult({
+          node,
+          pulled,
+          title: stripCandidateTags({
+            text: pulled[":block/string"] || "",
+            tagTitles,
+          }),
+        });
+        if (!result) return null;
+        return {
+          ...result,
+          candidate: {
+            nodeTypes: [node.type],
+            pageTitle: pulled[":block/page"]?.[":node/title"] || "",
+          },
+        };
+      })
+      .filter((result): result is SearchResult => !!result);
+  } catch (error) {
+    console.error(
+      `Error querying candidates for node type ${node.type}:`,
+      error,
+    );
+    throw error;
+  }
+};
+
+const queryCandidates = async (
   discourseNodes: DiscourseNode[],
-): Promise<{
+): Promise<PromiseSettledResult<SearchResult[]>[]> => {
+  const taggedNodes = discourseNodes.filter(hasCandidateTag);
+  const tagTitles = taggedNodes.map((node) => getCandidateTagTitle(node.tag));
+  return Promise.allSettled(
+    taggedNodes.map((node) => queryCandidatesForType({ node, tagTitles })),
+  );
+};
+
+export const buildSearchIndex = async ({
+  discourseNodes,
+  includeCandidates = false,
+}: {
+  discourseNodes: DiscourseNode[];
+  includeCandidates?: boolean;
+}): Promise<{
   miniSearch: MiniSearch<MiniSearchDocument>;
   results: SearchResult[];
 }> => {
-  const resultsByType = await Promise.allSettled(
-    discourseNodes.map(queryNodesForType),
-  );
+  const [resultsByType, candidatesByType] = await Promise.all([
+    Promise.allSettled(discourseNodes.map(queryNodesForType)),
+    includeCandidates ? queryCandidates(discourseNodes) : [],
+  ]);
 
   const rejected = resultsByType.filter(
     (result): result is PromiseRejectedResult => result.status === "rejected",
@@ -166,13 +237,24 @@ export const buildSearchIndex = async (
     );
   }
 
+  // Candidates come after nodes. A block tagged with several types is one row
+  // shown as the first configured type, and type filters match any of its tags.
   const results: SearchResult[] = [];
-  const seenUids = new Set<string>();
-  for (const resultByType of resultsByType) {
+  const resultsByUid = new Map<string, SearchResult>();
+  for (const resultByType of [...resultsByType, ...candidatesByType]) {
     if (resultByType.status !== "fulfilled") continue;
     for (const result of resultByType.value) {
-      if (seenUids.has(result.uid)) continue;
-      seenUids.add(result.uid);
+      const existing = resultsByUid.get(result.uid);
+      if (existing) {
+        const newTypes = result.candidate?.nodeTypes.filter(
+          (type) => !existing.candidate?.nodeTypes.includes(type),
+        );
+        if (existing.candidate && newTypes) {
+          existing.candidate.nodeTypes.push(...newTypes);
+        }
+        continue;
+      }
+      resultsByUid.set(result.uid, result);
       results.push(result);
     }
   }
@@ -214,23 +296,28 @@ export const isNonDefaultSort = (sort: SortConfig): boolean =>
   sort.direction !== DEFAULT_SORT_CONFIG.direction;
 
 export const sortSearchResults = ({
-  hits,
+  scoredResults,
   sort,
 }: {
-  hits: ScoredSearchHit[];
+  scoredResults: ScoredSearchResult[];
   sort: SortConfig;
 }): SearchResult[] => {
-  const sorted = [...hits];
+  // Semantic and MiniSearch results already arrive in their provider's relevance
+  // order, so relevance sorting only has to reverse it for ascending.
+  if (sort.field === "relevance") {
+    const ordered =
+      sort.direction === "asc" ? [...scoredResults].reverse() : scoredResults;
+    return ordered.map((entry) => entry.result);
+  }
 
-  sorted.sort((aHit, bHit) => {
-    const a = aHit.result;
-    const b = bHit.result;
+  const sorted = [...scoredResults];
+
+  sorted.sort((aEntry, bEntry) => {
+    const a = aEntry.result;
+    const b = bEntry.result;
     let comparison = 0;
 
     switch (sort.field) {
-      case "relevance":
-        comparison = compareNumbers(aHit.score, bHit.score, sort.direction);
-        break;
       case "alphabetical":
         comparison = compareStrings(
           getSortableTitle(a),
@@ -259,10 +346,17 @@ export const sortSearchResults = ({
     return comparison || a.uid.localeCompare(b.uid);
   });
 
-  return sorted.map((hit) => hit.result);
+  return sorted.map((entry) => entry.result);
 };
 
-export const searchIndexedNodes = ({
+export const matchesTypeFilter = (
+  result: SearchResult,
+  allowedTypes: Set<string>,
+): boolean =>
+  allowedTypes.has(result.type) ||
+  !!result.candidate?.nodeTypes.some((type) => allowedTypes.has(type));
+
+export const searchDiscourseNodesWithMiniSearch = ({
   miniSearch,
   allResults,
   searchTerm,
@@ -272,7 +366,7 @@ export const searchIndexedNodes = ({
   allResults: SearchResult[];
   searchTerm: string;
   typeFilter?: string[];
-}): ScoredSearchHit[] => {
+}): ScoredSearchResult[] => {
   const resultsByUid = new Map(
     allResults.map((result) => [result.uid, result]),
   );
@@ -283,7 +377,12 @@ export const searchIndexedNodes = ({
       fields: ["title", "nodeTypeLabel"],
       ...DISCOURSE_NODE_MINI_SEARCH_OPTIONS,
       filter: allowedTypes
-        ? (result) => allowedTypes.has(String(result.type))
+        ? (result) => {
+            const searchResult = resultsByUid.get(String(result.id));
+            return (
+              !!searchResult && matchesTypeFilter(searchResult, allowedTypes)
+            );
+          }
         : undefined,
     })
     .filter((result) => result.score > DISCOURSE_NODE_MIN_SEARCH_SCORE)
@@ -291,7 +390,11 @@ export const searchIndexedNodes = ({
     .map((result) => {
       const searchResult = resultsByUid.get(String(result.id));
       if (!searchResult) return null;
-      return { result: searchResult, score: result.score };
+      return {
+        result: searchResult,
+        score: result.score,
+        source: "miniSearch",
+      };
     })
-    .filter((hit): hit is ScoredSearchHit => !!hit);
+    .filter((entry): entry is ScoredSearchResult => !!entry);
 };

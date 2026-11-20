@@ -60,7 +60,6 @@ schema_paths = [
     './schemas/concept.sql',
     './schemas/contributor.sql',
     './schemas/sync.sql',
-    './schemas/access_token.sql',
 ]
 
 [db.seed]
@@ -88,7 +87,7 @@ openai_api_key = "env(OPENAI_API_KEY)"
 
 # Email testing server. Emails sent with the local dev setup are not actually sent - rather, they
 # are monitored, and you can view the emails that would have been sent from the web interface.
-[inbucket]
+[local_smtp]
 enabled = true
 # Port to use for the email testing server web interface.
 port = 54324
@@ -323,6 +322,10 @@ s3_region = "env(S3_REGION)"
 s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
+
+# Lets `supabase db schema declarative sync`, used by `pnpm run dbdiff`, run without --experimental.
+[experimental.pgdelta]
+enabled = true
 
 [functions.create-space]
 enabled = true

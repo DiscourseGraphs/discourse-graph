@@ -203,8 +203,8 @@ export const getTemplateFiles = (app: App): string[] => {
 };
 
 type CreateTemplateFileResult =
-  | { created: true }
-  | { created: false; reason: string };
+  /** `templateName` is the sanitized basename the file landed under, which callers must reference instead of the requested name. */
+  { created: true; templateName: string } | { created: false; reason: string };
 
 type CreateTemplateFileInput = {
   app: App;
@@ -278,7 +278,30 @@ export const createTemplateFile = async ({
   }
 
   await app.vault.create(templateFilePath, content);
-  return { created: true };
+  return { created: true, templateName: sanitizedName };
+};
+
+export const readTemplateContent = async ({
+  app,
+  templateName,
+}: {
+  app: App;
+  templateName: string;
+}): Promise<string | null> => {
+  const { isEnabled, folderPath } = getTemplatePluginInfo(app);
+  if (!isEnabled || !folderPath) {
+    return null;
+  }
+
+  const sanitizedName = sanitizeTemplateName(templateName);
+  const templateFile = app.vault.getAbstractFileByPath(
+    `${folderPath}/${sanitizedName}.md`,
+  );
+  if (!(templateFile instanceof TFile)) {
+    return null;
+  }
+
+  return app.vault.read(templateFile);
 };
 
 export const createTemplateFileWithUniqueName = async ({

@@ -1,6 +1,6 @@
 import { DatalogClause } from "roamjs-components/types/native";
 import conditionToDatalog from "./conditionToDatalog";
-import getDiscourseNodeFormatExpression from "./getDiscourseNodeFormatExpression";
+import { getDiscourseNodeFormatExpression } from "@repo/database/lib/getDiscourseNodeFormatExpression";
 import type { DiscourseNode } from "./getDiscourseNodes";
 import replaceDatalogVariables from "./replaceDatalogVariables";
 

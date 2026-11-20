@@ -1,5 +1,6 @@
 import type { DGSupabaseClient } from "@repo/database/lib/client";
-import type { SharedNode } from "@repo/database/lib/sharedNodes";
+import type { DbCrossAppNode } from "@repo/database/lib/dbToCrossAppConverters";
+import type { SharedNodeSpace } from "@repo/database/lib/sharedNodes";
 import { getErrorMessage } from "./getErrorMessage";
 import { mirrorAssetToRoamStorage } from "./mirrorAssetToRoamStorage";
 import {
@@ -53,15 +54,17 @@ type ReferenceRow = {
 const fetchNodeReferences = async ({
   client,
   sharedNode,
+  space,
 }: {
   client: DGSupabaseClient;
-  sharedNode: SharedNode;
+  sharedNode: DbCrossAppNode;
+  space: SharedNodeSpace;
 }): Promise<ReferenceRow[]> => {
   const { data, error } = await client
     .from("my_file_references")
     .select("filepath, filehash, source_path")
-    .eq("space_id", sharedNode.spaceId)
-    .eq("source_local_id", sharedNode.sourceLocalId)
+    .eq("space_id", space.id)
+    .eq("source_local_id", sharedNode.localId)
     // Ordered so a repeated import does the same thing twice: where two references share a
     // hash, whichever mirrors first decides the uploaded file's extension.
     .order("filepath");
@@ -95,15 +98,17 @@ const fetchNodeReferences = async ({
 export const importNodeAssets = async ({
   client,
   sharedNode,
+  space,
   markdown,
 }: {
   client: DGSupabaseClient;
-  sharedNode: SharedNode;
+  sharedNode: DbCrossAppNode;
+  space: SharedNodeSpace;
   markdown: string;
 }): Promise<{ markdown: string; report: AssetImportReport }> => {
   if (!markdown) return { markdown, report: emptyReport() };
 
-  const references = await fetchNodeReferences({ client, sharedNode });
+  const references = await fetchNodeReferences({ client, sharedNode, space });
   if (!references.length) return { markdown, report: emptyReport() };
 
   // Locators come from the rewriter's own reading of the text. Re-deriving the spellings a

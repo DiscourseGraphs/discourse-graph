@@ -73,7 +73,7 @@ describe("openRoamSession", () => {
 
       expect(launchPersistentContext).toHaveBeenCalledWith(
         expect.any(String),
-        expect.objectContaining({ headless: false }),
+        expect.objectContaining({ headless: false, viewport: null }),
       );
       expect(session.headless).toBe(false);
       await session.close();
@@ -82,6 +82,47 @@ describe("openRoamSession", () => {
       await fs.rm(profileRoot, { recursive: true, force: true });
     }
   });
+
+  it.each([
+    {
+      headless: true,
+      viewport: undefined,
+      expected: { width: 1440, height: 1000 },
+    },
+    {
+      headless: false,
+      viewport: { width: 900, height: 600 },
+      expected: { width: 900, height: 600 },
+    },
+    { headless: true, viewport: null, expected: null },
+  ])(
+    "uses the requested viewport: %j",
+    async ({ headless, viewport, expected }) => {
+      const profileRoot = await fs.mkdtemp(
+        path.join(os.tmpdir(), "dg-roam-viewport-"),
+      );
+      const close = vi.fn().mockResolvedValue(undefined);
+      const launchPersistentContext = vi.fn().mockResolvedValue({
+        close,
+        pages: () => [createPage()],
+      });
+      try {
+        const session = await openRoamSession({
+          headless,
+          viewport,
+          chromium: { launchPersistentContext } as unknown as BrowserType,
+          profileDir: path.join(profileRoot, "profile"),
+        });
+        expect(launchPersistentContext).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({ headless, viewport: expected }),
+        );
+        await session.close();
+      } finally {
+        await fs.rm(profileRoot, { recursive: true, force: true });
+      }
+    },
+  );
 
   it("closes the context when navigation fails", async () => {
     const profileRoot = await fs.mkdtemp(

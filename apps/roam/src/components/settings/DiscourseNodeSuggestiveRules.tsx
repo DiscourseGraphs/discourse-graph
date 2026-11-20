@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from "react";
-import { Button, Intent } from "@blueprintjs/core";
+import { Button, Collapse, Intent } from "@blueprintjs/core";
 import DualWriteBlocksPanel from "./components/EphemeralBlocksPanel";
 import getSubTree from "roamjs-components/util/getSubTree";
 import { DiscourseNode } from "~/utils/getDiscourseNodes";
 import extractRef from "roamjs-components/util/extractRef";
 import { getAllDiscourseNodesSince } from "~/utils/getAllDiscourseNodesSince";
 import { getImportedNodeUids } from "~/utils/importedSourceIdentity";
-import { upsertNodesToSupabaseAsContentWithEmbeddings } from "~/utils/syncDgNodesToSupabase";
+import { upsertNodesWithEmbeddings } from "~/utils/syncDgNodesToSupabase";
 import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
+import internalError from "~/utils/internalError";
 import {
   DiscourseNodeFlagPanel,
   DiscourseNodeTextPanel,
@@ -18,7 +19,7 @@ import {
   TEMPLATE_SETTING_KEYS,
 } from "~/components/settings/utils/settingKeys";
 import { RenderRoamBlock } from "~/utils/roamReactComponents";
-import { ROAM_DOCS, withDocsLink } from "./utils/docs";
+import Description from "~/components/settings/SettingsDescription";
 
 const DiscourseNodeSuggestiveRules = ({
   node,
@@ -43,6 +44,7 @@ const DiscourseNodeSuggestiveRules = ({
       }).uid || "",
     [nodeUid],
   );
+  const [isTemplateOpen, setIsTemplateOpen] = useState(false);
 
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -58,32 +60,50 @@ const DiscourseNodeSuggestiveRules = ({
       const context = await getSupabaseContext();
       if (context && blockNodesSince) {
         const importedNodeUids = await getImportedNodeUids();
-        await upsertNodesToSupabaseAsContentWithEmbeddings(
-          blockNodesSince.filter(
+        await upsertNodesWithEmbeddings({
+          nodes: blockNodesSince.filter(
             (node) => !importedNodeUids.has(node.source_local_id),
           ),
+          nodeType: node,
           supabaseClient,
           context,
-        );
+        });
       }
+    } catch (error) {
+      internalError({ error, userMessage: "Failed to update embeddings" });
     } finally {
       setIsUpdating(false);
     }
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <DualWriteBlocksPanel
-        nodeType={node.type}
-        title="Template"
-        description={withDocsLink(
-          `The template that auto fills ${node.text} page when generated.`,
-          ROAM_DOCS.creatingNodes,
-        )}
-        settingKeys={TEMPLATE_SETTING_KEYS}
-        uid={templateUid}
-        defaultValue={node.template}
-      />
+    <div className="flex flex-col gap-4">
+      <div>
+        <div className="flex items-center">
+          <Button
+            minimal
+            small
+            icon={isTemplateOpen ? "chevron-down" : "chevron-right"}
+            text="Template"
+            onClick={() => setIsTemplateOpen((open) => !open)}
+          />
+          <Description
+            description={`The template that auto fills ${node.text} page when generated.`}
+          />
+        </div>
+        {/* Collapse unmounts its children, so the buffer block only exists while open. */}
+        <Collapse isOpen={isTemplateOpen}>
+          <div className="pl-6 pt-2">
+            <DualWriteBlocksPanel
+              nodeType={node.type}
+              description={`The template that auto fills ${node.text} page when generated.`}
+              settingKeys={TEMPLATE_SETTING_KEYS}
+              uid={templateUid}
+              defaultValue={node.template}
+            />
+          </div>
+        </Collapse>
+      </div>
 
       <DiscourseNodeTextPanel
         nodeType={nodeUid}

@@ -4,7 +4,7 @@ import type {
   CrossAppRelation,
   CrossAppRelationTripleSchema,
 } from "@repo/database/crossAppContracts";
-import type { RoamFullContentNode } from "./convertRoamNodeToFullContent";
+import type { RoamDiscourseNodeData } from "./getAllDiscourseNodesSince";
 import type { DiscourseNode } from "./getDiscourseNodes";
 import type { TreeNode, ViewType } from "roamjs-components/types";
 import type { NodeUidWithType } from "~/utils/publishNodesToGroups";
@@ -16,13 +16,15 @@ import getFullTreeByParentUid from "roamjs-components/queries/getFullTreeByParen
 import getPageViewType from "roamjs-components/queries/getPageViewType";
 import { contentTypes } from "@repo/content-model";
 import getDiscourseNodes from "./getDiscourseNodes";
-import extractContentFromTitle from "./extractContentFromTitle";
+import { extractContentFromTitle } from "@repo/database/lib/extractContentFromTitle";
+import { nodeTemplateContent } from "./nodeTemplateContent";
 import {
   SOURCE_SLOT,
   schemaHasSourceSlot,
   sourceSlotSchemaId,
   sourceIdOfNode,
 } from "./sourceSlot";
+import { readImportedSourceIdentity } from "./importedSourceIdentity";
 
 const FULL_MARKDOWN_OPTS = {
   refs: true,
@@ -34,12 +36,11 @@ const FULL_MARKDOWN_OPTS = {
   allNodes: [] as DiscourseNode[],
 };
 
+// `full` carries the page body alone; the title lives in the `direct` variant.
 export const buildFullMarkdown = ({
-  title,
   blocks,
   viewType = "bullet",
 }: {
-  title: string;
   blocks: TreeNode[];
   viewType?: ViewType;
 }): string => {
@@ -50,7 +51,7 @@ export const buildFullMarkdown = ({
     )
     .join("\n")
     .trim();
-  return body ? `# ${title}\n\n${body}\n` : `# ${title}\n`;
+  return body ? `${body}\n` : "";
 };
 
 const buildFullInlineContent = ({
@@ -64,30 +65,59 @@ const buildFullInlineContent = ({
   const viewType = getPageViewType(title) || "bullet";
   return {
     localId: uid,
-    value: buildFullMarkdown({ title, blocks, viewType }),
+    value: buildFullMarkdown({ blocks, viewType }),
     contentType: contentTypes.roamMarkdown,
     scale: "document",
   };
 };
 
-export const fullContentNodeToCrossApp = (
-  node: RoamFullContentNode,
+export const discourseNodeToCrossApp = (
+  node: RoamDiscourseNodeData,
+  schema?: DiscourseNode,
 ): CrossAppNode => {
   const title = node.node_title ?? node.text;
+  const sourceId = sourceIdOfNode(title, schema);
 
   return {
-    authorId: node.author_local_id,
+    authorId: node.node_author_local_id ?? node.author_local_id,
     localId: node.source_local_id,
     createdAt: new Date(node.created || Date.now()),
     modifiedAt: new Date(node.last_modified || Date.now()),
-    nodeType: node.node_type_id,
-    coreTitle: extractContentFromTitle(title, { format: node.format }),
+    nodeType: node.type,
+    coreTitle: extractContentFromTitle(schema?.format ?? "", title),
     content: {
       direct: {
         localId: node.source_local_id,
         value: title,
       },
-      full: buildFullInlineContent({ uid: node.source_local_id, title }),
+      ...(node.node_title
+        ? {
+            directAndDescription: {
+              localId: node.source_local_id,
+              value: `${node.node_title} ${node.text}`,
+              authorId: node.author_local_id,
+            },
+          }
+        : {}),
+    },
+    ...(sourceId ? { slots: { [SOURCE_SLOT]: sourceId } } : {}),
+  };
+};
+
+export const fullContentNodeToCrossApp = (
+  node: RoamDiscourseNodeData,
+  schema: DiscourseNode,
+): CrossAppNode => {
+  const crossAppNode = discourseNodeToCrossApp(node, schema);
+
+  return {
+    ...crossAppNode,
+    content: {
+      ...crossAppNode.content,
+      full: buildFullInlineContent({
+        uid: node.source_local_id,
+        title: crossAppNode.content.direct.value,
+      }),
     },
   };
 };
@@ -136,9 +166,10 @@ export const nodeUidsWithTypeToCrossApp = async (
       authorId: userUid,
       createdAt: new Date(createdTime),
       modifiedAt: new Date(Math.max(editTime, pageEditTime)),
-      coreTitle: extractContentFromTitle(title, {
-        format: schemasById[nodeType]?.format ?? "",
-      }),
+      coreTitle: extractContentFromTitle(
+        schemasById[nodeType]?.format ?? "",
+        title,
+      ),
       content: {
         direct: {
           localId: uid,
@@ -151,6 +182,11 @@ export const nodeUidsWithTypeToCrossApp = async (
   });
   return results;
 };
+
+// Roam's sync and publish button skip imported nodes, so the database knows an
+// imported end only by its RID.
+const relationEndId = (uid: string): string =>
+  readImportedSourceIdentity(uid)?.sourceNodeRid ?? uid;
 
 export const reifiedRelationToCrossApp = (
   r: ReifiedRelationDataWithRelId,
@@ -167,8 +203,8 @@ export const reifiedRelationToCrossApp = (
   return {
     localId: r.relationId,
     relationType: r.hasSchema,
-    source: r.sourceUid,
-    destination: r.destinationUid,
+    source: relationEndId(r.sourceUid),
+    destination: relationEndId(r.destinationUid),
     authorId: userUid,
     createdAt: new Date(relData[":create/time"] as number),
     modifiedAt: new Date(relData[":edit/time"] as number),
@@ -226,6 +262,7 @@ export const nodeSchemaToCrossApp = (
     createdAt: new Date(createdTime),
     modifiedAt: new Date(Math.max(pageEditTime, createdTime)),
     format: s.format,
+    template: nodeTemplateContent(s.template),
     ...(hasSourceSlot
       ? { slotDefinitions: { [SOURCE_SLOT]: sourceSlotSchemaId() } }
       : {}),

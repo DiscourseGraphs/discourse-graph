@@ -54,14 +54,11 @@ type RelationFileItemProps = {
   ) => Promise<void>;
 };
 
-export type RelationsPanelProps = {
+type RelationsPanelContentProps = {
   plugin: DiscourseGraphPlugin;
   canvasFile: TFile;
   nodeShape: DiscourseNodeShape;
-  onClose: () => void;
 };
-
-type RelationsPanelContentProps = Omit<RelationsPanelProps, "onClose">;
 
 const RelationFileItem = ({
   file,
@@ -517,40 +514,6 @@ export const RelationsPanelContent = ({
         </li>
       ))}
     </ul>
-  );
-};
-
-export const RelationsPanel = ({
-  plugin,
-  canvasFile,
-  nodeShape,
-  onClose,
-}: RelationsPanelProps) => {
-  return (
-    <div className="min-w-80 max-w-md rounded-lg border bg-white p-4 shadow-lg">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Relations</h3>
-        <button
-          onClick={onClose}
-          className="text-gray-500 hover:text-gray-700"
-          aria-label="Close"
-        >
-          ✕
-        </button>
-      </div>
-
-      <div className="mb-3">
-        <div className="text-sm font-medium text-gray-700">
-          {nodeShape.props.title || "Selected node"}
-        </div>
-      </div>
-
-      <RelationsPanelContent
-        plugin={plugin}
-        canvasFile={canvasFile}
-        nodeShape={nodeShape}
-      />
-    </div>
   );
 };
 

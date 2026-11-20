@@ -50,10 +50,13 @@ export const getSessionUserData = async (
   const data = await getSessionBaseUserData(client);
   if (data === null) return null;
   if (!data.name && data.type === "person") {
+    // Clients can't filter on dg_account.
+    const accountIdsReq = await client.rpc("my_platform_account_ids");
+    if (accountIdsReq.error) return null;
     const accountReq = await client
       .from("PlatformAccount")
       .select("name")
-      .eq("dg_account", data.id)
+      .in("id", accountIdsReq.data)
       .eq("agent_type", "person")
       .maybeSingle();
     if (accountReq.error || !accountReq.data?.name) {
@@ -156,6 +159,32 @@ export const removeFromGroup = async ({
   if (response.error) return response.error.message;
   if (response.data === null || response.data.length === 0)
     return "No such record";
+
+  return null; // success
+};
+
+export const setGroupAdmin = async ({
+  client,
+  groupId,
+  memberId,
+  admin,
+}: {
+  client: DGSupabaseClient;
+  groupId: string;
+  memberId: string;
+  admin: boolean;
+}): Promise<string | null> => {
+  const response = await client
+    .from("group_membership")
+    .update({ admin })
+    .eq("member_id", memberId)
+    .eq("group_id", groupId)
+    .select();
+  if (response.error) return response.error.message;
+  // The update policy only matches rows the caller administers, so a
+  // non-admin caller gets an empty result rather than an error.
+  if (response.data === null || response.data.length === 0)
+    return "No such member, or you are not an admin of this group";
 
   return null; // success
 };

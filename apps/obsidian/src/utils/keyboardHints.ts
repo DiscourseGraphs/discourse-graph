@@ -1,6 +1,15 @@
 import { Platform } from "obsidian";
+import type { KeyboardEvent } from "react";
 
-export type HintKey = "Mod" | "Alt" | "Shift" | "Enter" | "Escape" | "Tab";
+export type HintKey =
+  | "Mod"
+  | "Alt"
+  | "Shift"
+  | "Enter"
+  | "Escape"
+  | "Tab"
+  | "ArrowLeft"
+  | "ArrowRight";
 
 // Obsidian shows glyphs on macOS and spelled-out words everywhere else.
 const MAC_SYMBOLS: Record<HintKey, string> = {
@@ -10,6 +19,8 @@ const MAC_SYMBOLS: Record<HintKey, string> = {
   Enter: "↵",
   Escape: "esc",
   Tab: "⇥",
+  ArrowLeft: "←",
+  ArrowRight: "→",
 };
 
 const NON_MAC_SYMBOLS: Record<HintKey, string> = {
@@ -19,6 +30,8 @@ const NON_MAC_SYMBOLS: Record<HintKey, string> = {
   Enter: "Enter",
   Escape: "Esc",
   Tab: "Tab",
+  ArrowLeft: "←",
+  ArrowRight: "→",
 };
 
 /** Takes `isMacOS` so the non-mac branch can be checked without that platform. */
@@ -33,3 +46,13 @@ export const formatHintKeys = ({
 
 export const getHintKeys = (keys: HintKey[]): string[] =>
   formatHintKeys({ keys, isMacOS: Platform.isMacOS });
+
+// Rows are divs, so Enter and Space have to be wired up the way a button gets them free.
+export const activateOnKey = (
+  event: KeyboardEvent<HTMLDivElement>,
+  activate: () => void,
+): void => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  event.preventDefault();
+  activate();
+};

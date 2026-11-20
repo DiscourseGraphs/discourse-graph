@@ -10,53 +10,24 @@ import {
   GitBranch,
   Mail,
   MessageCircle,
-  Network,
   Puzzle,
-  Sparkles,
 } from "lucide-react";
 import { getAllBlogs } from "~/(home)/blog/readBlogs";
+import { FoundationsSection } from "~/components/FoundationsSection";
+import { GraphBackgroundAnimation } from "~/components/GraphBackgroundAnimation";
 import { Logo } from "~/components/Logo";
 import { PlatformBadge } from "~/components/PlatformBadge";
+import { SectionHeader } from "~/components/SectionHeader";
 import { TeamPerson } from "~/components/TeamPerson";
-import { TEAM_MEMBERS } from "~/data/constants";
+import { MATSU_LAB_URL, TEAM_MEMBERS } from "~/data/constants";
 import { STATIC_NEWS_ITEMS } from "~/data/news";
 import type { NewsItem } from "~/types/news";
+import { getGraphColors } from "~/utils/brandColors";
 import { formatDisplayDate } from "~/utils/formatDate";
 import { sortByDateDesc } from "~/utils/sortByDate";
 
 const SLACK_URL =
   "https://join.slack.com/t/discoursegraphs/shared_invite/zt-37xklatti-cpEjgPQC0YyKYQWPNgAkEg";
-
-const FEATURE_CARDS = [
-  {
-    alt: "Structured scientific infrastructure diagram",
-    description:
-      "Map claims, evidence, questions, and projects as modular pieces that can be reused across people, tools, and contexts.",
-    image: "/section1.webp",
-    title: "Make research ideas composable",
-  },
-  {
-    alt: "Discourse graph coordination layer",
-    description:
-      "Turn high-signal findings into shareable graph objects that support attribution, reuse, and decentralized collaboration.",
-    image: "/section4.webp",
-    title: "Liberate findings from static files",
-  },
-  {
-    alt: "Shareable findings workflow",
-    description:
-      "Exchange work in a form that is easier to find, update, and build on than documents locked into one hierarchy.",
-    image: "/section3.webp",
-    title: "Synthesize and update continuously",
-  },
-  {
-    alt: "Knowledge synthesis workflow",
-    description:
-      "Separate observations from interpretations so researchers can compare, remix, and update shared knowledge without flattening disagreement.",
-    image: "/section2.webp",
-    title: "Communicate with better structure",
-  },
-];
 
 const LAB_BENEFITS = [
   "Identify knowledge gaps and starter projects for new researchers",
@@ -198,35 +169,14 @@ const SUPPORTERS: Supporter[] = [
     width: 546,
     height: 262,
   },
+  {
+    alt: "Astera",
+    href: "https://astera.org/",
+    image: "/supporter-logos/Astera.svg",
+    width: 447,
+    height: 128,
+  },
 ];
-
-type SectionHeaderProps = {
-  description?: string;
-  eyebrow: string;
-  isWide?: boolean;
-  title: string;
-};
-
-const SectionHeader = ({
-  description,
-  eyebrow,
-  isWide = false,
-  title,
-}: SectionHeaderProps): ReactElement => (
-  <div className={isWide ? "max-w-none md:flex-1" : "max-w-3xl"}>
-    <p className="text-sm font-semibold uppercase tracking-[0.18em] text-secondary">
-      {eyebrow}
-    </p>
-    <h2 className="mt-3 text-3xl font-semibold tracking-tight text-primary sm:text-4xl">
-      {title}
-    </h2>
-    {description && (
-      <p className="mt-4 text-lg leading-8 text-neutral-dark/75">
-        {description}
-      </p>
-    )}
-  </div>
-);
 
 const ArrowLink = ({
   children,
@@ -246,6 +196,7 @@ const ArrowLink = ({
 
 const Home = async (): Promise<ReactElement> => {
   const blogs = await getAllBlogs();
+  const graphColors = getGraphColors();
 
   const blogNewsItems: NewsItem[] = blogs.map((blog) => ({
     date: blog.date,
@@ -261,33 +212,26 @@ const Home = async (): Promise<ReactElement> => {
 
   return (
     <div>
-      <section className="relative isolate flex min-h-[72svh] items-center overflow-hidden bg-neutral-dark px-5 py-16 text-white sm:px-6 lg:py-20">
-        <Image
-          src="/MATSU_lab_journal_club_graph_view.png"
-          alt="Discourse Graph network visualization"
-          fill
-          priority
-          className="object-cover opacity-25"
-          quality={90}
-          sizes="100vw"
-        />
-        <div className="absolute inset-0 bg-neutral-dark/70" />
+      <section
+        data-translucent-header
+        className="relative isolate -mt-[var(--header-height)] flex min-h-[72svh] items-center overflow-hidden border-b border-neutral-dark/10 bg-white px-5 pb-16 pt-[calc(4rem+var(--header-height))] text-neutral-dark sm:px-6 lg:pb-20 lg:pt-[calc(5rem+var(--header-height))]"
+      >
+        <GraphBackgroundAnimation colors={graphColors} />
         <div className="relative z-10 mx-auto w-full max-w-7xl">
-          <div className="max-w-3xl">
-            <p className="inline-flex rounded-md border border-white/20 bg-white/10 px-3 py-1 text-sm font-semibold text-white/85">
+          <div data-graph-avoid className="max-w-3xl">
+            <p className="inline-flex rounded-md border border-neutral-dark/15 bg-neutral-dark/5 px-3 py-1 text-sm font-semibold text-neutral-dark/80 backdrop-blur-sm">
               Open infrastructure for collaborative knowledge synthesis
             </p>
-            <h1 className="mt-6 text-5xl font-semibold tracking-tight text-white sm:text-6xl lg:text-7xl">
+            <h1 className="mt-6 text-5xl font-bold tracking-tight text-neutral-dark sm:text-6xl lg:text-7xl">
               Create knowledge. Make connections.
             </h1>
-            <p className="text-white/82 mt-6 max-w-2xl text-xl leading-8">
+            <p className="mt-6 max-w-2xl text-xl leading-8 text-neutral-dark/75">
               A tool and ecosystem for turning research claims, evidence, and
               questions into modular graphs that teams can share, update, and
               build on.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               {/* Use hard navigation across the marketing/docs boundary because client-side transitions can leak docs CSS. */}
-              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
               <a
                 href="/docs"
                 className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary/90 hover:text-white"
@@ -297,14 +241,14 @@ const Home = async (): Promise<ReactElement> => {
               </a>
               <Link
                 href="/#plugins"
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-white/35 px-5 py-3 text-sm font-semibold text-white transition-colors hover:border-white hover:bg-white/10 hover:text-white"
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-neutral-dark/30 bg-white/20 px-5 py-3 text-sm font-semibold text-neutral-dark backdrop-blur-sm transition-colors hover:border-neutral-dark hover:bg-white/70 hover:text-neutral-dark"
               >
                 Explore plugins
                 <Puzzle className="h-4 w-4" aria-hidden="true" />
               </Link>
               <Link
                 href={SLACK_URL}
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-white/20 px-5 py-3 text-sm font-semibold text-white/90 transition-colors hover:border-secondary hover:text-white"
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-neutral-dark/20 bg-white/20 px-5 py-3 text-sm font-semibold text-neutral-dark/90 backdrop-blur-sm transition-colors hover:border-secondary hover:bg-white/70 hover:text-neutral-dark"
               >
                 Join Slack
                 <MessageCircle className="h-4 w-4" aria-hidden="true" />
@@ -317,117 +261,34 @@ const Home = async (): Promise<ReactElement> => {
       <main className="flex-1">
         <section className="px-5 py-16 sm:px-6 lg:py-24">
           <div id="about" className="mx-auto max-w-7xl scroll-mt-20">
-            <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
-              <SectionHeader
-                eyebrow="About"
-                title="A shared structure for research work in motion"
-                description="Discourse Graphs help teams move beyond static documents by representing research as connected claims, evidence, questions, and projects."
-              />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Card className="h-full rounded-lg border-neutral-dark/10 bg-white shadow-sm">
-                  <CardContent className="flex h-full min-h-28 items-center gap-4 p-6">
-                    <Network
-                      className="h-6 w-6 shrink-0 text-primary"
-                      aria-hidden="true"
-                    />
-                    <p className="text-sm leading-6 text-neutral-dark/75">
-                      Compose work into a graph that can be queried, remixed,
-                      and carried across tools.
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="h-full rounded-lg border-neutral-dark/10 bg-white shadow-sm">
-                  <CardContent className="flex h-full min-h-28 items-center gap-4 p-6">
-                    <Sparkles
-                      className="h-6 w-6 shrink-0 text-secondary"
-                      aria-hidden="true"
-                    />
-                    <p className="text-sm leading-6 text-neutral-dark/75">
-                      Keep findings live as teams interpret evidence and update
-                      their models.
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-
-            <div className="mt-12 grid gap-5 md:grid-cols-2">
-              {FEATURE_CARDS.map((feature) => (
-                <Card
-                  key={feature.title}
-                  className="overflow-hidden rounded-lg border-neutral-dark/10 bg-white shadow-sm"
-                >
-                  <div className="relative aspect-[16/9] bg-neutral-light">
-                    <Image
-                      src={feature.image}
-                      alt={feature.alt}
-                      fill
-                      className="object-cover"
-                      sizes="(min-width: 768px) 50vw, 100vw"
-                    />
-                  </div>
-                  <CardContent className="p-6">
-                    <h3 className="text-xl font-semibold text-neutral-dark">
-                      {feature.title}
-                    </h3>
-                    <p className="mt-3 text-base leading-7 text-neutral-dark/75">
-                      {feature.description}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            <div className="mt-16 grid gap-8 border-t border-neutral-dark/10 py-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-secondary">
-                  Tool choice
-                </p>
-                <h3 className="mt-3 text-3xl font-semibold tracking-tight text-primary">
-                  Client-agnostic and researcher-aligned
-                </h3>
-                <div className="mt-5 space-y-4 text-base leading-7 text-neutral-dark/75">
-                  <p>
-                    Discourse Graphs are a decentralized knowledge exchange
-                    protocol designed to be implemented and owned by researchers
-                    rather than publishers.
-                  </p>
-                  <p>
-                    The model can be implemented in networked notebook software
-                    like{" "}
-                    <Link href="https://roamresearch.com/">Roam Research</Link>,{" "}
-                    <Link href="https://obsidian.md">Obsidian</Link>, and other
-                    tools researchers already use.
-                  </p>
-                  <p className="font-semibold text-secondary">
-                    Discourse Graphs are like GitHub for scientific
-                    communication.
-                  </p>
-                </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="relative aspect-square overflow-hidden rounded-lg border border-neutral-dark/10 bg-white p-4">
-                  <Image
-                    src="/section5a.webp"
-                    alt="Client-agnostic discourse graph workflow"
-                    fill
-                    className="object-contain p-6"
-                    sizes="(min-width: 640px) 50vw, 100vw"
-                  />
-                </div>
-                <div className="relative aspect-square overflow-hidden rounded-lg border border-neutral-dark/10 bg-white p-4">
-                  <Image
-                    src="/section5b.webp"
-                    alt="Researcher-aligned discourse graph workflow"
-                    fill
-                    className="object-contain p-6"
-                    sizes="(min-width: 640px) 50vw, 100vw"
-                  />
-                </div>
-              </div>
+            <SectionHeader
+              eyebrow="About"
+              title="Composable research for connected science"
+            />
+            <div className="mt-6 max-w-3xl space-y-6 text-lg leading-8 text-neutral-dark/75">
+              <p>
+                Scientific inquiry has been artificially constrained by the
+                medium it&apos;s transferred in and the length of the
+                publication process.
+              </p>
+              <p>
+                Discourse graphs are breaking free of these constraints, making
+                science more accessible and collaborative by building{" "}
+                <Link href="https://arxiv.org/html/2407.20666v2?utm_source=DiscourseGraphs&utm_medium=website">
+                  modular, interoperable scientific knowledge systems
+                </Link>
+                .
+              </p>
+              <p>
+                This new method is available to use now in plugins for Roam
+                Research and Obsidian and a tool-agnostic protocol is in
+                development to enable collaboration across platforms.
+              </p>
             </div>
           </div>
         </section>
+
+        <FoundationsSection />
 
         <section className="bg-white px-5 py-16 sm:px-6 lg:py-24">
           <div id="plugins" className="mx-auto max-w-7xl scroll-mt-20">
@@ -480,7 +341,6 @@ const Home = async (): Promise<ReactElement> => {
                     </div>
                     <div className="mt-auto flex flex-wrap gap-3">
                       {/* Use hard navigation across the marketing/docs boundary because client-side transitions can leak docs CSS. */}
-                      {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                       <a
                         href={plugin.docsHref}
                         className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary/90 hover:text-white"
@@ -557,7 +417,7 @@ const Home = async (): Promise<ReactElement> => {
                 />
               </div>
               <figcaption className="mt-3 text-sm text-neutral-dark/65">
-                Snapshot of <Link href="https://matsulab.com/">MATSU lab</Link>{" "}
+                Snapshot of <Link href={MATSU_LAB_URL}>MATSU lab</Link>{" "}
                 Discourse Graph
               </figcaption>
             </figure>
@@ -699,11 +559,6 @@ const Home = async (): Promise<ReactElement> => {
               title="Built by researchers, designers, and engineers"
               description="The project brings together research infrastructure, knowledge synthesis, and tool-building experience."
             />
-            <div className="mt-6">
-              <ArrowLink href="/careers">
-                We’re hiring a database engineer
-              </ArrowLink>
-            </div>
             <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
               {TEAM_MEMBERS.map((member) => (
                 <div
@@ -725,12 +580,12 @@ const Home = async (): Promise<ReactElement> => {
               title="Supported by open science funders and partners"
               description="Organizations helping make modular, reusable scientific communication possible."
             />
-            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="mt-10 flex flex-wrap justify-center gap-4">
               {SUPPORTERS.map((supporter) => (
                 <Link
                   key={supporter.href}
                   href={supporter.href}
-                  className="flex h-32 items-center justify-center gap-3 rounded-lg border border-neutral-dark/10 bg-white p-6 transition-colors hover:border-secondary"
+                  className="flex h-32 w-full items-center justify-center gap-3 rounded-lg border border-neutral-dark/10 bg-white p-6 transition-colors hover:border-secondary sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.7rem)]"
                 >
                   <Image
                     src={supporter.image}
@@ -750,7 +605,7 @@ const Home = async (): Promise<ReactElement> => {
           </div>
         </section>
 
-        <section className="bg-neutral-dark px-5 pb-48 pt-16 text-white sm:px-6 lg:pb-56 lg:pt-24">
+        <section className="border-t border-neutral-dark/10 bg-white px-5 py-16 text-neutral-dark sm:px-6 lg:py-24">
           <div
             id="contact"
             className="mx-auto grid max-w-7xl scroll-mt-20 gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center"
@@ -762,7 +617,7 @@ const Home = async (): Promise<ReactElement> => {
               <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
                 Help build better infrastructure for collaborative research
               </h2>
-              <p className="mt-5 text-lg leading-8 text-white/75">
+              <p className="mt-5 text-lg leading-8 text-neutral-dark/75">
                 We are building user-friendly Discourse Graph plugins in tools
                 for thought and would like to hear from researchers, developers,
                 labs, and funders.
@@ -771,24 +626,24 @@ const Home = async (): Promise<ReactElement> => {
             <div className="grid gap-4 sm:grid-cols-2">
               <Link
                 href="mailto:discoursegraphs@homeworld.bio"
-                className="rounded-lg border border-white/15 bg-white/10 p-5 transition-colors hover:border-primary hover:text-white"
+                className="rounded-lg border border-neutral-dark/10 bg-neutral-light p-5 transition-colors hover:border-primary"
               >
                 <Mail className="h-6 w-6 text-primary" aria-hidden="true" />
                 <h3 className="mt-4 font-semibold">Send us a line</h3>
-                <p className="mt-2 text-sm leading-6 text-white/70">
+                <p className="mt-2 text-sm leading-6 text-neutral-dark/70">
                   Talk with us about development, pilots, and collaborations.
                 </p>
               </Link>
               <Link
                 href={SLACK_URL}
-                className="rounded-lg border border-white/15 bg-white/10 p-5 transition-colors hover:border-secondary hover:text-white"
+                className="rounded-lg border border-neutral-dark/10 bg-neutral-light p-5 transition-colors hover:border-secondary"
               >
                 <MessageCircle
                   className="h-6 w-6 text-secondary"
                   aria-hidden="true"
                 />
                 <h3 className="mt-4 font-semibold">Join Slack</h3>
-                <p className="mt-2 text-sm leading-6 text-white/70">
+                <p className="mt-2 text-sm leading-6 text-neutral-dark/70">
                   Follow project updates and talk with the community.
                 </p>
               </Link>
@@ -797,53 +652,57 @@ const Home = async (): Promise<ReactElement> => {
         </section>
       </main>
 
-      <footer className="border-t border-white/10 bg-neutral-dark px-5 py-10 text-white sm:px-6">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 md:grid-cols-[1fr_0.7fr_1.1fr] md:items-start">
-          <div className="flex flex-col gap-3">
-            <Logo textClassName="text-white" linked={false} />
-            <p className="text-sm text-white/55">
+      <footer className="relative isolate overflow-hidden border-t border-neutral-dark/10 bg-neutral-light px-5 py-10 text-neutral-dark sm:px-6">
+        <GraphBackgroundAnimation colors={graphColors} followPointer={false} />
+        <div className="relative z-10 mx-auto grid max-w-7xl grid-cols-1 gap-10 md:grid-cols-[1fr_0.7fr_1.1fr] md:items-start">
+          <div data-graph-avoid className="flex flex-col gap-3">
+            <Logo linked={false} />
+            <p className="text-sm text-neutral-dark/70">
               Copyright 2024-{new Date().getFullYear()} Homeworld Collective
             </p>
           </div>
 
-          <div className="grid gap-2 text-sm">
+          <div data-graph-avoid className="grid gap-2 text-sm">
             <Link
               href="/careers"
-              className="text-white/70 transition-colors hover:text-primary"
+              className="text-neutral-dark/70 transition-colors hover:text-neutral-dark hover:underline"
             >
               Careers
             </Link>
             <Link
               href="https://github.com/DiscourseGraphs"
-              className="text-white/70 transition-colors hover:text-primary"
+              className="text-neutral-dark/70 transition-colors hover:text-neutral-dark hover:underline"
             >
               GitHub
             </Link>
             <Link
               href="https://www.youtube.com/@discoursegraphs"
-              className="text-white/70 transition-colors hover:text-primary"
+              className="text-neutral-dark/70 transition-colors hover:text-neutral-dark hover:underline"
             >
               YouTube
             </Link>
             <Link
               href={SLACK_URL}
-              className="text-white/70 transition-colors hover:text-primary"
+              className="text-neutral-dark/70 transition-colors hover:text-neutral-dark hover:underline"
             >
               Slack
             </Link>
             <Link
               href="https://bsky.app/profile/discoursegraphs.bsky.social"
-              className="text-white/70 transition-colors hover:text-primary"
+              className="text-neutral-dark/70 transition-colors hover:text-neutral-dark hover:underline"
             >
               Bluesky
             </Link>
           </div>
 
-          <div className="rounded-lg border border-white/15 p-5">
-            <h3 className="text-lg font-semibold text-white">
+          <div
+            data-graph-avoid
+            className="rounded-lg border border-neutral-dark/15 p-5"
+          >
+            <h3 className="text-lg font-semibold text-neutral-dark">
               Stay up to date
             </h3>
-            <p className="mt-1 text-sm text-white/65">
+            <p className="mt-1 text-sm text-neutral-dark/65">
               Periodic news and info about the Discourse Graphs project.
             </p>
 
@@ -859,11 +718,11 @@ const Home = async (): Promise<ReactElement> => {
                 id="bd-email"
                 placeholder="your@email.com"
                 required
-                className="min-w-0 flex-1 rounded-md border border-white/20 bg-neutral-dark px-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-white/40"
+                className="min-w-0 flex-1 rounded-md border border-neutral-dark/20 bg-white px-3 py-2 text-sm text-neutral-dark placeholder-neutral-dark/40 focus:outline-none focus:ring-1 focus:ring-neutral-dark/30"
               />
               <button
                 type="submit"
-                className="rounded-md border border-white px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white hover:text-neutral-dark"
+                className="rounded-md border border-neutral-dark px-4 py-2 text-sm font-semibold text-neutral-dark transition-colors hover:bg-neutral-dark hover:text-white"
               >
                 Subscribe
               </button>

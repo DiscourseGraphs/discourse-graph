@@ -17,6 +17,7 @@ import { addRelationIfRequested } from "~/components/canvas/utils/relationJsonUt
 import type { DiscourseNode } from "~/types";
 import { TldrawView } from "~/components/canvas/TldrawView";
 import { createBaseForNodeType } from "./baseForNodeType";
+import { openImportSpecsModal } from "~/components/ImportSpecsModal";
 
 type ModifyNodeSubmitParams = {
   nodeType: DiscourseNode;
@@ -210,6 +211,14 @@ export const registerCommands = (plugin: DiscourseGraphPlugin) => {
     id: "export-dg-schema",
     name: "Export discourse graph schema",
     callback: () => openExportSpecsModal(plugin),
+  });
+
+  plugin.addCommand({
+    id: "import-dg-schema",
+    name: "Import discourse graph schema",
+    callback: () => {
+      openImportSpecsModal(plugin);
+    },
   });
 
   plugin.addCommand({

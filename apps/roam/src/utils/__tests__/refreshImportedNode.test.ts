@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
+import type { DbCrossAppNode } from "@repo/database/lib/dbToCrossAppConverters";
 import {
+  getNodeTypeRid,
   getSharedNodeByRid,
-  type SharedNode,
+  type SharedNodeSpace,
 } from "@repo/database/lib/sharedNodes";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
 import { readImportedSourceIdentity } from "~/utils/importedSourceIdentity";
@@ -11,12 +13,14 @@ import internalError from "~/utils/internalError";
 import { materializeSharedNode } from "~/utils/materializeSharedNode";
 import { refreshImportedNode } from "~/utils/refreshImportedNode";
 import { resolveSharedNodeTypes } from "~/utils/resolveSharedNodeTypes";
-import { getLoggedInClient } from "~/utils/supabaseContext";
+import { getLoggedInClient, getSupabaseContext } from "~/utils/supabaseContext";
+import { importSharedRelations } from "~/utils/importSharedRelations";
 
 vi.mock("roamjs-components/queries/getPageTitleByPageUid", () => ({
   default: vi.fn(),
 }));
-vi.mock("@repo/database/lib/sharedNodes", () => ({
+vi.mock("@repo/database/lib/sharedNodes", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@repo/database/lib/sharedNodes")>()),
   getSharedNodeByRid: vi.fn(),
 }));
 vi.mock("~/utils/importedSourceIdentity", () => ({
@@ -34,6 +38,10 @@ vi.mock("~/utils/resolveSharedNodeTypes", () => ({
 }));
 vi.mock("~/utils/supabaseContext", () => ({
   getLoggedInClient: vi.fn(),
+  getSupabaseContext: vi.fn(),
+}));
+vi.mock("~/utils/importSharedRelations", () => ({
+  importSharedRelations: vi.fn(),
 }));
 
 // Runs before the imports above: getDiscourseNodes calls generateUID at module load.
@@ -50,6 +58,8 @@ const mockedInternalError = vi.mocked(internalError);
 const mockedMaterializeSharedNode = vi.mocked(materializeSharedNode);
 const mockedGetLoggedInClient = vi.mocked(getLoggedInClient);
 const mockedResolveSharedNodeTypes = vi.mocked(resolveSharedNodeTypes);
+const mockedGetSupabaseContext = vi.mocked(getSupabaseContext);
+const mockedImportSharedRelations = vi.mocked(importSharedRelations);
 
 const NODE_TYPE: DiscourseNode = {
   text: "Evidence",
@@ -67,19 +77,22 @@ const OTHER_PAGE_TITLE = "EVD - duplicate page";
 
 const client = {} as DGSupabaseClient;
 
-const sharedNode: SharedNode = {
+const sharedNode: DbCrossAppNode = {
   rid: "orn:obsidian.note:vault-a/node-1",
-  sourceLocalId: "node-1",
-  schemaId: 200,
-  spaceId: 20,
-  spaceName: "Research vault",
-  spaceUri: "obsidian:vault-a",
+  localId: "node-1",
+  nodeType: "evd-type",
+  coreTitle: "REM sleep and recall",
+  content: { direct: { value: "EVD - REM sleep and recall" } },
+  createdAt: new Date("2026-06-14T12:30:00.000Z"),
+  modifiedAt: new Date("2026-06-14T15:00:00.000Z"),
+  authorId: "account-7",
+};
+
+const space: SharedNodeSpace = {
+  id: 20,
+  name: "Research vault",
   platform: "Obsidian",
-  title: "EVD - REM sleep and recall",
-  created: "2026-06-14T12:30:00.000Z",
-  lastModified: "2026-06-14T15:00:00.000Z",
-  authorId: 7,
-  directMetadata: null,
+  url: "obsidian:vault-a",
 };
 
 beforeEach(() => {
@@ -92,18 +105,98 @@ beforeEach(() => {
     sourceNodeRid: sharedNode.rid,
   });
   mockedGetLoggedInClient.mockResolvedValue(client);
-  mockedGetSharedNodeByRid.mockResolvedValue(sharedNode);
+  mockedGetSupabaseContext.mockResolvedValue({ spaceId: 5 } as Awaited<
+    ReturnType<typeof getSupabaseContext>
+  >);
+  mockedImportSharedRelations.mockResolvedValue({ failures: [], skipped: [] });
+  mockedGetSharedNodeByRid.mockResolvedValue({ node: sharedNode, space });
   mockedResolveSharedNodeTypes.mockResolvedValue(new Map());
   mockedMaterializeSharedNode.mockResolvedValue({
     success: true,
     action: "updated",
     pageUid: PAGE_UID,
-    sourceModifiedAt: sharedNode.lastModified,
+    sourceModifiedAt: sharedNode.modifiedAt.toISOString(),
     sourceNodeRid: sharedNode.rid,
   });
 });
 
 describe("refreshImportedNode", () => {
+  it("imports relations after refreshing, including when the node was up to date", async () => {
+    await refreshImportedNode({ pageUid: PAGE_UID, force: true });
+    expect(mockedImportSharedRelations).toHaveBeenCalledWith(client, 5);
+
+    mockedImportSharedRelations.mockClear();
+    mockedMaterializeSharedNode.mockResolvedValue({
+      success: true,
+      action: "skipped",
+      pageUid: PAGE_UID,
+      sourceModifiedAt: sharedNode.modifiedAt.toISOString(),
+      sourceNodeRid: sharedNode.rid,
+    });
+    await refreshImportedNode({ pageUid: PAGE_UID, force: false });
+    expect(mockedImportSharedRelations).toHaveBeenCalledWith(client, 5);
+  });
+
+  it("does not import relations when asked not to", async () => {
+    await refreshImportedNode({
+      pageUid: PAGE_UID,
+      force: false,
+      importRelations: false,
+    });
+    expect(mockedImportSharedRelations).not.toHaveBeenCalled();
+  });
+
+  it("reports relations that failed to import as a warning, not a failure", async () => {
+    mockedImportSharedRelations.mockResolvedValue({
+      failures: ["a: broken", "b: broken"],
+      skipped: ["c: hidden"],
+    });
+    mockedMaterializeSharedNode.mockResolvedValue({
+      success: true,
+      action: "updated",
+      pageUid: PAGE_UID,
+      sourceModifiedAt: sharedNode.modifiedAt.toISOString(),
+      sourceNodeRid: sharedNode.rid,
+      warning: "No source was published with this node.",
+    });
+
+    await expect(
+      refreshImportedNode({ pageUid: PAGE_UID, force: true }),
+    ).resolves.toEqual({
+      status: "refreshed",
+      message: 'Refreshed "EVD - REM sleep and recall" from Research vault.',
+      warning:
+        "No source was published with this node. 2 relations could not be imported.",
+    });
+  });
+
+  it("does not warn about relations skipped for a hidden schema", async () => {
+    mockedImportSharedRelations.mockResolvedValue({
+      failures: [],
+      skipped: ["c: hidden"],
+    });
+
+    const result = await refreshImportedNode({
+      pageUid: PAGE_UID,
+      force: true,
+    });
+
+    expect(result.status).toBe("refreshed");
+    expect(result).not.toHaveProperty("warning");
+  });
+
+  it("keeps the refresh when the relation import throws", async () => {
+    mockedImportSharedRelations.mockRejectedValue(new Error("network down"));
+
+    await expect(
+      refreshImportedNode({ pageUid: PAGE_UID, force: true }),
+    ).resolves.toEqual({
+      status: "refreshed",
+      message: 'Refreshed "EVD - REM sleep and recall" from Research vault.',
+      warning: "Could not import relations: network down",
+    });
+  });
+
   it("refreshes the page from its stored source identity", async () => {
     await expect(
       refreshImportedNode({ pageUid: PAGE_UID, force: true }),
@@ -118,10 +211,12 @@ describe("refreshImportedNode", () => {
     expect(mockedResolveSharedNodeTypes).toHaveBeenCalledWith({
       client,
       sharedNodes: [sharedNode],
+      spaces: { [space.url]: space },
     });
     expect(mockedMaterializeSharedNode).toHaveBeenCalledWith({
       client,
       sharedNode,
+      space,
       nodeType: undefined,
       force: true,
     });
@@ -133,7 +228,7 @@ describe("refreshImportedNode", () => {
       success: true,
       action: "updated",
       pageUid: PAGE_UID,
-      sourceModifiedAt: sharedNode.lastModified,
+      sourceModifiedAt: sharedNode.modifiedAt.toISOString(),
       sourceNodeRid: sharedNode.rid,
       warning: "No source was published with this node.",
     });
@@ -149,7 +244,7 @@ describe("refreshImportedNode", () => {
 
   it("passes the resolved node type to the materializer", async () => {
     mockedResolveSharedNodeTypes.mockResolvedValue(
-      new Map([[sharedNode.schemaId, NODE_TYPE]]),
+      new Map([[getNodeTypeRid(sharedNode), NODE_TYPE]]),
     );
 
     await refreshImportedNode({ pageUid: PAGE_UID, force: true });
@@ -157,6 +252,7 @@ describe("refreshImportedNode", () => {
     expect(mockedMaterializeSharedNode).toHaveBeenCalledWith({
       client,
       sharedNode,
+      space,
       nodeType: NODE_TYPE,
       force: true,
     });
@@ -167,7 +263,7 @@ describe("refreshImportedNode", () => {
       success: true,
       action: "skipped",
       pageUid: PAGE_UID,
-      sourceModifiedAt: sharedNode.lastModified,
+      sourceModifiedAt: sharedNode.modifiedAt.toISOString(),
       sourceNodeRid: sharedNode.rid,
     });
 
@@ -180,6 +276,7 @@ describe("refreshImportedNode", () => {
     expect(mockedMaterializeSharedNode).toHaveBeenCalledWith({
       client,
       sharedNode,
+      space,
       nodeType: undefined,
       force: false,
     });
@@ -229,7 +326,7 @@ describe("refreshImportedNode", () => {
   it("reports the materialization failure message", async () => {
     mockedMaterializeSharedNode.mockResolvedValue({
       success: false,
-      sourceModifiedAt: sharedNode.lastModified,
+      sourceModifiedAt: sharedNode.modifiedAt.toISOString(),
       sourceNodeRid: sharedNode.rid,
       error: {
         message: 'Failed to replace the content of "EVD - old local title"',
@@ -259,7 +356,7 @@ describe("refreshImportedNode", () => {
       success: true,
       action: "updated",
       pageUid: "other-page-uid",
-      sourceModifiedAt: sharedNode.lastModified,
+      sourceModifiedAt: sharedNode.modifiedAt.toISOString(),
       sourceNodeRid: sharedNode.rid,
     });
 

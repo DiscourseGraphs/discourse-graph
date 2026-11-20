@@ -29,7 +29,7 @@ export const asPostgrestFailure = (
   message: string,
   code: string,
   status: number = 400,
-): PostgrestSingleResponse<any> => {
+): PostgrestSingleResponse<never> => {
   return {
     data: null,
     success: false,

@@ -7,6 +7,8 @@ published: true
 
 The Sync and Import feature allows you to synchronize your discourse nodes with the Discourse Graph database and share them with collaborators. Once enabled, you can publish nodes to a shared group space and import nodes published by others.
 
+To share your node types, relation types, and templates instead of your nodes, see [Import and export schema](/docs/obsidian/advanced-features/schema-import-export).
+
 > **Note:** This feature is currently in **beta**. The sync functionality requires an active connection to the Discourse Graph database.
 
 > **Warning:** When using sync and import:

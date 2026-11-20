@@ -13,6 +13,7 @@ export type AdvancedSearchContentState =
 export type AdvancedSearchFooterProps = {
   contentState: AdvancedSearchContentState;
   hasActiveResult: boolean;
+  isActiveResultLinkable: boolean;
   insertTarget: InsertTarget | null;
   onInsert: () => void;
   onOpen: () => void;
@@ -136,6 +137,7 @@ const CloseFooterHint = () => (
 export const AdvancedSearchFooter = ({
   contentState,
   hasActiveResult,
+  isActiveResultLinkable,
   insertTarget,
   onInsert,
   onOpen,
@@ -144,7 +146,7 @@ export const AdvancedSearchFooter = ({
 }: AdvancedSearchFooterProps) => {
   const hasResults = contentState === "results";
   const canOpen = hasActiveResult && hasResults;
-  const canInsert = !!insertTarget && hasActiveResult && hasResults;
+  const canInsert = !!insertTarget && isActiveResultLinkable && hasResults;
   const canOpenSearchSidebar = hasResults;
 
   return (

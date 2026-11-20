@@ -1,6 +1,6 @@
 ---
 name: dg-create-engineering-ticket
-description: Create concise Discourse Graphs Engineering tickets in Linear with the canonical template, correct readiness status, an active existing project, and existing labels. Use when the user asks to create or draft an Engineering ticket; do not use for Feedback tickets.
+description: Create concise Discourse Graphs Engineering tickets in Linear with the canonical template, correct readiness status, an active existing project (none for unprojected Obsidian work), and existing labels (including `Obsidian plugin` for Obsidian work). Use when the user asks to create or draft an Engineering ticket; do not use for Feedback tickets.
 ---
 
 # DG Create Engineering Ticket
@@ -43,31 +43,35 @@ Use this exact template as the drafting checklist:
 
 Every bullet above is placeholder guidance. Replace or remove every placeholder before presenting a draft or creating a ticket. Keep all five headings, leaving `Out of Scope` or `Notes` empty when nothing useful applies. Use 1–3 short bullets per section unless the ticket is genuinely complex.
 
-## Ticket readiness
+## Agent provenance and human review
 
 Always use the Engineering team. This skill never creates or redirects to Feedback.
 
-- Use `Backlog` when the problem is known, the fix is agreed upon, and another engineer can implement it without further product or solution decisions.
-- Use `Triage` when implementation is likely within six months but the decision, scope, or solution is not fully settled.
-- Keep an explicit Engineering ticket request in Engineering even when it is idea-stage.
+- Create every agent-created ticket in the existing `Ticket Draft` status with exactly one existing workspace provenance label from the `Created by` group. The label records provenance and stays after approval.
+- Select the label from the creating agent's known identity: `Created by Claude` for Claude, `Created by Codex` for Codex, or `Created by LLM` for any other agent or when its identity cannot be determined. Do not infer agent identity from the Linear account, ticket topic, or skill name. Do not use `Created by LLM` as a substitute when the correct agent-specific label is missing.
+- `Ticket Draft` is in the Backlog category and means human ticket review is pending; it does not authorize implementation. The existing `Draft` status belongs to the Started category and is used by the PR workflow. Do not use it for ticket review or change its automation.
+- In `Notes`, record `Created with: dg-create-engineering-ticket` and any other creation skills actually used. Skill attribution is provenance, not evidence that the ticket meets the standards.
+- The human who asked the agent to create the ticket checks intent against the source request, scope and exclusions, verifiable acceptance criteria, and the canonical template and engineering writing standards. Keep the ticket in `Ticket Draft` while changes are needed.
+- Human approval moves the ticket to `Backlog` when the problem and fix are agreed and implementation needs no further product or solution decisions. Use `Triage` when implementation is likely within six months but decisions remain. Keep idea-stage Engineering requests in Engineering.
+- The human's move from `Ticket Draft` to `Triage` or `Backlog` records sign-off. An agent may make that move only after explicit human approval of the completed ticket and destination. A request to create a ticket is not approval of its generated contents. Keep the provenance label and skill attribution.
 
 ## Project selection
 
-Every ticket must use an existing project that is not completed, canceled, archived, or trashed. Resolve the project in this order:
+Resolve the project in this order:
 
 1. Use the project explicitly named by the user.
 2. Use a clearly relevant active project from the current work context.
-3. For Roam work, use `Roam Discourse Graph plugin assorted tasks`.
-4. For Obsidian work, use `Obsidian Discourse Graphs plugin assorted tasks`.
+3. For Obsidian work with no relevant project, leave the project empty and apply the existing `Obsidian plugin` label. Do not use `Obsidian Discourse Graphs plugin assorted tasks`; the Obsidian queue picks up unprojected issues by label (see DIS-617).
+4. For Roam work, use `Roam Discourse Graph plugin assorted tasks`.
 5. Otherwise, use `Engineering Ops assorted tasks`.
 
-Confirm the selected project still exists, is active, and includes the Engineering team. Never create a project. If a user-specified project is missing, ambiguous, or inactive, ask the user for another project instead of silently substituting one.
+Any project you select must exist, not be completed, canceled, archived, or trashed, and include the Engineering team. Never create a project. If a user-specified project is missing, ambiguous, or inactive, ask the user for another project instead of silently substituting one. Obsidian tickets that do belong to a real project still use that project, plus the `Obsidian plugin` label.
 
 ## Labels and optional fields
 
-- Inspect existing issue labels and apply every clearly relevant label.
+- Inspect existing issue labels and apply every clearly relevant label. Always apply `Obsidian plugin` to Obsidian work, since it is how unprojected Obsidian tickets reach the queue.
 - Never create a label or guess an uncertain label.
-- Missing or uncertain labels do not block creation. After creation, tell the user when no label was applied or when label selection remained uncertain.
+- Missing or uncertain optional labels do not block creation. If `Ticket Draft`, the required provenance label, or `Obsidian plugin` for Obsidian work is missing or ambiguous, return the prepared draft and report the configuration gap instead of creating an unmarked ticket or substituting a status.
 - Set priority only when the user or context makes it clear and useful.
 - Do not set a cycle or release. CI/CD handles releases.
 
@@ -75,6 +79,6 @@ Confirm the selected project still exists, is active, and includes the Engineeri
 
 Draft without changing Linear when the user asks for a draft, review, or rewrite. Create the ticket without an additional confirmation when the user explicitly asks to create it.
 
-Before creation, resolve the current Engineering statuses, selected project, and existing labels. Create the issue once with its title, completed description, status, project, labels, and justified priority. If the result is ambiguous, search for the issue before retrying so a transient failure does not create a duplicate.
+Before creation, resolve the current Engineering statuses, selected project, and existing labels. Create the issue once with its title, completed description (including skill attribution), `Ticket Draft` status, project (omitted for unprojected Obsidian work), provenance and relevant labels, and justified priority. If the result is ambiguous, search for the issue before retrying so a transient failure does not create a duplicate.
 
-After creation, return the issue identifier, title, status, project, and link. Include the generated branch name when Linear returns one. Do not restate the full description unless the user asks.
+Read the created issue back and verify its status, labels, and attribution. For unprojected Obsidian work, confirm the project is empty and `Obsidian plugin` is applied. Report any mismatch instead of claiming successful routing. Return the issue identifier, title, status, project, and link, and say that human review is pending. Include the generated branch name when Linear returns one. Do not restate the full description unless the user asks.

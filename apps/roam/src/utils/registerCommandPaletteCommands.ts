@@ -13,6 +13,7 @@ import getDiscourseNodes from "./getDiscourseNodes";
 import fireQuery from "./fireQuery";
 import { excludeDefaultNodes } from "~/utils/getDiscourseNodes";
 import { render as renderSettings } from "~/components/settings/Settings";
+import { SETTINGS_TAB_IDS } from "~/components/settings/utils/settingsTabs";
 import { renderModifyNodeDialog } from "~/components/ModifyNodeDialog";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import {
@@ -486,13 +487,15 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
   void addCommand("DG: Export - Discourse graph", exportDiscourseGraph);
   void addCommand("DG: Open - Discourse settings", renderSettingsPopup);
   if (isSyncEnabled()) {
-    void addCommand("DG: Discover shared nodes", discoverSharedNodes);
+    void addCommand("DG: Import shared nodes", discoverSharedNodes);
   }
-  if (isNodeSharingEnabled()) {
+  if (isSyncEnabled() || isNodeSharingEnabled()) {
     void addCommand(
       "DG: Refresh all imported nodes",
       () => void refreshAllImportedNodesFromCommand(),
     );
+  }
+  if (isNodeSharingEnabled()) {
     void addCommand("DG: Share current node", shareCurrentNode);
   }
   if (getFeatureFlag("Advanced node search enabled")) {
@@ -611,7 +614,7 @@ const addBlockToPersonalSection = async ({
     refreshAndNotify();
     renderSettings({
       onloadArgs,
-      selectedTabId: "left-sidebar-personal-settings",
+      selectedTabId: SETTINGS_TAB_IDS.featuresLeftSidebar,
       expandedSectionUid: sectionUid,
     });
   } catch {

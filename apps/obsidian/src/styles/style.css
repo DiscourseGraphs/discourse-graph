@@ -3947,3 +3947,19 @@ kbd.tlui-kbd {
   cursor: not-allowed;
   opacity: 0.5;
 }
+
+/* Held at full color first, so the fade isn't mostly gone before the eye lands after the scroll. */
+.dg-node-search-modal .dg-search-preview-flash {
+  animation: dg-search-preview-flash 3s ease-out;
+  border-radius: var(--radius-s);
+}
+
+@keyframes dg-search-preview-flash {
+  0%,
+  35% {
+    background-color: var(--text-highlight-bg);
+  }
+  100% {
+    background-color: transparent;
+  }
+}

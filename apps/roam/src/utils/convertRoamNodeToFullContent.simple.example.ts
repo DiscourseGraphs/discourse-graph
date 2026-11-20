@@ -36,6 +36,6 @@ export const roamClaimFullMarkdownSimpleExample: {
   blocks,
   full: {
     contentType: contentTypes.roamMarkdown,
-    value: buildFullMarkdown({ title, blocks }),
+    value: buildFullMarkdown({ blocks }),
   },
 };

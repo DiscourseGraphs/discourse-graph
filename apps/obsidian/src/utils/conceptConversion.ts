@@ -10,7 +10,7 @@ import type { DiscourseNodeInVault } from "./getDiscourseNodes";
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 import type { ObsidianDiscourseNodeData } from "./syncDgNodesToSupabase";
 import type { Json } from "@repo/database/dbTypes";
-import { extractContentFromTitle } from "./extractContentFromTitle";
+import { extractContentFromTitle } from "@repo/database/lib/extractContentFromTitle";
 import { SOURCE_SLOT } from "~/constants";
 
 /**
@@ -45,6 +45,7 @@ export const discourseNodeSchemaToLocalConcept = ({
     template,
     id,
     name,
+    format,
     created,
     modified,
     importedFromRid,
@@ -52,6 +53,7 @@ export const discourseNodeSchemaToLocalConcept = ({
   } = node;
   const literal_content: Record<string, Json> = {
     label: name,
+    format,
     source_data: otherData,
   };
   if (template) literal_content.template = template;

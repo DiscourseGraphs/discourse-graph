@@ -22,19 +22,3 @@ export const getNodeTypeBadge = ({
   text: formatNodeTypeBadgeText(nodeType.tag?.trim() || nodeType.name),
   ...getNodeTagColors(nodeType, nodeIndex),
 });
-
-export const getFallbackNodeTypeBadge = (
-  title: string,
-): NodeTypeBadge | null => {
-  const [prefix, ...rest] = title.split(" - ");
-  if (!rest.length || !prefix) return null;
-
-  const text = formatNodeTypeBadgeText(prefix);
-  if (!text) return null;
-
-  return {
-    text,
-    backgroundColor: "var(--background-modifier-hover)",
-    textColor: "var(--text-muted)",
-  };
-};

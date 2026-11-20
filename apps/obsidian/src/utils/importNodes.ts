@@ -1,8 +1,5 @@
-import type { Json } from "@repo/database/dbTypes";
-import matter from "gray-matter";
-import { App, Notice, TFile } from "obsidian";
+import { App, Notice, TFile, parseYaml } from "obsidian";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
-import { listGroupSharedNodes } from "@repo/database/lib/sharedNodes";
 import type DiscourseGraphPlugin from "~/index";
 import {
   getLocalSpaceUri,
@@ -26,61 +23,22 @@ import type { PostgrestResponse } from "@supabase/supabase-js";
 import type { Enums, Tables } from "@repo/database/dbTypes";
 import { getSpaceNameIdFromRid } from "./spaceFromRid";
 import {
+  fetchRelationInstancesForImport,
   importRelationsForImportedNodes,
   type RemoteRelationInstance,
 } from "./importRelations";
-import { createTemplateFile } from "./templates";
+import { createTemplateFile, getImportedTemplateFileName } from "./templates";
 import { resolveFolderForSpaceUri } from "./importFolderMetadata";
 import { getNodeTypeById, isAcceptedSchema } from "./typeUtils";
+import { normalizeImportedNodeFormat } from "./validateNodeType";
+import {
+  type ImportedNodeContent,
+  resolveImportedNodeContent,
+} from "./importedNodeContent";
 import { decorateTitle } from "@repo/database/lib/decorateTitle";
-
-type PublishedNode = {
-  source_local_id: string;
-  space_id: number;
-  text: string;
-  createdAt: number;
-  modifiedAt: number;
-  filePath: string | undefined;
-  authorId: number | undefined;
-};
-
-export const getPublishedNodesForGroups = async ({
-  client,
-  currentSpaceId,
-}: {
-  client: DGSupabaseClient;
-  currentSpaceId: number;
-}): Promise<Array<PublishedNode>> => {
-  const sharedNodes = await listGroupSharedNodes({
-    client,
-    currentSpaceId,
-  }).catch((error: { message?: string }) => {
-    console.error("Error fetching published nodes:", error);
-    throw new Error(`Failed to fetch published nodes: ${error.message}`);
-  });
-
-  return sharedNodes.map((sharedNode) => {
-    const metadata = sharedNode.directMetadata;
-    const filePath: string | undefined =
-      metadata !== null &&
-      typeof metadata === "object" &&
-      !Array.isArray(metadata) &&
-      typeof metadata.filePath === "string"
-        ? metadata.filePath
-        : undefined;
-    return {
-      source_local_id: sharedNode.sourceLocalId,
-      space_id: sharedNode.spaceId,
-      text: sharedNode.title,
-      createdAt: sharedNode.created
-        ? new Date(sharedNode.created).valueOf()
-        : 0,
-      modifiedAt: new Date(sharedNode.lastModified).valueOf(),
-      filePath,
-      authorId: sharedNode.authorId,
-    };
-  });
-};
+import { buildSchemaRid, findLocalNodeTypeMatch } from "./schemaMatching";
+import { splitFrontmatter } from "~/utils/splitFrontmatter";
+import { resolveSchemaFormat } from "@repo/utils/resolveSchemaFormat";
 
 export const getLocalNodeInstanceIds = (
   plugin: DiscourseGraphPlugin,
@@ -160,23 +118,30 @@ export const getSpaceInfoFromIds = async (
   return spaceMap;
 };
 
+/** The returned names are keyed by account local id, which is unique only within one platform. */
 export const fetchUserNames = async (
   plugin: DiscourseGraphPlugin,
   client: DGSupabaseClient,
-) => {
+): Promise<Record<string, string>> => {
   const result = await client
     .from("my_accounts")
-    .select("id, name")
+    .select("id, name, account_local_id")
     .eq("agent_type", "person");
   if (result.error || !result.data) {
     console.error(result.error);
-    return;
+    return {};
   }
   const nameById = Object.fromEntries(
     result.data.map(({ id, name }) => [id, name]) as [number, string][],
   );
   plugin.settings.userNames = nameById;
   await plugin.saveSettings();
+  return Object.fromEntries(
+    result.data.map(({ account_local_id, name }): [string, string] => [
+      account_local_id,
+      name,
+    ]),
+  );
 };
 
 export const fetchNodeContent = async ({
@@ -261,14 +226,7 @@ const fetchNodeContentForImport = async ({
   client: DGSupabaseClient;
   spaceId: number;
   nodeInstanceId: string;
-}): Promise<{
-  fileName: string;
-  content: string;
-  createdAt: number;
-  modifiedAt: number;
-  authorId: number;
-  filePath?: string;
-} | null> => {
+}): Promise<ImportedNodeContent | null> => {
   const { data, error } = await client
     .from("my_contents")
     .select("text, created, last_modified, variant, metadata, author_id")
@@ -281,41 +239,7 @@ const fetchNodeContentForImport = async ({
     return null;
   }
 
-  const rows = (data ?? []) as Array<{
-    text: string | null;
-    created: string | null;
-    last_modified: string | null;
-    author_id: number | null;
-    variant: string | null;
-    metadata: Json;
-  }>;
-  const direct = rows.find((r) => r.variant === "direct");
-  const full = rows.find((r) => r.variant === "full");
-  const authorId = full?.author_id ?? direct?.author_id ?? null;
-
-  if (
-    !direct?.text ||
-    !full?.text ||
-    full.created === null ||
-    full.last_modified === null ||
-    authorId === null
-  ) {
-    return null;
-  }
-
-  const filePath: string | undefined =
-    typeof direct.metadata === "object" &&
-    typeof (direct.metadata as Record<string, any>).filePath === "string"
-      ? (direct.metadata as Record<string, any>).filePath
-      : undefined;
-  return {
-    fileName: direct.text,
-    content: full.text,
-    createdAt: new Date(full.created + "Z").valueOf(),
-    modifiedAt: new Date(full.last_modified + "Z").valueOf(),
-    filePath,
-    authorId,
-  };
+  return resolveImportedNodeContent(data ?? []);
 };
 
 type NodeTypeSchemaForInstance = {
@@ -324,6 +248,7 @@ type NodeTypeSchemaForInstance = {
 };
 
 type NodeInstanceImportInfo = {
+  conceptId?: number;
   schema?: NodeTypeSchemaForInstance;
   coreTitle?: string;
   sourceDocumentId?: number;
@@ -343,7 +268,7 @@ export const fetchNodeImportInfoForInstances = async ({
   const { data: instanceRows, error: instanceError } = await client
     .from("my_concepts")
     .select(
-      "source_local_id, schema_id, core_title:literal_content->>core_title, sourceDocument:reference_content->sourceDocument",
+      "id, source_local_id, schema_id, core_title:literal_content->>core_title, sourceDocument:reference_content->sourceDocument",
     )
     .eq("space_id", spaceId)
     .eq("is_schema", false)
@@ -394,6 +319,7 @@ export const fetchNodeImportInfoForInstances = async ({
   for (const row of instanceRows) {
     if (row.source_local_id === null) continue;
     result.set(row.source_local_id, {
+      conceptId: row.id ?? undefined,
       schema:
         row.schema_id === null ? undefined : schemasById.get(row.schema_id),
       coreTitle: row.core_title ?? undefined,
@@ -730,12 +656,18 @@ const updateMarkdownAssetLinks = ({
     },
   );
 
-  // Match markdown links (non-image): [text](path) — internal paths resolved like wikilinks, href kept URL-encoded
-  const markdownLinkRegex = /(?<!!)\[([^\]]*)\]\(([^)]+)\)/g;
+  // Match markdown links (non-image): [text](path) — internal paths resolved like wikilinks, href kept URL-encoded.
+  // The leading `!` is captured rather than excluded with a lookbehind, which older mobile WebViews do not support.
+  const markdownLinkRegex = /(!?)\[([^\]]*)\]\(([^)]+)\)/g;
   updatedContent = updatedContent.replace(
     markdownLinkRegex,
-    (match, linkText: string, linkPath: string) => {
-      if (!linkPath) return match;
+    // A rest parameter keeps this within the arrow-function parameter limit.
+    (match, ...groups: string[]) => {
+      const [imagePrefix, linkText, rawLinkPath] = groups;
+      // An `!` prefix makes this an image embed, handled by the image pass below.
+      if (imagePrefix) return match;
+      if (!rawLinkPath) return match;
+      let linkPath = rawLinkPath;
       // Resolve by row before looking at the shape of the link: a Roam-origin asset is
       // referenced by its storage URL. Matched on the raw link, because the decoding
       // below would mangle the percent-escaping a storage URL carries.
@@ -1209,14 +1141,19 @@ type ParsedFrontmatter = {
   [key: string]: unknown;
 };
 
-const parseFrontmatter = (
+// Unparseable frontmatter is treated as absent rather than thrown, matching how
+// Obsidian itself tolerates bad YAML. `gray-matter` threw here instead.
+export const parseFrontmatter = (
   content: string,
 ): { frontmatter: ParsedFrontmatter; body: string } => {
-  const { data, content: body } = matter(content);
-  return {
-    frontmatter: (data ?? {}) as ParsedFrontmatter,
-    body: body ?? "",
-  };
+  const { yaml, body } = splitFrontmatter(content);
+  if (yaml === null) return { frontmatter: {}, body };
+  try {
+    const data = parseYaml(yaml) as ParsedFrontmatter | null;
+    return { frontmatter: data ?? {}, body };
+  } catch {
+    return { frontmatter: {}, body };
+  }
 };
 
 /**
@@ -1237,10 +1174,17 @@ const parseSchemaLiteralContent = (
       : (literalContent as Record<string, unknown>) || {};
   const src = (obj.source_data as Record<string, unknown>) || obj;
   const name = (obj.name as string) || (obj.label as string) || fallbackName;
-  const formatFromSchema =
-    (src.format as string) || (obj.format as string) || "";
+  const formatFromSchema = normalizeImportedNodeFormat(
+    resolveSchemaFormat({
+      format: typeof obj.format === "string" ? obj.format : undefined,
+      sourceDataFormat: typeof src.format === "string" ? src.format : undefined,
+    }),
+  );
   const format =
-    formatFromSchema || `${name.slice(0, 3).toUpperCase()} - {content}`;
+    formatFromSchema ||
+    normalizeImportedNodeFormat(
+      `${name.slice(0, 3).toUpperCase()} - {content}`,
+    );
   return {
     name,
     format,
@@ -1253,17 +1197,63 @@ const parseSchemaLiteralContent = (
   };
 };
 
+/** File systems cap a file name at 255 bytes or UTF-16 units; 200 UTF-8 bytes leaves room for `.md` under either. */
+const MAX_TEMPLATE_FILE_NAME_BYTES = 200;
+
+const getUtf8ByteLength = (text: string): number =>
+  new TextEncoder().encode(text).length;
+
+const truncateToUtf8Bytes = (text: string, maxBytes: number): string => {
+  let truncated = "";
+  let byteLength = 0;
+  for (const character of text) {
+    byteLength += getUtf8ByteLength(character);
+    if (byteLength > maxBytes) break;
+    truncated += character;
+  }
+  return truncated;
+};
+
+/** Includes the source space name because `mapNodeTypeIdToLocal` assigns any file already at this name as the template, and a bare node type name would assign an unrelated local template. */
+export const getUntitledTemplateFileName = ({
+  nodeTypeName,
+  sourceSpaceName,
+}: {
+  nodeTypeName: string;
+  sourceSpaceName: string;
+}): string | undefined => {
+  const templateName = sanitizeFileName(nodeTypeName);
+  const sourceName = sanitizeFileName(sourceSpaceName);
+  const fileName = getImportedTemplateFileName({ templateName, sourceName });
+  const overflowBytes =
+    getUtf8ByteLength(fileName) - MAX_TEMPLATE_FILE_NAME_BYTES;
+  if (overflowBytes <= 0) return fileName;
+
+  const truncatedFileName = getImportedTemplateFileName({
+    templateName: truncateToUtf8Bytes(
+      templateName,
+      getUtf8ByteLength(templateName) - overflowBytes,
+    ),
+    sourceName,
+  });
+  return getUtf8ByteLength(truncatedFileName) <= MAX_TEMPLATE_FILE_NAME_BYTES
+    ? truncatedFileName
+    : undefined;
+};
+
 export const mapNodeTypeIdToLocal = async ({
   plugin,
   client,
   sourceSpaceId,
   sourceSpaceUri,
+  sourceSpaceName,
   sourceNodeTypeId,
 }: {
   plugin: DiscourseGraphPlugin;
   client: DGSupabaseClient;
   sourceSpaceId: number;
   sourceSpaceUri: string;
+  sourceSpaceName: string;
   sourceNodeTypeId: string;
 }): Promise<string> => {
   // Find the schema in the source space with this nodeTypeId (my_concepts applies RLS)
@@ -1281,20 +1271,13 @@ export const mapNodeTypeIdToLocal = async ({
 
   const schemaName = schemaData.name;
 
-  // Prefer match by node type ID (imported type may already exist locally with same id)
-  const matchById = plugin.settings.nodeTypes.find(
-    (nt) => nt.id === sourceNodeTypeId,
-  );
-  if (matchById) {
-    return matchById.id;
-  }
-
-  // Fall back to match by name
-  const matchingLocalNodeType = plugin.settings.nodeTypes.find(
-    (nt) => nt.name === schemaName,
-  );
-  if (matchingLocalNodeType) {
-    return matchingLocalNodeType.id;
+  const localMatch = findLocalNodeTypeMatch({
+    localNodeTypes: plugin.settings.nodeTypes,
+    id: sourceNodeTypeId,
+    name: schemaName,
+  });
+  if (localMatch) {
+    return localMatch.id;
   }
 
   // No matching local nodeType: create one from literal_content and add to settings
@@ -1304,11 +1287,10 @@ export const mapNodeTypeIdToLocal = async ({
   );
 
   const now = new Date().getTime();
-  const importedFromRid = spaceUriAndLocalIdToRid(
-    sourceSpaceUri,
-    sourceNodeTypeId,
-    "schema",
-  );
+  const importedFromRid = buildSchemaRid({
+    spaceUri: sourceSpaceUri,
+    localId: sourceNodeTypeId,
+  });
 
   const newNodeType: DiscourseNode = {
     id: sourceNodeTypeId,
@@ -1324,15 +1306,28 @@ export const mapNodeTypeIdToLocal = async ({
     importedFromRid,
   };
 
-  if (parsed.templateContent && parsed.template) {
+  if (parsed.templateContent) {
+    newNodeType.template ??= getUntitledTemplateFileName({
+      nodeTypeName: parsed.name,
+      sourceSpaceName,
+    });
+    if (!newNodeType.template) {
+      new Notice(
+        `Node type "${parsed.name}" imported without template: the template file name would be too long.`,
+        6000,
+      );
+    }
+  }
+
+  if (parsed.templateContent && newNodeType.template) {
     const result = await createTemplateFile({
       app: plugin.app,
-      templateName: parsed.template,
+      templateName: newNodeType.template,
       content: parsed.templateContent,
     });
     if (result.created) {
       new Notice(
-        `Template "${parsed.template}" created for imported node type "${parsed.name}".`,
+        `Template "${newNodeType.template}" created for imported node type "${parsed.name}".`,
         4000,
       );
     } else if (
@@ -1617,7 +1612,7 @@ type ImportSelectedNodesOptions = {
     nodeKeys: Set<string>;
     keyToRid: Map<string, string>;
     keyToRelationEndpointId: Map<string, string>;
-    relationInstancesBySpace: Map<number, RemoteRelationInstance[]>;
+    relationInstances: RemoteRelationInstance[];
   };
 };
 
@@ -1665,6 +1660,9 @@ const importNodes = async ({
     ...nodesBySpace.keys(),
   ]);
 
+  const importedSpaceIds: number[] = [];
+  const importedNodeConceptIds: number[] = [];
+
   // Process each space
   for (const [spaceId, nodes] of nodesBySpace.entries()) {
     const spaceUri = spaceInfoById.get(spaceId)?.url;
@@ -1689,6 +1687,10 @@ const importNodes = async ({
       spaceId,
       nodeInstanceIds: nodes.map((n) => n.nodeInstanceId),
     });
+    importedSpaceIds.push(spaceId);
+    for (const { conceptId } of nodeImportInfoByInstance.values()) {
+      if (conceptId !== undefined) importedNodeConceptIds.push(conceptId);
+    }
 
     // Process each node in this space
     for (const node of nodes) {
@@ -1724,14 +1726,11 @@ const importNodes = async ({
           content,
           createdAt: contentCreatedAt,
           modifiedAt: contentModifiedAt,
-          filePath: contentFilePath,
+          filePath: originalNodePath,
           authorId,
         } = nodeContent;
         const createdAt = node.createdAt ?? contentCreatedAt;
         const modifiedAt = node.modifiedAt ?? contentModifiedAt;
-        // Use source vault path from Content direct variant metadata for wikilink rewriting and asset placement
-        const originalNodePath: string | undefined =
-          contentFilePath ?? node.filePath;
 
         const nodeImportInfo = nodeImportInfoByInstance.get(
           node.nodeInstanceId,
@@ -1761,6 +1760,7 @@ const importNodes = async ({
           client,
           sourceSpaceId: spaceId,
           sourceSpaceUri: spaceUri,
+          sourceSpaceName: spaceName,
           sourceNodeTypeId,
         });
 
@@ -1779,8 +1779,8 @@ const importNodes = async ({
         } else {
           // Preserve source vault folder structure under import/{vaultName} when we have filePath from Content
           const sourceFolder =
-            contentFilePath && contentFilePath.includes("/")
-              ? sanitizePathForImport(contentFilePath.replace(/\/[^/]*$/, ""))
+            originalNodePath && originalNodePath.includes("/")
+              ? sanitizePathForImport(originalNodePath.replace(/\/[^/]*$/, ""))
               : "";
           const pathUnderImport = sourceFolder
             ? `${sourceFolder}/${sanitizedFileName}.md`
@@ -1897,39 +1897,49 @@ const importNodes = async ({
         "Nodes imported, but their source relations could not be imported.",
       );
     }
+  }
 
-    // Import relations where both endpoints resolve in this vault (imported or local)
-    try {
-      let keyToRelationEndpointId: Map<string, string>;
-      if (precomputedData?.keyToRelationEndpointId) {
-        keyToRelationEndpointId = precomputedData.keyToRelationEndpointId;
-      } else {
-        const { keyToRid } = precomputedData
-          ? { keyToRid: precomputedData.keyToRid }
-          : await getImportedNodesInfo({
-              queryEngine,
-              plugin,
-              client,
-            });
-        const localMap = getLocalNodeKeyToEndpointId(plugin, context.spaceId);
-        keyToRelationEndpointId = new Map([...keyToRid, ...localMap]);
-      }
-      const precomputedRelationInstances =
-        precomputedData?.relationInstancesBySpace.get(spaceId);
-      const { imported } = await importRelationsForImportedNodes({
-        plugin,
-        client,
-        spaceId,
-        spaceUri,
-        keyToRelationEndpointId,
-        precomputedRelationInstances,
-      });
-      if (imported > 0) {
-        console.debug(`Imported ${imported} relation(s) for space ${spaceId}`);
-      }
-    } catch (error) {
-      console.warn("Failed to import relations for imported nodes:", error);
+  // Import relations where both endpoints resolve in this vault (imported or local)
+  try {
+    let keyToRelationEndpointId: Map<string, string>;
+    if (precomputedData?.keyToRelationEndpointId) {
+      keyToRelationEndpointId = precomputedData.keyToRelationEndpointId;
+    } else {
+      const { keyToRid } = precomputedData
+        ? { keyToRid: precomputedData.keyToRid }
+        : await getImportedNodesInfo({
+            queryEngine,
+            plugin,
+            client,
+          });
+      const localMap = getLocalNodeKeyToEndpointId(plugin, context.spaceId);
+      keyToRelationEndpointId = new Map([...keyToRid, ...localMap]);
     }
+    const relationInstances =
+      precomputedData?.relationInstances ??
+      (await fetchRelationInstancesForImport({
+        client,
+        localSpaceId: context.spaceId,
+        spaceIds: importedSpaceIds,
+        nodeConceptIds: importedNodeConceptIds,
+      }));
+    const { imported, failed } = await importRelationsForImportedNodes({
+      plugin,
+      client,
+      relationInstances,
+      keyToRelationEndpointId,
+      importedFiles,
+    });
+    if (imported > 0) {
+      console.debug(`Imported ${imported} relation(s)`);
+    }
+    if (failed > 0) {
+      new Notice(
+        `Nodes imported, but ${failed} relation(s) could not be imported.`,
+      );
+    }
+  } catch (error) {
+    console.warn("Failed to import relations for imported nodes:", error);
   }
 
   return { success: successCount, failed: failedCount };
@@ -1976,19 +1986,6 @@ export const refreshImportedFile = async ({
   if (spaceId === -1) {
     return { success: false, error: "Could not get the space Id" };
   }
-  const metadataResp = await supabaseClient
-    .from("Content")
-    .select("metadata")
-    .eq("space_id", spaceId)
-    .eq("source_local_id", frontmatter.nodeInstanceId)
-    .eq("variant", "direct")
-    .maybeSingle();
-  const metadata = metadataResp.data?.metadata;
-  const filePath: string | undefined =
-    typeof metadata === "object" &&
-    typeof (metadata as Record<string, unknown>).filePath === "string"
-      ? ((metadata as Record<string, unknown>).filePath as string)
-      : undefined;
   const result = await importSelectedNodes({
     plugin,
     selectedNodes: [
@@ -1997,7 +1994,6 @@ export const refreshImportedFile = async ({
         title: file.basename,
         spaceId,
         spaceName,
-        filePath,
         groupId:
           (frontmatter.publishedToGroups as string[] | undefined)?.[0] ?? "",
         selected: false,

@@ -580,9 +580,9 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
           mode: isCreating ? "create" : "edit",
           nodeType: getDiscourseNodeTypeId({ shape }),
           initialValue: { text: initialTitle, uid: shape.props.uid },
-          // Only pass it when editing an existing node that has a valid Roam block UID
+          // Block nodes only: updateBlock on a page uid stores a block string on the page, and Roam then refuses to rename it
           sourceBlockUid:
-            !isCreating && isLiveBlock(shape.props.uid)
+            !isCreating && !isPageUid(shape.props.uid)
               ? shape.props.uid
               : undefined,
           extensionAPI,

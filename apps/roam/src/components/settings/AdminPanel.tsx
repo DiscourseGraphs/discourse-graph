@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   Button,
+  Callout,
   HTMLTable,
   Alert,
   Intent,
@@ -33,6 +34,10 @@ import {
 } from "@repo/database/lib/queries";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import internalError from "~/utils/internalError";
+import {
+  canUseRoamCloud,
+  ROAM_CLOUD_UNAVAILABLE_MESSAGE,
+} from "~/utils/roamCloudAccess";
 import SuggestiveModeSettings from "./SuggestiveModeSettings";
 import { FeatureFlagPanel } from "./components/BlockPropSettingPanels";
 import type { FeatureFlags } from "./utils/zodSchema";
@@ -258,6 +263,7 @@ const NodeListTab = (): React.ReactElement => {
 };
 
 const FeatureFlagsTab = (): React.ReactElement => {
+  const canUseCloud = canUseRoamCloud();
   const [isConsentAlertOpen, setIsConsentAlertOpen] = useState(false);
   const [isInstructionAlertOpen, setIsInstructionAlertOpen] = useState(false);
   const [isFirstSyncEnable, setIsFirstSyncEnable] = useState(false);
@@ -328,17 +334,21 @@ const FeatureFlagsTab = (): React.ReactElement => {
     }
     if (data)
       window.open(
-        `${nextRoot()}auth/token?t=${data}&url=/auth/group`,
+        `${nextRoot()}auth/token?t=${encodeURIComponent(data)}&url=/auth/group`,
         "_blank",
       );
   };
 
   return (
     <div className="flex flex-col gap-4 p-4">
+      {!canUseCloud && (
+        <Callout icon="info-sign">{ROAM_CLOUD_UNAVAILABLE_MESSAGE}</Callout>
+      )}
       <FeatureFlagPanel
         title="Suggestive mode overlay"
         description="Overlay suggestive mode button over discourse node references."
         featureKey="Suggestive mode overlay enabled"
+        disabled={!canUseCloud}
         value={suggestiveOverlayValue}
         onBeforeEnable={() =>
           ensureSyncEnabled("Suggestive mode overlay enabled")
@@ -360,6 +370,7 @@ const FeatureFlagsTab = (): React.ReactElement => {
         title="Node sharing"
         description="This enables a user to share nodes to other discourse spaces and keeps shared nodes synced in the background. Reload the graph after toggling."
         featureKey="Enable node sharing"
+        disabled={!canUseCloud}
       />
 
       <Alert

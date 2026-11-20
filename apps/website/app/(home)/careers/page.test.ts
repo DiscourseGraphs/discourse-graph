@@ -7,7 +7,7 @@ describe("careers metadata", () => {
     const metadata = await generateMetadata({});
 
     expect(metadata.openGraph).toMatchObject({
-      title: "Database engineer | Discourse Graphs",
+      title: "Careers | Discourse Graphs",
       description: metadata.description,
     });
     expect(metadata.twitter).toMatchObject({

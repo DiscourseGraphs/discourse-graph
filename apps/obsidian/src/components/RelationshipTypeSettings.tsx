@@ -15,6 +15,8 @@ import { getContrastColor } from "~/utils/colorUtils";
 import {
   getImportInfo,
   formatImportSource,
+  getRelationTypeErrors,
+  isCompleteRelationType,
   isProvisionalSchema,
 } from "~/utils/typeUtils";
 import ImportedSchemaMeta from "./ImportedSchemaMeta";
@@ -25,7 +27,11 @@ type ColorPickerProps = {
   disabled?: boolean;
 };
 
-const ColorPicker = ({ value, onChange, disabled }: ColorPickerProps) => {
+export const ColorPicker = ({
+  value,
+  onChange,
+  disabled,
+}: ColorPickerProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -114,37 +120,8 @@ const RelationshipTypeSettings = () => {
   >;
 
   const saveSettings = (updatedRelationTypes: DiscourseRelationType[]) => {
-    const newErrors: Record<number, string> = {};
-
-    // Validate only complete types (ones with all required fields)
-    const completeTypes = updatedRelationTypes.filter(
-      (rt) => rt.id && rt.label && rt.complement,
-    );
-
-    // Check for duplicate labels
-    const seenLabels = new Map<string, number>();
-    for (const rt of completeTypes) {
-      const idx = updatedRelationTypes.indexOf(rt);
-      const prev = seenLabels.get(rt.label);
-      if (prev !== undefined) {
-        newErrors[idx] = `Duplicate label "${rt.label}"`;
-        if (!newErrors[prev]) newErrors[prev] = `Duplicate label "${rt.label}"`;
-      }
-      seenLabels.set(rt.label, idx);
-    }
-
-    // Check for duplicate complements
-    const seenComplements = new Map<string, number>();
-    for (const rt of completeTypes) {
-      const idx = updatedRelationTypes.indexOf(rt);
-      const prev = seenComplements.get(rt.complement);
-      if (prev !== undefined) {
-        newErrors[idx] = `Duplicate complement "${rt.complement}"`;
-        if (!newErrors[prev])
-          newErrors[prev] = `Duplicate complement "${rt.complement}"`;
-      }
-      seenComplements.set(rt.complement, idx);
-    }
+    const newErrors = getRelationTypeErrors(updatedRelationTypes);
+    const completeTypes = updatedRelationTypes.filter(isCompleteRelationType);
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;

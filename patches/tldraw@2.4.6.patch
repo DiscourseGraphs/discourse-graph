@@ -2,10 +2,10 @@ diff --git a/CHANGELOG.md b/CHANGELOG.md
 deleted file mode 100644
 index 095ed92631ae57d9caac683759c9b38491c92677..0000000000000000000000000000000000000000
 diff --git a/dist-cjs/index.d.ts b/dist-cjs/index.d.ts
-index ec996d145b83f637e0d43ad0db1f0e3ab87efb70..b033a8df604153626c203f3c808267a8c9592923 100644
+index ec996d145b83f637e0d43ad0db1f0e3ab87efb70..678a8cb45aac93bac4d9c627e6403c9dabf70725 100644
 --- a/dist-cjs/index.d.ts
 +++ b/dist-cjs/index.d.ts
-@@ -407,6 +407,18 @@ export declare function DefaultStylePanelContent({ styles }: TLUiStylePanelConte
+@@ -407,6 +407,22 @@ export declare function DefaultStylePanelContent({ styles }: TLUiStylePanelConte
   */
  export declare const DefaultToolbar: NamedExoticComponent<DefaultToolbarProps>;
  
@@ -19,12 +19,16 @@ index ec996d145b83f637e0d43ad0db1f0e3ab87efb70..b033a8df604153626c203f3c808267a8
 +    children?: ReactNode;
 +}
 +export declare function MobileStylePanel(): JSX_2.Element;
++export declare function HyperlinkButton({ url, zoomLevel }: {
++    url: string;
++    zoomLevel: number;
++}): JSX_2.Element;
 +/** patched export for custom toolbar */
 +
  /** @public @react */
  export declare function DefaultToolbarContent(): JSX_2.Element;
  
-@@ -2243,6 +2255,7 @@ export declare interface TLUiToolItem<TranslationKey extends string = string, Ic
+@@ -2243,6 +2259,7 @@ export declare interface TLUiToolItem<TranslationKey extends string = string, Ic
      meta?: {
          [key: string]: any;
      };
@@ -33,20 +37,29 @@ index ec996d145b83f637e0d43ad0db1f0e3ab87efb70..b033a8df604153626c203f3c808267a8
  
  /** @public */
 diff --git a/dist-esm/index.mjs b/dist-esm/index.mjs
-index 4dfb8bc221bed3552682312efc6779af5a653d57..4adab6b34d9468e6296669da363dfc5be0c03ee0 100644
+index 4dfb8bc221bed3552682312efc6779af5a653d57..cdeb5843f3ec76f38bcb00001ffccc3d0353a641 100644
 --- a/dist-esm/index.mjs
 +++ b/dist-esm/index.mjs
-@@ -146,6 +146,9 @@ import {
+@@ -146,6 +146,10 @@ import {
  import {
    DefaultToolbar
  } from "./lib/ui/components/Toolbar/DefaultToolbar.mjs";
 +import { OverflowingToolbar } from "./lib/ui/components/Toolbar/OverflowingToolbar.mjs";
 +import { ToggleToolLockedButton } from "./lib/ui/components/Toolbar/ToggleToolLockedButton.mjs";
 +import { MobileStylePanel } from "./lib/ui/components/MobileStylePanel.mjs";
++import { HyperlinkButton } from "./lib/shapes/shared/HyperlinkButton.mjs";
  import {
    ArrowDownToolbarItem,
    ArrowLeftToolbarItem,
-@@ -458,6 +461,7 @@ export {
+@@ -448,6 +452,7 @@ export {
+   HighlightShapeTool,
+   HighlightShapeUtil,
+   HighlightToolbarItem,
++  HyperlinkButton,
+   ImageShapeUtil,
+   KeyboardShortcutsMenuItem,
+   LABEL_FONT_SIZES,
+@@ -458,6 +463,7 @@ export {
    LineShapeUtil,
    LineToolbarItem,
    MiscMenuGroup,
@@ -54,7 +67,7 @@ index 4dfb8bc221bed3552682312efc6779af5a653d57..4adab6b34d9468e6296669da363dfc5b
    MoveToPageMenu,
    NoteShapeTool,
    NoteShapeUtil,
-@@ -465,6 +469,7 @@ export {
+@@ -465,6 +471,7 @@ export {
    OfflineIndicator,
    OpacitySlider,
    OvalToolbarItem,
@@ -62,7 +75,7 @@ index 4dfb8bc221bed3552682312efc6779af5a653d57..4adab6b34d9468e6296669da363dfc5b
    PORTRAIT_BREAKPOINT,
    PageItemInput,
    PageItemSubmenu,
-@@ -550,6 +555,7 @@ export {
+@@ -550,6 +557,7 @@ export {
    ToggleReduceMotionItem,
    ToggleSnapModeItem,
    ToggleToolLockItem,
@@ -70,6 +83,68 @@ index 4dfb8bc221bed3552682312efc6779af5a653d57..4adab6b34d9468e6296669da363dfc5b
    ToggleTransparentBgMenuItem,
    ToggleWrapModeItem,
    ToolbarItem,
+diff --git a/dist-esm/lib/ui/components/EditLinkDialog.mjs b/dist-esm/lib/ui/components/EditLinkDialog.mjs
+index 9291d30acbc029f1da9fbab4319017ba6c237139..f7f3e2d1bad3f7a5e594ede253c04a0156c76cb2 100644
+--- a/dist-esm/lib/ui/components/EditLinkDialog.mjs
++++ b/dist-esm/lib/ui/components/EditLinkDialog.mjs
+@@ -21,10 +21,13 @@ function validateUrl(url) {
+   }
+   return { isValid: false, hasProtocol: false };
+ }
++// Discourse Graphs: text shapes keep their link in meta so the stock text schema is unchanged.
++const getShapeLinkUrl = (shape) => shape.type === "text" ? typeof shape.meta.url === "string" ? shape.meta.url : "" : shape.props.url;
++const getLinkUpdate = (shape, url) => shape.type === "text" ? { id: shape.id, type: shape.type, meta: { url } } : { id: shape.id, type: shape.type, props: { url } };
+ const EditLinkDialog = track(function EditLinkDialog2({ onClose }) {
+   const editor = useEditor();
+   const selectedShape = editor.getOnlySelectedShape();
+-  if (!(selectedShape && "url" in selectedShape.props && typeof selectedShape.props.url === "string")) {
++  if (!(selectedShape && (selectedShape.type === "text" || "url" in selectedShape.props && typeof selectedShape.props.url === "string"))) {
+     return null;
+   }
+   return /* @__PURE__ */ jsx(EditLinkDialogInner, { onClose, selectedShape });
+@@ -39,10 +42,11 @@ const EditLinkDialogInner = track(function EditLinkDialogInner2({
+   useEffect(() => {
+     editor.timers.requestAnimationFrame(() => rInput.current?.focus());
+   }, [editor]);
+-  const rInitialValue = useRef(selectedShape.props.url);
++  const rInitialValue = useRef(getShapeLinkUrl(selectedShape));
+   const [urlInputState, setUrlInputState] = useState(() => {
+-    const urlValidResult = validateUrl(selectedShape.props.url);
+-    const initialValue = urlValidResult.isValid === true ? urlValidResult.hasProtocol ? selectedShape.props.url : "https://" + selectedShape.props.url : "https://";
++    const initialUrl = getShapeLinkUrl(selectedShape);
++    const urlValidResult = validateUrl(initialUrl);
++    const initialValue = urlValidResult.isValid === true ? urlValidResult.hasProtocol ? initialUrl : "https://" + initialUrl : "https://";
+     return {
+       actual: initialValue,
+       safe: initialValue,
+@@ -64,23 +68,15 @@ const EditLinkDialogInner = track(function EditLinkDialogInner2({
+   const handleClear = useCallback(() => {
+     const onlySelectedShape = editor.getOnlySelectedShape();
+     if (!onlySelectedShape) return;
+-    editor.updateShapes([
+-      { id: onlySelectedShape.id, type: onlySelectedShape.type, props: { url: "" } }
+-    ]);
++    editor.updateShapes([getLinkUpdate(onlySelectedShape, "")]);
+     onClose();
+   }, [editor, onClose]);
+   const handleComplete = useCallback(() => {
+     const onlySelectedShape = editor.getOnlySelectedShape();
+     if (!onlySelectedShape) return;
+-    if (onlySelectedShape && "url" in onlySelectedShape.props) {
+-      if (onlySelectedShape.props.url !== urlInputState.safe) {
+-        editor.updateShapes([
+-          {
+-            id: onlySelectedShape.id,
+-            type: onlySelectedShape.type,
+-            props: { url: urlInputState.safe }
+-          }
+-        ]);
++    if (onlySelectedShape.type === "text" || "url" in onlySelectedShape.props) {
++      if (getShapeLinkUrl(onlySelectedShape) !== urlInputState.safe) {
++        editor.updateShapes([getLinkUpdate(onlySelectedShape, urlInputState.safe)]);
+       }
+     }
+     onClose();
 diff --git a/dist-esm/lib/ui/components/primitives/Button/TldrawUiButtonIcon.mjs b/dist-esm/lib/ui/components/primitives/Button/TldrawUiButtonIcon.mjs
 index fcb8268d733b28ab2d31a91e60818d46dbcfc3a2..812c7e77c5209abbd389f209ffae3dcb66c302c8 100644
 --- a/dist-esm/lib/ui/components/primitives/Button/TldrawUiButtonIcon.mjs
@@ -138,3 +213,16 @@ index c05d70e3ddd80a9cfdbd0527b93cd6fcd01fed88..2de1239ff423486c73a85df4057948f6
          }
        ) });
      }
+diff --git a/dist-esm/lib/ui/hooks/menu-hooks.mjs b/dist-esm/lib/ui/hooks/menu-hooks.mjs
+index aec3d2936032f118aa70afb33872d3b0f3e9887c..5bcde1a144b5be958821eb110b7940d88b4de5dd 100644
+--- a/dist-esm/lib/ui/hooks/menu-hooks.mjs
++++ b/dist-esm/lib/ui/hooks/menu-hooks.mjs
+@@ -124,7 +124,7 @@ function useHasLinkShapeSelected() {
+     "hasLinkShapeSelected",
+     () => {
+       const onlySelectedShape = editor.getOnlySelectedShape();
+-      return !!(onlySelectedShape && onlySelectedShape.type !== "embed" && "url" in onlySelectedShape.props && !onlySelectedShape.isLocked);
++      return !!(onlySelectedShape && onlySelectedShape.type !== "embed" && ("url" in onlySelectedShape.props || onlySelectedShape.type === "text") && !onlySelectedShape.isLocked);
+     },
+     [editor]
+   );

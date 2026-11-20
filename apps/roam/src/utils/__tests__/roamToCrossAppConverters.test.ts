@@ -19,7 +19,8 @@ const { mockedGetPageUidByPageTitle, mockedReadImportedSourceIdentity } =
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     mockedGetPageUidByPageTitle: vi.fn((_title: string) => ""),
     mockedReadImportedSourceIdentity: vi.fn(
-      (): ImportedSourceIdentity | undefined => undefined,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      (_uid: string): ImportedSourceIdentity | undefined => undefined,
     ),
   }));
 vi.mock("roamjs-components/queries/getPageUidByPageTitle", () => ({
@@ -37,9 +38,11 @@ vi.hoisted(() => {
 });
 
 import {
+  discourseNodeToCrossApp,
   fullContentNodeToCrossApp,
   nodeSchemaToCrossApp,
   nodeUidsWithTypeToCrossApp,
+  reifiedRelationToCrossApp,
 } from "~/utils/roamToCrossAppConverters";
 import getDiscourseNodes, {
   type DiscourseNode,
@@ -127,31 +130,47 @@ describe("fullContentNodeToCrossApp coreTitle", () => {
     source_local_id: "node-1",
     created: 1000,
     last_modified: 2000,
-    node_type_id: "schema-1",
-    format: "CLM - {content}",
+    type: "schema-1",
     text: "CLM - claim",
   };
 
   it("extracts the content from the title", () => {
-    const node = fullContentNodeToCrossApp(baseNode);
+    const node = fullContentNodeToCrossApp(baseNode, claimSchema);
     expect(node.coreTitle).toBe("claim");
   });
 
   it("extracts from the page title when node_title is present", () => {
-    const node = fullContentNodeToCrossApp({
-      ...baseNode,
-      text: "some block text",
-      node_title: "CLM - claim",
-    });
+    const node = fullContentNodeToCrossApp(
+      {
+        ...baseNode,
+        text: "some block text",
+        node_title: "CLM - claim",
+      },
+      claimSchema,
+    );
     expect(node.coreTitle).toBe("claim");
   });
 
   it("keeps the whole title when it does not match the format", () => {
-    const node = fullContentNodeToCrossApp({
-      ...baseNode,
-      text: "unrelated title",
-    });
+    const node = fullContentNodeToCrossApp(
+      {
+        ...baseNode,
+        text: "unrelated title",
+      },
+      claimSchema,
+    );
     expect(node.coreTitle).toBe("unrelated title");
+  });
+
+  it("extracts the content from a format with regex metacharacters", () => {
+    const node = fullContentNodeToCrossApp(
+      {
+        ...baseNode,
+        text: "Claim (draft) - sleep improves memory",
+      },
+      { ...claimSchema, format: "Claim (draft) - {content}" },
+    );
+    expect(node.coreTitle).toBe("sleep improves memory");
   });
 });
 
@@ -221,6 +240,23 @@ describe("nodeSchemaToCrossApp format", () => {
   });
 });
 
+describe("nodeSchemaToCrossApp template", () => {
+  it("carries the template body, with no template title", () => {
+    const schema = convertSchema(
+      nodeSchema({ template: [{ text: "Question:" }] }),
+    );
+    expect(schema?.template).toBe("* Question:\n");
+    expect(schema?.templateTitle).toBeUndefined();
+  });
+
+  it.each([
+    ["no template", undefined],
+    ["an empty template", []],
+  ])("leaves the template out for %s", (_label, template) => {
+    expect(convertSchema(nodeSchema({ template }))?.template).toBeUndefined();
+  });
+});
+
 describe("nodeSchemaToCrossApp source slot", () => {
   it("adds a sourceDocument slot definition pointing at the Source node type", () => {
     mockedGetDiscourseNodes.mockReturnValue([
@@ -236,6 +272,75 @@ describe("nodeSchemaToCrossApp source slot", () => {
     expect(convertSchema(nodeSchema({}))?.slotDefinitions).toEqual({
       sourceDocument: "_SRC-node",
     });
+  });
+});
+
+describe("discourseNodeToCrossApp", () => {
+  const pageNode = {
+    author_local_id: "user-1",
+    source_local_id: "node-1",
+    created: 1000,
+    last_modified: 2000,
+    type: "schema-1",
+    text: "CLM - claim",
+  };
+  const blockNode = {
+    ...pageNode,
+    text: "Subjects recalled more",
+    node_title: "CLM - claim",
+    author_local_id: "child-author",
+    node_author_local_id: "page-author",
+  };
+
+  it("sends a page node's title as its only direct content", () => {
+    const node = discourseNodeToCrossApp(pageNode, claimSchema);
+    expect(node.authorId).toBe("user-1");
+    expect(node.content).toEqual({
+      direct: { localId: "node-1", value: "CLM - claim" },
+    });
+  });
+
+  it("keeps the page title as direct and sends the first child as the description", () => {
+    const node = discourseNodeToCrossApp(blockNode, claimSchema);
+    expect(node.coreTitle).toBe("claim");
+    expect(node.content).toEqual({
+      direct: { localId: "node-1", value: "CLM - claim" },
+      directAndDescription: {
+        localId: "node-1",
+        value: "CLM - claim Subjects recalled more",
+        authorId: "child-author",
+      },
+    });
+  });
+
+  it("credits the page's creator with a block-backed node, as publish does", () => {
+    expect(discourseNodeToCrossApp(blockNode, claimSchema).authorId).toBe(
+      "page-author",
+    );
+  });
+
+  it("resolves the source from the page title of a block-backed node", () => {
+    mockedGetDiscourseNodes.mockReturnValue([
+      nodeSchema({ type: "schema-1" }),
+      nodeSchema({ text: "Source", type: "src-node", format: "@{content}" }),
+    ]);
+    mockedGetPageUidByPageTitle.mockImplementation((title: string) =>
+      title === "@sun2019direct" ? "source-1" : "",
+    );
+    const node = discourseNodeToCrossApp(
+      {
+        ...blockNode,
+        node_title: "[[EVD]] - REM sleep aids recall - [[@sun2019direct]]",
+      },
+      nodeSchema({ type: "schema-1" }),
+    );
+    expect(node.slots).toEqual({ sourceDocument: "source-1" });
+  });
+
+  it("omits slots when the node type has no source placeholder", () => {
+    expect(discourseNodeToCrossApp(pageNode, claimSchema)).not.toHaveProperty(
+      "slots",
+    );
   });
 });
 
@@ -369,5 +474,44 @@ describe("nodeUidsWithTypeToCrossApp source slot", () => {
       ":node/title": "[[CLM]] - REM sleep aids recall",
     });
     expect(node.slots).toBeUndefined();
+  });
+});
+
+describe("reifiedRelationToCrossApp ends", () => {
+  const IMPORTED_RID = "orn:obsidian.note:vault-a/node-9";
+  const relation = {
+    relationId: "rel-1",
+    hasSchema: "triple-1",
+    sourceUid: "local-1",
+    destinationUid: "imported-1",
+  };
+
+  beforeEach(() => {
+    (globalThis as { window: unknown }).window = {
+      roamAlphaAPI: {
+        pull: () => ({
+          ":create/time": 1000,
+          ":edit/time": 2000,
+          ":create/user": { ":user/uid": "user-1" },
+        }),
+      },
+    };
+    mockedReadImportedSourceIdentity.mockReset();
+    mockedReadImportedSourceIdentity.mockImplementation((uid) =>
+      uid === "imported-1"
+        ? {
+            sourceModifiedAt: "2026-06-14T15:00:00.000Z",
+            sourceNodeRid: IMPORTED_RID,
+          }
+        : undefined,
+    );
+  });
+
+  it("writes an imported end as its RID and a local end as its uid", () => {
+    expect(reifiedRelationToCrossApp(relation)).toMatchObject({
+      localId: "rel-1",
+      source: "local-1",
+      destination: IMPORTED_RID,
+    });
   });
 });

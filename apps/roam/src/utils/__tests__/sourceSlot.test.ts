@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import type { DiscourseNode } from "~/utils/getDiscourseNodes";
-import getDiscourseNodeFormatExpression from "~/utils/getDiscourseNodeFormatExpression";
+import { getDiscourseNodeFormatExpression } from "@repo/database/lib/getDiscourseNodeFormatExpression";
 
 vi.mock("roamjs-components/queries/getPageUidByPageTitle", () => ({
   default: vi.fn(),
@@ -116,5 +116,14 @@ describe("sourceIdOfNode", () => {
     expect(
       sourceIdOfNode("[[EVD]] - X - [[@Smith 2020]]", schema, [sourceNode]),
     ).toBe("source-page");
+  });
+
+  it("resolves a Source placeholder that comes before the content", () => {
+    expect(
+      sourceIdOfNode("[[@Smith 2020]]: X", { format: "{Source}: {content}" }, [
+        sourceNode,
+      ]),
+    ).toBe("source-page");
+    expect(getPageUidByPageTitle).toHaveBeenCalledWith("@Smith 2020");
   });
 });

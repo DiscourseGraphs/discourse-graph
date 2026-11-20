@@ -161,7 +161,7 @@ export const DiscourseToolPanel = ({
       switch (current.name) {
         case "idle":
         case "pointing_item": {
-          imageRef.setAttribute("style", "display: none");
+          imageRef.hide();
           break;
         }
         case "dragging": {
@@ -175,18 +175,10 @@ export const DiscourseToolPanel = ({
           const viewportScreenBounds = editor.getViewportScreenBounds();
           const isInside = Box.ContainsPoint(box, current.currentPosition);
           if (isInside) {
-            imageRef.style.display = "none";
+            imageRef.hide();
           } else {
-            imageRef.style.display = "block";
-            imageRef.style.position = "fixed";
-            imageRef.style.pointerEvents = "none";
-            imageRef.style.left = "0px";
-            imageRef.style.top = "0px";
             imageRef.style.transform = `translate(${current.currentPosition.x - viewportScreenBounds.x - 25}px, ${current.currentPosition.y - viewportScreenBounds.y - 25}px)`;
-            imageRef.style.width = "50px";
-            imageRef.style.height = "50px";
-            imageRef.style.display = "flex";
-            imageRef.style.alignItems = "center";
+            imageRef.show();
           }
         }
       }
@@ -295,7 +287,10 @@ export const DiscourseToolPanel = ({
               />
             ))}
           </div>
-          <div ref={rDraggingImage}>
+          <div
+            ref={rDraggingImage}
+            className="pointer-events-none fixed left-0 top-0 flex h-[50px] w-[50px] items-center"
+          >
             {state.name === "dragging"
               ? (getNodeTypeById(plugin, state.nodeTypeId)?.name ?? "")
               : null}

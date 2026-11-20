@@ -8,9 +8,10 @@ import {
   Tooltip,
 } from "@blueprintjs/core";
 import React, { useState } from "react";
-import getDiscourseNodes from "~/utils/getDiscourseNodes";
+import getDiscourseNodes, {
+  excludeDefaultNodes,
+} from "~/utils/getDiscourseNodes";
 import refreshConfigTree from "~/utils/refreshConfigTree";
-import type { CustomField } from "roamjs-components/components/ConfigPanels/types";
 import posthog from "posthog-js";
 import getDiscourseRelations, {
   type DiscourseRelation,
@@ -24,20 +25,12 @@ import {
 } from "./utils/accessors";
 import { GLOBAL_KEYS } from "./utils/settingKeys";
 import { invalidateDiscourseNodeTypeCaches } from "~/utils/discourseNodeTypeCache";
+import { useSettingsNav } from "./navigation/SettingsNavContext";
 
-type DiscourseNodeConfigPanelProps = React.ComponentProps<
-  CustomField["options"]["component"]
-> & {
-  isPopup?: boolean;
-  setSelectedTabId: (id: string) => void;
-};
-
-const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
-  isPopup,
-  setSelectedTabId,
-}) => {
+const DiscourseNodeConfigPanel: React.FC = () => {
+  const { push } = useSettingsNav();
   const [nodes, setNodes] = useState(() =>
-    getDiscourseNodes().filter((n) => n.backedBy === "user"),
+    getDiscourseNodes().filter(excludeDefaultNodes),
   );
   const [label, setLabel] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -52,11 +45,8 @@ const DiscourseNodeConfigPanel: React.FC<DiscourseNodeConfigPanelProps> = ({
   >([]);
   const [nodeTypeIdToDelete, setNodeTypeIdToDelete] = useState<string>("");
   const navigateToNode = (uid: string) => {
-    if (isPopup) {
-      setSelectedTabId(uid);
-    } else {
-      window.roamAlphaAPI.ui.mainWindow.openPage({ page: { uid } });
-    }
+    push(uid);
+    posthog.capture("Settings: Node Type Opened", { nodeTypeUid: uid });
   };
 
   const createNodeType = async (): Promise<void> => {

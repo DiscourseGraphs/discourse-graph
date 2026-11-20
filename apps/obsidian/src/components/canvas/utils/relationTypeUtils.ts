@@ -1,7 +1,10 @@
 import type { Editor, TLShape, TLShapeId, VecLike } from "tldraw";
 import type { DiscourseNodeShape } from "~/components/canvas/shapes/DiscourseNodeShape";
+import type DiscourseGraphPlugin from "~/index";
 import type { DiscourseRelation, DiscourseRelationType } from "~/types";
-import { COLOR_PALETTE } from "~/utils/tldrawColors";
+import generateUid from "~/utils/generateUid";
+import { COLOR_PALETTE, type TldrawColorName } from "~/utils/tldrawColors";
+import { isAcceptedSchema } from "~/utils/typeUtils";
 
 export const isDiscourseNodeShape = (
   shape: TLShape | null | undefined,
@@ -141,6 +144,117 @@ export const getValidRelationTypesForNodePair = ({
 };
 
 /**
+ * Returns the accepted relation types not yet valid for a node pair in either
+ * direction, which the "Add existing" picker offers.
+ */
+export const getAssociableRelationTypesForNodePair = ({
+  settings,
+  sourceNodeTypeId,
+  targetNodeTypeId,
+}: {
+  settings: RelationTypeSettings;
+  sourceNodeTypeId: string;
+  targetNodeTypeId: string;
+}): DiscourseRelationType[] =>
+  settings.relationTypes.filter((relationType) => {
+    if (!isAcceptedSchema(relationType)) return false;
+    const { direct, reverse } = getRelationDirection({
+      discourseRelations: settings.discourseRelations,
+      relationTypeId: relationType.id,
+      sourceNodeTypeId,
+      targetNodeTypeId,
+    });
+    return !direct && !reverse;
+  });
+
+/**
+ * Makes a relation type valid for a source → target node pair and saves it.
+ * Removes the added relation again if the save fails.
+ */
+export const associateRelationTypeWithNodePair = async ({
+  plugin,
+  relationTypeId,
+  sourceNodeTypeId,
+  targetNodeTypeId,
+}: {
+  plugin: DiscourseGraphPlugin;
+  relationTypeId: string;
+  sourceNodeTypeId: string;
+  targetNodeTypeId: string;
+}): Promise<void> => {
+  const now = Date.now();
+  const relation: DiscourseRelation = {
+    id: generateUid("rel3"),
+    sourceId: sourceNodeTypeId,
+    destinationId: targetNodeTypeId,
+    relationshipTypeId: relationTypeId,
+    created: now,
+    modified: now,
+  };
+  plugin.settings.discourseRelations = [
+    ...plugin.settings.discourseRelations,
+    relation,
+  ];
+  try {
+    await plugin.saveSettings();
+  } catch (error) {
+    // Filter by id: another association may have saved while this one was pending
+    plugin.settings.discourseRelations =
+      plugin.settings.discourseRelations.filter(({ id }) => id !== relation.id);
+    throw error;
+  }
+};
+
+/**
+ * Creates a relation type, makes it valid for a source → target node pair and
+ * saves once. Removes the added type and relation again if the save fails.
+ */
+export const createRelationTypeForNodePair = async ({
+  plugin,
+  label,
+  complement,
+  color,
+  sourceNodeTypeId,
+  targetNodeTypeId,
+}: {
+  plugin: DiscourseGraphPlugin;
+  label: string;
+  complement: string;
+  color: TldrawColorName;
+  sourceNodeTypeId: string;
+  targetNodeTypeId: string;
+}): Promise<DiscourseRelationType> => {
+  const now = Date.now();
+  const relationType: DiscourseRelationType = {
+    id: generateUid("rel"),
+    label,
+    complement,
+    color,
+    created: now,
+    modified: now,
+  };
+  plugin.settings.relationTypes = [
+    ...plugin.settings.relationTypes,
+    relationType,
+  ];
+  try {
+    await associateRelationTypeWithNodePair({
+      plugin,
+      relationTypeId: relationType.id,
+      sourceNodeTypeId,
+      targetNodeTypeId,
+    });
+  } catch (error) {
+    // Filter by id, as the association helper does, so concurrent saves survive
+    plugin.settings.relationTypes = plugin.settings.relationTypes.filter(
+      ({ id }) => id !== relationType.id,
+    );
+    throw error;
+  }
+  return relationType;
+};
+
+/**
  * Checks whether a specific relation type can connect the given source and
  * target node types (in either direction).
  */
@@ -186,26 +300,4 @@ export const getCompatibleTargetNodeTypeIds = ({
       targets.add(relation.sourceId);
   }
   return [...targets];
-};
-
-/**
- * Checks whether any valid relation type exists between two node types.
- */
-export const hasValidRelationTypeForNodePair = ({
-  settings,
-  sourceNodeTypeId,
-  targetNodeTypeId,
-}: {
-  settings: RelationTypeSettings;
-  sourceNodeTypeId: string;
-  targetNodeTypeId: string;
-}): boolean => {
-  return settings.discourseRelations.some(
-    (r) =>
-      settings.relationTypes.some((rt) => rt.id === r.relationshipTypeId) &&
-      ((r.sourceId === sourceNodeTypeId &&
-        r.destinationId === targetNodeTypeId) ||
-        (r.sourceId === targetNodeTypeId &&
-          r.destinationId === sourceNodeTypeId)),
-  );
 };
