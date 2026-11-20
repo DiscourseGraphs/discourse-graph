@@ -23,7 +23,12 @@
  */
 import React, { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { TldrawUiButton, useEditor, useValue } from "tldraw";
+import { atom, type Atom, TldrawUiButton, useEditor, useValue } from "tldraw";
+import { isMacOS } from "~/utils/platform";
+import {
+  finishTinyHandInteraction,
+  listenForTinyHandInteraction,
+} from "./tinyHandInteraction";
 import {
   extendTinyHandStroke,
   startTinyHandStroke,
@@ -43,10 +48,16 @@ const stopControlInput = (event: React.SyntheticEvent): void =>
 
 const ActiveTinyHand = ({
   canvas,
+  toolId,
+  interaction,
+  isInteracting,
   soundEnabled,
   setSoundEnabled,
 }: {
   canvas: HTMLElement;
+  toolId: string;
+  interaction: Atom<boolean>;
+  isInteracting: boolean;
   soundEnabled: boolean;
   setSoundEnabled: (enabled: boolean) => void;
 }): JSX.Element => {
@@ -73,6 +84,18 @@ const ActiveTinyHand = ({
   const [preview, setPreview] = useState<Mark | null>(null);
 
   useEffect(() => () => audio.current?.pause(), []);
+
+  useEffect(
+    () =>
+      listenForTinyHandInteraction({
+        editor,
+        canvas,
+        toolId,
+        interacting: interaction,
+        restorePointer: setPointer,
+      }),
+    [editor, canvas, toolId, interaction],
+  );
 
   useEffect(() => {
     const container = editor.getContainer();
@@ -220,6 +243,7 @@ const ActiveTinyHand = ({
         <div
           className="dg-tiny-hand-surface"
           data-testid="tiny-hand-surface"
+          data-interacting={isInteracting ? "" : undefined}
           data-panning={isPanning ? "" : undefined}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
@@ -256,7 +280,7 @@ const ActiveTinyHand = ({
               {marks.map(drawMark)}
               {preview && drawMark(preview, marks.length)}
             </g>
-            {pointer && !isPanning && (
+            {pointer && !isPanning && !isInteracting && (
               <TinyHandPointer {...pointer} pressed={pressed} />
             )}
           </svg>
@@ -273,6 +297,11 @@ const ActiveTinyHand = ({
           onTouchStart={stopControlInput}
           onTouchEnd={stopControlInput}
         >
+          <span className="dg-tiny-hand-interaction-hint">
+            {isInteracting
+              ? "Interacting"
+              : `Hold ${isMacOS() ? "Option" : "Alt"} to interact`}
+          </span>
           <TldrawUiButton type="normal" onClick={clearMarks}>
             Clear marks
           </TldrawUiButton>
@@ -289,7 +318,10 @@ const ActiveTinyHand = ({
           <TldrawUiButton
             type="normal"
             title="Exit TinyHand (Esc)"
-            onClick={() => editor.setCurrentTool("select").focus()}
+            onClick={() => {
+              finishTinyHandInteraction(editor);
+              editor.setCurrentTool("select").focus();
+            }}
           >
             Exit TinyHand
           </TldrawUiButton>
@@ -306,16 +338,23 @@ export const TinyHandOverlay = ({
   toolId: string;
 }): JSX.Element | null => {
   const editor = useEditor();
-  const active = useValue("TinyHand active", () => editor.isIn(toolId), [
-    editor,
-    toolId,
-  ]);
+  const [interaction] = useState(() =>
+    atom("TinyHand native interaction", false),
+  );
+  const mode = useValue(
+    "TinyHand mode",
+    () => {
+      if (editor.isIn(toolId)) return "pointing";
+      return interaction.get() && editor.isIn("select") ? "interacting" : "off";
+    },
+    [editor, toolId, interaction],
+  );
   const pageId = useValue("TinyHand page", () => editor.getCurrentPageId(), [
     editor,
   ]);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
-  if (!active) return null;
+  if (mode === "off") return null;
 
   // tldraw listens for wheel and pinch gestures on the canvas element.
   const canvas = editor.getContainer().querySelector<HTMLElement>(".tl-canvas");
@@ -325,6 +364,9 @@ export const TinyHandOverlay = ({
     <ActiveTinyHand
       key={pageId}
       canvas={canvas}
+      toolId={toolId}
+      interaction={interaction}
+      isInteracting={mode === "interacting"}
       soundEnabled={soundEnabled}
       setSoundEnabled={setSoundEnabled}
     />

@@ -85,6 +85,17 @@ export default /* css */ `
   user-select: none;
 }
 
+.dg-tiny-hand-surface[data-interacting] {
+  pointer-events: none;
+}
+
+.dg-tiny-hand-interaction-hint {
+  align-self: center;
+  padding: 0 8px;
+  color: var(--color-text-1);
+  font-size: 12px;
+}
+
 .dg-tiny-hand-surface[data-panning] {
   cursor: var(--tl-cursor);
 }

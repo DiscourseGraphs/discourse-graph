@@ -1,4 +1,5 @@
 import React, { ReactElement } from "react";
+import { finishTinyHandInteraction } from "./tinyHand/tinyHandInteraction";
 import {
   TLArrowBinding,
   TLArrowShape,
@@ -623,6 +624,14 @@ export const createUiOverrides = ({
   setConvertToDialogOpen: (open: boolean) => void;
 }): TLUiOverrides => ({
   tools: (editor, tools) => {
+    const select = tools.select;
+    tools.select = {
+      ...select,
+      onSelect: (source) => {
+        finishTinyHandInteraction(editor);
+        select.onSelect(source);
+      },
+    };
     // Get the custom keyboard shortcut for the discourse tool
     const discourseToolCombo = getPersonalSetting<IKeyCombo>([
       PERSONAL_KEYS.discourseToolShortcut,
