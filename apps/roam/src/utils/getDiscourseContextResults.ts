@@ -7,7 +7,7 @@ import getDiscourseRelations, {
   DiscourseRelation,
 } from "./getDiscourseRelations";
 import { Selection } from "./types";
-import { getSetting } from "./extensionSettings";
+import { getStoredRelationsEnabled } from "./storedRelations";
 import {
   ANY_RELATION_NAME,
   ANY_RELATION_REGEX,
@@ -200,10 +200,7 @@ const getDiscourseContextResults = async ({
 
   const discourseNode = findDiscourseNode({ uid: targetUid });
   if (!discourseNode) return [];
-  const useReifiedRelations = getSetting<boolean>(
-    "use-reified-relations",
-    false,
-  );
+  const useReifiedRelations = getStoredRelationsEnabled();
   const nodeType = discourseNode?.type;
   const nodeTextByType = Object.fromEntries(
     nodes.map(({ type, text }) => [type, text]),
