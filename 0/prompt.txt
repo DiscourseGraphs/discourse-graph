@@ -34,3 +34,7 @@ Remove the server and diagnostics changes too. Keep ENG-2509 focused on disablin
 ---
 
 Can we create a PR from this? Are the changes simple enough, or what's going on?
+
+---
+
+Why did you add \`React.ReactElement\` to taildrop canvas line 497? Remove that if it's not needed. This should be the most minimal change. Don't add unnecessary changes.&#x20;
