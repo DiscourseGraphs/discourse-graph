@@ -85,6 +85,10 @@ export default /* css */ `
   user-select: none;
 }
 
+.dg-tiny-hand-surface[data-panning] {
+  cursor: var(--tl-cursor);
+}
+
 .dg-tiny-hand-surface svg {
   display: block;
   pointer-events: none;

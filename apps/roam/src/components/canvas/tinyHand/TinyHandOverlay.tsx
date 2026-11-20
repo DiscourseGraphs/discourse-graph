@@ -76,6 +76,16 @@ const ActiveTinyHand = ({
   const { x, y, z } = useValue("TinyHand camera", () => editor.getCamera(), [
     editor,
   ]);
+  const isPanning = useValue(
+    "TinyHand native pan cursor",
+    () => {
+      const { type } = editor.getInstanceState().cursor;
+      return (
+        editor.inputs.isPanning && (type === "grab" || type === "grabbing")
+      );
+    },
+    [editor],
+  );
   const gesture = useRef<{ id: number; stroke: TinyHandStroke } | null>(null);
   const audio = useRef<HTMLAudioElement | null>(null);
   const tapId = useRef(0);
@@ -87,6 +97,22 @@ const ActiveTinyHand = ({
   const [preview, setPreview] = useState<Mark | null>(null);
 
   useEffect(() => () => audio.current?.pause(), []);
+
+  useEffect(() => {
+    const container = editor.getContainer();
+    const preventSpaceScroll = (event: KeyboardEvent): void => {
+      if (
+        event.target === container &&
+        event.code === "Space" &&
+        !event.ctrlKey &&
+        !event.metaKey
+      ) {
+        event.preventDefault();
+      }
+    };
+    container.addEventListener("keydown", preventSpaceScroll);
+    return () => container.removeEventListener("keydown", preventSpaceScroll);
+  }, [editor]);
 
   const pointFromEvent = (event: PointerEvent) =>
     editor.screenToPage({ x: event.clientX, y: event.clientY });
@@ -103,6 +129,15 @@ const ActiveTinyHand = ({
   };
 
   const onPointerDown = (event: PointerEvent): void => {
+    if (
+      event.isPrimary &&
+      !gesture.current &&
+      (event.button === 1 || (event.button === 0 && editor.inputs.isPanning))
+    ) {
+      setPointer(null);
+      return;
+    }
+
     event.stopPropagation();
     if (!event.isPrimary) {
       cancelGesture();
@@ -120,6 +155,8 @@ const ActiveTinyHand = ({
   };
 
   const onPointerMove = (event: PointerEvent): void => {
+    if (!gesture.current && editor.inputs.isPanning) return;
+    event.stopPropagation();
     if (!event.isPrimary || (event.pointerType === "touch" && !gesture.current))
       return;
 
@@ -136,6 +173,9 @@ const ActiveTinyHand = ({
   };
 
   const onPointerUp = (event: PointerEvent): void => {
+    if (!gesture.current && (event.button === 1 || editor.inputs.isPanning))
+      return;
+    event.stopPropagation();
     if (gesture.current?.id !== event.pointerId) return;
 
     const point = pointFromEvent(event);
@@ -196,6 +236,7 @@ const ActiveTinyHand = ({
         <div
           className="dg-tiny-hand-surface"
           data-testid="tiny-hand-surface"
+          data-panning={isPanning ? "" : undefined}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
@@ -241,33 +282,42 @@ const ActiveTinyHand = ({
                 />
               )}
             </g>
-            {pointer && <TinyHandPointer {...pointer} />}
+            {pointer && !isPanning && <TinyHandPointer {...pointer} />}
           </svg>
         </div>,
         canvas,
       )}
-      <div className="dg-tiny-hand-controls" role="group" aria-label="TinyHand">
-        <TldrawUiButton type="normal" onClick={clearMarks}>
-          Clear marks
-        </TldrawUiButton>
-        <TldrawUiButton
-          type="normal"
-          aria-pressed={soundEnabled}
-          onClick={() => {
-            if (soundEnabled) audio.current?.pause();
-            setSoundEnabled(!soundEnabled);
-          }}
+      {createPortal(
+        <div
+          className="dg-tiny-hand-controls"
+          role="group"
+          aria-label="TinyHand"
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerUp={(event) => event.stopPropagation()}
         >
-          Tap sound
-        </TldrawUiButton>
-        <TldrawUiButton
-          type="normal"
-          title="Exit TinyHand (Esc)"
-          onClick={() => editor.setCurrentTool("select").focus()}
-        >
-          Exit TinyHand
-        </TldrawUiButton>
-      </div>
+          <TldrawUiButton type="normal" onClick={clearMarks}>
+            Clear marks
+          </TldrawUiButton>
+          <TldrawUiButton
+            type="normal"
+            aria-pressed={soundEnabled}
+            onClick={() => {
+              if (soundEnabled) audio.current?.pause();
+              setSoundEnabled(!soundEnabled);
+            }}
+          >
+            Tap sound
+          </TldrawUiButton>
+          <TldrawUiButton
+            type="normal"
+            title="Exit TinyHand (Esc)"
+            onClick={() => editor.setCurrentTool("select").focus()}
+          >
+            Exit TinyHand
+          </TldrawUiButton>
+        </div>,
+        editor.getContainer(),
+      )}
     </>
   );
 };

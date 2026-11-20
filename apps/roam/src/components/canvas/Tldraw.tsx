@@ -1030,11 +1030,6 @@ const TldrawCanvasShared = ({
     SelectionBackground: TldrawSelectionBackground,
     Handles: TldrawHandles,
   };
-  const editorComponents: TLEditorComponents = {
-    ...defaultEditorComponents,
-    OnTheCanvas: ToastListener,
-    InFrontOfTheCanvas: CanvasOverlays,
-  };
   const storeAdapterArgs = useCanvasStoreAdapterArgs({
     pageUid,
     isCloudflareSync,
@@ -1074,6 +1069,20 @@ const TldrawCanvasShared = ({
 
   const TinyHandTool = createTinyHandTool(canvasTools.map((tool) => tool.id));
   const tinyHandToolId = TinyHandTool.id;
+  const OnTheCanvas = useMemo(() => {
+    const CanvasEffects = (): JSX.Element => (
+      <>
+        <ToastListener />
+        <TinyHandOverlay toolId={tinyHandToolId} />
+      </>
+    );
+    return CanvasEffects;
+  }, [tinyHandToolId]);
+  const editorComponents: TLEditorComponents = {
+    ...defaultEditorComponents,
+    OnTheCanvas,
+    InFrontOfTheCanvas: CanvasOverlays,
+  };
 
   // UI OVERRIDES
   const customUiComponents: TLUiComponents = createUiComponents({
@@ -1507,7 +1516,6 @@ const TldrawCanvasShared = ({
                   allNodes={allNodes}
                   // allRelationIds={allRelationIds}
                 />
-                <TinyHandOverlay toolId={tinyHandToolId} />
                 <CanvasDrawerPanel />
                 <ClipboardPanel />
               </TldrawUi>
