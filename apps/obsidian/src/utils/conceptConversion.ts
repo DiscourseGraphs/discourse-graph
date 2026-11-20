@@ -42,6 +42,7 @@ export const discourseNodeSchemaToLocalConcept = ({
     id,
     name,
     format,
+    color,
     created,
     modified,
     importedFromRid,
@@ -49,7 +50,7 @@ export const discourseNodeSchemaToLocalConcept = ({
   } = node;
   const concept = crossAppNodeSchemaToDbConcept(
     nodeTypeToCrossApp({
-      nodeType: { id, name, format, template, created, modified },
+      nodeType: { id, name, format, color, template, created, modified },
       templateContent,
       accountLocalId,
     }),
@@ -77,6 +78,7 @@ export const discourseRelationTypeToLocalConcept = ({
     id,
     label,
     complement,
+    color,
     created,
     modified,
     importedFromRid,
@@ -86,7 +88,7 @@ export const discourseRelationTypeToLocalConcept = ({
   } = relationType;
   const concept = crossAppRelationTypeSchemaToDbConcept(
     relationTypeToCrossApp({
-      relationType: { id, label, complement, created, modified },
+      relationType: { id, label, complement, color, created, modified },
       accountLocalId,
     }),
   );

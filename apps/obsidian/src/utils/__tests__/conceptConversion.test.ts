@@ -117,7 +117,16 @@ describe("discourseNodeSchemaToLocalConcept format", () => {
     ).toMatchObject({ literal_content: { format: "CLM - {content}" } });
   });
 
-  it("keeps the other metadata in source data without the format", () => {
+  it("publishes the color at the top level of literal content", () => {
+    expect(
+      discourseNodeSchemaToLocalConcept({
+        accountLocalId: "account-1",
+        node: NODE_TYPE,
+      }),
+    ).toMatchObject({ literal_content: { color: "#7DA13E" } });
+  });
+
+  it("keeps the other metadata in source data without the format or the color", () => {
     expect(
       discourseNodeSchemaToLocalConcept({
         accountLocalId: "account-1",
@@ -125,7 +134,6 @@ describe("discourseNodeSchemaToLocalConcept format", () => {
       }),
     ).toHaveProperty("literal_content.source_data", {
       shortcut: "C",
-      color: "#7DA13E",
       tag: "clm-candidate",
       keyImage: true,
       folderPath: "Claims",

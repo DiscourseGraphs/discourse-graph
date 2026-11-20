@@ -25,7 +25,7 @@ export const nodeTypeToCrossApp = ({
 }: {
   nodeType: Pick<
     DiscourseNode,
-    "id" | "name" | "format" | "template" | "created" | "modified"
+    "id" | "name" | "format" | "color" | "template" | "created" | "modified"
   >;
   templateContent?: string;
   accountLocalId: string;
@@ -33,6 +33,7 @@ export const nodeTypeToCrossApp = ({
   localId: nodeType.id,
   label: nodeType.name,
   format: nodeType.format,
+  color: nodeType.color,
   templateTitle: nodeType.template || undefined,
   template: templateContent || undefined,
   authorId: accountLocalId,
@@ -46,13 +47,14 @@ export const relationTypeToCrossApp = ({
 }: {
   relationType: Pick<
     DiscourseRelationType,
-    "id" | "label" | "complement" | "created" | "modified"
+    "id" | "label" | "complement" | "color" | "created" | "modified"
   >;
   accountLocalId: string;
 }): CrossAppRelationTypeSchema => ({
   localId: relationType.id,
   label: relationType.label,
   complement: relationType.complement,
+  color: relationType.color,
   authorId: accountLocalId,
   createdAt: new Date(relationType.created),
   modifiedAt: new Date(relationType.modified),
