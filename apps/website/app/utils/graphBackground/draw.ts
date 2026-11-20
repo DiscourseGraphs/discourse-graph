@@ -1,9 +1,10 @@
 import {
-  BREAK_DISTANCE,
   GROW_SECONDS,
   distanceBetween,
+  getBreakDistance,
   getEdgeVisibility,
   getVisibilityAt,
+  type GraphNode,
   type GraphState,
 } from "./simulation";
 import type { GraphColors } from "./colors";
@@ -28,9 +29,10 @@ const drawEdges = (
   context: CanvasRenderingContext2D,
   { state, colors }: { state: GraphState; colors: GraphColors },
 ): void => {
+  const breakDistance = getBreakDistance(state);
   for (const edge of state.edges) {
     const { from, to } = edge;
-    const reach = Math.max(0, 1 - distanceBetween(from, to) / BREAK_DISTANCE);
+    const reach = Math.max(0, 1 - distanceBetween(from, to) / breakDistance);
     const grown = Math.min(1, edge.age / GROW_SECONDS);
     const eased = 1 - Math.pow(1 - grown, 3);
     const alpha =
@@ -51,6 +53,12 @@ const drawEdges = (
   }
 };
 
+const getNodeRadius = (node: GraphNode, time: number): number => {
+  const breathe =
+    1 + Math.sin(time / BREATHE_TIME_SCALE_MS + node.phase) * BREATHE_AMOUNT;
+  return node.radius * breathe * (1 + CAPTURE_SIZE_BOOST * node.capture);
+};
+
 const drawNodes = (
   context: CanvasRenderingContext2D,
   {
@@ -59,11 +67,20 @@ const drawNodes = (
     time,
   }: { state: GraphState; colors: GraphColors; time: number },
 ): void => {
+  // Clear the links under every node first, so none show through a node's
+  // translucent fill. Clearing node by node would also cut the fills and flash
+  // rings of nodes drawn earlier.
+  context.globalCompositeOperation = "destination-out";
   for (const node of state.nodes) {
-    const breathe =
-      1 + Math.sin(time / BREATHE_TIME_SCALE_MS + node.phase) * BREATHE_AMOUNT;
-    const radius =
-      node.radius * breathe * (1 + CAPTURE_SIZE_BOOST * node.capture);
+    // A node faded behind text clears proportionally less, so it leaves no gap in a link.
+    context.fillStyle = `rgba(0, 0, 0, ${node.visibility})`;
+    context.beginPath();
+    context.arc(node.rx, node.ry, getNodeRadius(node, time), 0, Math.PI * 2);
+    context.fill();
+  }
+  context.globalCompositeOperation = "source-over";
+  for (const node of state.nodes) {
+    const radius = getNodeRadius(node, time);
     const alpha =
       (NODE_ALPHA + NODE_CAPTURE_ALPHA * node.capture) * node.visibility;
     context.fillStyle = `rgba(${node.color}, ${alpha})`;
