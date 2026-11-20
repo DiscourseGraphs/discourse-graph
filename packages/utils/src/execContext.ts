@@ -17,3 +17,12 @@ export const nextApiRoot = (): string => {
     return process.env.NEXT_API_ROOT;
   return nextRoot() + "api";
 };
+
+// The public web page of a published node. The site resolves the RID, so
+// callers never need to know how page addresses are built.
+export const displayUrlForRid = (rid: string): string =>
+  `${nextRoot()}display?rid=${encodeURIComponent(rid)}`;
+
+// The public web page of a space, from its URL as stored in the database.
+export const displayUrlForSpace = (spaceUrl: string): string =>
+  `${nextRoot()}display?space=${encodeURIComponent(spaceUrl)}`;

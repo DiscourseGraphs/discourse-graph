@@ -70,6 +70,9 @@ const getServiceClient = () => {
 
 const SPACE_ANONYMOUS_PASSWORD = "abcdefgh";
 
+// The everyone pseudo-user: a grant to it applies to every caller, logged in or not.
+const EVERYONE_UID = "00000000-0000-0000-0000-000000000000";
+
 Given("the database is blank", async () => {
   const client = getServiceClient();
   let r = await client.from("Content").delete().neq("id", -1);
@@ -107,7 +110,8 @@ Given("the database is blank", async () => {
   // Deleting the file references above queued their hashes for garbage collection.
   r = await client.from("file_gc").delete().neq("filehash", "");
   assert.equal(r.error, null);
-  world.localRefs = {};
+  // Feature tables can grant to the everyone pseudo-user as `everyone`.
+  world.localRefs = { everyone: EVERYONE_UID };
   // clear the cache
   initNodeSchemaCache();
 });
@@ -388,27 +392,31 @@ const RESOURCE_TABLE_KEYS = {
 } as const;
 type ResourceTable = keyof typeof RESOURCE_TABLE_KEYS;
 
+// A null viewer is a client without a login.
 type VisibilityCheck = {
-  viewerSpaceName: string;
+  viewerSpaceName: string | null;
   filterSpaceName: string;
   inFilterSpace: boolean;
   table: DataTable;
 };
 
+// A null viewer gets a client without a login.
 const getViewerClient = async (
-  viewerSpaceName: string,
+  viewerSpaceName: string | null,
   filterSpaceName: string,
 ): Promise<{
   filterSpaceId: number;
   client: Awaited<ReturnType<typeof getLoggedinDatabase>>;
 }> => {
   const localRefs = (world.localRefs || {}) as LocalRefsType;
-  const viewerSpaceId = localRefs[viewerSpaceName];
   const filterSpaceId = localRefs[filterSpaceName];
-  if (typeof viewerSpaceId !== "number")
-    assert.fail("viewer spaceId not a number");
   if (typeof filterSpaceId !== "number")
     assert.fail("filter spaceId not a number");
+  if (viewerSpaceName === null)
+    return { filterSpaceId, client: getAnonymousClient() };
+  const viewerSpaceId = localRefs[viewerSpaceName];
+  if (typeof viewerSpaceId !== "number")
+    assert.fail("viewer spaceId not a number");
   return { filterSpaceId, client: await getLoggedinDatabase(viewerSpaceId) };
 };
 
@@ -547,6 +555,43 @@ Then(
       viewerSpaceName,
       filterSpaceName,
       inFilterSpace: false,
+      table,
+    }),
+);
+
+Then(
+  "an anonymous client should see these concepts in space {word}:",
+  (filterSpaceName: string, table: DataTable) =>
+    expectVisibleConcepts({
+      viewerSpaceName: null,
+      filterSpaceName,
+      inFilterSpace: true,
+      table,
+    }),
+);
+
+Then(
+  "an anonymous client should see these content view rows in space {word}:",
+  (filterSpaceName: string, table: DataTable) =>
+    expectVisibleRows({
+      keys: CONTENT_VIEW_KEYS,
+      column: "view",
+      viewerSpaceName: null,
+      filterSpaceName,
+      inFilterSpace: true,
+      table,
+    }),
+);
+
+Then(
+  "an anonymous client should see these table rows in space {word}:",
+  (filterSpaceName: string, table: DataTable) =>
+    expectVisibleRows({
+      keys: RESOURCE_TABLE_KEYS,
+      column: "table",
+      viewerSpaceName: null,
+      filterSpaceName,
+      inFilterSpace: true,
       table,
     }),
 );
@@ -833,17 +878,53 @@ Then(
   },
 );
 
+const expectFileAccess = async (
+  client: Awaited<ReturnType<typeof getLoggedinDatabase>>,
+  table: DataTable,
+): Promise<void> => {
+  for (const { filehash, access } of table.hashes()) {
+    const response = await client.rpc("file_access", {
+      hashvalue: filehash!,
+    });
+    assert.equal(response.error, null, filehash);
+    assert.equal(response.data, access === "true", filehash);
+  }
+};
+
 Then(
   "a user logged in space {word} should get these file access results:",
   async (viewerSpaceName: string, table: DataTable) => {
     const { client } = await getViewerClient(viewerSpaceName, viewerSpaceName);
+    await expectFileAccess(client, table);
+  },
+);
+
+Then(
+  "an anonymous client should get these file access results:",
+  (table: DataTable) => expectFileAccess(getAnonymousClient(), table),
+);
+
+// Stores each file under its hash, as the plugins do, tries to download it, then removes it,
+// so the storage bucket holds nothing between scenarios.
+Then(
+  "an anonymous client should get these file downloads:",
+  async (table: DataTable) => {
+    const service = getServiceClient().storage.from("assets");
+    const assets = getAnonymousClient().storage.from("assets");
+    const mismatches: string[] = [];
     for (const { filehash, access } of table.hashes()) {
-      const response = await client.rpc("file_access", {
-        hashvalue: filehash!,
+      const upload = await service.upload(filehash!, new Blob([filehash!]), {
+        upsert: true,
       });
-      assert.equal(response.error, null, filehash);
-      assert.equal(response.data, access === "true", filehash);
+      assert.equal(upload.error, null, filehash);
+      const download = await assets.download(filehash!);
+      const removed = await service.remove([filehash!]);
+      assert.equal(removed.error, null, filehash);
+      const downloaded = download.error === null;
+      if (downloaded !== (access === "true"))
+        mismatches.push(`${filehash}: expected access ${access}`);
     }
+    assert.deepEqual(mismatches, []);
   },
 );
 
@@ -1362,13 +1443,12 @@ const myAccountsWrites = (
   return {
     insert: () =>
       view.insert({
-        name: "written through my_accounts",
         account_local_id: "written-through-my-accounts",
         platform: "Roam",
       }),
     update: () =>
       view
-        .update({ name: "written through my_accounts" })
+        .update({ account_local_id: "written through my_accounts" })
         .eq("platform", "Roam"),
     delete: () => view.delete().eq("platform", "Roam"),
   };
@@ -2077,5 +2157,95 @@ Then(
       text: published.content.full?.value,
       content_type: published.content.full?.contentType,
     });
+  },
+);
+
+// The name column of my_accounts for each account: "real" for its own name, "anonymous" for the
+// anonymous placeholder, "hidden" when the account is not visible at all.
+const expectAccountNames = async (
+  client: Awaited<ReturnType<typeof getLoggedinDatabase>>,
+  table: DataTable,
+): Promise<void> => {
+  const localRefs = (world.localRefs || {}) as LocalRefsType;
+  const service = getServiceClient();
+  const mismatches: string[] = [];
+  for (const { account, name } of table.hashes()) {
+    const accountId = localRefs[account!];
+    if (typeof accountId !== "number") assert.fail(`unknown ${account}`);
+    const stored = await service
+      .from("PlatformAccount")
+      .select("name")
+      .eq("id", accountId)
+      .single();
+    assert.equal(stored.error, null, account);
+    const expected = {
+      real: stored.data!.name,
+      anonymous: `anonymous #${accountId}`,
+      hidden: undefined,
+    }[name as "real" | "anonymous" | "hidden"];
+    if (name !== "hidden" && expected === undefined)
+      assert.fail(`unknown name ${name} for ${account}`);
+    const response = await client
+      .from("my_accounts")
+      .select("name")
+      .eq("id", accountId);
+    assert.equal(response.error, null, account);
+    const actual = response.data?.[0]?.name ?? undefined;
+    if (actual !== expected)
+      mismatches.push(
+        `${account}: expected ${name}, got ${actual ?? "hidden"}`,
+      );
+  }
+  assert.deepEqual(mismatches, []);
+};
+
+Then(
+  "a user logged in space {word} should see these account names:",
+  async (spaceName: string, table: DataTable) => {
+    const { client } = await getSpaceClient(spaceName);
+    await expectAccountNames(client, table);
+  },
+);
+
+Then(
+  "an anonymous client should see these account names:",
+  (table: DataTable) => expectAccountNames(getAnonymousClient(), table),
+);
+
+// my_accessible_resources runs as the caller, so it needs the caller's read on ResourceAccess.
+Then(
+  "an anonymous client should get these accessible resources:",
+  async (table: DataTable) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const response = await getAnonymousClient().rpc("my_accessible_resources");
+    assert.equal(response.error, null);
+    const actual = (response.data || [])
+      .map(({ space_id, source_local_id }) => `${space_id}/${source_local_id}`)
+      .sort();
+    const expected = table
+      .hashes()
+      .map(
+        ({ space, source_local_id }) =>
+          `${localRefs[space!]}/${source_local_id}`,
+      )
+      .sort();
+    assert.deepEqual(actual, expected);
+  },
+);
+
+const CHECK_VIOLATION = "23514";
+
+// Inserted as the service role, so only a constraint can refuse the rows.
+Then(
+  "{word} rows like these violate a check constraint:",
+  async (tableName: TableName, table: DataTable) => {
+    const localRefs = (world.localRefs || {}) as LocalRefsType;
+    const client = getServiceClient();
+    for (const row of table.hashes()) {
+      const response = await client
+        .from(tableName)
+        .insert(substituteLocalReferencesRow(row, localRefs) as any);
+      assert.equal(response.error?.code, CHECK_VIOLATION, JSON.stringify(row));
+    }
   },
 );

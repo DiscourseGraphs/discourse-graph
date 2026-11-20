@@ -131,13 +131,19 @@ export const fetchUserNames = async (
     console.error(result.error);
     return {};
   }
+  // The view always names an account (hidden ones as "anonymous #id"), but
+  // views lose column nullability, so the generated type allows null.
+  const namedAccounts = result.data.filter(
+    (account): account is typeof account & { name: string } =>
+      account.name !== null,
+  );
   const nameById = Object.fromEntries(
-    result.data.map(({ id, name }) => [id, name]) as [number, string][],
+    namedAccounts.map(({ id, name }): [number, string] => [id, name]),
   );
   plugin.settings.userNames = nameById;
   await plugin.saveSettings();
   return Object.fromEntries(
-    result.data.map(({ account_local_id, name }): [string, string] => [
+    namedAccounts.map(({ account_local_id, name }): [string, string] => [
       account_local_id,
       name,
     ]),
