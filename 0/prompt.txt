@@ -1,0 +1,7 @@
+<task-notification>
+<task-id>bhg92jllg</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/ec946fa7-ab92-4faf-a002-ff540e3a98ed/tasks/bhg92jllg.output</output-file>
+<status>completed</status>
+<summary>Background command "Install dependencies in the new worktree" completed (exit code 0)</summary>
+</task-notification>

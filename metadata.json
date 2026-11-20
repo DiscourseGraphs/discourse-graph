@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M7X88R02EG3VP7NQ7FR2YG1E",
+  "strategy": "manual-commit",
+  "branch": "eng-2494-document-the-obsidian-node-summoning-menu-and-its",
+  "checkpoints_count": 5,
+  "files_touched": [
+    "apps/website/content/obsidian/core-features/_meta.ts",
+    "apps/website/public/docs/obsidian/node-summoning-menu-type-filter.png",
+    "apps/website/public/docs/obsidian/node-summoning-menu.png"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 4,
+    "cache_creation_tokens": 180745,
+    "cache_read_tokens": 265464,
+    "output_tokens": 1185,
+    "api_call_count": 2
+  }
+}
