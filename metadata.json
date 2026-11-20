@@ -2,9 +2,10 @@
   "cli_version": "0.10.6",
   "checkpoint_id": "01M6SPX33R47W9VEFNZMXPV6AR",
   "strategy": "manual-commit",
-  "branch": "1837b",
-  "checkpoints_count": 36,
+  "branch": "eng-1837-add-a-public-status-in-the-database",
+  "checkpoints_count": 37,
   "files_touched": [
+    "apps/obsidian/src/utils/importNodes.ts",
     "packages/database/doc/security_model.md",
     "packages/database/features/publicAccess.feature",
     "packages/database/features/step-definitions/stepdefs.ts",
@@ -45,14 +46,21 @@
       "compact_transcript": "/3/transcript.jsonl",
       "content_hash": "/3/content_hash.txt",
       "prompt": "/3/prompt.txt"
+    },
+    {
+      "metadata": "/4/metadata.json",
+      "transcript": "/4/full.jsonl",
+      "compact_transcript": "/4/transcript.jsonl",
+      "content_hash": "/4/content_hash.txt",
+      "prompt": "/4/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 1870,
-    "cache_creation_tokens": 2287881,
-    "cache_read_tokens": 147449126,
-    "output_tokens": 569829,
-    "api_call_count": 740,
+    "input_tokens": 2682,
+    "cache_creation_tokens": 3319671,
+    "cache_read_tokens": 245447545,
+    "output_tokens": 870164,
+    "api_call_count": 1089,
     "subagent_tokens": {
       "input_tokens": 0,
       "cache_creation_tokens": 0,
