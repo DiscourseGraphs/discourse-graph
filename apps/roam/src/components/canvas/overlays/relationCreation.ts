@@ -13,14 +13,21 @@ import {
 import { createOrUpdateArrowBinding } from "~/components/canvas/DiscourseRelationShape/helpers";
 import { getDiscourseNodeTypeId } from "~/components/canvas/DiscourseNodeUtil";
 import {
-  checkConnectionType,
   getCreatableRelations,
   isDiscourseNodeShape,
 } from "~/components/canvas/canvasUtils";
+import { checkConnectionType } from "~/utils/findRelationForPair";
 import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
 import { isRelationComplete } from "~/utils/isRelationComplete";
 
-type RelationTypeOption = { id: string; label: string; color: string };
+export type RelationTypeOption = {
+  id: string;
+  label: string;
+  // The other reading, shown to tell apart rows whose labels collide.
+  complement: string;
+  hasLabelCollision: boolean;
+  color: string;
+};
 
 type DirectionalRelation = Pick<
   DiscourseRelation,
@@ -92,7 +99,7 @@ export const getValidRelationTypesBetween = (
 
   const colorPalette = DefaultColorThemePalette.lightMode;
   const validTypes: RelationTypeOption[] = [];
-  const seenLabels = new Set<string>();
+  const seenTypes = new Set<string>();
 
   for (const relation of getCreatableRelations()) {
     if (!isRelationComplete(relation)) continue;
@@ -108,15 +115,31 @@ export const getValidRelationTypesBetween = (
       sourceNodeType: startNodeType,
       targetNodeType: endNodeType,
     });
-    if (seenLabels.has(label)) continue;
-    seenLabels.add(label);
+    const complement = isReverse ? relation.label : relation.complement;
+    // One row per type and reading; same-label types with different complements stay separate.
+    const key = JSON.stringify([label, complement]);
+    if (seenTypes.has(key)) continue;
+    seenTypes.add(key);
 
     const hexColor =
       colorPalette[getRelationColor(relation.label)]?.solid ?? "#333";
-    validTypes.push({ id: relation.id, label, color: hexColor });
+    validTypes.push({
+      id: relation.id,
+      label,
+      complement,
+      hasLabelCollision: false,
+      color: hexColor,
+    });
   }
 
-  return validTypes;
+  const labelCounts = new Map<string, number>();
+  validTypes.forEach((t) =>
+    labelCounts.set(t.label, (labelCounts.get(t.label) ?? 0) + 1),
+  );
+  return validTypes.map((t) => ({
+    ...t,
+    hasLabelCollision: (labelCounts.get(t.label) ?? 0) > 1,
+  }));
 };
 
 export const createDefaultRelationBetweenNodes = async ({
