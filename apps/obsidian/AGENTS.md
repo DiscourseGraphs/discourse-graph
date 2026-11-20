@@ -35,6 +35,8 @@ Example: ( ![[lucide-cog.svg#icon]] )
 
 ## Plugin Store Guidelines
 
+The `Obsidian store scan` CI job runs Obsidian's own scanner (`obsidianmd/obsidian-workflows`) on `apps/obsidian`. Its errors block a store submission, so they fail the job; its warnings don't. The findings are in the job's annotations, not its log: take the job ID from the `scan` URL in `gh pr checks`, then run `gh api repos/DiscourseGraphs/discourse-graph/check-runs/<job-id>/annotations`.
+
 These rules must be followed for the plugin to be accepted into the Obsidian community plugin store.
 
 ### Security
