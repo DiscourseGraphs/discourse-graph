@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M7VDKRB5HTPTYAWMBWRPDSK6",
+  "strategy": "manual-commit",
+  "branch": "eng-2509-keep-offline-roam-graphs-out-of-dg-cloud-services",
+  "checkpoints_count": 7,
+  "files_touched": [
+    "apps/roam/src/components/canvas/Tldraw.tsx",
+    "apps/roam/src/components/canvas/TldrawCanvasCloudflareSync.tsx",
+    "apps/roam/src/components/canvas/canvasSyncMode.ts",
+    "apps/roam/src/components/canvas/uiOverrides.tsx",
+    "apps/roam/src/components/settings/HomePersonalSettings.tsx",
+    "apps/roam/src/components/settings/utils/accessors.ts",
+    "apps/roam/src/utils/__tests__/nodeSharingFeatureFlag.test.ts",
+    "apps/roam/src/utils/supabaseContext.ts",
+    "apps/roam/src/utils/syncDgNodesToSupabase.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 757676,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 24651776,
+    "output_tokens": 55138,
+    "api_call_count": 136
+  }
+}

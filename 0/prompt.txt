@@ -1,0 +1,32 @@
+# Response annotations:
+Each item contains text selected from an earlier Codex response and may include a user comment. Treat items as Annotation 1, Annotation 2, and so on in array order. Use every selection as context and address every comment. For every annotation you address, include `:codex-annotation{index="N" id="ID"}`, where N is its one-based array position and ID is its exact id (omit the id attribute if absent). Do not use unstructured annotation labels.
+<response-annotations>
+[{"id":"e4f92efb-87b3-4f4a-b5bd-5bc529ea76cc","text":"Remaining blocker. The existing enrollment and canvas paths lack a trusted way to verify hosted graph identity and the caller’s permissions. That server-side requirement remains open. The changes are local and uncommitted, and the workflow stopped before PR creation.","source":{"messageId":"msg_0e5de438cb91bc41016affa71101d887d1a46dcb1b8bb116fa","startOffset":573,"endOffset":840}}]
+</response-annotations>
+
+## My request:
+Explain. What do you mean?
+
+---
+
+Sorry, we should change that ticket to only say it's only local. We don't need. What do you mean by "hosted graph linked to the DG space"? What does that mean?
+
+---
+
+Okay, is there any negative to only doing this client-side for the offline graph? That's really all I wanted for this ticket. I don't even know if we need the automated checks. What are the automated checks? I really think I only needed where it could cause a bug if there's a duplicate name, because an offline graph has the same name as an online graph. Wherever that can happen, then we disable that functionality for the offline graph. Don't make any changes. Just answer my questions and have any clarifying things or any risks you see.
+
+---
+
+What is the same name regression test?
+
+---
+
+No, I'm going to drop the tests. I'm deleting it from done when. Delete the tests from the PR. We really only need to check the behavior. I don't think we need tests for this.
+
+---
+
+Correct me if I'm wrong.
+
+---
+
+Remove the server and diagnostics changes too. Keep ENG-2509 focused on disabling the client-side features that can confuse an offline graph with a hosted graph of the same name.
