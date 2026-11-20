@@ -1,0 +1,218 @@
+I'd like you to have a look at https://roamresearch.com/#/app/discourse-graphs/page/igzkQFr4r . There is a decision there that the MCP client will consume the CrossApp node format. When we designed that format, we said it would be an internal format, to abstract communication of the platform plugins with the DB; Ideally I'd like all external communication to be JSON-LD, so DiscourseGraph graphs are fully in the web of LinkedOpenData. I also think the JSON-LD is more self-documenting than the CrossApp format, for MCP consumption. Now, we control the MCP for now; but ideally it could become a skill, and then its status as internal tool vs external protocol becomes fuzzier. I also feel that whatever the MCP receives is more likely to be exposed to other users for further treatment, solidifying the CrossApp data format as something others are likely to use. 
+Now, I also think it is something we can change later; starting with CrossApp data, and moving on to JSON-LD later. The CrossApp data is easier to use now than JSON-LD, which still sits in the mira-collab branch. But I don't think it's a huge difference to make that ready either. It's also not a huge extra cost to switch the MCP from one to another when both are ready. So... am I missing costs or benefits of using JSON-LD at the outset, or after an intermediate period? Can we do a cost-benefit analysis?
+
+---
+
+Ok, all that is useful. Actually, let's open the ID issue, which is currently unsettled: see ((38_5EFk3P)), I was going to bring it up next. (Detail first: I thought the crossApp would have a distinct API point than the JSON-LD, I did not think of negotiation, and I'm not sure that's the right call, but not strictly against it either.) 
+Right now, the JSON-LD is, as you noted, using database Ids. I saw it as the easiest way to create a RESTful identity; but I have been thinking of using the source_local_id as the last part of the URI. I cannot use the RID, as it can be a full URI and not a fragment. For the same reason, I cannot use the space URL in the first segment of the api, and have to use the space's database Id. I'm now less sure, and my mind is going in another direction: Maybe maintain the database centric @id, but also give the RID with a owl:sameAs. This should dovetail with a more generic idea I had for MIRA: Read /Users/maparent/OpenSource/mira-repos/linkedopendata-at/atproto-linked-data-proposal.md
+
+---
+
+skos feels wrong, but dct:identifier is worth considering; but then I would apply it to everything. We may coin our own relation, if needed. When you say MCP could start with RID, and use the sameAs to bridge, we would have to tell it about that identifier, though. Still doable. But do you think this is enough to allow the delay?
+Adding an indirection: Yeah, that makes the RESTful API less transparent, does it not?
+
+---
+
+Still thinking. The way you redesigned the JSON-LD Ids, (following the broker specifications tbh) they carry much of the same information as the RID; indeed the RID could be reconstituted from them (with rather a lot of shared knowledge however.) Is it still worth having the RID?
+
+---
+
+Ok. Let's look at what the pro/con table looks like now. I'd like to leave the dgb:rid vs owl:sameAs issue open for now.
+
+---
+
+There's also a risk that people start building on CrossApp because it's visible through the MCP, please add this back.
+We have to make this intelligible for people who do not yet know much about the broker design, and we have to explain the benefits of JSON-LD. So explicit is better than implicit.
+
+---
+
+Oh, just one thing about the api endpoint: Trang's work is more recent, but earlier we had settled on `/api/internal/space/[space_id]/concept/[id]`, see ((1OhxQeTEs))
+
+---
+
+Correct, not implemented. I was thinking the internal route would be RESTful CrossApp, and the mira-collab would still use /api/data/ (with your added platform)
+
+---
+
+I don't think we should have separate RESTful and retrieval. We need to settle no api/v1 or internal. I'm not deadly attached to the latter, but it did convey something.
+
+---
+
+Yes, with the big caveat that it's a recommendation for team review.
+
+---
+
+Great. Ready to post. Where should we post it? Thinking under ((qWNTFDfk1)) and then we can point to it in Trang's spec.
+
+---
+
+Yes.
+
+---
+
+I'd say both, with abbreviated wording the second time (also see...)
+
+---
+
+Just a small correction: You have it locked that we will provide the text as markdown. I actually would like that to be subject to content negotiation, with HTML as primary, since it allows for text anchors. That is also to be negotiated with the team, but just don't take the Markdown for locked-in.
+
+---
+
+Leave it for later, thank you. Correct call not changing Trang's text there.
+
+---
+
+Trang informed me that the latest spec was now https://roamresearch.com/#/app/discourse-graphs/page/igzkQFr4r , so we need to upate the references on both sides.
+
+---
+
+yes.
+
+---
+
+I'm getting strong pushback for the internal (CrossApp) route design. Base argument: As an api user, why should I have to know the platform to get a node? Or even decompose the RID into parts? So the design they want is essentially: `/api/internal/v1/node/<url-encoded-rid>` . I'm willing to let go of the platform segment, (we could use a hash of the space url, though that's more shared knowledge) but I want the space segment because I see it as a RESTful endpoint in its own right, where the upsert_nodes should live, for example. (I also had to justify that upsert is at the space level, because it allows to only check write permissions once.) And then I was asked "Why RESTful?". Ok, so now I have to explain why REST is better API design, which I find discouraging, but I guess this is just a matter of what I think of as common knowledge being only common to a subset of developers. But first, it's true that the route they propose would work, and I have to explain the pros and cons vs what we proposed, or a variant thereof, and it's also true that shared knowledge of decomposing the RID is a bad smell. I guess the search api endpoint could just return the RESTful URLs, with the rid playing the same role as sameAs in the jsonld design. But then the internal references would probably use source_local_id or RID, not RESTful URLs, so the translation would still be there.
+
+---
+
+Let's iterate first. Should the first route (lookup) then not provide a 301? It's an extra round-trip, I guess...
+The only unique space identifier we have now is the URI. You proposed replacing it with the space key, and that's reasonable, but not unique. 
+I agree fully client splitting is an anti-pattern. But when you say "the server should write the link next to the rid", that makes sense but it's clearly an extension to the CrossApp format! (Though it does follow the pattern of the atproto broker.)
+
+---
+
+1. Right. 2. That's what I want, but it means we have to sell 3. I fear they'll choose c, unless I sell the value of link-following. But you made a good point for them: At the internal level, there should not be two distinct identities, even if we find a way to push the link alongside. There being two identities is confusing for no good reason. And if there is only one, it should probably be the RID. The dual identity only makes sense in the JSON-LD world.
+
+---
+
+Not where I want to land, but besides being a strategic retreat as you point out, I am getting less and less happy with the dual-identity smell. I don't think your list of what we give up would convince anyone. I would add simple link-following, and maybe that's worth making a case, but... I'm not even sure I would buy it. What annoys me the most (and not them) is that the containment hierarchy between nodes and spaces is totally hidden. (I understand what you say about query string being part of REST, but it flies against my instincts as well as convention.) So... nothing strong enough.
+
+---
+
+I think we still have to build the argument about why containment in URL is useful for JSON-LD. We explained how it's possible, but we should explain why the convention is beneficial.
+
+---
+
+Yes.
+
+---
+
+yes.
+
+---
+
+yes to the reword. I'm fine with Roam being the reference version, but just add a note in the local copy that it is obsolete and a link to roam.
+
+---
+
+Ok. I squashed mira-collab. Note that writing and validating nodes is not yet fully functional, but we can read nodes, such as http://localhost:3000/api/content/65215/156598 . How long should it take to make the changes to have a good web view of the node? Assume we're dealing with public nodes. Let's try to modify both /api/content and /api/data to use the new routes we decided on. We want to add the sameAs with the Rid. Making the node content look exactly like Roam is out of scope, but a relations panel would be nice.
+
+---
+
+1 yes, including the isolation. 2. yes.
+
+---
+
+It works after a restart. Note that I published a relation, so http://localhost:3000/api/data/roam/discourse-dev-graph/J2-dESZJc?schema=true&context=true gives it
+
+---
+
+Yes
+
+---
+
+Actually forget the importer, that is for later.
+
+---
+
+Actually let's think this through. Should we provide each referenced space as a prefix in the context, maintaining CURIEs? (We could locally define s1, s2, s3...) Or use full URIs when appropriate? We should still certainly have CURIEs for local nodes.
+
+---
+
+here is nice, but it can wait.
+
+---
+
+Question: Should we have two versions, one with the raw content which can be referenced by the JSON-LD, and one with the full web view? Or do you think the fact that we're referencing the raw content with the #content hash still good even with the full view? The full view will take longer to build, I guess.
+
+---
+
+I think two paths. The link to data should actually be the canonical rel. One thing: Can I justify the hierarchy there? Maybe `node?rid=` is fine for the web views...
+
+---
+
+I like item 4, it's simple. I think... forget canonical and content negociation, it adds complexity for no good reason. I'm uneasy about calling the public view "node", as it includes schemas and relations. How about "display"? (Not sure) I would like it to keep the #content structure. Ah, and in another session you mentioned that the json-ld stanza should be outside of the #content block, which I think is correct. Good point about #content not working for markdown, maybe I should remove it from the JSON-LD centric reference.
+
+---
+
+Yes.
+
+---
+
+Oh actually I'd still like the content route to have the JSON-LD metadata. It could be in the HEAD?
+
+---
+
+Relation whose other end is private: not really needed. We only publish relations when both ends are public. Obsidian example: http://localhost:3000/display/obsidian/837541d3a06d1871/01a11c81-172e-7f42-9ccd-8a1fef7afc69
+
+---
+
+Sorry, added it.
+
+---
+
+Yes, the yaml should be a collapsable CODE block, I guess. Ah, I get an error from NextJS on the page, probably on backend code: 
+
+
+<pasted_content id="9462">
+## Error Type
+Runtime TypeError
+
+## Error Message
+r["@context"].toLowerCase is not a function. (In 'r["@context"].toLowerCase()', 'r["@context"].toLowerCase' is undefined)
+
+Next.js version: 16.2.6 (Turbopack)
+</pasted_content id="9462">
+
+---
+
+Could be about safari extension. Btw, it should not be a collapsable block in the raw content!
+
+---
+
+Actually... I'm thinking to make the point about hierarchies, we should have a display view of the space, with a list of readable nodes.
+
+---
+
+Yes, that was midflight. Solved. Ah, and maybe instance lists for the schema pages...
+
+---
+
+And the instance pages name their type, that should also be a link
+
+---
+
+Great! I introduced a twist: Cross-space relations. See http://localhost:3000/display/obsidian/5aeec47f0b628848/019e4ffd-0207-7340-84df-071b6731e8b2 for example. It works great already, but it would be nice to have a marker that this is crossing space boundaries.
+
+---
+
+The badge works. Actually puzzled that we cannot read anonymously, everything seems to be in place.
+
+---
+
+Ah, I was looking at the wrong space, sorry. Noting that the obsidian space page does not show the relations; maybe it's confused by that I published the relation and not the relation triple?
+
+---
+
+No, I see the interest, but I think that may be confusing. Maybe what would be easier is a link to the relation object in the relation list of the node instance. (Maybe with a link icon to avoid adding text)
+
+---
+
+Thank you. Ok, amazing work. I checked it in as a new commit on a new branch (mira-collab2). Now... I'm thinking that I would like to keep two branches, old and new url schemes; but each branch would have two commits (above eng-1837), one just the read, which works, and then the import machinery, which does not work yet. I normally do the git work, but in this case it's a lot of finicky surgery, could you do it?
+
+---
+
+Ok. I've also actually reset mira-collab2 to read-only, and the second commit is on mira-collab2-write.
+
+---
+
+Good. There's one last piece of work to do to make this something people can play with: In the publish button in roam and obsidian, we show the groups we're part of. Let's add a publish to web button. It will reuse the publishing machinery, but use the everyone group. It could also open the page in the browser after it's published.

@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M7VD7G216DF5XXA222G9WAR8",
+  "strategy": "manual-commit",
+  "branch": "mira-collab2",
+  "checkpoints_count": 33,
+  "files_touched": [
+    "apps/obsidian/src/components/ConfirmationModal.tsx",
+    "apps/obsidian/src/components/PublishGroupDropdown.tsx",
+    "apps/obsidian/src/components/PublishGroupSuggestModal.tsx",
+    "apps/obsidian/src/utils/publishGroupSelection.ts",
+    "apps/roam/src/components/Export.tsx",
+    "apps/roam/src/utils/__tests__/publishNodesToGroups.test.ts",
+    "apps/roam/src/utils/publishNodesToGroups.ts",
+    "apps/website/app/(display)/display/page.tsx",
+    "apps/website/app/utils/conversion/nodeAddress.ts",
+    "apps/website/test/unit/nodeAddress.test.ts",
+    "packages/database/src/lib/groups.ts",
+    "packages/utils/src/execContext.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 660,
+    "cache_creation_tokens": 705228,
+    "cache_read_tokens": 87391597,
+    "output_tokens": 246878,
+    "api_call_count": 291
+  }
+}
