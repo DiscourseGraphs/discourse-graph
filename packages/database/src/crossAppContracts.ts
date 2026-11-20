@@ -121,3 +121,12 @@ export type CrossAppRelation = CrossAppBase & {
   destination: LocalId | Rid;
   /* eslint-enable @typescript-eslint/no-duplicate-type-constituents */
 };
+
+// The root types written to one space in a single upsert
+export type CrossAppUpsertData = {
+  nodeSchemas?: CrossAppNodeSchema[];
+  relationTypeSchemas?: CrossAppRelationTypeSchema[];
+  relationTripleSchemas?: CrossAppRelationTripleSchema[];
+  nodes?: CrossAppNode[];
+  relations?: CrossAppRelation[];
+};
