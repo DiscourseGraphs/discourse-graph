@@ -94,10 +94,6 @@ export default /* css */ `
   pointer-events: none;
 }
 
-.dg-tiny-hand-pointer {
-  filter: drop-shadow(1px 2px 2px #0005);
-}
-
 .dg-tiny-hand-controls {
   position: absolute;
   z-index: calc(var(--layer-panels) - 1);
@@ -122,15 +118,6 @@ export default /* css */ `
 
 .dg-tiny-hand-controls button[aria-pressed="true"] {
   color: var(--color-selected);
-}
-
-.dg-tiny-hand-tap {
-  animation: dg-tiny-hand-tap 450ms ease-out both;
-}
-
-@keyframes dg-tiny-hand-tap {
-  from { opacity: 1; }
-  to { opacity: 0; }
 }
 
 /* Clipboard toggle button in toolbar */
