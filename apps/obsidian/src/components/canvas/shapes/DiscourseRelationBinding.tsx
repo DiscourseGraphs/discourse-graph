@@ -189,8 +189,7 @@ export class DiscourseRelationBindingUtil extends BaseRelationBindingUtil {
   static override type = "discourse-relation" as const;
 }
 
-// eslint-disable-next-line preferArrows/prefer-arrow-functions
-function arrowDidUpdate(editor: Editor, arrow: DiscourseRelationShape) {
+const arrowDidUpdate = (editor: Editor, arrow: DiscourseRelationShape) => {
   const bindings = getArrowBindings(editor, arrow);
   // if the shape is an arrow and its bound shape is on another page
   // or was deleted, unbind it
@@ -211,10 +210,9 @@ function arrowDidUpdate(editor: Editor, arrow: DiscourseRelationShape) {
 
   // always check the arrow parents
   reparentArrow(editor, arrow.id);
-}
+};
 
-// eslint-disable-next-line preferArrows/prefer-arrow-functions
-function reparentArrow(editor: Editor, arrowId: TLShapeId) {
+const reparentArrow = (editor: Editor, arrowId: TLShapeId) => {
   const arrow = editor.getShape<DiscourseRelationShape>(arrowId);
   if (!arrow) return;
   const bindings = getArrowBindings(editor, arrow);
@@ -275,8 +273,7 @@ function reparentArrow(editor: Editor, arrowId: TLShapeId) {
   const higherSiblings = editor
     .getSortedChildIdsForParent(highestSibling.parentId)
     .map((id) => editor.getShape(id)!)
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    .filter((sibling) => sibling.index > highestSibling!.index);
+    .filter((sibling) => sibling.index > highestSibling.index);
 
   if (higherSiblings.length) {
     // there are siblings above the highest bound sibling, we need to
@@ -317,14 +314,13 @@ function reparentArrow(editor: Editor, arrowId: TLShapeId) {
       { id: arrowId, type: arrow.type, index: finalIndex },
     ]);
   }
-}
+};
 
-// eslint-disable-next-line preferArrows/prefer-arrow-functions
-function getShapeNearestSibling(
+const getShapeNearestSibling = (
   editor: Editor,
   siblingShape: TLShape,
   targetShape: TLShape | undefined,
-): TLShape | undefined {
+): TLShape | undefined => {
   if (!targetShape) {
     return undefined;
   }
@@ -338,10 +334,9 @@ function getShapeNearestSibling(
   );
 
   return ancestor;
-}
+};
 
-// eslint-disable-next-line preferArrows/prefer-arrow-functions
-export function updateArrowTerminal({
+export const updateArrowTerminal = ({
   editor,
   arrow,
   terminal,
@@ -353,7 +348,7 @@ export function updateArrowTerminal({
   terminal: "start" | "end";
   unbind?: boolean;
   useHandle?: boolean;
-}) {
+}) => {
   const info = getArrowInfo(editor, arrow);
   if (!info) {
     throw new Error("expected arrow info");
@@ -404,15 +399,15 @@ export function updateArrowTerminal({
   if (unbind) {
     removeArrowBinding(editor, arrow, terminal);
   }
-}
+};
 
-// eslint-disable-next-line preferArrows/prefer-arrow-functions, max-params
-function intersectLineSegmentCircle(
+const intersectLineSegmentCircle = (
   a1: VecLike,
   a2: VecLike,
   c: VecLike,
   r: number,
-) {
+  // eslint-disable-next-line max-params -- mirrors tldraw's intersectLineSegmentCircle signature
+) => {
   const a = (a2.x - a1.x) * (a2.x - a1.x) + (a2.y - a1.y) * (a2.y - a1.y);
   const b = 2 * ((a2.x - a1.x) * (a1.x - c.x) + (a2.y - a1.y) * (a1.y - c.y));
   const cc =
@@ -446,4 +441,4 @@ function intersectLineSegmentCircle(
   if (result.length === 0) return null; // no intersection
 
   return result;
-}
+};
