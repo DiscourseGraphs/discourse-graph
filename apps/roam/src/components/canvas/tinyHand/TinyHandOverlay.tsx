@@ -65,11 +65,7 @@ const ActiveTinyHand = ({
     },
     [editor],
   );
-  const gesture = useRef<{
-    id: number;
-    stroke: TinyHandStroke;
-    touchSoundPending: boolean;
-  } | null>(null);
+  const gesture = useRef<{ id: number; stroke: TinyHandStroke } | null>(null);
   const audio = useRef<HTMLAudioElement | null>(null);
   const [pressed, setPressed] = useState(false);
   const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null);
@@ -135,16 +131,14 @@ const ActiveTinyHand = ({
 
     editor.focus();
     event.currentTarget.setPointerCapture(event.pointerId);
-    // A second touch can turn this press into a silent canvas pinch.
-    const touchSoundPending = event.pointerType === "touch";
     gesture.current = {
-      touchSoundPending,
       id: event.pointerId,
       stroke: startTinyHandStroke(pointFromEvent(event)),
     };
     movePointer(event);
     setPressed(true);
-    if (!touchSoundPending) playTap();
+    // A touch can still turn into a pinch after the first finger starts drawing.
+    if (event.pointerType !== "touch") playTap();
   };
 
   const onPointerMove = (event: PointerEvent): void => {
@@ -162,12 +156,7 @@ const ActiveTinyHand = ({
       z,
     );
     const { path } = gesture.current.stroke;
-    if (!path) return;
-    if (gesture.current.touchSoundPending) {
-      gesture.current.touchSoundPending = false;
-      playTap();
-    }
-    setPreview({ path, arrow: event.metaKey || event.ctrlKey });
+    if (path) setPreview({ path, arrow: event.metaKey || event.ctrlKey });
   };
 
   const onPointerUp = (event: PointerEvent): void => {
@@ -176,7 +165,7 @@ const ActiveTinyHand = ({
     event.stopPropagation();
     if (gesture.current?.id !== event.pointerId) return;
 
-    if (gesture.current.touchSoundPending) playTap();
+    if (event.pointerType === "touch") playTap();
     const { path } = extendTinyHandStroke(
       gesture.current.stroke,
       pointFromEvent(event),
