@@ -13,7 +13,7 @@ import {
 } from "./supabaseContext";
 import { default as DiscourseGraphPlugin } from "~/index";
 import { ensurePublishedRelationsAccuracy } from "./publishNode";
-import { buildNodeContentsWithEmbeddings } from "./upsertNodesAsContentWithEmbeddings";
+import { buildChangedNodeContent } from "./upsertNodesAsContentWithEmbeddings";
 import {
   orderConceptsByDependency,
   discourseNodeInstanceToLocalConcept,
@@ -854,24 +854,21 @@ const convertDgToSupabaseConcepts = async ({
     spaceId: context.spaceId,
     pendingNodeIds: new Set(nodesSince.map((node) => node.nodeInstanceId)),
   });
-  const contentsByNodeId = await buildNodeContentsWithEmbeddings({
+  const contentsByNodeId = await buildChangedNodeContent({
     obsidianNodes: nodesSince,
-    accountLocalId,
     plugin,
   });
-  const nodeInstanceToLocalConcepts = nodesSince.map((node) => {
-    return {
-      ...discourseNodeInstanceToLocalConcept({
-        context,
-        nodeData: {
-          ...node,
-          sourceDocument: sourceSlotByNodeId[node.nodeInstanceId],
-        },
-        nodeTypesById,
-      }),
-      contents_inline: contentsByNodeId[node.nodeInstanceId],
-    };
-  });
+  const nodeInstanceToLocalConcepts = nodesSince.map((node) =>
+    discourseNodeInstanceToLocalConcept({
+      accountLocalId,
+      nodeData: {
+        ...node,
+        sourceDocument: sourceSlotByNodeId[node.nodeInstanceId],
+      },
+      nodeTypesById,
+      changedContent: contentsByNodeId[node.nodeInstanceId],
+    }),
+  );
 
   const relationInstanceToLocalConcepts = relationInstances
     .filter(

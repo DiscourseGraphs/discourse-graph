@@ -6,14 +6,6 @@ import {
   discourseNodeInstanceToLocalConcept,
   discourseNodeSchemaToLocalConcept,
 } from "~/utils/conceptConversion";
-import type { SupabaseContext } from "~/utils/supabaseContext";
-
-const CONTEXT: SupabaseContext = {
-  platform: "Obsidian",
-  spaceId: 1,
-  userId: 2,
-  spacePassword: "",
-};
 
 const conceptFor = ({
   format,
@@ -28,14 +20,14 @@ const conceptFor = ({
   file.basename = basename;
   file.path = `${basename}.md`;
   return discourseNodeInstanceToLocalConcept({
-    context: CONTEXT,
+    accountLocalId: "account-1",
     nodeData: {
       file,
       frontmatter: { nodeInstanceId: "node-1", nodeTypeId: "type-1" },
       nodeTypeId: "type-1",
       nodeInstanceId: "node-1",
-      created: "",
-      last_modified: "",
+      created: "2026-10-01T00:00:00.000Z",
+      last_modified: "2026-10-02T00:00:00.000Z",
       changeTypes: [],
       sourceDocument,
     },
@@ -88,6 +80,14 @@ describe("discourseNodeInstanceToLocalConcept source", () => {
         basename: "EVD - Evidence title",
       }),
     ).not.toHaveProperty("local_reference_content");
+  });
+});
+
+describe("discourseNodeInstanceToLocalConcept Content", () => {
+  it("sends no Content for a node whose title and text are unchanged", () => {
+    expect(
+      conceptFor({ format: "CLM - {content}", basename: "CLM - sleep" }),
+    ).not.toHaveProperty("contents_inline");
   });
 });
 

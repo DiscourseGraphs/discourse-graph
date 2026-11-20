@@ -1,4 +1,3 @@
-import type { TFile } from "obsidian";
 import type {
   DiscourseNode,
   DiscourseRelation,
@@ -10,39 +9,22 @@ import type { DiscourseNodeInVault } from "./getDiscourseNodes";
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
 import type { ObsidianDiscourseNodeData } from "./syncDgNodesToSupabase";
 import type { Json } from "@repo/database/dbTypes";
+import type { ChangedNodeContent } from "./upsertNodesAsContentWithEmbeddings";
 import {
   crossAppNodeSchemaToDbConcept,
+  crossAppNodeToDbConcept,
   crossAppRelationTripleSchemaToDbConcept,
   crossAppRelationTypeSchemaToDbConcept,
 } from "@repo/database/lib/crossAppConverters";
-import { extractContentFromTitle } from "@repo/database/lib/extractContentFromTitle";
-import { SOURCE_SLOT } from "~/constants";
 import {
+  nodeInstanceToCrossApp,
   nodeTypeToCrossApp,
   relationTripleToCrossApp,
   relationTypeToCrossApp,
 } from "./obsidianToCrossAppConverters";
 
-/**
- * Get extra data (author, timestamps) from file metadata
- */
-const getNodeExtraData = (
-  file: TFile,
-  author_id: number,
-): {
-  author_id: number;
-  created: string;
-  last_modified: string;
-} => {
-  return {
-    author_id,
-    created: new Date(file.stat.ctime).toISOString(),
-    last_modified: new Date(file.stat.mtime).toISOString(),
-  };
-};
-
-// The shared converters build each schema row from its CrossApp type. The values
-// set after them have no CrossApp field, so each one needs a field, or has to stop
+// The shared converters build each row from its CrossApp type. The values set
+// after them have no CrossApp field, so each one needs a field, or has to stop
 // being stored, before sync can send CrossApp objects instead of rows.
 export const discourseNodeSchemaToLocalConcept = ({
   accountLocalId,
@@ -153,39 +135,49 @@ export const discourseRelationTripleSchemaToLocalConcept = ({
  * Convert discourse node instance (file) to LocalConceptDataInput
  */
 export const discourseNodeInstanceToLocalConcept = ({
-  context,
+  accountLocalId,
   nodeData,
   nodeTypesById,
+  changedContent,
 }: {
-  context: SupabaseContext;
+  accountLocalId: string;
   nodeData: ObsidianDiscourseNodeData;
   nodeTypesById: Record<string, DiscourseNode>;
+  changedContent?: ChangedNodeContent;
 }): LocalConceptDataInput => {
-  const extraData = getNodeExtraData(nodeData.file, context.userId);
-  const { nodeInstanceId, nodeTypeId, importedFromRid, ...otherData } =
-    nodeData.frontmatter;
-  const literal_content: Record<string, Json> = {
-    label: nodeData.file.basename,
-    core_title: extractContentFromTitle(
-      nodeTypesById[nodeData.nodeTypeId]?.format ?? "",
-      nodeData.file.basename,
-    ),
-    source_data: otherData as unknown as Json,
-  };
-  if (importedFromRid && typeof importedFromRid === "string")
-    literal_content.importedFromRid = importedFromRid;
-  const sourceDocumentId = nodeData.sourceDocument;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- exclude the ids from source_data
+  const { nodeInstanceId, nodeTypeId, ...otherData } = nodeData.frontmatter;
+  const { contents_inline: convertedContents = [], ...concept } =
+    crossAppNodeToDbConcept(
+      nodeInstanceToCrossApp({
+        nodeData,
+        format: nodeTypesById[nodeData.nodeTypeId]?.format,
+        accountLocalId,
+        changedContent,
+      }),
+    );
+  const contents = convertedContents
+    .filter(
+      (content) =>
+        content.variant !== "direct" || nodeData.changeTypes.includes("title"),
+    )
+    .map((content) => ({
+      ...content,
+      creator_local_id: accountLocalId,
+      metadata:
+        content.variant === "direct"
+          ? { filePath: nodeData.file.path }
+          : (nodeData.frontmatter as Json),
+    }));
   return {
-    space_id: context.spaceId,
+    ...concept,
     name: nodeData.file.path,
-    source_local_id: nodeInstanceId as string,
-    schema_represented_by_local_id: nodeTypeId as string,
-    is_schema: false,
-    literal_content,
-    ...(sourceDocumentId
-      ? { local_reference_content: { [SOURCE_SLOT]: sourceDocumentId } }
-      : {}),
-    ...extraData,
+    literal_content: {
+      ...(concept.literal_content as Record<string, Json>),
+      label: nodeData.file.basename,
+      source_data: otherData as unknown as Json,
+    },
+    ...(contents.length > 0 ? { contents_inline: contents } : {}),
   };
 };
 
