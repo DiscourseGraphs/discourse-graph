@@ -46,3 +46,11 @@ For the cloud canvas sync, I think it's actually simple enough of a change that,
 ---
 
 Okay, sorry, I probably misnamed this. Let's assume, instead of "keep offline Roam graphs out of DG Cloud services," it should be "prevent new offline Roam graphs from enabling cloud services." Let's assume there are none currently. What would you change in the ticket and the PR in that case for the most minimal changes that we can make in a PR to just disable new offline services?
+
+---
+
+Okay, go ahead and do that.
+
+---
+
+And that does not stay in scope: a copy of a hosted graph offline. Don't worry about that scope.
