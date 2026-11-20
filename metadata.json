@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M7X8NS64Z4VGH04FHCQZY6DG",
+  "strategy": "manual-commit",
+  "branch": "eng-2478-add-a-type-filter-panel-to-the-obsidian-node",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/obsidian/src/components/NodeSummonMenu.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 38,
+    "cache_creation_tokens": 17118,
+    "cache_read_tokens": 3846956,
+    "output_tokens": 7623,
+    "api_call_count": 15,
+    "subagent_tokens": {
+      "input_tokens": 4,
+      "cache_creation_tokens": 10277,
+      "cache_read_tokens": 136002,
+      "output_tokens": 1613,
+      "api_call_count": 2
+    }
+  }
+}
