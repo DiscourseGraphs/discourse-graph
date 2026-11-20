@@ -1,0 +1,57 @@
+name: Obsidian store scan
+on:
+  pull_request:
+    paths:
+      - "apps/obsidian/**"
+      - "packages/database/**"
+      - "packages/utils/**"
+      - ".github/workflows/obsidian-store-scan.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.15.1
+          run_install: false
+
+      - name: Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      # Without workspace deps the scanner can't type-check .tsx files and skips them as passing.
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      # obsidianmd/obsidian-workflows v1.2.3, the community directory's scanner.
+      - name: Checkout Obsidian workflows
+        uses: actions/checkout@v6
+        with:
+          repository: obsidianmd/obsidian-workflows
+          ref: 8167caed39664214d82c86fdfa32e06d8d55f61d
+          path: .obsidian-workflows
+
+      - name: Setup node for the scanner
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      # A `uses:` step always scans the repo root, so run the action's entry from the plugin folder.
+      - name: Scan the plugin as the community directory does
+        working-directory: ./apps/obsidian
+        run: GITHUB_WORKSPACE="$PWD" node "$GITHUB_WORKSPACE/.obsidian-workflows/dist/index.js"
+        env:
+          INPUT_TYPE: plugin
+          INPUT_MODE: pr
+          INPUT_BUILD: "false"
+          INPUT_SCANNER-LINT: "true"
+          INPUT_STRICT: "true"
