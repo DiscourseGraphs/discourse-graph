@@ -3,6 +3,7 @@ import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserD
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
 import canonicalRoamUrl from "./canonicalRoamUrl";
+import { getHostedRoamGraphName } from "./roamCloudAccess";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import getBlockProps from "~/utils/getBlockProps";
 import setBlockProps from "~/utils/setBlockProps";
@@ -27,7 +28,28 @@ export type SupabaseContext = {
   spacePassword: string;
 };
 
-let _contextCache: SupabaseContext | null = null;
+type GraphConnection = {
+  name: string;
+  accountLocalId: string;
+  context: Promise<SupabaseContext | null> | null;
+  client: DGSupabaseClient | null;
+};
+
+let activeConnection: GraphConnection | null = null;
+
+const getGraphConnection = (): GraphConnection | null => {
+  const name = getHostedRoamGraphName();
+  const accountLocalId = name ? window.roamAlphaAPI.user.uid() : null;
+  if (!name || !accountLocalId) {
+    activeConnection = null;
+  } else if (
+    activeConnection?.name !== name ||
+    activeConnection.accountLocalId !== accountLocalId
+  ) {
+    activeConnection = { name, accountLocalId, context: null, client: null };
+  }
+  return activeConnection;
+};
 
 const getOrCreateSpacePassword = () => {
   const settingsConfigPageUid = getPageUidByPageTitle(
@@ -44,79 +66,91 @@ const getOrCreateSpacePassword = () => {
   return password;
 };
 
-// Note: calls in this file will still use vercel endpoints.
-// It is better if this is still at least protected by CORS.
-// But calls anywhere else should use the supabase client directly.
-
-export const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
-  if (_contextCache === null) {
-    try {
-      const accountLocalId = window.roamAlphaAPI.user.uid();
-      if (!accountLocalId) throw new Error("Could not get user UID");
-      const spacePassword = getOrCreateSpacePassword();
-      const personEmail = getCurrentUserEmail();
-      const personName = getCurrentUserDisplayName();
-      const spaceName = window.roamAlphaAPI.graph.name;
-      const url = canonicalRoamUrl(spaceName);
-      const platform: Platform = "Roam";
-      const spaceResult = await fetchOrCreateSpaceDirect({
-        password: spacePassword,
-        url,
-        name: spaceName,
-        platform,
-      });
-      if (!spaceResult.data) {
-        console.error("Failed to create space");
-        return null;
-      }
-      const spaceId = spaceResult.data.id;
-      const userId = await fetchOrCreatePlatformAccount({
-        platform: "Roam",
-        accountLocalId,
-        name: personName,
-        email: personEmail,
-        spaceId,
-        password: spacePassword,
-      });
-      _contextCache = {
-        platform: "Roam",
-        spaceId,
-        userId,
-        spacePassword,
-      };
-    } catch (error) {
-      console.error(error);
-      if (error instanceof FatalError) throw error;
+const loadContext = async (
+  connection: GraphConnection,
+): Promise<SupabaseContext | null> => {
+  try {
+    const { name, accountLocalId } = connection;
+    const spacePassword = getOrCreateSpacePassword();
+    const personEmail = getCurrentUserEmail();
+    const personName = getCurrentUserDisplayName();
+    const platform: Platform = "Roam";
+    const spaceResult = await fetchOrCreateSpaceDirect({
+      password: spacePassword,
+      url: canonicalRoamUrl(name),
+      name,
+      platform,
+    });
+    if (connection !== getGraphConnection()) return null;
+    if (!spaceResult.data) {
+      console.error("Failed to create space");
       return null;
     }
+
+    const spaceId = spaceResult.data.id;
+    const userId = await fetchOrCreatePlatformAccount({
+      platform,
+      accountLocalId,
+      name: personName,
+      email: personEmail,
+      spaceId,
+      password: spacePassword,
+    });
+    return { platform, spaceId, userId, spacePassword };
+  } catch (error) {
+    console.error(error);
+    if (error instanceof FatalError) throw error;
+    return null;
   }
-  return _contextCache;
 };
 
-let loggedInClient: DGSupabaseClient | null = null;
+export const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
+  const connection = getGraphConnection();
+  if (!connection) return null;
+
+  const pending = (connection.context ??= loadContext(connection));
+  let context: SupabaseContext | null = null;
+  try {
+    context = await pending;
+    return connection === getGraphConnection() ? context : null;
+  } finally {
+    if (!context && connection.context === pending) connection.context = null;
+  }
+};
 
 export const getLoggedInClient = async (): Promise<DGSupabaseClient | null> => {
-  if (loggedInClient !== null) {
-    // renew session
-    const { error } = await loggedInClient.auth.getSession();
-    if (error) {
-      loggedInClient = null;
+  const connection = getGraphConnection();
+  if (!connection) return null;
+
+  const cachedClient = connection.client;
+  if (cachedClient) {
+    const { error } = await cachedClient.auth.getSession();
+    if (connection !== getGraphConnection()) return null;
+    if (!error) return cachedClient;
+    connection.client = null;
+  }
+
+  const context = await getSupabaseContext();
+  if (connection !== getGraphConnection()) return null;
+  if (!context) {
+    internalError({ error: "Could not create context" });
+    return null;
+  }
+
+  try {
+    const client = await createLoggedInClient({
+      platform: context.platform,
+      spaceId: context.spaceId,
+      password: context.spacePassword,
+    });
+    if (connection !== getGraphConnection()) return null;
+
+    connection.client = client;
+    return client;
+  } catch (error) {
+    if (connection === getGraphConnection()) {
+      internalError({ error, userMessage: "Could not access database" });
     }
+    return null;
   }
-  if (loggedInClient === null) {
-    const context = await getSupabaseContext();
-    if (context === null) {
-      internalError({ error: "Could not create context" });
-    } else
-      try {
-        loggedInClient = await createLoggedInClient({
-          platform: context.platform,
-          spaceId: context.spaceId,
-          password: context.spacePassword,
-        });
-      } catch (error) {
-        internalError({ error, userMessage: "Could not access database" });
-      }
-  }
-  return loggedInClient;
 };

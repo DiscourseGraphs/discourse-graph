@@ -19,6 +19,7 @@ import {
 const seedWindow = (featureFlags: Record<string, boolean>) => {
   (globalThis as { window: unknown }).window = {
     roamAlphaAPI: {
+      graph: { type: "hosted", name: "sample" },
       user: { uid: () => "user-1" },
       util: { generateUID: () => "someUid" },
       pull: () => ({

@@ -49,6 +49,7 @@ import type { Json, Enums } from "@repo/database/dbTypes";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import internalError from "~/utils/internalError";
 import { isSyncEnabled } from "~/components/settings/utils/accessors";
+import { canUseRoamCloud, getHostedRoamGraphName } from "./roamCloudAccess";
 import { FatalError } from "@repo/database/lib/contextFunctions";
 import { getAllPages } from "@repo/database/lib/pagination";
 import { isRid } from "@repo/database/lib/rid";
@@ -1259,7 +1260,11 @@ export const createOrUpdateDiscourseEmbedding = async (
   showToast = false,
   sendAll?: boolean,
 ): Promise<void> => {
-  if (!doSync) return;
+  const graphName = getHostedRoamGraphName();
+  if (!doSync || !graphName) return;
+
+  const isCurrentGraph = (): boolean =>
+    doSync && getHostedRoamGraphName() === graphName;
   console.debug("starting createOrUpdateDiscourseEmbedding");
   const startTime = new Date();
   const attemptId = createRuntimeId();
@@ -1320,6 +1325,7 @@ export const createOrUpdateDiscourseEmbedding = async (
       phases,
       operation: getLoggedInClient,
     });
+    if (!isCurrentGraph()) return;
     if (!supabaseClient) {
       // TODO: Distinguish connection vs credentials error
       throw new Error("Could not log in to client.");
@@ -1329,6 +1335,7 @@ export const createOrUpdateDiscourseEmbedding = async (
       phases,
       operation: getSupabaseContext,
     });
+    if (!isCurrentGraph()) return;
     if (!context) {
       // not worth retrying: setup error
       throw new FatalError("Error connecting to client.");
@@ -1347,6 +1354,7 @@ export const createOrUpdateDiscourseEmbedding = async (
             context: activeContext,
           }),
       });
+    if (!isCurrentGraph()) return;
     if (!shouldProceed) {
       if (nextUpdateTime === undefined) {
         failureReason = "Can't obtain sync task";
@@ -1509,6 +1517,7 @@ export const createOrUpdateDiscourseEmbedding = async (
       sharedFullContentUpdates.map((update) => update.nodeType.type),
     );
 
+    if (!isCurrentGraph()) return;
     await measureSyncPhase({
       phase: "upsertUsers",
       phases,
@@ -1537,6 +1546,7 @@ export const createOrUpdateDiscourseEmbedding = async (
           convertRoamNodeToFullContent({ nodes: sharedFullContentUpdates }),
         ),
     });
+    if (!isCurrentGraph()) return;
     const { assetResults, rowFailures } = await upsertNodesWithAssets({
       nodes: omitMissingSources({
         nodes: withFullContent(nodesToUpsert, sharedNodesWithFullContent),
@@ -1572,6 +1582,7 @@ export const createOrUpdateDiscourseEmbedding = async (
         orphaned: coreTitleBackfill.orphanedCount,
       });
     }
+    if (!isCurrentGraph()) return;
     const completeEndResult = await measureSyncPhase({
       phase: "endSyncTask",
       phases,
@@ -1700,6 +1711,8 @@ export const createOrUpdateDiscourseEmbedding = async (
 };
 
 export const initializeSupabaseSync = (): void => {
+  if (!canUseRoamCloud()) return;
+
   if (activeTimeout !== null) {
     clearTimeout(activeTimeout);
     activeTimeout = null;

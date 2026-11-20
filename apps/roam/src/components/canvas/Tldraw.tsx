@@ -124,6 +124,7 @@ import { getPersonalSetting } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import { json, normalizeProps } from "~/utils/getBlockProps";
 import { onPageRefObserverChange } from "~/utils/pageRefObserverHandlers";
+import { canUseRoamCloud } from "~/utils/roamCloudAccess";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
@@ -494,13 +495,26 @@ export const isPageUid = (uid: string) =>
     ":node/title"
   ];
 
-export const TldrawCanvas = ({ title }: { title: string }) => {
+export const TldrawCanvas = ({
+  title,
+}: {
+  title: string;
+}): React.ReactElement => {
+  const { name, type } = window.roamAlphaAPI.graph;
+  return (
+    <GraphCanvas key={JSON.stringify([type, name, title])} title={title} />
+  );
+};
+
+const GraphCanvas = ({ title }: { title: string }): React.ReactElement => {
   // In Roam, canvas identity is currently keyed by the page UID.
   // Room sync is graph/page encoded as an opaque base64url token.
   const pageUid = useMemo(() => getPageUidByPageTitle(title), [title]);
-  const [canvasSyncMode, setCanvasSyncModeState] = useState<CanvasSyncMode>(
+  const [storedSyncMode, setCanvasSyncModeState] = useState<CanvasSyncMode>(
     () => getEffectiveCanvasSyncMode({ pageUid }),
   );
+  const canUseCloud = canUseRoamCloud();
+  const canvasSyncMode = canUseCloud ? storedSyncMode : "local";
 
   const useCloudflareSync =
     canvasSyncMode === "sync" && !!TLDRAW_CLOUDFLARE_SYNC_WS_BASE_URL;
@@ -513,7 +527,7 @@ export const TldrawCanvas = ({ title }: { title: string }) => {
   // EG: When UserA sets the canvas sync mode to sync
   // UserB's canvas should be converted to sync
   useEffect(() => {
-    if (!pageUid || canvasSyncMode !== "local") return;
+    if (!canUseCloud || !pageUid || canvasSyncMode !== "local") return;
 
     const pullWatchProps = [
       "[:block/props]",
@@ -535,10 +549,11 @@ export const TldrawCanvas = ({ title }: { title: string }) => {
     return () => {
       window.roamAlphaAPI.data.removePullWatch(...pullWatchProps);
     };
-  }, [canvasSyncMode, pageUid]);
+  }, [canUseCloud, canvasSyncMode, pageUid]);
 
   const onCanvasSyncModeChange = useCallback(
     (mode: CanvasSyncMode) => {
+      if (mode === "sync" && !canUseRoamCloud()) return;
       const currentMigrationState = getCanvasSyncMigrationState({ pageUid });
       const nextMigrationState =
         mode === "sync" && !currentMigrationState ? "pending" : undefined;

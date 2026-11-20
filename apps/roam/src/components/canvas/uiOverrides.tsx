@@ -85,6 +85,7 @@ import type { Result } from "roamjs-components/types/query-builder";
 import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
+import { canUseRoamCloud } from "~/utils/roamCloudAccess";
 
 const SyncModeMenuSwitchItem = ({
   checked,
@@ -548,6 +549,7 @@ export const createUiComponents = ({
     },
     MainMenu: () => {
       const actions = useActions();
+      const canUseCloud = canUseRoamCloud();
       const CustomViewMenu = () => {
         const actions = useActions();
         return (
@@ -568,9 +570,13 @@ export const createUiComponents = ({
         <DefaultMainMenu>
           <TldrawUiMenuGroup id="sync-mode">
             <SyncModeMenuSwitchItem
-              label="(Beta) Use cloud canvas"
+              label={
+                canUseCloud
+                  ? "(Beta) Use cloud canvas"
+                  : "Cloud canvas requires a hosted Roam graph"
+              }
               checked={canvasSyncMode === "sync"}
-              disabled={canvasSyncMode === "sync"}
+              disabled={!canUseCloud || canvasSyncMode === "sync"}
               onToggle={() => {
                 void actions["toggle-cloud-sync"].onSelect("menu");
               }}
@@ -712,7 +718,7 @@ export const createUiOverrides = ({
       label: "action.toggle-cloud-sync" as TLUiTranslationKey,
       kbd: "",
       onSelect: () => {
-        if (canvasSyncMode === "sync") return;
+        if (!canUseRoamCloud() || canvasSyncMode === "sync") return;
 
         addDialog({
           component: ({ onClose }) => (
