@@ -24,7 +24,6 @@ import {
   WeakCache,
   TLResizeInfo,
   toDomPrecision,
-  useIsEditing,
   getDefaultColorTheme,
   SvgExportContext,
   TLShapeUtilCanvasSvgDef,
@@ -826,8 +825,6 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
   }
 
   component(shape: DiscourseRelationShape) {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    // const theme = useDefaultColorTheme();
     const onlySelectedShape = this.editor.getOnlySelectedShape();
     const shouldDisplayHandles =
       this.editor.isInAny(
@@ -883,8 +880,8 @@ export class DiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape> {
   }
 
   indicator(shape: DiscourseRelationShape) {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const isEditing = useIsEditing(shape.id);
+    // indicator() renders inside tldraw's state tracking, so this read stays reactive.
+    const isEditing = this.editor.getEditingShapeId() === shape.id;
 
     const info = getArrowInfo(this.editor, shape);
     if (!info) return null;

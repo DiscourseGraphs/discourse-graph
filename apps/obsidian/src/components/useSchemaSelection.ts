@@ -99,9 +99,11 @@ export const useSchemaSelection = ({
     Set<string>
   >(() => new Set(initialTemplateNames ?? source.templateNames));
 
-  // resetKey is the only trigger; source and initialTemplateNames are read
-  // from the current render's closure when resetKey changes.
-  useEffect(() => {
+  // Reset during render when resetKey changes; source and
+  // initialTemplateNames changing alone do not reset the selection.
+  const [prevResetKey, setPrevResetKey] = useState(resetKey);
+  if (resetKey !== prevResetKey) {
+    setPrevResetKey(resetKey);
     setSelectedNodeTypeIds(
       new Set(source.nodeTypes.map((nodeType) => nodeType.id)),
     );
@@ -114,8 +116,7 @@ export const useSchemaSelection = ({
     setSelectedTemplateNames(
       new Set(initialTemplateNames ?? source.templateNames),
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- selection resets only when resetKey changes
-  }, [resetKey]);
+  }
 
   const requiredRelationTypeIds = useMemo(() => {
     const requiredIds = new Set<string>();

@@ -97,8 +97,7 @@ const AddRelationship = ({
       .filter(Boolean) as DiscourseNode[];
 
     setCompatibleNodeTypes(compatibleNodeTypes);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedRelationType, activeNodeTypeId, plugin.settings]);
+  }, [selectedRelationType, activeNodeTypeId, plugin, plugin.settings]);
 
   const getAvailableRelationTypes = useCallback(() => {
     if (!activeNodeTypeId) return [];
