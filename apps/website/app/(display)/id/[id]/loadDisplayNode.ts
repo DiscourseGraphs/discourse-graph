@@ -31,7 +31,6 @@ export const loadDisplayNode = async (
     throw new Error(found.failure.error?.message);
   }
   const { space, concept, contents } = found;
-  if (concept.is_schema || concept.is_relation) return undefined;
   const schema =
     concept.schema_id === null
       ? null
@@ -54,7 +53,12 @@ export const loadDisplayNode = async (
     typeLabel:
       typeof label === "string" && label
         ? label
-        : (schema?.data?.name ?? "Node"),
+        : (schema?.data?.name ??
+          (concept.is_schema
+            ? "Schema"
+            : concept.is_relation
+              ? "Relation"
+              : "Node")),
     source: space.name,
     bodyHtml: renderNodeBody(text, space.platform),
   };

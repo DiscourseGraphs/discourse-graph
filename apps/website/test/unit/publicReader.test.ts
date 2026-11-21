@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import DisplayPage from "../../app/(display)/display/page";
-import { loadDisplayNode } from "../../app/(display)/display/loadDisplayNode";
+import DisplayPage from "../../app/(display)/id/[id]/page";
+import { loadDisplayNode } from "../../app/(display)/id/[id]/loadDisplayNode";
 
 vi.mock("@repo/database/dbDotEnv", () => ({
   envContents: () => ({
@@ -35,12 +35,18 @@ describe("public reader", () => {
       return Response.json(rows);
     });
     const html = renderToStaticMarkup(
-      await DisplayPage({ searchParams: Promise.resolve({ rid }) }),
+      await DisplayPage({
+        params: Promise.resolve({ id: encodeURIComponent(rid) }),
+      }),
     );
     expect(html).toContain("CLM - Test claim 20261008");
     expect(html).toContain("Claim · Planning vault");
     expect(html).toContain("<p>According to planning vault</p>");
     expect(html).not.toContain("hidden");
+  });
+
+  it("returns unavailable for an unrecognized resource ID", async () => {
+    expect(await loadDisplayNode("urn:other:example")).toBeUndefined();
   });
 
   it("does not render a node invisible to the public client", async () => {

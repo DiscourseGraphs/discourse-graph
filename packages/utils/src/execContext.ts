@@ -18,7 +18,7 @@ export const nextApiRoot = (): string => {
   return nextRoot() + "api";
 };
 
-// The public web page of a published node. The site resolves the RID, so
+// The public web page of a published resource. The site resolves the RID, so
 // callers never need to know how page addresses are built.
 export const displayUrlForRid = (rid: string): string =>
-  `${nextRoot()}display?rid=${encodeURIComponent(rid)}`;
+  `${nextRoot()}id/${encodeURIComponent(rid)}`;
