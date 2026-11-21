@@ -74,6 +74,63 @@ export default /* css */ `
   position: static;
 }
 
+.dg-tiny-hand-surface {
+  position: absolute;
+  inset: 0;
+  z-index: calc(var(--layer-canvas-blocker) + 1);
+  overflow: hidden;
+  cursor: none;
+  touch-action: none;
+  pointer-events: auto;
+  user-select: none;
+}
+
+.dg-tiny-hand-surface[data-interacting] {
+  pointer-events: none;
+}
+
+.dg-tiny-hand-interaction-hint {
+  align-self: center;
+  padding: 0 8px;
+  color: var(--color-text-1);
+  font-size: 12px;
+}
+
+.dg-tiny-hand-surface[data-panning] {
+  cursor: var(--tl-cursor);
+}
+
+.dg-tiny-hand-surface svg {
+  display: block;
+  pointer-events: none;
+}
+
+.dg-tiny-hand-controls {
+  position: absolute;
+  z-index: calc(var(--layer-panels) - 1);
+  left: 50%;
+  top: 44px;
+  transform: translateX(-50%);
+  display: flex;
+  width: max-content;
+  max-width: calc(100% - 12px);
+  flex-wrap: wrap;
+  justify-content: center;
+  border-radius: var(--radius-2);
+  background: var(--color-panel);
+  box-shadow: var(--shadow-2);
+  pointer-events: auto;
+}
+
+.dg-tiny-hand-controls button {
+  height: 32px;
+  padding: 0 8px;
+}
+
+.dg-tiny-hand-controls button[aria-pressed="true"] {
+  color: var(--color-selected);
+}
+
 /* Clipboard toggle button in toolbar */
 .tlui-toolbar__lock-button[data-clipboard-open="true"]::after {
   background-color: var(--color-muted-2);
