@@ -110,17 +110,14 @@ class NodeSummonMenu {
     this.view = view;
     this.triggerFrom = triggerFrom;
     this.trigger = trigger;
-    // Loaded once per opening; typing only re-ranks.
     this.nodes = new QueryEngine(plugin.app).getSearchableNodes(
       plugin.settings.nodeTypes,
     );
 
     const doc = view.dom.ownerDocument;
     this.containerEl = doc.body.createDiv({
-      // Hidden until the first reposition places it at the cursor.
       cls: "suggestion-container dg-node-summon-menu invisible",
     });
-    // Keeps focus in the editor for clicks anywhere in the menu, so typing still lands.
     this.containerEl.addEventListener("mousedown", (event) =>
       event.preventDefault(),
     );
@@ -184,7 +181,6 @@ class NodeSummonMenu {
       workspaceRefs.forEach((ref) => workspace.offref(ref)),
     );
 
-    // Scrolling moves the cursor on screen without a CodeMirror update.
     const onScroll = (): void => this.reposition();
     view.scrollDOM.addEventListener("scroll", onScroll, { passive: true });
     this.cleanupListeners.push(() =>
@@ -241,7 +237,6 @@ class NodeSummonMenu {
   private move(delta: number): boolean {
     if (this.closeIfEditorBlurred()) return true;
     const count = this.itemCount();
-    // Nothing to move through, so the editor gets the arrow key.
     if (count === 0) return true;
     this.activeIndex = (this.activeIndex + delta + count) % count;
     this.render();
@@ -351,7 +346,6 @@ class NodeSummonMenu {
     this.view.requestMeasure({
       read: (view) => view.coordsAtPos(this.triggerFrom),
       write: (coords) => {
-        // A trigger scrolled out of view would leave the menu over unrelated text.
         const scroller = this.view.scrollDOM.getBoundingClientRect();
         if (
           !coords ||

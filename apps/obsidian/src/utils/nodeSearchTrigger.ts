@@ -18,7 +18,6 @@ export const getTypedTriggerStart = ({
 // Matches Roam's limit for the same setting.
 export const MAX_NODE_SEARCH_TRIGGER_LENGTH = 5;
 
-/** Returns an error message, or null when the trigger can be saved. */
 export const validateNodeSearchTrigger = ({
   value,
   nodeTagHotkey,

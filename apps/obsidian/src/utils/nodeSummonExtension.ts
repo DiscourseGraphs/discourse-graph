@@ -22,7 +22,6 @@ const isInNonProse = (state: ViewUpdate["state"], pos: number): boolean => {
   return true;
 };
 
-// Keeps the open menu's query in sync, or closes it once the trigger is gone.
 const updateOpenMenu = (update: ViewUpdate): boolean => {
   const menu = getActiveNodeSummonMenu();
   if (!menu || menu.view !== update.view) return false;
@@ -58,7 +57,6 @@ const updateOpenMenu = (update: ViewUpdate): boolean => {
 
   menu.triggerFrom = triggerFrom;
   menu.setQuery(query);
-  // Text inserted above the trigger moves it on screen.
   if (update.docChanged || update.geometryChanged) menu.reposition();
   return true;
 };
