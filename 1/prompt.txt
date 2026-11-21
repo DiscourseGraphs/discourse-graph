@@ -65,3 +65,7 @@
 ---
 
 help me resolve conflict for this current branch after i mereged eng-893 there's some merge conflict
+
+---
+
+Currently, the documentation branch contains changes that have nothing to do with documentations, like code changes or test adding. So we should remove it from this branch in this PR and push up the trim to the remote branch.
