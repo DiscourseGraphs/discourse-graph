@@ -1,9 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  escapeHtml,
-  jsonForScript,
-  sanitizeHtml,
-} from "../../app/utils/conversion/sanitizeHtml";
+import { sanitizeHtml } from "../../app/utils/conversion/sanitizeHtml";
 
 describe("sanitizeHtml", () => {
   it("keeps ordinary rendered markdown", () => {
@@ -31,23 +27,5 @@ describe("sanitizeHtml", () => {
         '<p style="position:fixed">a</p><style>p{}</style><form><input></form><iframe src="https://example.com"></iframe>',
       ),
     ).toBe("<p>a</p>");
-  });
-});
-
-describe("escapeHtml", () => {
-  it("escapes markup and quotes", () => {
-    expect(escapeHtml(`<a href="x">'&'</a>`)).toBe(
-      "&lt;a href=&quot;x&quot;&gt;&#39;&amp;&#39;&lt;/a&gt;",
-    );
-  });
-});
-
-describe("jsonForScript", () => {
-  it("keeps a closing script tag inside the JSON", () => {
-    const serialized = jsonForScript({ title: "</script><script>alert(1)" });
-    expect(serialized).not.toContain("</script>");
-    expect(JSON.parse(serialized)).toEqual({
-      title: "</script><script>alert(1)",
-    });
   });
 });

@@ -92,7 +92,7 @@ import {
   type MyGroup,
 } from "@repo/database/lib/groups";
 import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
-import { displayUrlForRid, displayUrlForSpace } from "@repo/utils/execContext";
+import { displayUrlForRid } from "@repo/utils/execContext";
 import canonicalRoamUrl from "~/utils/canonicalRoamUrl";
 import {
   getAllPublishedIdsByGroup,
@@ -894,13 +894,11 @@ const ExportDialog: ExportDialogComponent = ({
 
   const openPublishedPage = (publishedNodeUids: string[]): void => {
     const spaceUrl = canonicalRoamUrl(window.roamAlphaAPI.graph.name);
-    const [onlyNodeUid] = publishedNodeUids;
-    const url =
-      publishedNodeUids.length === 1 && onlyNodeUid
-        ? displayUrlForRid(
-            spaceUriAndLocalIdToRid(spaceUrl, onlyNodeUid, "note"),
-          )
-        : displayUrlForSpace(spaceUrl);
+    const [uid] = publishedNodeUids;
+    if (publishedNodeUids.length !== 1 || !uid) return;
+    const url = displayUrlForRid(
+      spaceUriAndLocalIdToRid(spaceUrl, uid, "note"),
+    );
     window.open(url, "_blank");
   };
 

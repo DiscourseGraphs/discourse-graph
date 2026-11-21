@@ -1,43 +1,35 @@
-import { notFound, redirect } from "next/navigation";
-import {
-  nodeDisplayPath,
-  nodePathFromRid,
-  spaceDisplayPath,
-  spacePathFromSpaceUrl,
-} from "~/utils/conversion/nodeAddress";
+import { notFound } from "next/navigation";
+import { loadDisplayNode } from "./loadDisplayNode";
 
-type DisplayLookupProps = {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-};
+export const dynamic = "force-dynamic";
 
-const lookupPath = ({
-  rid,
-  space,
-}: {
-  rid?: string | string[];
-  space?: string | string[];
-}): string | undefined => {
-  if (typeof rid === "string") {
-    const nodePath = nodePathFromRid(rid);
-    return nodePath && nodeDisplayPath(nodePath);
-  }
-  if (typeof space === "string") {
-    const spacePath = spacePathFromSpaceUrl(space);
-    return spacePath && spaceDisplayPath(spacePath);
-  }
-  return undefined;
-};
-
-// Looks a node up by RID, or a space by its URL, for callers that hold only
-// those, such as a plugin's "publish to the web". Redirects to the readable
-// address.
-const DisplayLookup = async ({
+const DisplayPage = async ({
   searchParams,
-}: DisplayLookupProps): Promise<never> => {
-  const { rid, space } = await searchParams;
-  const path = lookupPath({ rid, space });
-  if (!path) notFound();
-  redirect(path);
+}: {
+  searchParams: Promise<{ rid?: string | string[] }>;
+}): Promise<React.ReactElement> => {
+  const { rid } = await searchParams;
+  const node = typeof rid === "string" && (await loadDisplayNode(rid));
+  if (!node) notFound();
+
+  return (
+    <main className="mx-auto max-w-3xl px-6 py-10">
+      <article>
+        <header className="mb-6 border-b border-slate-200 pb-5">
+          <p className="text-sm text-slate-600">
+            {node.typeLabel} · {node.source}
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold text-slate-900">
+            {node.title}
+          </h1>
+        </header>
+        <div
+          className="prose prose-slate max-w-none"
+          dangerouslySetInnerHTML={{ __html: node.bodyHtml }}
+        />
+      </article>
+    </main>
+  );
 };
 
-export default DisplayLookup;
+export default DisplayPage;

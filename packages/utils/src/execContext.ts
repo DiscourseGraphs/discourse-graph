@@ -22,7 +22,3 @@ export const nextApiRoot = (): string => {
 // callers never need to know how page addresses are built.
 export const displayUrlForRid = (rid: string): string =>
   `${nextRoot()}display?rid=${encodeURIComponent(rid)}`;
-
-// The public web page of a space, from its URL as stored in the database.
-export const displayUrlForSpace = (spaceUrl: string): string =>
-  `${nextRoot()}display?space=${encodeURIComponent(spaceUrl)}`;
