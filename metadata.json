@@ -3,7 +3,7 @@
   "checkpoint_id": "01M8587ARRWJ7VCJ6BNZ1FKR15",
   "strategy": "manual-commit",
   "branch": "eng-2243-add-an-existing-discourse-relation-from-relation-menu",
-  "checkpoints_count": 4,
+  "checkpoints_count": 7,
   "files_touched": null,
   "sessions": [
     {
@@ -19,20 +19,27 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 78,
-    "cache_creation_tokens": 53796,
-    "cache_read_tokens": 10389414,
-    "output_tokens": 20035,
-    "api_call_count": 30,
+    "input_tokens": 104,
+    "cache_creation_tokens": 65498,
+    "cache_read_tokens": 13626934,
+    "output_tokens": 24797,
+    "api_call_count": 39,
     "subagent_tokens": {
-      "input_tokens": 84,
-      "cache_creation_tokens": 198867,
-      "cache_read_tokens": 4122631,
-      "output_tokens": 34300,
-      "api_call_count": 42
+      "input_tokens": 94,
+      "cache_creation_tokens": 249704,
+      "cache_read_tokens": 4462594,
+      "output_tokens": 37837,
+      "api_call_count": 47
     }
   }
 }
