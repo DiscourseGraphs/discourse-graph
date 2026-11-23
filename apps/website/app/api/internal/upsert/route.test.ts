@@ -17,7 +17,7 @@ vi.mock("~/utils/internalErrorSsr", () => ({ default: vi.fn() }));
 
 const ORIGIN = "https://roamresearch.com";
 const SPACE_URL = "https://roamresearch.com/#/app/graph-a";
-const URL_ROOT = "http://localhost:3000/api/internal/space";
+const ROUTE_URL = "http://localhost:3000/api/internal/upsert";
 
 type Result = { data: unknown; error: unknown };
 
@@ -89,16 +89,16 @@ const fakeClient = ({
 };
 
 const post = ({
-  id = "5",
+  query = "?space=5",
   token = "token-1",
   body = {},
 }: {
-  id?: string;
+  query?: string;
   token?: string;
   body?: string | object;
 } = {}): Promise<Response> =>
   POST(
-    new NextRequest(`${URL_ROOT}/${id}/graph`, {
+    new NextRequest(`${ROUTE_URL}${query}`, {
       method: "POST",
       headers: {
         origin: ORIGIN,
@@ -107,7 +107,6 @@ const post = ({
       },
       body: typeof body === "string" ? body : JSON.stringify(body),
     }),
-    { params: Promise.resolve({ id }) },
   );
 
 const expectResponse = async (
@@ -119,18 +118,22 @@ const expectResponse = async (
   if (body !== undefined) expect(await response.json()).toMatchObject(body);
 };
 
-describe("POST /api/internal/space/[id]/graph", () => {
+describe("POST /api/internal/upsert", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
 
   it.each([
-    { id: "5abc", when: "is not all digits" },
-    { id: "9007199254740992", when: "is past the safe-integer range" },
-  ])("refuses a space id that $when", async ({ id }) => {
+    { query: "", when: "is missing" },
+    { query: "?space=5abc", when: "is not all digits" },
+    {
+      query: "?space=9007199254740992",
+      when: "is past the safe-integer range",
+    },
+  ])("refuses a space parameter that $when", async ({ query }) => {
     fakeClient();
-    await expectResponse(await post({ id }), { status: 400 });
+    await expectResponse(await post({ query }), { status: 400 });
     expect(createBearerTokenClient).not.toHaveBeenCalled();
   });
 
@@ -314,7 +317,7 @@ describe("POST /api/internal/space/[id]/graph", () => {
 
   it("answers a CORS preflight", async () => {
     const response = await OPTIONS(
-      new NextRequest(`${URL_ROOT}/5/graph`, {
+      new NextRequest(`${ROUTE_URL}?space=5`, {
         method: "OPTIONS",
         headers: { origin: ORIGIN },
       }),

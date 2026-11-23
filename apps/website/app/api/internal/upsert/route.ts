@@ -15,7 +15,6 @@ import cors from "~/utils/llm/cors";
 import {
   defaultOptionsHandler,
   handleRouteError,
-  type SegmentDataType,
 } from "~/utils/supabase/apiUtils";
 import { createBearerTokenClient } from "~/utils/supabase/server";
 
@@ -25,16 +24,15 @@ import { createBearerTokenClient } from "~/utils/supabase/server";
 // Real bodies reference tens of schemas, far below this bound.
 const MAX_SCHEMA_LOOKUP_CHARS = 4_000;
 
-export const POST = async (
-  request: NextRequest,
-  segmentData: SegmentDataType,
-): Promise<NextResponse> => {
+export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const respond = (status: number, body: object): NextResponse =>
     cors(request, NextResponse.json(body, { status })) as NextResponse;
   try {
-    const { id } = await segmentData.params;
-    if (!/^\d+$/.test(id) || !Number.isSafeInteger(Number(id)))
-      return respond(400, { error: `${id} is not a number` });
+    const id = request.nextUrl.searchParams.get("space");
+    if (id === null || !/^\d+$/.test(id) || !Number.isSafeInteger(Number(id)))
+      return respond(400, {
+        error: "The space query parameter must be a space id",
+      });
     const spaceId = Number(id);
     const fail = (status: number, error: Error): NextResponse => {
       internalError({ error, type: "upsert-graph", context: { spaceId } });
@@ -117,7 +115,7 @@ export const POST = async (
     if (upsert.error) return fail(500, upsert.error);
     return respond(200, mapUpsertResults({ entries, ids: upsert.data }));
   } catch (e: unknown) {
-    return handleRouteError(request, e, "/api/internal/space/[id]/graph");
+    return handleRouteError(request, e, "/api/internal/upsert");
   }
 };
 
