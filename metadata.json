@@ -3,8 +3,10 @@
   "checkpoint_id": "01M857WCB317KM50GNCBYPTMM8",
   "strategy": "manual-commit",
   "branch": "eng-2451-settings-descriptions-are-text-only-add-a-visual",
-  "checkpoints_count": 4,
-  "files_touched": null,
+  "checkpoints_count": 5,
+  "files_touched": [
+    "apps/roam/src/components/settings/components/BlockPropSettingPanels.tsx"
+  ],
   "sessions": [
     {
       "metadata": "/0/metadata.json",
@@ -26,20 +28,27 @@
       "compact_transcript": "/2/transcript.jsonl",
       "content_hash": "/2/content_hash.txt",
       "prompt": "/2/prompt.txt"
+    },
+    {
+      "metadata": "/3/metadata.json",
+      "transcript": "/3/full.jsonl",
+      "compact_transcript": "/3/transcript.jsonl",
+      "content_hash": "/3/content_hash.txt",
+      "prompt": "/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 6,
-    "cache_creation_tokens": 2997,
-    "cache_read_tokens": 591386,
-    "output_tokens": 948,
-    "api_call_count": 2,
+    "input_tokens": 14,
+    "cache_creation_tokens": 5729,
+    "cache_read_tokens": 1296184,
+    "output_tokens": 2393,
+    "api_call_count": 4,
     "subagent_tokens": {
-      "input_tokens": 0,
-      "cache_creation_tokens": 0,
-      "cache_read_tokens": 0,
-      "output_tokens": 0,
-      "api_call_count": 0
+      "input_tokens": 6,
+      "cache_creation_tokens": 7283,
+      "cache_read_tokens": 243491,
+      "output_tokens": 2308,
+      "api_call_count": 3
     }
   }
 }
