@@ -44,7 +44,7 @@ const inlineCrossAppContentToDbContent = (
     content_type: content.contentType || "text/plain",
     variant,
     created: content.createdAt?.toISOString(),
-    last_modified: content.modifiedAt?.toISOString(),
+    last_modified: (content.modifiedAt ?? content.createdAt)?.toISOString(),
     author_local_id: content.authorId,
     embedding_inline: crossAppEmbeddingToDbEmbedding(content.embedding),
   });
@@ -95,7 +95,7 @@ export const crossAppNodeToDbConcept = (
       crossAppNodeToDbContent(node, "full"),
     ]),
     created: node.createdAt?.toISOString(),
-    last_modified: node.modifiedAt?.toISOString(),
+    last_modified: (node.modifiedAt ?? node.createdAt)?.toISOString(),
     local_reference_content: node.slots,
   });
 };
@@ -125,7 +125,7 @@ export const crossAppNodeSchemaToDbConcept = (
       Object.keys(literalInfo).length > 0 ? literalInfo : undefined,
     local_reference_content: referenceContent,
     created: node.createdAt?.toISOString(),
-    last_modified: node.modifiedAt?.toISOString(),
+    last_modified: (node.modifiedAt ?? node.createdAt)?.toISOString(),
   });
 };
 
@@ -147,14 +147,13 @@ export const crossAppRelationTypeSchemaToDbConcept = (
       complement: node.complement,
     },
     created: node.createdAt?.toISOString(),
-    last_modified: node.modifiedAt?.toISOString(),
+    last_modified: (node.modifiedAt ?? node.createdAt)?.toISOString(),
   });
 };
 
 export const crossAppRelationTripleSchemaToDbConcept = (
   node: CrossAppRelationTripleSchema,
-  // used in Obsidian, not yet in Roam.
-  relationType?: CrossAppRelationTypeSchema,
+  relationType?: Pick<CrossAppRelationTypeSchema, "label" | "complement">,
 ): LocalConceptDataInput | undefined => {
   if (!("label" in node) && relationType === undefined) return undefined;
   const label = "label" in node ? node.label : relationType!.label;
@@ -180,7 +179,7 @@ export const crossAppRelationTripleSchemaToDbConcept = (
       destination: node.destinationType,
     },
     created: node.createdAt?.toISOString(),
-    last_modified: node.modifiedAt?.toISOString(),
+    last_modified: (node.modifiedAt ?? node.createdAt)?.toISOString(),
   });
 };
 
@@ -202,6 +201,6 @@ export const crossAppRelationToDbConcept = (
       destination: node.destination,
     },
     created: node.createdAt?.toISOString(),
-    last_modified: node.modifiedAt?.toISOString(),
+    last_modified: (node.modifiedAt ?? node.createdAt)?.toISOString(),
   });
 };
