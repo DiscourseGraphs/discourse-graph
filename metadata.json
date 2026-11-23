@@ -3,7 +3,7 @@
   "checkpoint_id": "01M857QYKXH1Q9KS25A8SKFDF3",
   "strategy": "manual-commit",
   "branch": "eng-2451-settings-descriptions-are-text-only-add-a-visual",
-  "checkpoints_count": 4,
+  "checkpoints_count": 7,
   "files_touched": null,
   "sessions": [
     {
@@ -19,20 +19,27 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 106,
-    "cache_creation_tokens": 59597,
-    "cache_read_tokens": 10838632,
-    "output_tokens": 22794,
-    "api_call_count": 36,
+    "input_tokens": 146,
+    "cache_creation_tokens": 75376,
+    "cache_read_tokens": 15132270,
+    "output_tokens": 31317,
+    "api_call_count": 51,
     "subagent_tokens": {
-      "input_tokens": 62,
-      "cache_creation_tokens": 285995,
-      "cache_read_tokens": 2330539,
-      "output_tokens": 14521,
-      "api_call_count": 31
+      "input_tokens": 82,
+      "cache_creation_tokens": 348495,
+      "cache_read_tokens": 3034009,
+      "output_tokens": 19208,
+      "api_call_count": 40
     }
   }
 }
