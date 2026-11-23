@@ -614,6 +614,9 @@ importers:
       tslib:
         specifier: 2.5.1
         version: 2.5.1
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
     devDependencies:
       '@cucumber/cucumber':
         specifier: ^12.7.0
