@@ -1793,7 +1793,8 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
 
   getValidTargetTypes(label: string, sourceNodeType: string): string[] {
     const relationsWithLabel = discourseContext.relations[label]?.filter(
-      isAcceptedRelationSchema,
+      (r) =>
+        isAcceptedRelationSchema(r) && isRelationDrawable(this.editor, r.id),
     );
     if (!relationsWithLabel) return [];
 

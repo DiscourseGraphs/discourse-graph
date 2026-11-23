@@ -48,6 +48,7 @@ import NodeMenu from "~/components/DiscourseNodeMenu";
 import { getDiscourseNodeColors } from "~/utils/getDiscourseNodeColors";
 import { render as renderToast } from "roamjs-components/components/Toast";
 import { RenderRoamBlockString } from "~/utils/roamReactComponents";
+import { isRelationDrawable } from "~/components/canvas/relationReload";
 
 const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -294,7 +295,14 @@ export class DiscourseNodeUtil extends BaseBoxShapeUtil<DiscourseNodeShape> {
     const toCreate = discourseContextResults
       .flatMap((r) =>
         Object.entries(r.results)
-          .filter(([k, v]) => nodesInCanvas[k] && v.id && relationIds.has(v.id))
+          // Triplets saved after mount have no shape util until a reload.
+          .filter(
+            ([k, v]) =>
+              nodesInCanvas[k] &&
+              v.id &&
+              relationIds.has(v.id) &&
+              isRelationDrawable(editor, v.id),
+          )
           .map(([k, v]) => {
             return {
               relationId: v.id!,
