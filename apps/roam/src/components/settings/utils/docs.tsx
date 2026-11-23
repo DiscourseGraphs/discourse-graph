@@ -12,6 +12,11 @@ export const ROAM_DOCS = {
   discourseScore: `${ROAM_DOCS_BASE_URL}/guides/exploring-discourse-graph/discourse-context-overlay#discourse-score`,
 } as const;
 
+/** Served from apps/website/public/docs/roam, so the docs pages and settings show the same file. */
+export const ROAM_DOCS_ASSETS = {
+  discourseContextOverlay: `${ROAM_DOCS_BASE_URL}/discourse-context-overlay.gif`,
+} as const;
+
 export const withDocsLink = (
   description: React.ReactNode,
   href: string,

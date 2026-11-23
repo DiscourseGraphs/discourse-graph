@@ -1,14 +1,20 @@
-import React, { useId } from "react";
+import React, { useId, useState } from "react";
 import {
   Icon,
   type IconName,
   Label,
+  Popover,
+  PopoverInteractionKind,
   Position,
   Tooltip,
 } from "@blueprintjs/core";
 import Description from "~/components/settings/SettingsDescription";
 import { settingAnchor } from "~/components/settings/utils/settingAnchor";
-import { describedSetting } from "~/components/settings/utils/settingsCatalog";
+import {
+  describedSetting,
+  settingExample,
+  type SettingExample,
+} from "~/components/settings/utils/settingsCatalog";
 import { withDocsLink } from "~/components/settings/utils/docs";
 
 /** Per-node settings are `global`: they live on the node type's page, so the whole graph sees them. */
@@ -38,6 +44,36 @@ const SettingScopeIndicator = ({ scope }: { scope: SettingScope }) => {
         <Icon icon={icon} iconSize={12} />
       </span>
     </Tooltip>
+  );
+};
+
+/** The image is fetched from the docs site only once the preview opens; offline it falls back to its alt text. */
+const SettingExamplePreview = ({ src, alt }: SettingExample) => {
+  const [failed, setFailed] = useState(false);
+  return (
+    <Popover
+      interactionKind={PopoverInteractionKind.HOVER}
+      position={Position.RIGHT}
+      hoverOpenDelay={150}
+      content={
+        <div className="dg-setting-row__example p-1">
+          {failed ? (
+            <div className="max-w-xs p-2 text-sm">{alt}</div>
+          ) : (
+            <img
+              src={src}
+              alt={alt}
+              onError={() => setFailed(true)}
+              className="block max-w-2xl"
+            />
+          )}
+        </div>
+      }
+    >
+      <a role="button" tabIndex={0}>
+        Show example
+      </a>
+    </Popover>
   );
 };
 
@@ -93,6 +129,7 @@ const SettingItemRow = ({
   }
   // Description is a sibling of the label: nested, its doc links would toggle the control (ENG-2080).
   const LabelTag = isAssociated ? "label" : "div";
+  const example = settingExample(settingKeys);
 
   return (
     <div
@@ -113,9 +150,15 @@ const SettingItemRow = ({
           {scope ? <SettingScopeIndicator scope={scope} /> : null}
           <span>{label}</span>
         </LabelTag>
-        {resolvedDescription ? (
+        {resolvedDescription || example ? (
           <div className="text-sm font-normal text-gray-500">
             {resolvedDescription}
+            {example ? (
+              <>
+                {resolvedDescription ? " · " : null}
+                <SettingExamplePreview {...example} />
+              </>
+            ) : null}
           </div>
         ) : null}
         {error ? (

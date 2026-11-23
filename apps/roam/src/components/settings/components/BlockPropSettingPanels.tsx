@@ -73,7 +73,8 @@ type BaseTextPanelProps = {
 
 type BaseFlagPanelProps = {
   title: string;
-  description: React.ReactNode;
+  /** Omit to use the catalog's description, docs link and example. */
+  description?: React.ReactNode;
   settingKeys: string[];
   setter: FlagSetter;
   initialValue: boolean;
@@ -278,7 +279,7 @@ const BaseFlagPanel = ({
           labelElement={
             <>
               {title}
-              <Description description={description} />
+              {description ? <Description description={description} /> : null}
             </>
           }
         />
