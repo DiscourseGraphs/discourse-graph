@@ -353,7 +353,15 @@ const submit = (): Promise<void> =>
 
 describe("create new dialog", () => {
   beforeEach(() => {
-    mocks.types = [{ id: "rel-1", label: "supports", color: "#000" }];
+    mocks.types = [
+      {
+        id: "rel-1",
+        label: "supports",
+        complement: "is supported by",
+        hasLabelCollision: false,
+        color: "#000",
+      },
+    ];
     mocks.relations = [relation("t1", "supports", "is supported by")];
   });
   const openDialog = (
