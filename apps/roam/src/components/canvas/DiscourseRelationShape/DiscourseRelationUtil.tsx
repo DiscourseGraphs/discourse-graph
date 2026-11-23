@@ -115,6 +115,7 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import { AddReferencedNodeType } from "./DiscourseRelationTool";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 import internalError from "~/utils/internalError";
+import { isRelationDrawable } from "~/components/canvas/relationReload";
 import { refreshDiscourseContextsForMutatedUids } from "~/utils/discourseContextMutationRefresh";
 import {
   findRelationForPair,
@@ -1779,8 +1780,11 @@ export class BaseDiscourseRelationUtil extends ShapeUtil<DiscourseRelationShape>
     const relationsWithLabel = includeProvisional
       ? discourseContext.relations[label]
       : discourseContext.relations[label]?.filter(isAcceptedRelationSchema);
+    // Triplets saved after mount have no shape util until a reload; arrows can't switch to them.
     return findRelationForPair({
-      relations: relationsWithLabel ?? [],
+      relations: (relationsWithLabel ?? []).filter((r) =>
+        isRelationDrawable(this.editor, r.id),
+      ),
       sourceNodeType,
       targetNodeType,
       preferredRelationId,
