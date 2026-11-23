@@ -1,0 +1,17 @@
+yes start planning
+
+---
+
+Yes, confirm then fix
+
+---
+
+can you run on graph plugin-testing-akamatsulab2 for me?
+
+---
+
+probably the skill is in the playwright roam testing. just need to add the same login and slot for this graph maybe??? but if we can run Roam from a new window and using CDP or playwright directly that'd be great too /btw
+
+---
+
+Not now

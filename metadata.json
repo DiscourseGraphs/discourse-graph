@@ -3,8 +3,14 @@
   "checkpoint_id": "01M8577WXH7G4J45TQSVA4SGKN",
   "strategy": "manual-commit",
   "branch": "eng-2362-respect-query-builder-image-placement-when",
-  "checkpoints_count": 9,
-  "files_touched": null,
+  "checkpoints_count": 11,
+  "files_touched": [
+    "apps/roam/src/components/ModifyNodeDialog.tsx",
+    "apps/roam/src/utils/__tests__/runQuery.test.ts",
+    "apps/roam/src/utils/calcCanvasNodeSizeAndImg.ts",
+    "apps/roam/src/utils/createDiscourseNode.ts",
+    "apps/roam/src/utils/runQuery.ts"
+  ],
   "sessions": [
     {
       "metadata": "/0/metadata.json",
@@ -12,13 +18,27 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": "/0/prompt.txt"
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 254,
-    "cache_creation_tokens": 220734,
-    "cache_read_tokens": 20887475,
-    "output_tokens": 68119,
-    "api_call_count": 115
+    "input_tokens": 282,
+    "cache_creation_tokens": 234587,
+    "cache_read_tokens": 23614768,
+    "output_tokens": 72170,
+    "api_call_count": 125,
+    "subagent_tokens": {
+      "input_tokens": 0,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 0,
+      "api_call_count": 0
+    }
   }
 }
