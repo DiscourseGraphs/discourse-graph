@@ -73,7 +73,7 @@ type BaseTextPanelProps = {
 
 type BaseFlagPanelProps = {
   title: string;
-  /** Omit to use the catalog's description, docs link and example. */
+  /** Omit to use the catalog's description, docs link and example; the inline variant then shows none. */
   description?: React.ReactNode;
   settingKeys: string[];
   setter: FlagSetter;
