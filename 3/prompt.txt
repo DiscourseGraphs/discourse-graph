@@ -1,0 +1,64 @@
+Maybe we should host it on Doc's site and make sure that the documentation also used the same GIF or asset?
+
+---
+
+I guess if we use the doc URL, that would mean that the Roam app has to be online, right? Otherwise, it wouldn't show up? In that case, is it safer to just put it in app/roam?
+
+---
+
+Yeah, in that case, I think we should stick with using the website as the source of truth and follow through with your plan to use the same GIF in both website and setting item row.
+
+---
+
+which graph are you testing on?
+
+---
+
+rebase on top of main, also Preference is overlapping to the search bar
+
+---
+
+I'll fix Chrome
+
+---
+
+Chrome is now open
+
+---
+
+ok i loaded it. now:
+
+* remove "Left number: the node's discourse score, by default its count of discourse relations. Right number: how many blocks reference the node's page. Click the badge to see its discourse context."
+* can we have higher res for this gif?
+* and show it on a hover item instead of just displaying. maybe show on hover
+
+---
+
+Record close-up in test graph
+
+---
+
+Build clean demo nodes
+
+---
+
+oh you need to go to setting and turn on stored relations
+
+---
+
+<task-notification>
+<task-id>k2rfaugat</task-id>
+<status>failed</status>
+<summary>MCP task k2rfaugat (claude-in-chrome/javascript_tool) failed.</summary>
+<result>
+Task failed: The "javascript_tool" tool did not respond in time. If Chrome is on another computer, that computer may be closed or asleep. The page may also be loading or unresponsive, or Chrome may be waiting for the user. Try a lighter operation (e.g., "get_page_text" instead of a screenshot) once. If that also gets no response, ask the user to check that the computer running Chrome is awake, that Chrome is open, and that nothing in Chrome is waiting for them.
+</result>
+</task-notification>
+
+---
+
+Yes, go ahead
+
+---
+
+Use 1x recording
