@@ -1,0 +1,13 @@
+Maybe we should host it on Doc's site and make sure that the documentation also used the same GIF or asset?
+
+---
+
+I guess if we use the doc URL, that would mean that the Roam app has to be online, right? Otherwise, it wouldn't show up? In that case, is it safer to just put it in app/roam?
+
+---
+
+Yeah, in that case, I think we should stick with using the website as the source of truth and follow through with your plan to use the same GIF in both website and setting item row.
+
+---
+
+which graph are you testing on?
