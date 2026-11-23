@@ -51,6 +51,37 @@
         "label": "Skill: dg-roam-load-extension",
         "default_collapsed": true
       }
+    },
+    {
+      "id": "claude-skill-toolu_015Xx5hx32s1xJiVREHMfVWF",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-engineering-writing-style"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "8484ccea4c3e",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 1036,
+        "end": 1037,
+        "entry_ids": [
+          "b94c7a5a-49ba-42d0-bd8c-ad60f971fd28"
+        ],
+        "tool_use_id": "toolu_015Xx5hx32s1xJiVREHMfVWF"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_015Xx5hx32s1xJiVREHMfVWF"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-engineering-writing-style",
+        "default_collapsed": true
+      }
     }
   ],
   "session_metrics": {
