@@ -48,7 +48,10 @@ const SettingScopeIndicator = ({ scope }: { scope: SettingScope }) => {
 };
 
 /** The image is fetched from the docs site only once the preview opens; offline it falls back to its alt text. */
-const SettingExamplePreview = ({ src, alt }: SettingExample) => {
+const SettingExamplePreview = ({
+  src,
+  alt,
+}: SettingExample): React.ReactElement => {
   const [failed, setFailed] = useState(false);
   return (
     <Popover
