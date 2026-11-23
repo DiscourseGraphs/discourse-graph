@@ -98,3 +98,7 @@ Ship light-only
     - the swatches in `NodeTypeFilterMenu`
   - **Dependencies:** adding `colord` to `apps/obsidian/package.json` and `pnpm-lock.yaml` is consistent with what `@repo/utils` already uses.
 </agent-message>
+
+---
+
+Note as known limit
