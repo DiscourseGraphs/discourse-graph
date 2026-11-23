@@ -85,7 +85,7 @@ void _nonRowKeysAreReal;
 
 type RowKeyId = Exclude<SettingKeyId, NonRowKeyId>;
 
-/** Previewed on hover from the row's description; `src` is a docs-site asset so the docs show the same file. */
+/** Previewed on hover from the row's description. */
 export type SettingExample = { src: string; alt: string };
 
 /** What only the call site knows. `path` is the only field a relocation touches, and is a
