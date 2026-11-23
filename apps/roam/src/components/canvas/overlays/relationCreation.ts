@@ -16,6 +16,7 @@ import {
   isDiscourseNodeShape,
 } from "~/components/canvas/canvasUtils";
 import { checkConnectionType } from "~/utils/findRelationForPair";
+import { isRelationDrawable } from "~/components/canvas/relationReload";
 import type { DiscourseRelation } from "~/utils/getDiscourseRelations";
 import { isRelationComplete } from "~/utils/isRelationComplete";
 
@@ -102,6 +103,8 @@ export const getValidRelationTypesBetween = (
 
   for (const relation of getCreatableRelations()) {
     if (!isRelationComplete(relation)) continue;
+    // Picking an unregistered shape type would throw; it becomes drawable after a reload.
+    if (!isRelationDrawable(editor, relation.id)) continue;
     const { isDirect, isReverse } = checkConnectionType(
       relation,
       startNodeType,

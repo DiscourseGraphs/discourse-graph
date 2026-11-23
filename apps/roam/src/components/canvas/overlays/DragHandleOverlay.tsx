@@ -16,6 +16,7 @@ import {
   type RelationType,
 } from "~/components/canvas/existingRelationTypes";
 import internalError from "~/utils/internalError";
+import { promptReloadIfUndrawable } from "~/components/canvas/relationReload";
 import {
   RelationTypeDropdown,
   type NodeTypePair,
@@ -287,6 +288,14 @@ export const DragHandleOverlay = () => {
     [editor, pending],
   );
 
+  const handleDropdownDismiss = useCallback(() => {
+    setPending(null);
+    if (sourceNodeRef.current) {
+      editor.select(sourceNodeRef.current.id);
+    }
+    sourceNodeRef.current = null;
+  }, [editor]);
+
   const handleAddExisting = useCallback(
     async ({
       pair,
@@ -295,8 +304,9 @@ export const DragHandleOverlay = () => {
       pair: NodeTypePair;
       relationType: RelationType;
     }): Promise<boolean> => {
+      let relationId: string;
       try {
-        await createTripletForPair({
+        relationId = await createTripletForPair({
           ...relationType,
           sourceType: pair.sourceType,
           destinationType: pair.targetType,
@@ -310,24 +320,24 @@ export const DragHandleOverlay = () => {
         });
         return false;
       }
+      const title = "Discourse relation added";
+      const description = `${relationType.label} added for ${getNodeTypeText(pair.sourceType)} and ${getNodeTypeText(pair.targetType)}`;
+      if (
+        promptReloadIfUndrawable({ editor, relationId, title, description })
+      ) {
+        handleDropdownDismiss();
+        return true;
+      }
       dispatchToastEvent({
         id: "tldraw-add-existing-relation",
-        title: "Discourse relation added",
-        description: `${relationType.label} added for ${getNodeTypeText(pair.sourceType)} and ${getNodeTypeText(pair.targetType)}`,
+        title,
+        description,
         severity: "success",
       });
       return true;
     },
-    [],
+    [editor, handleDropdownDismiss],
   );
-
-  const handleDropdownDismiss = useCallback(() => {
-    setPending(null);
-    if (sourceNodeRef.current) {
-      editor.select(sourceNodeRef.current.id);
-    }
-    sourceNodeRef.current = null;
-  }, [editor]);
 
   const showHandles = !!handlePositions && !pending && !isDragging;
 
