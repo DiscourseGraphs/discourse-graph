@@ -3,7 +3,7 @@
   "checkpoint_id": "01M856ZKXG8WRHZGD6GPYKNPBV",
   "strategy": "manual-commit",
   "branch": "eng-930-change-the-color-of-node-tags-to-match-with-roam",
-  "checkpoints_count": 4,
+  "checkpoints_count": 9,
   "files_touched": [
     "apps/obsidian/src/components/NodeSearchModal.tsx",
     "apps/obsidian/src/utils/__tests__/colorUtils.test.ts",
@@ -23,14 +23,21 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 104,
-    "cache_creation_tokens": 73822,
-    "cache_read_tokens": 11005207,
-    "output_tokens": 32686,
-    "api_call_count": 46,
+    "input_tokens": 300,
+    "cache_creation_tokens": 172515,
+    "cache_read_tokens": 29483655,
+    "output_tokens": 78658,
+    "api_call_count": 134,
     "subagent_tokens": {
       "input_tokens": 12,
       "cache_creation_tokens": 88548,

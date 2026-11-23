@@ -1,0 +1,37 @@
+Maybe we should host it on Doc's site and make sure that the documentation also used the same GIF or asset?
+
+---
+
+I guess if we use the doc URL, that would mean that the Roam app has to be online, right? Otherwise, it wouldn't show up? In that case, is it safer to just put it in app/roam?
+
+---
+
+Yeah, in that case, I think we should stick with using the website as the source of truth and follow through with your plan to use the same GIF in both website and setting item row.
+
+---
+
+which graph are you testing on?
+
+---
+
+rebase on top of main, also Preference is overlapping to the search bar
+
+---
+
+I'll fix Chrome
+
+---
+
+Chrome is now open
+
+---
+
+ok i loaded it. now:
+
+* remove "Left number: the node's discourse score, by default its count of discourse relations. Right number: how many blocks reference the node's page. Click the badge to see its discourse context."
+* can we have higher res for this gif?
+* and show it on a hover item instead of just displaying. maybe show on hover
+
+---
+
+Record close-up in test graph
