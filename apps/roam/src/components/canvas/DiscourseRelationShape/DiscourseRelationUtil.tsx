@@ -671,7 +671,7 @@ export const createAllRelationShapeUtils = (
           label: relation.label,
           sourceNodeType,
           targetNodeType,
-          preferredRelationId: relationTypeId,
+          preferredRelationId: relation.id,
         });
         const matchingRelation = foundRelation ?? relation;
 
@@ -1052,7 +1052,7 @@ export const createAllRelationShapeUtils = (
                   label: relation.label,
                   sourceNodeType: startNodeType,
                   targetNodeType: endNodeType,
-                  preferredRelationId: relationTypeId,
+                  preferredRelationId: relation.id,
                 });
 
               const effectiveRelation = matchingRelation ?? relation;
