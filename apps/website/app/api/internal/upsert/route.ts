@@ -28,12 +28,16 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   const respond = (status: number, body: object): NextResponse =>
     cors(request, NextResponse.json(body, { status })) as NextResponse;
   try {
-    const id = request.nextUrl.searchParams.get("space");
-    if (id === null || !/^\d+$/.test(id) || !Number.isSafeInteger(Number(id)))
+    const spaceParam = request.nextUrl.searchParams.get("space");
+    if (
+      spaceParam === null ||
+      !/^\d+$/.test(spaceParam) ||
+      !Number.isSafeInteger(Number(spaceParam))
+    )
       return respond(400, {
         error: "The space query parameter must be a space id",
       });
-    const spaceId = Number(id);
+    const spaceId = Number(spaceParam);
     const fail = (status: number, error: Error): NextResponse => {
       internalError({ error, type: "upsert-graph", context: { spaceId } });
       return respond(status, { error: error.message });

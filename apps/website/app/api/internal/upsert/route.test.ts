@@ -89,16 +89,16 @@ const fakeClient = ({
 };
 
 const post = ({
-  query = "?space=5",
+  search = "?space=5",
   token = "token-1",
   body = {},
 }: {
-  query?: string;
+  search?: string;
   token?: string;
   body?: string | object;
 } = {}): Promise<Response> =>
   POST(
-    new NextRequest(`${ROUTE_URL}${query}`, {
+    new NextRequest(`${ROUTE_URL}${search}`, {
       method: "POST",
       headers: {
         origin: ORIGIN,
@@ -125,15 +125,15 @@ describe("POST /api/internal/upsert", () => {
   });
 
   it.each([
-    { query: "", when: "is missing" },
-    { query: "?space=5abc", when: "is not all digits" },
+    { search: "", when: "is missing" },
+    { search: "?space=5abc", when: "is not all digits" },
     {
-      query: "?space=9007199254740992",
+      search: "?space=9007199254740992",
       when: "is past the safe-integer range",
     },
-  ])("refuses a space parameter that $when", async ({ query }) => {
+  ])("refuses a space parameter that $when", async ({ search }) => {
     fakeClient();
-    await expectResponse(await post({ query }), { status: 400 });
+    await expectResponse(await post({ search }), { status: 400 });
     expect(createBearerTokenClient).not.toHaveBeenCalled();
   });
 
