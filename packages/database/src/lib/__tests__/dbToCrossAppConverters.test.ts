@@ -433,7 +433,7 @@ describe("dbNodeToCrossApp", () => {
     200: "orn:obsidian.schema:vault-a/evd-type",
   };
   const concept: DbNodeConcept = {
-    core_title: "REM sleep and recall",
+    literal_content: { core_title: "REM sleep and recall" },
     is_schema: false,
     last_modified: "2026-06-14T12:00:00",
     schema_id: 200,
@@ -466,6 +466,7 @@ describe("dbNodeToCrossApp", () => {
       accountMap,
       schemaMap,
       formatMap,
+      slotTargetMap: {},
     });
 
   it("converts a node with local ids for its author and node type", () => {
@@ -499,6 +500,7 @@ describe("dbNodeToCrossApp", () => {
       accountMap,
       schemaMap: { 200: `${roamGraph}/evd-type` },
       formatMap: {},
+      slotTargetMap: {},
     });
     expect(converted.rid).toBe(`${roamGraph}/node-1`);
     expect(converted.nodeType).toBe("evd-type");
@@ -519,6 +521,7 @@ describe("dbNodeToCrossApp", () => {
         accountMap,
         schemaMap,
         formatMap: {},
+        slotTargetMap: {},
       }).slots,
     ).toEqual({ sourceDocument: `${roamGraph}/roam-uid-8` });
   });
@@ -599,13 +602,13 @@ describe("dbNodeToCrossApp", () => {
 
   it("derives the core title from the node type's format when none was published", () => {
     expect(
-      convert({ concept: { ...concept, core_title: null } }).coreTitle,
+      convert({ concept: { ...concept, literal_content: {} } }).coreTitle,
     ).toBe("REM sleep and recall");
   });
 
   it("uses the title as the core title when the node type has no format", () => {
     expect(
-      convert({ concept: { ...concept, core_title: null } }, { 200: "" })
+      convert({ concept: { ...concept, literal_content: {} } }, { 200: "" })
         .coreTitle,
     ).toBe("EVD - REM sleep and recall");
   });
@@ -653,7 +656,7 @@ describe("dbNodeToCrossApp", () => {
 
 describe("dbNodesToCrossApp", () => {
   const concept = (sourceLocalId: string): DbNodeConcept => ({
-    core_title: `Title of ${sourceLocalId}`,
+    literal_content: { core_title: `Title of ${sourceLocalId}` },
     is_schema: false,
     last_modified: "2026-06-14T12:00:00",
     schema_id: 200,
@@ -675,8 +678,15 @@ describe("dbNodesToCrossApp", () => {
     variant: "direct",
   });
 
-  const makeClient = () => {
-    const rowsByTable: Record<string, unknown[]> = {
+  const slotTargets = [
+    { id: 5, space_id: 20, source_local_id: "node-5" },
+    { id: 6, space_id: 21, source_local_id: "node-6" },
+  ];
+  const makeClient = (moreConcepts: typeof slotTargets = []) => {
+    const rowsByTable: Record<
+      string,
+      ({ id: number } & Record<string, unknown>)[]
+    > = {
       my_accounts: [{ id: 42, account_local_id: "account-local-1" }],
       my_concepts: [
         {
@@ -688,6 +698,8 @@ describe("dbNodesToCrossApp", () => {
           format: null,
           sourceDataFormat: "EVD - {content}",
         },
+        ...slotTargets,
+        ...moreConcepts,
       ],
     };
     const inCalls: Record<string, unknown[][]> = {};
@@ -697,6 +709,7 @@ describe("dbNodesToCrossApp", () => {
         select: vi.fn(),
         in: vi.fn((column: string, values: unknown[]) => {
           (inCalls[table] ??= []).push(values);
+          result.data = result.data?.filter(({ id }) => values.includes(id));
           return builder;
         }),
         not: vi.fn(),
@@ -716,7 +729,7 @@ describe("dbNodesToCrossApp", () => {
     const { client, inCalls } = makeClient();
     const converted = await dbNodesToCrossApp({
       client,
-      nodes: [{ ...concept("node-1"), core_title: null }],
+      nodes: [{ ...concept("node-1"), literal_content: {} }],
       directContents: [direct("node-1", 42)],
       fullContentSummaries: [],
       spaceMap: { 20: "obsidian:vault-a" },
@@ -745,6 +758,76 @@ describe("dbNodesToCrossApp", () => {
       spaceMap: { 20: "obsidian:vault-a" },
     });
     expect(inCalls.my_concepts).toEqual([[200]]);
+  });
+
+  it("converts Concept rows the same with and without the slot target join", async () => {
+    const conceptRow = baseConcept({
+      is_schema: false,
+      schema_id: 200,
+      source_local_id: "node-1",
+      space_id: 20,
+      literal_content: { core_title: "Title of node-1" },
+      reference_content: { evidence: 5, claim: 6, dangling: 7 },
+    });
+    const convert = async (node: DbNodeConcept) => {
+      const { client, inCalls } = makeClient();
+      const converted = await dbNodesToCrossApp({
+        client,
+        nodes: [node],
+        directContents: [direct("node-1", 42)],
+        fullContentSummaries: [],
+        spaceMap: { 20: "obsidian:vault-a", 21: "obsidian:vault-b" },
+      });
+      return { converted, conceptLookups: inCalls.my_concepts };
+    };
+
+    const withJoin = await convert({
+      ...conceptRow,
+      concepts_of_relation: slotTargets,
+    });
+    const withoutJoin = await convert(conceptRow);
+
+    expect(withJoin.conceptLookups).toEqual([[200]]);
+    expect(withoutJoin.conceptLookups).toEqual([[200], [5, 6, 7]]);
+    expect(withoutJoin.converted).toEqual(withJoin.converted);
+    expect(withoutJoin.converted).toMatchObject([
+      {
+        coreTitle: "Title of node-1",
+        slots: {
+          evidence: "node-5",
+          claim: "orn:obsidian.note:vault-b/node-6",
+        },
+      },
+    ]);
+  });
+
+  it("looks slot targets up in batches of 200 and keeps every slot", async () => {
+    const targets = Array.from({ length: 401 }, (_, index) => ({
+      id: 1000 + index,
+      space_id: 20,
+      source_local_id: `target-${index}`,
+    }));
+    const { client, inCalls } = makeClient(targets);
+    const [converted] = await dbNodesToCrossApp({
+      client,
+      nodes: [
+        {
+          ...concept("node-1"),
+          concepts_of_relation: undefined,
+          reference_content: Object.fromEntries(
+            targets.map(({ id }, index) => [`slot${index}`, id]),
+          ),
+        },
+      ],
+      directContents: [direct("node-1", 42)],
+      fullContentSummaries: [],
+      spaceMap: { 20: "obsidian:vault-a" },
+    });
+    expect(inCalls.my_concepts?.map((ids) => ids.length)).toEqual([
+      1, 200, 200, 1,
+    ]);
+    expect(Object.keys(converted?.slots ?? {})).toHaveLength(401);
+    expect(converted?.slots?.slot400).toBe("target-400");
   });
 
   it("skips and logs a node the contract cannot represent", async () => {

@@ -18,7 +18,12 @@ export type SharedNodeListing = {
   spaces: Record<string, SharedNodeSpace>;
 };
 
-export type SharedNodeRows = DbNodeRows & {
+type SharedNodeConcept = Omit<Required<DbNodeConcept>, "literal_content"> & {
+  core_title: string | null;
+};
+
+export type SharedNodeRows = Omit<DbNodeRows, "nodes"> & {
+  nodes: SharedNodeConcept[];
   spaces: SharedNodeSpace[];
 };
 
@@ -36,7 +41,7 @@ const getAssociatedSpaces = async ({
   currentSpaceId,
 }: {
   client: DGSupabaseClient;
-  concepts: DbNodeConcept[];
+  concepts: SharedNodeConcept[];
   currentSpace?: SharedNodeSpace;
   currentSpaceId?: number;
 }): Promise<SharedNodeSpace[]> => {
@@ -111,6 +116,7 @@ const getSharedNodeRows = async ({
 const toSharedNodeListing = async ({
   client,
   spaces,
+  nodes: concepts,
   ...rows
 }: SharedNodeRows & {
   client: DGSupabaseClient;
@@ -118,6 +124,10 @@ const toSharedNodeListing = async ({
   const nodes = await dbNodesToCrossApp({
     client,
     ...rows,
+    nodes: concepts.map(({ core_title: coreTitle, ...concept }) => ({
+      ...concept,
+      literal_content: { core_title: coreTitle },
+    })),
     spaceMap: Object.fromEntries(spaces.map(({ id, url }) => [id, url])),
   });
   return {
