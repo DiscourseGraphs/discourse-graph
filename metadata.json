@@ -3,7 +3,7 @@
   "checkpoint_id": "01M8577WXH7G4J45TQSVA4SGKN",
   "strategy": "manual-commit",
   "branch": "eng-2362-respect-query-builder-image-placement-when",
-  "checkpoints_count": 11,
+  "checkpoints_count": 13,
   "files_touched": [
     "apps/roam/src/components/ModifyNodeDialog.tsx",
     "apps/roam/src/utils/__tests__/runQuery.test.ts",
@@ -25,20 +25,27 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 282,
-    "cache_creation_tokens": 234587,
-    "cache_read_tokens": 23614768,
-    "output_tokens": 72170,
-    "api_call_count": 125,
+    "input_tokens": 330,
+    "cache_creation_tokens": 264454,
+    "cache_read_tokens": 28618399,
+    "output_tokens": 82186,
+    "api_call_count": 144,
     "subagent_tokens": {
-      "input_tokens": 0,
-      "cache_creation_tokens": 0,
-      "cache_read_tokens": 0,
-      "output_tokens": 0,
-      "api_call_count": 0
+      "input_tokens": 44,
+      "cache_creation_tokens": 72237,
+      "cache_read_tokens": 1759545,
+      "output_tokens": 10505,
+      "api_call_count": 20
     }
   }
 }
