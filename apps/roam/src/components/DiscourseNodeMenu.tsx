@@ -24,6 +24,7 @@ import { getCoordsFromTextarea } from "roamjs-components/components/CursorMenu";
 import getDiscourseNodes from "~/utils/getDiscourseNodes";
 import createDiscourseNode from "~/utils/createDiscourseNode";
 import {
+  getReferencedNodeInFormat,
   insertTagIntoText,
   resolveNewDiscourseNodeText,
 } from "~/utils/formatUtils";
@@ -37,6 +38,9 @@ import {
 } from "~/components/settings/utils/accessors";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 import type { PersonalSettings } from "~/components/settings/utils/zodSchema";
+
+import { openCreateNodeDialogAtRange } from "~/utils/openCreateNodeDialogAtRange";
+import { resolveInitialReferencedNode } from "~/utils/resolveInitialReferencedNode";
 
 type Props = {
   textarea?: HTMLTextAreaElement;
@@ -133,6 +137,40 @@ const NodeMenu = ({
         // https://github.com/RoamJS/query-builder/issues/286
         if (document.activeElement === textarea) document.body.click();
 
+        if (textarea) {
+          const { windowId } = getUids(textarea);
+          const selectedNodeType = discourseNodes.find(
+            (node) => node.type === nodeUid,
+          );
+          const referencedNodeType = selectedNodeType
+            ? getReferencedNodeInFormat({ format: selectedNodeType.format })
+            : null;
+          onClose();
+          void (async () => {
+            const initialReferencedNode = await resolveInitialReferencedNode({
+              blockUid: targetBlockUid,
+              referencedNodeType,
+            });
+            openCreateNodeDialogAtRange({
+              blockUid: targetBlockUid,
+              extensionAPI,
+              initialReferencedNode,
+              nodeType: nodeUid,
+              originalText: currentText,
+              selectionEnd,
+              selectionStart,
+              windowId: windowId || "main-window",
+              onInserted: ({ text, nodeType: confirmedNodeType }) => {
+                posthog.capture("Discourse Node: Created via Node Menu", {
+                  nodeType: confirmedNodeType,
+                  text,
+                });
+              },
+            });
+          })();
+          return;
+        }
+
         const createNodeAndUpdateBlock = async () => {
           const { text: pageName, handledByDialog } =
             await resolveNewDiscourseNodeText({
@@ -201,6 +239,7 @@ const NodeMenu = ({
       extensionAPI,
       showNodeTypes,
       onTagAdded,
+      discourseNodes,
     ],
   );
 
