@@ -13,7 +13,9 @@ const nodeType = (color?: string): DiscourseNode => ({
   modified: 0,
 });
 
-const pleasing = (hex: string) => {
+const pleasing = (
+  hex: string,
+): { baseColor: string; backgroundColor: string; textColor: string } => {
   const { background, text } = getPleasingColors(colord(hex));
   return { baseColor: hex, backgroundColor: background, textColor: text };
 };
@@ -25,18 +27,28 @@ describe("getNodeTagColors", () => {
     );
   });
 
-  it("uses the palette color at the node's index when no color is set", () => {
-    // Index 1 is blue (#4263eb), the same default Roam picks.
-    expect(getNodeTagColors(nodeType(), 1)).toEqual(pleasing("#4263eb"));
+  it("uses Roam's default palette order when no color is set", () => {
+    // Roam's COLOR_ARRAY is tldraw's defaultColorNames reversed: white, red, ..., black.
+    expect(getNodeTagColors(nodeType(), 0)).toEqual(pleasing("#ffffff"));
+    expect(getNodeTagColors(nodeType(), 1)).toEqual(pleasing("#e03131"));
+    expect(getNodeTagColors(nodeType(), 12)).toEqual(pleasing("#1d1d1d"));
   });
 
   it("falls back to the first palette color for an out-of-range index", () => {
-    expect(getNodeTagColors(nodeType(), 99)).toEqual(pleasing("#1d1d1d"));
-    expect(getNodeTagColors(nodeType(), -1)).toEqual(pleasing("#1d1d1d"));
+    expect(getNodeTagColors(nodeType(), 99)).toEqual(pleasing("#ffffff"));
+    expect(getNodeTagColors(nodeType(), -1)).toEqual(pleasing("#ffffff"));
+  });
+
+  it("returns the same colors on repeated calls", () => {
+    const first = getNodeTagColors(nodeType("#7DA13E"), 0);
+    expect(getNodeTagColors(nodeType("#7DA13E"), 3)).toEqual(first);
   });
 
   it("gives a light background with dark, AA-contrast text", () => {
-    const { backgroundColor, textColor } = getNodeTagColors(nodeType(), 1);
+    const { backgroundColor, textColor } = getNodeTagColors(
+      nodeType("#4263eb"),
+      0,
+    );
     expect(colord(backgroundColor).isLight()).toBe(true);
     expect(colord(textColor).isDark()).toBe(true);
     expect(colord(backgroundColor).contrast(textColor)).toBeGreaterThanOrEqual(

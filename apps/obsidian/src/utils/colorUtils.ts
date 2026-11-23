@@ -2,21 +2,22 @@ import { colord } from "colord";
 import getPleasingColors from "@repo/utils/getPleasingColors";
 import { DiscourseNode } from "~/types";
 
-// Color palette similar to Roam's implementation
+// Order matches Roam's COLOR_ARRAY (tldraw's defaultColorNames reversed), so a node
+// type without a color gets the same default by index in both apps.
 const COLOR_PALETTE: Record<string, string> = {
-  black: "#1d1d1d",
-  blue: "#4263eb",
-  green: "#099268",
-  grey: "#adb5bd",
-  lightBlue: "#4dabf7",
-  lightGreen: "#40c057",
-  lightRed: "#ff8787",
-  lightViolet: "#e599f7",
-  orange: "#f76707",
-  red: "#e03131",
-  violet: "#ae3ec9",
   white: "#ffffff",
+  red: "#e03131",
+  lightRed: "#ff8787",
+  lightGreen: "#40c057",
+  green: "#099268",
+  orange: "#f76707",
   yellow: "#ffc078",
+  lightBlue: "#4dabf7",
+  blue: "#4263eb",
+  violet: "#ae3ec9",
+  lightViolet: "#e599f7",
+  grey: "#adb5bd",
+  black: "#1d1d1d",
 };
 
 const COLOR_ARRAY = Object.keys(COLOR_PALETTE);
@@ -44,6 +45,22 @@ type NodeTagColors = {
   textColor: string;
 };
 
+// The editor's tag plugin asks for these on every update; the color search is costly.
+const pleasingColorCache = new Map<
+  string,
+  { background: string; text: string }
+>();
+const getCachedPleasingColors = (
+  baseColor: string,
+): { background: string; text: string } => {
+  const cached = pleasingColorCache.get(baseColor);
+  if (cached) return cached;
+  const { background, text } = getPleasingColors(colord(baseColor));
+  const colors = { background, text };
+  pleasingColorCache.set(baseColor, colors);
+  return colors;
+};
+
 // Same derivation as Roam's getDiscourseNodeColors, so tags match across apps.
 export const getNodeTagColors = (
   nodeType: DiscourseNode,
@@ -59,7 +76,7 @@ export const getNodeTagColors = (
     : COLOR_PALETTE.blue;
 
   const baseColor = customColor || paletteColor || "#4263eb";
-  const { background, text } = getPleasingColors(colord(baseColor));
+  const { background, text } = getCachedPleasingColors(baseColor);
 
   return { baseColor, backgroundColor: background, textColor: text };
 };

@@ -267,7 +267,7 @@ const NodeTypePill = ({
   <span
     aria-label={isCandidate ? `${label} candidate` : label}
     style={{
-      // The pale tag background would vanish as an outline, so candidates use the solid colour.
+      // The pale tag background would vanish as an outline, so candidates use the solid color.
       borderColor: isCandidate ? badge.baseColor : badge.backgroundColor,
       backgroundColor: isCandidate ? "transparent" : badge.backgroundColor,
       ...(isCandidate ? {} : { color: badge.textColor }),
