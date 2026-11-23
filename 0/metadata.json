@@ -73,6 +73,37 @@
         "label": "Skill: dg-engineering-writing-style",
         "default_collapsed": true
       }
+    },
+    {
+      "id": "claude-skill-toolu_01DoUYMh5M2jJGWtPx7X9kkR",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-obsidian-cdp-verify"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "5e2387dc2655",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 543,
+        "end": 544,
+        "entry_ids": [
+          "ec283eb8-fb26-47da-884c-946fc054c169"
+        ],
+        "tool_use_id": "toolu_01DoUYMh5M2jJGWtPx7X9kkR"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01DoUYMh5M2jJGWtPx7X9kkR"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-obsidian-cdp-verify",
+        "default_collapsed": true
+      }
     }
   ],
   "session_metrics": {

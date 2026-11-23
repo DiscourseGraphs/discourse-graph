@@ -17,3 +17,7 @@ Johnny has confirmed that we want to stick with Obsidian default, which means no
 ---
 
 maybe the getPleasingColors can be modifed to take in dark mode too?
+
+---
+
+ok follow your recommendation
