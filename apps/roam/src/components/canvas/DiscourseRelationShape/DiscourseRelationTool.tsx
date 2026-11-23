@@ -10,6 +10,7 @@ import {
 } from "./DiscourseRelationUtil";
 import { discourseContext } from "~/components/canvas/Tldraw";
 import { isAcceptedRelationSchema } from "~/utils/relationSchemaAcceptance";
+import { isRelationDrawable } from "~/components/canvas/relationReload";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 import { isRelationComplete } from "~/utils/isRelationComplete";
 import {
@@ -351,9 +352,10 @@ export const createAllRelationShapeTools = (
         override onEnter = () => {
           this.didTimeout = false;
 
-          const selectedRelations = (
-            discourseContext.relations[name] || []
-          ).filter(isAcceptedRelationSchema);
+          // Triplets saved after mount have no shape util until a reload.
+          const selectedRelations = (discourseContext.relations[name] || [])
+            .filter(isAcceptedRelationSchema)
+            .filter((r) => isRelationDrawable(this.editor, r.id));
           const hasIncompleteSelectedRelation = selectedRelations.some(
             (relation) => !isRelationComplete(relation),
           );

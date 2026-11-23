@@ -10,7 +10,17 @@ import {
 } from "~/components/canvas/canvasUtils";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
 import { getStoredRelationsEnabled } from "~/utils/storedRelations";
-import { RelationTypeDropdown } from "./RelationTypeDropdown";
+import {
+  createTripletForPair,
+  getNodeTypeText,
+  type RelationType,
+} from "~/components/canvas/existingRelationTypes";
+import internalError from "~/utils/internalError";
+import { promptReloadIfUndrawable } from "~/components/canvas/relationReload";
+import {
+  RelationTypeDropdown,
+  type NodeTypePair,
+} from "./RelationTypeDropdown";
 import { createDefaultRelationBetweenNodes } from "./relationCreation";
 
 const noopAction = (): void => undefined;
@@ -286,6 +296,49 @@ export const DragHandleOverlay = () => {
     sourceNodeRef.current = null;
   }, [editor]);
 
+  const handleAddExisting = useCallback(
+    async ({
+      pair,
+      relationType,
+    }: {
+      pair: NodeTypePair;
+      relationType: RelationType;
+    }): Promise<boolean> => {
+      let relationId: string;
+      try {
+        relationId = await createTripletForPair({
+          ...relationType,
+          sourceType: pair.sourceType,
+          destinationType: pair.targetType,
+        });
+      } catch (error) {
+        void internalError({ error, type: "Canvas add existing relation" });
+        dispatchToastEvent({
+          id: "tldraw-add-existing-relation-error",
+          title: "Could not add discourse relation",
+          severity: "error",
+        });
+        return false;
+      }
+      const title = "Discourse relation added";
+      const description = `${relationType.label} added for ${getNodeTypeText(pair.sourceType)} and ${getNodeTypeText(pair.targetType)}`;
+      if (
+        promptReloadIfUndrawable({ editor, relationId, title, description })
+      ) {
+        handleDropdownDismiss();
+        return true;
+      }
+      dispatchToastEvent({
+        id: "tldraw-add-existing-relation",
+        title,
+        description,
+        severity: "success",
+      });
+      return true;
+    },
+    [editor, handleDropdownDismiss],
+  );
+
   const showHandles = !!handlePositions && !pending && !isDragging;
 
   return (
@@ -356,9 +409,9 @@ export const DragHandleOverlay = () => {
           dropdownPos={pending.dropdownPos}
           onSelect={handleDropdownSelect}
           onDismiss={handleDropdownDismiss}
-          // No-ops until ENG-2243 and ENG-2244 wire the flows; legacy mode can't show new triplets.
+          // Legacy mode can't show new triplets; Create new stays a no-op until ENG-2244.
           onAddExisting={
-            pending.storedRelationsEnabled ? noopAction : undefined
+            pending.storedRelationsEnabled ? handleAddExisting : undefined
           }
           onCreateNew={pending.storedRelationsEnabled ? noopAction : undefined}
         />
