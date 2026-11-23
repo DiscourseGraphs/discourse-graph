@@ -1,0 +1,24 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M8577WXH7G4J45TQSVA4SGKN",
+  "strategy": "manual-commit",
+  "branch": "eng-2362-respect-query-builder-image-placement-when",
+  "checkpoints_count": 9,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 254,
+    "cache_creation_tokens": 220734,
+    "cache_read_tokens": 20887475,
+    "output_tokens": 68119,
+    "api_call_count": 115
+  }
+}
