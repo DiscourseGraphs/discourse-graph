@@ -342,16 +342,19 @@ export const DragHandleOverlay = () => {
         handleDropdownDismiss();
         return true;
       }
-      if (isNew)
+      if (isNew) {
+        // An accepted imported triplet can already be drawable; the dialog flow still closes the menu.
         dispatchToastEvent({
           id: "tldraw-create-relation-type",
           title: "Relation type created",
+          description,
           severity: "success",
         });
+        handleDropdownDismiss();
+        return true;
+      }
       dispatchToastEvent({
-        id: isNew
-          ? "tldraw-create-relation-type-added"
-          : "tldraw-add-existing-relation",
+        id: "tldraw-add-existing-relation",
         title,
         description,
         severity: "success",
