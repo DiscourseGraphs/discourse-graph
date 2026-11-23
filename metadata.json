@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M857JKS5FK3QFVRYVAGQ9S36",
+  "strategy": "manual-commit",
+  "branch": "eng-2362-respect-query-builder-image-placement-when",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "apps/roam/src/utils/__tests__/runQuery.test.ts",
+    "apps/roam/src/utils/calcCanvasNodeSizeAndImg.ts",
+    "apps/roam/src/utils/createDiscourseNode.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 50,
+    "cache_creation_tokens": 35946,
+    "cache_read_tokens": 6239797,
+    "output_tokens": 13406,
+    "api_call_count": 21,
+    "subagent_tokens": {
+      "input_tokens": 2,
+      "cache_creation_tokens": 29562,
+      "cache_read_tokens": 33890,
+      "output_tokens": 250,
+      "api_call_count": 1
+    }
+  }
+}
