@@ -1,3 +1,5 @@
+import { colord } from "colord";
+import getPleasingColors from "@repo/utils/getPleasingColors";
 import { DiscourseNode } from "~/types";
 
 // Color palette similar to Roam's implementation
@@ -36,10 +38,17 @@ export const getContrastColor = (bgColor: string): string => {
   return luminance > 0.5 ? "#000000" : "#ffffff";
 };
 
+type NodeTagColors = {
+  baseColor: string;
+  backgroundColor: string;
+  textColor: string;
+};
+
+// Same derivation as Roam's getDiscourseNodeColors, so tags match across apps.
 export const getNodeTagColors = (
   nodeType: DiscourseNode,
   nodeIndex: number,
-): { backgroundColor: string; textColor: string } => {
+): NodeTagColors => {
   const customColor = nodeType.color || "";
 
   const safeIndex =
@@ -49,18 +58,17 @@ export const getNodeTagColors = (
     ? COLOR_PALETTE[paletteColorKey]
     : COLOR_PALETTE.blue;
 
-  const backgroundColor = customColor || paletteColor || "#4263eb";
-  const textColor = getContrastColor(backgroundColor);
+  const baseColor = customColor || paletteColor || "#4263eb";
+  const { background, text } = getPleasingColors(colord(baseColor));
 
-  return { backgroundColor, textColor };
+  return { baseColor, backgroundColor: background, textColor: text };
 };
-
 
 export const getAllDiscourseNodeColors = (
   nodeTypes: DiscourseNode[],
 ): Array<{
   nodeType: DiscourseNode;
-  colors: { backgroundColor: string; textColor: string };
+  colors: NodeTagColors;
 }> => {
   return nodeTypes.map((nodeType, index) => ({
     nodeType,

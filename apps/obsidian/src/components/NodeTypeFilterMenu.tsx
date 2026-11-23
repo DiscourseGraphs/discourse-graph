@@ -98,7 +98,7 @@ export const NodeTypeFilterPanel = ({
   const colorsById = useMemo(() => {
     const byId = new Map<string, string>();
     getAllDiscourseNodeColors(nodeTypes).forEach(({ nodeType, colors }) => {
-      byId.set(nodeType.id, colors.backgroundColor);
+      byId.set(nodeType.id, colors.baseColor);
     });
     return byId;
   }, [nodeTypes]);
