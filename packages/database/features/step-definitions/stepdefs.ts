@@ -12,6 +12,7 @@ import {
   type Enums,
   type Json,
 } from "@repo/database/dbTypes";
+import { EVERYONE_UID } from "@repo/database/lib/groups";
 import { getVariant, config } from "@repo/database/dbDotEnv";
 import { getConcepts, initNodeSchemaCache } from "@repo/database/lib/queries";
 import {
@@ -107,7 +108,7 @@ Given("the database is blank", async () => {
   // Deleting the file references above queued their hashes for garbage collection.
   r = await client.from("file_gc").delete().neq("filehash", "");
   assert.equal(r.error, null);
-  world.localRefs = {};
+  world.localRefs = { everyone: EVERYONE_UID };
   // clear the cache
   initNodeSchemaCache();
 });
@@ -2079,3 +2080,47 @@ Then(
     });
   },
 );
+
+Then(
+  "a public viewer should see nodes {string} in space {word}",
+  async (expectedIds: string, space: string) => {
+    const spaceId = Number(world.localRefs[space]);
+    const expected = expectedIds.split(",").filter(Boolean).sort();
+    const client = getAnonymousClient();
+    const spaces = await client.from("Space").select("id").eq("id", spaceId);
+    assert.equal(spaces.error, null);
+    assert.equal(spaces.data!.length, expected.length ? 1 : 0);
+    const concepts = await client
+      .from("Concept")
+      .select("source_local_id")
+      .eq("space_id", spaceId);
+    assert.equal(concepts.error, null);
+    assert.deepEqual(
+      concepts.data!.map((row) => row.source_local_id).sort(),
+      expected,
+    );
+    const contents = await client
+      .from("Content")
+      .select("source_local_id, variant, text")
+      .eq("space_id", spaceId)
+      .order("source_local_id")
+      .order("variant");
+    assert.equal(contents.error, null);
+    assert.deepEqual(
+      contents.data,
+      expected.flatMap((id) => [
+        { source_local_id: id, variant: "direct", text: "claim 1" },
+        { source_local_id: id, variant: "full", text: "full claim 1" },
+      ]),
+    );
+  },
+);
+
+When("the public space grant for {word} is revoked", async (space: string) => {
+  const result = await getServiceClient()
+    .from("SpaceAccess")
+    .delete()
+    .eq("space_id", Number(world.localRefs[space]))
+    .eq("account_uid", EVERYONE_UID);
+  assert.equal(result.error, null);
+});

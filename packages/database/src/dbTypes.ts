@@ -2212,6 +2212,16 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      public_node_grants: {
+        Args: Record<PropertyKey, never>;
+        Returns: Database["public"]["CompositeTypes"]["accessible_resource"][];
+        SetofOptions: {
+          from: "*";
+          to: "accessible_resource";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
       schema_of_concept:
         | {
             Args: {

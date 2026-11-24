@@ -10,7 +10,11 @@ Supabase sends every API request as one of three Postgres roles:
 - `authenticated`: a logged-in request. The plugins log in as their space's "anonymous" account (`agent_type = 'anonymous'`), so they use `authenticated`, not `anon`.
 - `service_role`: the server key. It bypasses row-level security. Edge functions such as `create-space` use it; clients never get it.
 
-`anon` reads almost nothing today.
+Signed-out readers can look up explicitly published nodes.
+
+## Public node reads
+
+A public node requires a partial space grant and a resource grant to the reserved nil UUID in the same space. Removing either grant withdraws public access. `public_node_grants()` returns only the matching space and source-local IDs. Read policies use those pairs for `Concept` and `Content`, and expose the associated `Space` for lookup. Normal user and group identities continue to govern account visibility, files and writes.
 
 ## How access is enforced
 
@@ -107,11 +111,11 @@ All other `SECURITY DEFINER` functions, and the functions that write, are execut
 
 `in_space` is not executable by `anon`. Only write paths reach it as the caller, and `anon`'s reads use `my_space_ids`.
 
-`anon` holds only `SELECT` on the contributor tables, and its reads fail with a permission error on `ResourceAccess` until public access adds the grants below.
+`anon` holds only `SELECT` on the contributor tables, and their existing read policies still apply.
 
 ### Grants made for public access
 
-`anon` will read public nodes, their files and their authors (ENG-1837). The "Public access" entries above, and `anon`'s `SELECT` on `Space`, the contributor tables and the views, are grants made ahead of that work. `anon` can't execute the functions that write, except `get_secret_token`. Keep them: rule 1 means that removing one fails those queries with a permission error. ENG-1837 also has to grant `anon` `SELECT` on `Concept`, `Content`, `Document`, `FileReference` and `ResourceAccess`, and open `storage_select_assets_access` to `anon`, which today applies only to `authenticated`.
+Signed-out node lookup uses `Space`, `Concept` and `Content`. The existing select policies also require read permission on `ResourceAccess`, which filters its own rows by RLS. Attachment downloads require authentication.
 
 ## Supabase advisor findings that remain
 
@@ -124,7 +128,7 @@ It flags any view that bypasses RLS, any view that reads `auth.users`, any polic
 - `my_groups` reads `auth.users` (`auth_users_exposed` and `security_definer_view`). Groups are rows in `auth.users`, with the synthetic email `{group name}@groups.discoursegraphs.com` set by the `create-group` edge function. The view returns only the id and name of the groups the current user belongs to; `anon` gets no rows. It must run as its owner, because clients can't read `auth.users`. This stays.
 - The other eight `my_*` views (`security_definer_view`). This is the speed workaround described above.
 - `accounts_in_my_partial_spaces` (`security_definer_view`). It runs as its owner on purpose, to read `LocalAccess` below `reader` (see above). It stays.
-- `anon_security_definer_function_executable` for the four functions in the table above.
+- `anon_security_definer_function_executable` for the functions in the table above and `public_node_grants`.
 - `authenticated_security_definer_function_executable` for the policy helpers and for the functions that clients call directly: `create_account_in_space`, `upsert_accounts_in_space`, `file_exists`, `create_secret_token`, `get_secret_token`, `accept_group_invitation`. Also for `upsert_account_in_space`: no client calls it, but `upsert_content` and `upsert_documents` run as the caller, so the caller needs `EXECUTE`.
 
 ### Performance advisor

@@ -564,3 +564,12 @@ COMMENT ON POLICY group_membership_insert_policy ON public.group_membership IS '
 
 DROP POLICY IF EXISTS group_membership_update_policy ON public.group_membership;
 CREATE POLICY group_membership_update_policy ON public.group_membership FOR UPDATE USING (public.is_group_admin(group_id));
+
+-- Reserved account for explicit public node grants. No client signs in as this account.
+INSERT INTO auth.users (instance_id, id, aud, role, created_at, updated_at, is_anonymous)
+VALUES ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', 'anon', 'anon', now(), now(), true)
+ON CONFLICT (id) DO NOTHING;
+
+ALTER TABLE public."SpaceAccess" ADD CONSTRAINT "SpaceAccess_everyone_partial_only" CHECK (
+    account_uid <> '00000000-0000-0000-0000-000000000000' OR permissions = 'partial'
+);

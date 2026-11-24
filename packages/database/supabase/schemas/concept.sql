@@ -713,3 +713,9 @@ GRANT EXECUTE ON FUNCTION public.rid_to_space_id_and_local_id TO anon;
 GRANT EXECUTE ON FUNCTION public.rid_or_local_id_to_concept_db_id TO anon;
 GRANT EXECUTE ON FUNCTION public._local_concept_to_db_concept TO anon;
 GRANT EXECUTE ON FUNCTION public.concept_in_space TO anon;
+
+GRANT SELECT ON TABLE public."Concept" TO anon;
+
+CREATE POLICY public_node_concept_select ON public."Concept" FOR SELECT TO anon, authenticated USING (
+    (space_id, source_local_id) IN (SELECT space_id, source_local_id FROM public.public_node_grants())
+);

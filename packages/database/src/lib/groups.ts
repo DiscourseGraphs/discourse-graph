@@ -3,6 +3,10 @@ import type { Tables, Enums } from "../dbTypes";
 import { isIgnorableUpsertError } from "./contextFunctions";
 import { ridToSpaceUriAndLocalId } from "./rid";
 
+// The everyone pseudo-user: a grant to it makes a resource readable by anyone,
+// logged in or not. Must match the reserved account in the public node grants migration.
+export const EVERYONE_UID = "00000000-0000-0000-0000-000000000000";
+
 export type MyGroup = {
   id: string;
   name: string;
