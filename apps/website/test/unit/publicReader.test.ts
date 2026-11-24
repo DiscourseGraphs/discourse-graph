@@ -17,8 +17,8 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("public reader", () => {
   it("renders the selected node without exposing vault properties", async () => {
-    vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
-      const url = new URL(String(input));
+    vi.stubGlobal("fetch", (input: RequestInfo | URL) => {
+      const url = new URL(input instanceof Request ? input.url : input);
       const rows = url.pathname.endsWith("/Space")
         ? [{ id: 1, platform: "Obsidian", name: "Planning vault" }]
         : url.pathname.endsWith("/Content")
@@ -32,7 +32,7 @@ describe("public reader", () => {
           : url.searchParams.has("source_local_id")
             ? [{ schema_id: 2, is_schema: false, is_relation: false }]
             : [{ name: "Claim", literal_content: {} }];
-      return Response.json(rows);
+      return Promise.resolve(Response.json(rows));
     });
     const html = renderToStaticMarkup(
       await DisplayPage({
@@ -50,7 +50,7 @@ describe("public reader", () => {
   });
 
   it("does not render a node invisible to the public client", async () => {
-    vi.stubGlobal("fetch", async () => Response.json([]));
+    vi.stubGlobal("fetch", () => Promise.resolve(Response.json([])));
     expect(await loadDisplayNode(rid)).toBeUndefined();
   });
 });
