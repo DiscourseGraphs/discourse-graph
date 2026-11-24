@@ -2084,7 +2084,7 @@ Then(
 Then(
   "a public viewer should see nodes {string} in space {word}",
   async (expectedIds: string, space: string) => {
-    const spaceId = Number(world.localRefs[space]);
+    const spaceId = Number((world.localRefs as LocalRefsType)[space]);
     const expected = expectedIds.split(",").filter(Boolean).sort();
     const client = getAnonymousClient();
     const spaces = await client.from("Space").select("id").eq("id", spaceId);
@@ -2120,7 +2120,7 @@ When("the public space grant for {word} is revoked", async (space: string) => {
   const result = await getServiceClient()
     .from("SpaceAccess")
     .delete()
-    .eq("space_id", Number(world.localRefs[space]))
+    .eq("space_id", Number((world.localRefs as LocalRefsType)[space]))
     .eq("account_uid", EVERYONE_UID);
   assert.equal(result.error, null);
 });
