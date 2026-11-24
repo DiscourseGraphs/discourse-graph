@@ -360,7 +360,6 @@ const FeatureFlagsTab = (): React.ReactElement => {
         title="Publish to the web"
         description="Show the public publishing option in the node sharing dialog."
         featureKey="Enable web publishing"
-        disabled={!canUseCloud}
       />
 
       <FeatureFlagPanel
