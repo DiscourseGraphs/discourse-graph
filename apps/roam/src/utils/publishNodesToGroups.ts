@@ -1,3 +1,4 @@
+import { getFeatureFlag } from "~/components/settings/utils/accessors";
 import {
   CrossAppNode,
   CrossAppRelation,
@@ -5,6 +6,8 @@ import {
 } from "@repo/database/crossAppContracts";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import {
+  EVERYONE_UID,
+  getPublicEndpointIds,
   getAvailableGroupIds,
   getPublishedGroupIdsByRid,
 } from "@repo/database/lib/groups";
@@ -128,7 +131,19 @@ export const gatherCorrespondingRelations = async ({
     getAllPublishedIdsByGroup({ client, spaceId, groupIds }),
     getPublishedGroupIdsByRid({ client, rids: [...importedRids] }),
   ]);
+  const publicEndpoints = groupIds.includes(EVERYONE_UID)
+    ? await getPublicEndpointIds({
+        spaceId,
+        endpoints: [
+          ...new Set(relations.flatMap((r) => [r.sourceUid, r.destinationUid])),
+        ]
+          .filter((id) => !forNodeIds?.has(id))
+          .map((id) => ({ id, importedRid: importedRidOf(id) })),
+      })
+    : new Set<string>();
   const isEndPublishedToGroup = (uid: string, groupId: string): boolean => {
+    if (groupId === EVERYONE_UID)
+      return Boolean(forNodeIds?.has(uid)) || publicEndpoints.has(uid);
     const importedRid = importedRidOf(uid);
     if (importedRid !== undefined)
       return publishedGroupIdsByRid[importedRid].includes(groupId);
@@ -330,7 +345,19 @@ export const publishNodesToGroups = async ({
   };
   if (nodes.length === 0 || groupIds.length === 0) return result;
 
+  if (
+    groupIds.includes(EVERYONE_UID) &&
+    nodes.some((node) => readImportedSourceIdentity(node.localId))
+  )
+    throw new Error(
+      "Publish imported nodes from their original graph or vault. Select only local nodes to publish to the web.",
+    );
   const availableGroupIds = new Set(await getAvailableGroupIds(client));
+  if (
+    groupIds.includes(EVERYONE_UID) &&
+    getFeatureFlag("Enable web publishing")
+  )
+    availableGroupIds.add(EVERYONE_UID);
   const requestedGroupIds = new Set(groupIds);
   groupIds = [...intersection(requestedGroupIds, availableGroupIds)];
   result.failedGroupIds = [...difference(requestedGroupIds, availableGroupIds)];

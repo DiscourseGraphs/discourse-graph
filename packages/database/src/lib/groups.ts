@@ -1,7 +1,11 @@
 import type { DGSupabaseClient } from "./client";
-import type { Tables, Enums } from "../dbTypes";
+import { createClient } from "@supabase/supabase-js";
+import type { Database, Tables, Enums } from "../dbTypes";
 import { isIgnorableUpsertError } from "./contextFunctions";
 import { ridToSpaceUriAndLocalId } from "./rid";
+
+// Reserved public account returned by the database everyone_uid() function.
+export const EVERYONE_UID = "00000000-0000-0000-0000-000000000000";
 
 export type MyGroup = {
   id: string;
@@ -248,4 +252,68 @@ export const getPublishedGroupIdsByRid = async ({
     ];
   }
   return result;
+};
+
+// The publisher may have private access. Check what a signed-out visitor can actually read.
+export const getPublicEndpointIds = async ({
+  spaceId,
+  endpoints,
+}: {
+  spaceId: number;
+  endpoints: { id: string; importedRid?: string }[];
+}): Promise<Set<string>> => {
+  if (!endpoints.length) return new Set();
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) throw new Error("Missing public Supabase configuration");
+  const client = createClient<Database>(url, key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      storageKey: "dg-public-endpoint-reader",
+    },
+  });
+  const byOrigin = new Map<
+    string | undefined,
+    { id: string; sourceLocalId: string }[]
+  >();
+  for (const { id, importedRid } of endpoints) {
+    const { spaceUri, sourceLocalId } = importedRid
+      ? ridToSpaceUriAndLocalId(importedRid)
+      : { spaceUri: undefined, sourceLocalId: id };
+    const group = byOrigin.get(spaceUri) ?? [];
+    group.push({ id, sourceLocalId });
+    byOrigin.set(spaceUri, group);
+  }
+  const published = new Set<string>();
+  for (const [spaceUri, nodes] of byOrigin) {
+    let originId = spaceId;
+    if (spaceUri !== undefined) {
+      const origin = await client
+        .from("Space")
+        .select("id")
+        .eq("url", spaceUri)
+        .maybeSingle();
+      if (origin.error) throw origin.error;
+      if (!origin.data) continue;
+      originId = origin.data.id;
+    }
+    for (let start = 0; start < nodes.length; start += LOCAL_ID_BATCH_SIZE) {
+      const batch = nodes.slice(start, start + LOCAL_ID_BATCH_SIZE);
+      const result = await client
+        .from("Concept")
+        .select("source_local_id")
+        .eq("space_id", originId)
+        .in(
+          "source_local_id",
+          batch.map((node) => node.sourceLocalId),
+        );
+      if (result.error) throw result.error;
+      const visible = new Set(result.data.map((row) => row.source_local_id));
+      for (const node of batch)
+        if (visible.has(node.sourceLocalId)) published.add(node.id);
+    }
+  }
+  return published;
 };

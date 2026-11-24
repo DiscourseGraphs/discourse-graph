@@ -4,18 +4,26 @@ interface ConfirmationModalProps {
   title: string;
   message: string;
   onConfirm: () => void;
+  // Called when the modal closes without confirmation.
+  onCancel?: () => void;
 }
 
 export class ConfirmationModal extends Modal {
   private title: string;
   private message: string;
   private onConfirm: () => void;
+  private onCancel?: () => void;
+  private confirmed = false;
 
-  constructor(app: App, { title, message, onConfirm }: ConfirmationModalProps) {
+  constructor(
+    app: App,
+    { title, message, onConfirm, onCancel }: ConfirmationModalProps,
+  ) {
     super(app);
     this.title = title;
     this.message = message;
     this.onConfirm = onConfirm;
+    this.onCancel = onCancel;
   }
 
   onOpen() {
@@ -43,6 +51,7 @@ export class ConfirmationModal extends Modal {
         cls: "mod-warning",
       })
       .addEventListener("click", () => {
+        this.confirmed = true;
         this.onConfirm();
         this.close();
       });
@@ -51,5 +60,6 @@ export class ConfirmationModal extends Modal {
   onClose() {
     const { contentEl } = this;
     contentEl.empty();
+    if (!this.confirmed) this.onCancel?.();
   }
 }

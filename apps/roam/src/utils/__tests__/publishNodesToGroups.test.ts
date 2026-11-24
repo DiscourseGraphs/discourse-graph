@@ -9,6 +9,8 @@ import { contentTypes } from "@repo/content-model";
 const mocks = vi.hoisted(() => ({
   getDiscourseNodes: vi.fn(),
   getAvailableGroupIds: vi.fn(),
+  getFeatureFlag: vi.fn(() => false),
+  getPublicEndpointIds: vi.fn().mockResolvedValue(new Set<string>()),
   ensurePartialSpaceAccess: vi.fn(),
   internalError: vi.fn(),
   renderToast: vi.fn(),
@@ -91,7 +93,9 @@ vi.mock("~/utils/roamToCrossAppConverters", () => ({
 }));
 
 vi.mock("@repo/database/lib/groups", () => ({
+  EVERYONE_UID: "00000000-0000-0000-0000-000000000000",
   getAvailableGroupIds: mocks.getAvailableGroupIds,
+  getPublicEndpointIds: mocks.getPublicEndpointIds,
   ensurePartialSpaceAccess: mocks.ensurePartialSpaceAccess,
   getPublishedGroupIdsByRid: mocks.getPublishedGroupIdsByRid,
 }));
@@ -99,6 +103,10 @@ vi.mock("@repo/database/lib/groups", () => ({
 vi.mock("@repo/database/lib/contextFunctions", () => ({
   isIgnorableUpsertError: (error: { code?: string } | null) =>
     !error || error.code === "23505",
+}));
+
+vi.mock("~/components/settings/utils/accessors", () => ({
+  getFeatureFlag: mocks.getFeatureFlag,
 }));
 
 import { publishNodesToGroups } from "~/utils/publishNodesToGroups";
@@ -434,6 +442,79 @@ describe("publishNodesToGroups", () => {
     expect(result.syncedNodeSchemaUids).toEqual([SCHEMA_UID]);
     expect(result.okGroupIds).toEqual([GROUP_ID]);
     expect(result.failedUpsertUids).toEqual([]);
+  });
+
+  it("refuses to publish a selected imported copy as a local public node", async () => {
+    mocks.readImportedSourceIdentity.mockReturnValue({
+      sourceNodeRid: "orn:obsidian.note:other/source",
+    });
+    const { client, upsertCalls } = makeFakeClient({});
+    await expect(
+      publishNodesToGroups({
+        client,
+        spaceId: SPACE_ID,
+        groupIds: ["00000000-0000-0000-0000-000000000000"],
+        nodes: [makeCrossAppNode({ uid: "copy", title: "Imported" })],
+      }),
+    ).rejects.toThrow("original graph or vault");
+    expect(upsertCalls).toHaveLength(0);
+  });
+
+  it("refuses a public grant when web publishing is disabled", async () => {
+    const everyone = "00000000-0000-0000-0000-000000000000";
+    const { client, upsertCalls } = makeFakeClient({});
+    const result = await publishNodesToGroups({
+      client,
+      spaceId: SPACE_ID,
+      groupIds: [everyone],
+      nodes: [makeCrossAppNode({ uid: "node-1", title: "private" })],
+    });
+    expect(result.failedGroupIds).toEqual([everyone]);
+    expect(upsertCalls).toHaveLength(0);
+  });
+
+  it("publishes to the web for someone in no group", async () => {
+    mocks.getFeatureFlag.mockReturnValueOnce(true);
+    const everyone = "00000000-0000-0000-0000-000000000000";
+    mocks.getAvailableGroupIds.mockResolvedValue([]);
+    const { client, upsertCalls } = makeFakeClient({});
+
+    const result = await publishNodesToGroups({
+      client,
+      spaceId: SPACE_ID,
+      groupIds: [everyone],
+      nodes: [makeCrossAppNode({ uid: "node-1", title: "CLM - public" })],
+    });
+
+    expect(mocks.ensurePartialSpaceAccess).toHaveBeenCalledWith(
+      expect.objectContaining({ groupIds: [everyone] }),
+    );
+    expect(upsertCalls[0].rows).toEqual(
+      expect.arrayContaining([
+        {
+          account_uid: everyone,
+          source_local_id: "node-1",
+          space_id: SPACE_ID,
+        },
+      ]),
+    );
+    expect(result.okGroupIds).toEqual([everyone]);
+    expect(result.failedGroupIds).toEqual([]);
+  });
+
+  it("still refuses a group the user is not a member of", async () => {
+    mocks.getAvailableGroupIds.mockResolvedValue([]);
+    const { client, upsertCalls } = makeFakeClient({});
+
+    const result = await publishNodesToGroups({
+      client,
+      spaceId: SPACE_ID,
+      groupIds: [GROUP_ID],
+      nodes: [makeCrossAppNode({ uid: "node-1", title: "CLM - private" })],
+    });
+
+    expect(upsertCalls).toHaveLength(0);
+    expect(result.failedGroupIds).toEqual([GROUP_ID]);
   });
 
   it("still upserts title and full content when republishing an already-synced node", async () => {

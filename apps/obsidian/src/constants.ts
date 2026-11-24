@@ -123,6 +123,7 @@ export const DEFAULT_SETTINGS: Settings = {
   spacePassword: undefined,
   accountLocalId: undefined,
   syncModeEnabled: false,
+  webPublishingEnabled: false,
   spaceNames: {},
 };
 

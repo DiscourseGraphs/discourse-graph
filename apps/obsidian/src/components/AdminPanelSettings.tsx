@@ -11,6 +11,9 @@ export const AdminPanelSettings = () => {
   const [syncModeEnabled, setSyncModeEnabled] = useState<boolean>(
     plugin.settings.syncModeEnabled ?? false,
   );
+  const [webEnabled, setWebEnabled] = useState(
+    plugin.settings.webPublishingEnabled === true,
+  );
   const [username, setUsername] = useState<string>(
     plugin.settings.username || "",
   );
@@ -72,6 +75,19 @@ export const AdminPanelSettings = () => {
 
   return (
     <div className="general-settings">
+      <label className="setting-item">
+        <span className="setting-item-info">Publish to the web</span>
+        <input
+          type="checkbox"
+          checked={webEnabled}
+          onChange={(event) => {
+            const enabled = event.target.checked;
+            plugin.settings.webPublishingEnabled = enabled;
+            setWebEnabled(enabled);
+            void plugin.saveSettings();
+          }}
+        />
+      </label>
       <div className="setting-item">
         <div className="setting-item-info">
           <div className="setting-item-name">(BETA) Sync mode enable</div>

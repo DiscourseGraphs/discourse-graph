@@ -12,6 +12,8 @@ import {
 } from "./relationsStore";
 import type { RelationInstance } from "~/types";
 import {
+  EVERYONE_UID,
+  getPublicEndpointIds,
   ensurePartialSpaceAccess,
   getAvailableGroupIds,
   getPublishedGroupIdsByRid,
@@ -256,18 +258,41 @@ export const publishNodeRelations = async ({
       ([, fm]) => fm.nodeInstanceId !== nodeId,
     ),
   );
-  const groupsByOtherNodeId = await getPublishedGroupsByNode({
-    client,
-    frontmatterByNode: otherNodeFrontmatterById,
-  });
+  const visibleOtherNodes =
+    myGroup === EVERYONE_UID
+      ? await getPublicEndpointIds({
+          spaceId,
+          endpoints: Object.entries(otherNodeFrontmatterById).map(
+            ([id, fm]) => ({
+              id,
+              importedRid:
+                typeof fm.importedFromRid === "string"
+                  ? fm.importedFromRid
+                  : undefined,
+            }),
+          ),
+        })
+      : new Set(
+          Object.entries(
+            await getPublishedGroupsByNode({
+              client,
+              frontmatterByNode: otherNodeFrontmatterById,
+            }),
+          )
+            .filter(([, groups]) => groups.has(myGroup))
+            .map(([id]) => id),
+        );
   const relevantNodeTypeById: Record<string, string | undefined> = {};
   Object.entries(frontmatterById).map(([id, fm]) => {
-    if (fm.nodeInstanceId !== nodeId && !groupsByOtherNodeId[id]?.has(myGroup))
-      return;
+    if (fm.nodeInstanceId !== nodeId && !visibleOtherNodes.has(id)) return;
     relevantNodeTypeById[id] = fm.nodeTypeId as string;
   });
   relations.map((relation) => {
-    if ((relation.publishedToGroupId ?? []).includes(myGroup)) return;
+    if (
+      myGroup !== EVERYONE_UID &&
+      (relation.publishedToGroupId ?? []).includes(myGroup)
+    )
+      return;
     const triple = relationTriples.find(
       (triple) =>
         triple.relationshipTypeId === relation.type &&
@@ -536,6 +561,12 @@ export const publishNodeToGroup = async ({
   myGroup: string;
   skipFrontmatterUpdate?: boolean;
 }): Promise<void> => {
+  if (myGroup === EVERYONE_UID && !plugin.settings.webPublishingEnabled)
+    throw new Error("Web publishing is disabled");
+  if (myGroup === EVERYONE_UID && frontmatter.importedFromRid)
+    throw new Error(
+      "Publish imported nodes from their original graph or vault.",
+    );
   const nodeId = frontmatter.nodeInstanceId as string | undefined;
   if (!nodeId) throw new Error("Please sync the node first");
   const context = await getSupabaseContext(plugin);
@@ -566,7 +597,9 @@ export const publishNodeToGroup = async ({
   );
 
   const skipPublishAccess =
-    existingPublish.includes(myGroup) && lastModified <= lastModifiedDb;
+    myGroup !== EVERYONE_UID &&
+    existingPublish.includes(myGroup) &&
+    lastModified <= lastModifiedDb;
 
   if (!skipPublishAccess) {
     const publishSpaceResponse = await client.from("SpaceAccess").upsert(

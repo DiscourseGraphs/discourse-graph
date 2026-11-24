@@ -17,3 +17,8 @@ export const nextApiRoot = (): string => {
     return process.env.NEXT_API_ROOT;
   return nextRoot() + "api";
 };
+
+// The public web page of a published resource. The site resolves the RID, so
+// callers never need to know how page addresses are built.
+export const displayUrlForRid = (rid: string): string =>
+  `${nextRoot()}id/${encodeURIComponent(rid)}`;
