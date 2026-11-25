@@ -8,11 +8,11 @@ import "~/globals.css";
 
 export const dynamic = "force-dynamic";
 
-export default async function PublicNodePage({
+const PublicNodePage = async ({
   params,
 }: {
   params: Promise<{ id: string }>;
-}): Promise<React.ReactElement> {
+}): Promise<React.ReactElement> => {
   const { id } = await params;
   // Next can preserve encoded route delimiters such as %2F in dynamic params.
   let rid = id;
@@ -69,4 +69,6 @@ export default async function PublicNodePage({
       <NodeBody contents={contents.filter((row) => row.variant === "full")} />
     </main>
   );
-}
+};
+
+export default PublicNodePage;

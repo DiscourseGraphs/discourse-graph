@@ -2,8 +2,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
 import { NodeBody } from "../../app/id/[id]/NodeBody";
 
-const render = (content_type: string, text: string): string =>
-  renderToStaticMarkup(<NodeBody contents={[{ content_type, text }]} />);
+const render = (contentType: string, text: string): string =>
+  renderToStaticMarkup(
+    <NodeBody contents={[{ content_type: contentType, text }]} />,
+  );
 
 it("renders stored Markdown and GitHub table and task syntax", () => {
   const html = render(
