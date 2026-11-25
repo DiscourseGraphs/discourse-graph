@@ -1,0 +1,99 @@
+import type { TabId } from "@blueprintjs/core";
+
+export const SETTINGS_TAB_IDS = {
+  preferencesGeneral: "preferences-general",
+  preferencesStyling: "preferences-styling",
+  featuresDiscourseContext: "features-discourse-context",
+  featuresCanvas: "features-canvas",
+  featuresLeftSidebar: "features-left-sidebar",
+  grammarNodes: "grammar-nodes",
+  grammarRelations: "grammar-relations",
+  advancedQueries: "advanced-queries",
+  admin: "secret-admin-panel",
+} as const;
+
+export const DEFAULT_SETTINGS_TAB_ID: TabId =
+  SETTINGS_TAB_IDS.preferencesGeneral;
+
+/** One source for tab labels, so a rename cannot drift from recorded locations.
+ *  `searchable: false` keeps the hidden Admin tab out of the index. */
+export const SETTINGS_TAB_META = {
+  [SETTINGS_TAB_IDS.preferencesGeneral]: {
+    section: "Preferences",
+    label: "General",
+    searchable: true,
+  },
+  [SETTINGS_TAB_IDS.preferencesStyling]: {
+    section: "Preferences",
+    label: "Styling",
+    searchable: true,
+  },
+  [SETTINGS_TAB_IDS.featuresDiscourseContext]: {
+    section: "Features",
+    label: "Discourse context",
+    searchable: true,
+  },
+  [SETTINGS_TAB_IDS.featuresCanvas]: {
+    section: "Features",
+    label: "Canvas",
+    searchable: true,
+  },
+  [SETTINGS_TAB_IDS.featuresLeftSidebar]: {
+    section: "Features",
+    label: "Left sidebar",
+    searchable: true,
+  },
+  [SETTINGS_TAB_IDS.grammarNodes]: {
+    section: "Grammar",
+    label: "Nodes",
+    searchable: true,
+  },
+  [SETTINGS_TAB_IDS.grammarRelations]: {
+    section: "Grammar",
+    label: "Relations",
+    searchable: true,
+  },
+  [SETTINGS_TAB_IDS.advancedQueries]: {
+    section: "Advanced",
+    label: "Queries",
+    searchable: true,
+  },
+  [SETTINGS_TAB_IDS.admin]: {
+    section: "Admin",
+    label: "Admin",
+    searchable: false,
+  },
+} as const satisfies Record<
+  (typeof SETTINGS_TAB_IDS)[keyof typeof SETTINGS_TAB_IDS],
+  { section: string; label: string; searchable: boolean }
+>;
+
+/** Tab ids from before the taxonomy. `SettingsDialog` is exported, so callers
+ *  outside this repo may still pass them; every in-repo call site is updated. */
+export const SETTINGS_TAB_ALIASES: Record<string, TabId> = {
+  "discourse-graph-home-personal": SETTINGS_TAB_IDS.preferencesGeneral,
+  "discourse-graph-home": SETTINGS_TAB_IDS.preferencesGeneral,
+  "query-settings": SETTINGS_TAB_IDS.advancedQueries,
+  "canvas-shortcuts-personal-settings": SETTINGS_TAB_IDS.featuresCanvas,
+  "left-sidebar-personal-settings": SETTINGS_TAB_IDS.featuresLeftSidebar,
+  "left-sidebar-global-settings": SETTINGS_TAB_IDS.featuresLeftSidebar,
+  // Export options now live in the Export dialog.
+  "discourse-graph-export": SETTINGS_TAB_IDS.preferencesGeneral,
+  "discourse-nodes": SETTINGS_TAB_IDS.grammarNodes,
+  "discourse-relations": SETTINGS_TAB_IDS.grammarRelations,
+};
+
+export type SettingsTabId =
+  (typeof SETTINGS_TAB_IDS)[keyof typeof SETTINGS_TAB_IDS];
+
+const SETTINGS_TAB_ID_SET: ReadonlySet<string> = new Set(
+  Object.values(SETTINGS_TAB_IDS),
+);
+
+/** Anything that is not a tab is a node type uid from the old per-node tabs. */
+export const isSettingsTabId = (id: TabId): id is SettingsTabId =>
+  SETTINGS_TAB_ID_SET.has(String(id));
+
+export const resolveSettingsTabId = (
+  id: TabId = DEFAULT_SETTINGS_TAB_ID,
+): TabId => SETTINGS_TAB_ALIASES[String(id)] ?? id;

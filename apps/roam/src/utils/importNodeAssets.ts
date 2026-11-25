@@ -1,5 +1,5 @@
 import type { DGSupabaseClient } from "@repo/database/lib/client";
-import type { DbCrossAppNode } from "@repo/database/lib/dbToCrossAppConverters";
+import type { CrossAppNodeWithRid } from "@repo/database/crossAppContracts";
 import type { SharedNodeSpace } from "@repo/database/lib/sharedNodes";
 import { getErrorMessage } from "./getErrorMessage";
 import { mirrorAssetToRoamStorage } from "./mirrorAssetToRoamStorage";
@@ -57,7 +57,7 @@ const fetchNodeReferences = async ({
   space,
 }: {
   client: DGSupabaseClient;
-  sharedNode: DbCrossAppNode;
+  sharedNode: CrossAppNodeWithRid;
   space: SharedNodeSpace;
 }): Promise<ReferenceRow[]> => {
   const { data, error } = await client
@@ -102,7 +102,7 @@ export const importNodeAssets = async ({
   markdown,
 }: {
   client: DGSupabaseClient;
-  sharedNode: DbCrossAppNode;
+  sharedNode: CrossAppNodeWithRid;
   space: SharedNodeSpace;
   markdown: string;
 }): Promise<{ markdown: string; report: AssetImportReport }> => {

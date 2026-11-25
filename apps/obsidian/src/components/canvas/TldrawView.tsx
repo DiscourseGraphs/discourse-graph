@@ -63,7 +63,7 @@ export class TldrawView extends TextFileView {
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
+  // eslint-disable-next-line @typescript-eslint/require-await -- ItemView.onOpen must return a Promise; nothing to await
   async onOpen(): Promise<void> {
     const container = this.tldrawContainer;
     if (!container) return;

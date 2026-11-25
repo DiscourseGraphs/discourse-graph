@@ -167,7 +167,6 @@ export const ModifyNodeForm = ({
     if (isOpen && titleInputRef.current && popoverRef.current) {
       const inputRect = titleInputRef.current.getBoundingClientRect();
       const popover = popoverRef.current;
-      popover.style.position = "fixed";
       popover.style.top = `${inputRect.bottom + 4}px`;
       popover.style.left = `${inputRect.left}px`;
       popover.style.width = `${inputRect.width}px`;
@@ -201,7 +200,7 @@ export const ModifyNodeForm = ({
   useEffect(() => {
     const el = titleInputRef.current;
     if (!el) return;
-    el.style.height = "auto";
+    el.setCssStyles({ height: "auto" });
     el.style.height = `${el.scrollHeight}px`;
   }, [query]);
 

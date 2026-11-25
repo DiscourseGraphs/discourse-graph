@@ -10,7 +10,7 @@ Write in a direct, concise, plainspoken style that preserves important context a
 ## Core style
 
 - Lead with the relevant point and move quickly to the concrete question, request, or action.
-- Prefer the shortest version that remains clear and preserves necessary nuance.
+- Prefer the version the intended reader can understand on the first read. Cut filler, but keep the words that make the actor, action, condition, or consequence clear.
 - Identify wording or missing context that is ambiguous or could be misconstrued. Resolve it when the intended meaning is clear; otherwise, flag it and ask for clarification.
 - Use natural contractions and everyday wording. Avoid corporate jargon, inflated phrasing, and generic professional filler.
 - Avoid em dashes as sentence-level punctuation. Use a period, comma, colon, semicolon, or parentheses to separate thoughts instead. Preserve em dashes only when they appear in exact quotations, titles, source text, or technical content supplied by the requester.
@@ -35,3 +35,10 @@ Write in a direct, concise, plainspoken style that preserves important context a
 - Treat explicit directions such as "shorter," "warmer," "more forceful," "broader," or "one sentence" as overrides for the current draft.
 - When the requester asks for alternatives, vary the framing or emphasis rather than making superficial synonym swaps.
 - Return a ready-to-use draft first. Add explanation only when requested or when an ambiguity materially affects the wording.
+
+### First-read pass
+
+- Put the actor and verb close together when the actor matters. Split a sentence if a condition or exception separates them.
+- Unpack unfamiliar noun stacks or coined verbs. Say what acts on what. Keep established team terms, exact UI labels, and code identifiers.
+- Keep words like "that", "if", and "because" when they show how ideas relate. Use literal descriptions when a metaphor hides what the system did.
+- For tickets, PR comments, and docs, check that the reader can identify what happened or changed, when it applies, and what to do next. Preserve evidence and uncertainty. Do not add a cause or action the source does not support.

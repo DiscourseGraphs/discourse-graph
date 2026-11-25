@@ -1,18 +1,15 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* Note: All the functions are a copied and modified from arrow functions of tldraw 3.14.2
 https://github.com/tldraw/tldraw/tree/main/packages/tldraw/src/lib/shapes/arrow
  */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-floating-promises */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
-/* eslint-disable @typescript-eslint/require-await */
-/* eslint-disable react-hooks/rules-of-hooks */
-/* eslint-disable max-params */
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
-/* eslint-disable preferArrows/prefer-arrow-functions */
+/* eslint-disable
+  @typescript-eslint/no-unsafe-call,
+  @typescript-eslint/no-unused-vars,
+  @typescript-eslint/no-floating-promises,
+  @typescript-eslint/no-redundant-type-constituents,
+  @typescript-eslint/require-await,
+  @typescript-eslint/no-unnecessary-type-assertion,
+  max-params
+  -- kept close to the tldraw source this file is copied from */
 
 import React, { useRef, useEffect, useState } from "react";
 import {
@@ -555,7 +552,8 @@ function getBoundShapeRelationships(
 }
 function PatternFill(props: ShapeFillProps) {
   const { d, color } = props;
-  const theme = props.theme ?? useDefaultColorTheme();
+  const defaultTheme = useDefaultColorTheme();
+  const theme = props.theme ?? defaultTheme;
   const editor = useEditor();
   const svgExport = useSvgExportContext();
   const zoomLevel = useValue("zoomLevel", () => editor.getZoomLevel(), [
@@ -1328,8 +1326,10 @@ export function getFontDefForExport(
       const font = findFont(fontStyle);
       if (!font) return null;
 
-      const url: string = (font as any).$$_url;
-      const fontFaceRule: string = (font as any).$$_fontface;
+      const { $$_url: url, $$_fontface: fontFaceRule } = font as unknown as {
+        $$_url?: string;
+        $$_fontface?: string;
+      };
       if (!url || !fontFaceRule) return null;
 
       const fontFile = await (await fetch(url)).blob();
@@ -1463,11 +1463,11 @@ function PatternFillDefForCanvas() {
       if (htmlLayer) {
         // Wait for `patternContext` to be picked up
         editor.timers.requestAnimationFrame(() => {
-          htmlLayer.style.display = "none";
+          htmlLayer.hide();
 
           // Wait for 'display = "none"' to take effect
           editor.timers.requestAnimationFrame(() => {
-            htmlLayer.style.display = "";
+            htmlLayer.show();
           });
         });
       }
@@ -1885,10 +1885,18 @@ export const ArrowSvg = track(function ArrowSvg({
       : DEFAULT_TLDRAW_COLOR;
   const colorHex = (theme[colorName] as TLDefaultColorThemeColor).solid;
 
-  const changeIndex = React.useMemo<number>(() => {
-    return editor.environment.isSafari ? (globalRenderIndex += 1) : 0;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shape]);
+  // Bump once per new shape object, so Safari repaints the mask.
+  const changeRef = useRef<{
+    shape: DiscourseRelationShape;
+    index: number;
+  } | null>(null);
+  if (changeRef.current?.shape !== shape) {
+    changeRef.current = {
+      shape,
+      index: editor.environment.isSafari ? (globalRenderIndex += 1) : 0,
+    };
+  }
+  const changeIndex = changeRef.current.index;
 
   if (!info?.isValid) return null;
 
@@ -2650,3 +2658,12 @@ function centerOfCircleFromThreePoints(a: VecLike, b: VecLike, c: VecLike) {
       u,
   );
 }
+/* eslint-enable
+  @typescript-eslint/no-unsafe-call,
+  @typescript-eslint/no-unused-vars,
+  @typescript-eslint/no-floating-promises,
+  @typescript-eslint/no-redundant-type-constituents,
+  @typescript-eslint/require-await,
+  @typescript-eslint/no-unnecessary-type-assertion,
+  max-params
+  -- end of tldraw-derived code */

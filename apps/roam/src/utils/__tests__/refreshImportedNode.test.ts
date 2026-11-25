@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
-import type { DbCrossAppNode } from "@repo/database/lib/dbToCrossAppConverters";
+import type { CrossAppNodeWithRid } from "@repo/database/crossAppContracts";
 import {
   getNodeTypeRid,
   getSharedNodeByRid,
@@ -77,7 +77,7 @@ const OTHER_PAGE_TITLE = "EVD - duplicate page";
 
 const client = {} as DGSupabaseClient;
 
-const sharedNode: DbCrossAppNode = {
+const sharedNode: CrossAppNodeWithRid = {
   rid: "orn:obsidian.note:vault-a/node-1",
   localId: "node-1",
   nodeType: "evd-type",

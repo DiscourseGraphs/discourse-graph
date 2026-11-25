@@ -3,6 +3,7 @@ import getCurrentUserDisplayName from "roamjs-components/queries/getCurrentUserD
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 
 import canonicalRoamUrl from "./canonicalRoamUrl";
+import { canUseRoamCloud } from "./roamCloudAccess";
 import { DISCOURSE_CONFIG_PAGE_TITLE } from "~/data/constants";
 import getBlockProps from "~/utils/getBlockProps";
 import setBlockProps from "~/utils/setBlockProps";
@@ -49,6 +50,8 @@ const getOrCreateSpacePassword = () => {
 // But calls anywhere else should use the supabase client directly.
 
 export const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
+  if (!canUseRoamCloud()) return null;
+
   if (_contextCache === null) {
     try {
       const accountLocalId = window.roamAlphaAPI.user.uid();
@@ -96,6 +99,8 @@ export const getSupabaseContext = async (): Promise<SupabaseContext | null> => {
 let loggedInClient: DGSupabaseClient | null = null;
 
 export const getLoggedInClient = async (): Promise<DGSupabaseClient | null> => {
+  if (!canUseRoamCloud()) return null;
+
   if (loggedInClient !== null) {
     // renew session
     const { error } = await loggedInClient.auth.getSession();

@@ -1,5 +1,5 @@
 import {
-  CrossAppNode,
+  CrossAppNodeWithRid,
   CrossAppNodeSchema,
   CrossAppRelationTypeSchema,
   CrossAppRelationTripleSchema,
@@ -55,8 +55,6 @@ export type DbNodeRow = {
   direct: DbNodeContent | undefined;
   fullLastModified: string | null;
 };
-
-export type DbCrossAppNode = CrossAppNode & { rid: string; modifiedAt: Date };
 
 const getConceptMap = async (
   client: DGSupabaseClient,
@@ -292,7 +290,7 @@ export const dbNodeToCrossApp = ({
   accountMap: Record<number, string>;
   schemaMap: Record<number, string>;
   formatMap: Record<number, string>;
-}): DbCrossAppNode => {
+}): CrossAppNodeWithRid => {
   if (concept.is_schema !== false) throw new Error("Not a node instance");
   if (concept.schema_id === null) throw new Error("Missing node type");
   if (typeof concept.source_local_id !== "string")
@@ -365,7 +363,7 @@ export const dbNodesToCrossApp = async ({
 }: DbNodeRows & {
   client: DGSupabaseClient;
   spaceMap: Record<number, string>;
-}): Promise<DbCrossAppNode[]> => {
+}): Promise<CrossAppNodeWithRid[]> => {
   const authorIds = new Set<number>(
     directContents
       .map((c) => c.author_id)

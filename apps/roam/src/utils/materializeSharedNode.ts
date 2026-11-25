@@ -7,7 +7,7 @@ import {
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import { decorateTitle } from "@repo/database/lib/decorateTitle";
 import { isRid } from "@repo/database/lib/rid";
-import type { DbCrossAppNode } from "@repo/database/lib/dbToCrossAppConverters";
+import type { CrossAppNodeWithRid } from "@repo/database/crossAppContracts";
 import type { SharedNodeSpace } from "@repo/database/lib/sharedNodes";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
@@ -104,7 +104,7 @@ const isImportUpToDate = ({
 // Source restores the node's reference without changing its modified time, so the copy
 // would otherwise stay up to date with the placeholder.
 const awaitsPublishedSource = (
-  sharedNode: DbCrossAppNode,
+  sharedNode: CrossAppNodeWithRid,
   importedPageUid: string,
 ): boolean =>
   Boolean(sharedNode.slots?.[SOURCE_SLOT]) &&
@@ -135,7 +135,7 @@ const failure = ({
 });
 
 const validateSharedNode = (
-  sharedNode: DbCrossAppNode,
+  sharedNode: CrossAppNodeWithRid,
 ): { error: string } | { title: string } => {
   if (!isRid(sharedNode.rid))
     return { error: `Source node RID "${sharedNode.rid}" is not a RID` };
@@ -151,7 +151,7 @@ const resolveSourceTitle = async ({
   sharedNode,
   space,
 }: {
-  sharedNode: DbCrossAppNode;
+  sharedNode: CrossAppNodeWithRid;
   space: SharedNodeSpace;
 }): Promise<{ sourceTitle: string } | { warning: string }> => {
   const slotValue = sharedNode.slots?.[SOURCE_SLOT];
@@ -175,7 +175,7 @@ const buildPageTitle = async ({
   incomingTitle,
   importedPageUid,
 }: {
-  sharedNode: DbCrossAppNode;
+  sharedNode: CrossAppNodeWithRid;
   space: SharedNodeSpace;
   nodeType?: Pick<DiscourseNode, "format">;
   incomingTitle: string;
@@ -214,7 +214,7 @@ const fetchFullMarkdown = async ({
   space,
 }: {
   client: DGSupabaseClient;
-  sharedNode: DbCrossAppNode;
+  sharedNode: CrossAppNodeWithRid;
   space: SharedNodeSpace;
 }): Promise<{ markdown: string } | { error: string }> => {
   const { data, error } = await client
@@ -406,7 +406,7 @@ export const materializeSharedNode = async ({
   force = false,
 }: {
   client: DGSupabaseClient;
-  sharedNode: DbCrossAppNode;
+  sharedNode: CrossAppNodeWithRid;
   space: SharedNodeSpace;
   nodeType?: Pick<DiscourseNode, "format">;
   force?: boolean;

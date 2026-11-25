@@ -1,4 +1,4 @@
-import type { DbCrossAppNode } from "@repo/database/lib/dbToCrossAppConverters";
+import type { CrossAppNodeWithRid } from "@repo/database/crossAppContracts";
 import {
   getSharedNodeSpace,
   type SharedNodeListing,
@@ -35,7 +35,7 @@ const getSortText = ({
   column,
   spaces,
 }: {
-  node: DbCrossAppNode;
+  node: CrossAppNodeWithRid;
   column: Exclude<SharedNodeSortColumn, "lastModified">;
   spaces: SharedNodeListing["spaces"];
 }): string =>
@@ -51,7 +51,7 @@ const compareByColumn =
     column: SharedNodeSortColumn;
     spaces: SharedNodeListing["spaces"];
   }) =>
-  (left: DbCrossAppNode, right: DbCrossAppNode): number =>
+  (left: CrossAppNodeWithRid, right: CrossAppNodeWithRid): number =>
     column === "lastModified"
       ? left.modifiedAt.getTime() - right.modifiedAt.getTime()
       : getSortText({ node: left, column, spaces }).localeCompare(
@@ -68,10 +68,10 @@ export const sortSharedNodes = ({
   spaces,
   sort,
 }: {
-  nodes: readonly DbCrossAppNode[];
+  nodes: readonly CrossAppNodeWithRid[];
   spaces: SharedNodeListing["spaces"];
   sort: SharedNodeSort;
-}): DbCrossAppNode[] => {
+}): CrossAppNodeWithRid[] => {
   const compare = compareByColumn({ column: sort.column, spaces });
   return [...nodes].sort((left, right) =>
     sort.direction === "ascending"

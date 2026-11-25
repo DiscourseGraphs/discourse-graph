@@ -155,7 +155,8 @@ const NodeSpecification = ({
       </style>
       <DiscourseNodeFlagPanel
         nodeType={node.type}
-        title="enabled"
+        title="Enabled"
+        blockKey="enabled"
         description=""
         settingKeys={[
           DISCOURSE_NODE_KEYS.specification,
@@ -170,18 +171,18 @@ const NodeSpecification = ({
           parentSetEnabled?.(checked);
         }}
       />
-      <div
-        className={`${enabled ? "" : "bg-gray-200 opacity-75"} overflow-auto`}
-      >
-        <QueryEditor
-          parentUid={parentUid}
-          key={Number(migrated)}
-          hideCustomSwitch
-          discourseNodeType={node.type}
-          settingKey="specification"
-          returnNode={node.text}
-        />
-      </div>
+      {enabled && (
+        <div className="overflow-auto">
+          <QueryEditor
+            parentUid={parentUid}
+            key={Number(migrated)}
+            hideCustomSwitch
+            discourseNodeType={node.type}
+            settingKey="specification"
+            returnNode={node.text}
+          />
+        </div>
+      )}
     </div>
   );
 };
