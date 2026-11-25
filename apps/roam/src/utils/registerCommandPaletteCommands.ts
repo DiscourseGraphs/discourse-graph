@@ -1,6 +1,7 @@
 import { openQueryDrawer } from "~/components/QueryDrawer";
 import { render as exportRender } from "~/components/Export";
 import { render as renderToast } from "roamjs-components/components/Toast";
+import { render as renderSimpleAlert } from "roamjs-components/components/SimpleAlert";
 import { openShareNodeDialog } from "~/utils/openShareNodeDialog";
 import { createBlock, updateBlock } from "roamjs-components/writes";
 import {
@@ -59,9 +60,19 @@ import { renderDiscoverSharedNodesDialog } from "~/components/DiscoverSharedNode
 import { refreshAllImportedNodes } from "~/utils/refreshAllImportedNodes";
 import { REFRESH_ERROR_TYPE } from "~/utils/refreshImportedNode";
 import internalError from "~/utils/internalError";
+import {
+  getPagesWithBlockString,
+  repairPagesWithBlockString,
+} from "~/utils/repairPagesWithBlockString";
 
 const REFRESH_ALL_TOAST_ID = "refresh-imported-nodes";
 let isRefreshAllInFlight = false;
+
+const PAGE_REPAIR_TOAST_ID = "repair-pages";
+let isPageRepairInFlight = false;
+
+const formatPageCount = (count: number): string =>
+  `${count} ${count === 1 ? "page" : "pages"}`;
 
 export const createDiscourseNodeFromCommand = (
   extensionAPI: OnloadArgs["extensionAPI"],
@@ -413,6 +424,69 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
     }
   };
 
+  const reportPageRepairError = (error: unknown): void => {
+    internalError({ error, type: "Page Repair", sendEmail: false });
+    renderToast({
+      id: PAGE_REPAIR_TOAST_ID,
+      intent: "danger",
+      content: "Could not repair pages.",
+    });
+  };
+
+  const repairPages = async (): Promise<void> => {
+    if (isPageRepairInFlight) return;
+    isPageRepairInFlight = true;
+    try {
+      const pages = await getPagesWithBlockString();
+      renderToast({
+        id: PAGE_REPAIR_TOAST_ID,
+        content: `Repairing ${formatPageCount(pages.length)}…`,
+        timeout: 0,
+      });
+      const { repaired, failures } = await repairPagesWithBlockString(pages);
+      posthog.capture("Page Repair: Completed", {
+        repaired,
+        failed: failures.length,
+      });
+      renderToast({
+        id: PAGE_REPAIR_TOAST_ID,
+        intent: failures.length ? "warning" : "success",
+        timeout: failures.length ? 0 : 5000,
+        content: [
+          `${repaired} repaired, ${failures.length} failed.`,
+          ...failures.map(({ title, error }) => `${title}: ${error}`),
+        ].join("\n\n"),
+      });
+    } finally {
+      isPageRepairInFlight = false;
+    }
+  };
+
+  const repairPagesFromCommand = async (): Promise<void> => {
+    if (isPageRepairInFlight) {
+      renderToast({
+        id: "repair-pages-already-running",
+        content: "Pages are already being repaired.",
+      });
+      return;
+    }
+    const pageCount = (await getPagesWithBlockString()).length;
+    posthog.capture("Page Repair: Command Triggered", { pageCount });
+    if (!pageCount) {
+      renderToast({
+        id: PAGE_REPAIR_TOAST_ID,
+        content: "No pages need repair.",
+      });
+      return;
+    }
+    void renderSimpleAlert({
+      content: `${formatPageCount(pageCount)} can't be renamed in Roam.\n\nThe repair deletes each page and creates it again with the same title, blocks, properties and links. To keep the links, it edits every block and page title that links to the page. Each repaired page gets a new created date and you as its author. It also loses its view type and its left sidebar shortcut.`,
+      confirmText: "Repair",
+      onConfirm: () => void repairPages().catch(reportPageRepairError),
+      onCancel: true,
+    });
+  };
+
   const toggleDiscourseContextOverlay = async () => {
     const currentValue = getPersonalSetting<boolean>([
       PERSONAL_KEYS.discourseContextOverlay,
@@ -495,6 +569,10 @@ export const registerCommandPaletteCommands = (onloadArgs: OnloadArgs) => {
       () => void refreshAllImportedNodesFromCommand(),
     );
   }
+  void addCommand(
+    "DG: Repair pages that can't be renamed",
+    () => void repairPagesFromCommand().catch(reportPageRepairError),
+  );
   if (isNodeSharingEnabled()) {
     void addCommand("DG: Share current node", shareCurrentNode);
   }
