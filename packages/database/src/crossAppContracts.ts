@@ -96,6 +96,7 @@ export type CrossAppAsset = {
 
 // A node instance
 export type CrossAppNode = CrossAppBase & {
+  modifiedAt: Date;
   nodeType: LocalId;
   // The title stripped of the node type's title format ("[[CLM]] - {content}"
   // -> the {content} part). Equals the title when the type has no format or
@@ -112,6 +113,8 @@ export type CrossAppNode = CrossAppBase & {
   // does any link that was never an asset.
   assets?: CrossAppAsset[];
 };
+
+export type CrossAppNodeWithRid = CrossAppNode & { rid: Rid };
 
 // A relation instance
 export type CrossAppRelation = CrossAppBase & {

@@ -4,7 +4,7 @@ import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTit
 import getShallowTreeByParentUid from "roamjs-components/queries/getShallowTreeByParentUid";
 import deleteBlock from "roamjs-components/writes/deleteBlock";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
-import type { DbCrossAppNode } from "@repo/database/lib/dbToCrossAppConverters";
+import type { CrossAppNodeWithRid } from "@repo/database/crossAppContracts";
 import type { SharedNodeSpace } from "@repo/database/lib/sharedNodes";
 import {
   findImportedNodeUidBySourceRid,
@@ -93,7 +93,7 @@ const roamSpace: SharedNodeSpace = {
   url: "https://roamresearch.com/#/app/source-graph",
 };
 
-const sharedNode: DbCrossAppNode = {
+const sharedNode: CrossAppNodeWithRid = {
   rid: "orn:obsidian.note:vault-a/node-1",
   localId: "node-1",
   nodeType: "evd-type",
@@ -104,12 +104,12 @@ const sharedNode: DbCrossAppNode = {
   authorId: "account-7",
 };
 
-const decoratedSharedNode: DbCrossAppNode = {
+const decoratedSharedNode: CrossAppNodeWithRid = {
   ...sharedNode,
   coreTitle: CORE_TITLE,
 };
 
-const roamSharedNode: DbCrossAppNode = {
+const roamSharedNode: CrossAppNodeWithRid = {
   ...sharedNode,
   rid: "https://roamresearch.com/#/app/source-graph/node-2",
   localId: "node-2",

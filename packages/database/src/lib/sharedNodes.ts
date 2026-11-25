@@ -1,8 +1,8 @@
+import type { CrossAppNodeWithRid } from "../crossAppContracts";
 import type { DGSupabaseClient } from "./client";
 import { ridToSpaceUriAndLocalId, spaceUriAndLocalIdToRid } from "./rid";
 import {
   dbNodesToCrossApp,
-  type DbCrossAppNode,
   type DbNodeConcept,
   type DbNodeRows,
 } from "./dbToCrossAppConverters";
@@ -14,7 +14,7 @@ export type SharedNodeSpace = Pick<
 >;
 
 export type SharedNodeListing = {
-  nodes: DbCrossAppNode[];
+  nodes: CrossAppNodeWithRid[];
   spaces: Record<string, SharedNodeSpace>;
 };
 
@@ -145,7 +145,7 @@ export const getSharedNodeSpace = ({
   node,
   spaces,
 }: {
-  node: DbCrossAppNode;
+  node: CrossAppNodeWithRid;
   spaces: SharedNodeListing["spaces"];
 }): SharedNodeSpace => {
   const space = spaces[ridToSpaceUriAndLocalId(node.rid).spaceUri];
@@ -153,7 +153,7 @@ export const getSharedNodeSpace = ({
   return space;
 };
 
-export const getNodeTypeRid = (node: DbCrossAppNode): string =>
+export const getNodeTypeRid = (node: CrossAppNodeWithRid): string =>
   spaceUriAndLocalIdToRid(
     ridToSpaceUriAndLocalId(node.rid).spaceUri,
     node.nodeType,
@@ -166,7 +166,7 @@ export const getSharedNodeByRid = async ({
 }: {
   client: DGSupabaseClient;
   rid: string;
-}): Promise<{ node: DbCrossAppNode; space: SharedNodeSpace } | null> => {
+}): Promise<{ node: CrossAppNodeWithRid; space: SharedNodeSpace } | null> => {
   const { spaceUri, sourceLocalId } = ridToSpaceUriAndLocalId(rid);
   const spaceResponse = await client
     .from("my_spaces")

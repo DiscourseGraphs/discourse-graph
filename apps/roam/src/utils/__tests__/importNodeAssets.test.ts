@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
-import type { DbCrossAppNode } from "@repo/database/lib/dbToCrossAppConverters";
+import type { CrossAppNodeWithRid } from "@repo/database/crossAppContracts";
 import type { SharedNodeSpace } from "@repo/database/lib/sharedNodes";
 import { importNodeAssets } from "../importNodeAssets";
 import { mirrorAssetToRoamStorage } from "../mirrorAssetToRoamStorage";
@@ -15,7 +15,7 @@ const IMAGE_REF = "attachments/diagram.png";
 const FILE_REF = "attachments/report.docx";
 const MIRRORED = "https://firebasestorage.googleapis.com/v0/b/f/o/x?alt=media";
 
-const sharedNode: DbCrossAppNode = {
+const sharedNode: CrossAppNodeWithRid = {
   rid: "orn:obsidian.note:vault-a/node-1",
   localId: "node-1",
   nodeType: "evd-type",

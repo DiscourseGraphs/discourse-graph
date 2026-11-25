@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
-import type { DbCrossAppNode } from "@repo/database/lib/dbToCrossAppConverters";
+import type { CrossAppNodeWithRid } from "@repo/database/crossAppContracts";
 import {
   getNodeTypeRid,
   type SharedNodeSpace,
@@ -73,7 +73,7 @@ const spaces: Record<string, SharedNodeSpace> = {
   },
 };
 
-const makeSharedNode = (localId: string): DbCrossAppNode => ({
+const makeSharedNode = (localId: string): CrossAppNodeWithRid => ({
   rid: `orn:obsidian.note:vault-a/${localId}`,
   localId,
   nodeType: "evd-type",
@@ -85,7 +85,7 @@ const makeSharedNode = (localId: string): DbCrossAppNode => ({
 });
 
 const successResult = (
-  sharedNode: DbCrossAppNode,
+  sharedNode: CrossAppNodeWithRid,
   action: "created" | "updated" | "skipped",
 ) => ({
   success: true as const,

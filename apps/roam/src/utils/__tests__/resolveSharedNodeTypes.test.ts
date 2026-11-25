@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
-import type { DbCrossAppNode } from "@repo/database/lib/dbToCrossAppConverters";
+import type { CrossAppNodeWithRid } from "@repo/database/crossAppContracts";
 import {
   getNodeTypeRid,
   type SharedNodeSpace,
@@ -64,7 +64,7 @@ const space: SharedNodeSpace = {
 
 const spaces = { [space.url]: space };
 
-const sharedNode: DbCrossAppNode = {
+const sharedNode: CrossAppNodeWithRid = {
   rid: "orn:obsidian.note:vault-a/node-1",
   localId: "node-1",
   nodeType: REMOTE_TYPE_UID,

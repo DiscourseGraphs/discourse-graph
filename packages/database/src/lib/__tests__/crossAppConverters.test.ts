@@ -1,5 +1,9 @@
-import { describe, expect, it } from "vitest";
-import type { CrossAppNode, CrossAppNodeSchema } from "../../crossAppContracts";
+import { describe, expect, expectTypeOf, it } from "vitest";
+import type {
+  CrossAppNode,
+  CrossAppNodeSchema,
+  CrossAppNodeWithRid,
+} from "../../crossAppContracts";
 import {
   crossAppNodeSchemaToDbConcept,
   crossAppNodeToDbConcept,
@@ -18,6 +22,7 @@ const baseNode: CrossAppNode = {
   rid: "orn:obsidian.note:vault-a/node-1",
   createdAt: new Date("2026-06-14T11:00:00Z"),
   authorId: "account-local-1",
+  modifiedAt: new Date("2026-06-14T12:00:00Z"),
   nodeType: "concept-1",
   coreTitle: "REM sleep and recall",
   content: { direct: { value: "EVD - REM sleep and recall" } },
@@ -84,6 +89,12 @@ describe("crossAppNodeSchemaToDbConcept", () => {
 });
 
 describe("crossAppNodeToDbConcept", () => {
+  it("requires a modification time for every node and a RID for identified nodes", () => {
+    expectTypeOf<CrossAppNode["modifiedAt"]>().toEqualTypeOf<Date>();
+    expectTypeOf<CrossAppNode["rid"]>().toEqualTypeOf<string | undefined>();
+    expectTypeOf<CrossAppNodeWithRid["rid"]>().toEqualTypeOf<string>();
+  });
+
   it("stores node slots as local reference content", () => {
     expect(
       crossAppNodeToDbConcept({
