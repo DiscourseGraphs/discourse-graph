@@ -2,7 +2,7 @@ import posthog from "posthog-js";
 import { stripFrontmatter } from "@repo/content-model";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { Tables } from "@repo/database/dbTypes";
-import type { DbCrossAppNode } from "@repo/database/lib/dbToCrossAppConverters";
+import type { CrossAppNodeWithRid } from "@repo/database/crossAppContracts";
 import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
 import {
   getNodeTypeRid,
@@ -82,7 +82,7 @@ export const resolveSharedNodeTypes = async ({
   spaces,
 }: {
   client: DGSupabaseClient;
-  sharedNodes: DbCrossAppNode[];
+  sharedNodes: CrossAppNodeWithRid[];
   spaces: SharedNodeListing["spaces"];
 }): Promise<Map<string, DiscourseNode>> => {
   const schemaRids = [...new Set(sharedNodes.map(getNodeTypeRid))];

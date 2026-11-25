@@ -20,7 +20,7 @@ import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageU
 import createOverlayRender from "roamjs-components/util/createOverlayRender";
 import openBlockInSidebar from "roamjs-components/writes/openBlockInSidebar";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
-import type { DbCrossAppNode } from "@repo/database/lib/dbToCrossAppConverters";
+import type { CrossAppNodeWithRid } from "@repo/database/crossAppContracts";
 import {
   getSharedNodeSpace,
   type SharedNodeListing,
@@ -57,7 +57,7 @@ const SharedNodeRow = ({
   selectionDisabled,
   onToggleSelected,
 }: {
-  node: DbCrossAppNode;
+  node: CrossAppNodeWithRid;
   space: SharedNodeSpace;
   selected: boolean;
   selectionDisabled: boolean;

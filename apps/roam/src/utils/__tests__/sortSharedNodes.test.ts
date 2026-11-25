@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { DbCrossAppNode } from "@repo/database/lib/dbToCrossAppConverters";
+import type { CrossAppNodeWithRid } from "@repo/database/crossAppContracts";
 import type { SharedNodeSpace } from "@repo/database/lib/sharedNodes";
 import {
   DEFAULT_SHARED_NODE_SORT,
@@ -30,7 +30,7 @@ const makeNode = ({
   spaceUrl: string;
   title: string;
   modifiedAt: string;
-}): DbCrossAppNode => ({
+}): CrossAppNodeWithRid => ({
   rid: `orn:obsidian.note:${spaceUrl.split(":")[1]}/${title}`,
   localId: title,
   nodeType: "claim-type",

@@ -1,6 +1,6 @@
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
-import type { DbCrossAppNode } from "@repo/database/lib/dbToCrossAppConverters";
+import type { CrossAppNodeWithRid } from "@repo/database/crossAppContracts";
 import { ridToSpaceUriAndLocalId } from "@repo/database/lib/rid";
 import {
   getNodeTypeRid,
@@ -16,14 +16,14 @@ import { resolveSharedNodeTypes } from "./resolveSharedNodeTypes";
 import { SOURCE_SLOT } from "./sourceSlot";
 
 export type FailedSharedNodeImport = {
-  sharedNode: DbCrossAppNode;
+  sharedNode: CrossAppNodeWithRid;
   status: "failed";
   message: string;
 };
 
 export type SharedNodeImportItem =
   | {
-      sharedNode: DbCrossAppNode;
+      sharedNode: CrossAppNodeWithRid;
       status: "imported" | "skipped";
       pageUid: string;
       warning?: string;
@@ -36,7 +36,7 @@ export const isFailedSharedNodeImport = (
 
 // Normalize references to RIDs before reusing the publish/sync dependency sorter:
 // bare IDs from different spaces must not collide in a shared-node batch.
-const asConcept = (node: DbCrossAppNode): LocalConceptDataInput => {
+const asConcept = (node: CrossAppNodeWithRid): LocalConceptDataInput => {
   const source = node.slots?.[SOURCE_SLOT];
   return {
     source_local_id: node.rid,
@@ -53,7 +53,9 @@ const asConcept = (node: DbCrossAppNode): LocalConceptDataInput => {
   };
 };
 
-const orderSourcesFirst = (sharedNodes: DbCrossAppNode[]): DbCrossAppNode[] => {
+const orderSourcesFirst = (
+  sharedNodes: CrossAppNodeWithRid[],
+): CrossAppNodeWithRid[] => {
   const nodesByRid = new Map(sharedNodes.map((node) => [node.rid, node]));
   const { ordered } = orderConceptsByDependency(sharedNodes.map(asConcept));
   return ordered.map((concept) => nodesByRid.get(concept.source_local_id!)!);
@@ -63,14 +65,14 @@ const discoveredSourcesToImport = async ({
   sharedNodes,
   discoveredNodes,
 }: {
-  sharedNodes: DbCrossAppNode[];
-  discoveredNodes: DbCrossAppNode[];
-}): Promise<DbCrossAppNode[]> => {
+  sharedNodes: CrossAppNodeWithRid[];
+  discoveredNodes: CrossAppNodeWithRid[];
+}): Promise<CrossAppNodeWithRid[]> => {
   const { missing } = orderConceptsByDependency(sharedNodes.map(asConcept));
   const discoveredByRid = new Map(
     discoveredNodes.map((node) => [node.rid, node]),
   );
-  const sources: DbCrossAppNode[] = [];
+  const sources: CrossAppNodeWithRid[] = [];
   for (const rid of missing) {
     const source = discoveredByRid.get(rid);
     if (!source) continue;
@@ -90,8 +92,8 @@ export const importSharedNodes = async ({
   onProgress,
 }: {
   client: DGSupabaseClient;
-  sharedNodes: DbCrossAppNode[];
-  discoveredNodes: DbCrossAppNode[];
+  sharedNodes: CrossAppNodeWithRid[];
+  discoveredNodes: CrossAppNodeWithRid[];
   spaces: SharedNodeListing["spaces"];
   onProgress: (current: number, total: number) => void;
 }): Promise<SharedNodeImportItem[]> => {
