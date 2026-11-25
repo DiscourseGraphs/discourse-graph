@@ -23,17 +23,26 @@ export const NodeBody = ({
   }
   const source =
     markdown.content_type === "text/obsidian+markdown"
-      ? markdown.text.replace(/^---\r?\n(?:[^\n]*\n)*?---(?:\r?\n|$)/, "")
+      ? markdown.text.replace(
+          /^---[ \t]*\r?\n(?:[^\n]*\n)*?---[ \t]*(?:\r?\n|$)/,
+          "",
+        )
       : markdown.text;
   // Insert only micromark output with raw HTML and dangerous protocols disabled.
   const html = micromark(source, {
     extensions: [gfm()],
     htmlExtensions: [gfmHtml()],
   });
+  // Micromark escapes attribute values. Keep the encoded alt text when
+  // replacing its generated image tags so the label stays plain text.
+  const bodyHtml = html.replace(
+    /<img src="[^"]*" alt="([^"]*)"(?: title="[^"]*")? \/>/g,
+    "$1",
+  );
   return (
     <article
       className="prose prose-slate max-w-none break-words"
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: bodyHtml }}
     />
   );
 };

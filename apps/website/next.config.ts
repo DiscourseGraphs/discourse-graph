@@ -54,6 +54,10 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        source: "/id/:id",
+        headers: [{ key: "Content-Security-Policy", value: "img-src 'none'" }],
+      },
+      {
         source: "/auth/token",
         headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
       },
