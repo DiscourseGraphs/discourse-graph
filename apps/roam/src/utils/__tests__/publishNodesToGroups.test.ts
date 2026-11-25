@@ -223,6 +223,7 @@ const makeFakeClient = ({
 }) => {
   const rpcCalls: { fn: string; args: RpcArgs }[] = [];
   const conceptLookups: string[][] = [];
+  const grantLookups: string[][] = [];
   const upsertCalls: {
     table: string;
     rows: Record<string, unknown>[];
@@ -262,6 +263,8 @@ const makeFakeClient = ({
         return builder;
       },
       in: (column, values) => {
+        if (table === "ResourceAccess" && column === "account_uid")
+          grantLookups.push(values);
         if (table === "my_concepts") conceptLookups.push(values);
         filters.push(["in", column, values]);
         return builder;
@@ -346,6 +349,7 @@ const makeFakeClient = ({
     client,
     rpcCalls,
     conceptLookups,
+    grantLookups,
     upsertCalls,
     updateCalls,
     storedRows,
@@ -720,6 +724,31 @@ describe("publishNodesToGroups", () => {
         .flatMap(({ rows }) => rows)
         .filter((row) => row.source_local_id === sourceLocalId)
         .map((row) => row.account_uid);
+
+    it.each([{ groups: [] }, { groups: [GROUP_ID] }])(
+      "checks an imported public endpoint with ordinary groups $groups",
+      async ({ groups }) => {
+        const everyone = "00000000-0000-0000-0000-000000000000";
+        mocks.getFeatureFlag.mockReturnValueOnce(true);
+        mocks.getPublicEndpointIds.mockResolvedValueOnce(
+          new Set([IMPORTED_UID]),
+        );
+        const { client, grantLookups, upsertCalls } = makeFakeClient({});
+        await publishNodesToGroups({
+          client,
+          spaceId: SPACE_ID,
+          groupIds: [everyone, ...groups],
+          nodes: [makeCrossAppNode({ uid: "node-1", title: "Claim" })],
+        });
+
+        expect(grantLookups).toEqual(groups.length ? [groups] : []);
+        expect(mocks.getPublicEndpointIds).toHaveBeenCalledWith({
+          spaceId: SPACE_ID,
+          endpoints: [{ id: IMPORTED_UID, importedRid: IMPORTED_RID }],
+        });
+        expect(grantedGroupIds(upsertCalls, "rel-1")).toEqual([everyone]);
+      },
+    );
 
     it("grants the relation only to the groups the imported end is published to", async () => {
       mocks.getPublishedGroupIdsByRid.mockResolvedValue({

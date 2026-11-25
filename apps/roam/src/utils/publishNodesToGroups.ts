@@ -58,6 +58,7 @@ export const getAllPublishedIdsByGroup = async ({
   groupIds: string[];
   sourceLocalIds?: string[];
 }): Promise<Record<string, Set<string>>> => {
+  if (!groupIds.length) return {};
   let query = client
     .from("ResourceAccess")
     .select("account_uid, source_local_id")
@@ -119,6 +120,7 @@ export const gatherCorrespondingRelations = async ({
       importedRidByUid.set(uid, readImportedSourceIdentity(uid)?.sourceNodeRid);
     return importedRidByUid.get(uid);
   };
+  const ordinaryGroupIds = groupIds.filter((id) => id !== EVERYONE_UID);
   const importedRids = new Set(
     relations
       .flatMap((r) => [
@@ -128,8 +130,11 @@ export const gatherCorrespondingRelations = async ({
       .filter((rid) => rid !== undefined),
   );
   const [publishedIdsByGroup, publishedGroupIdsByRid] = await Promise.all([
-    getAllPublishedIdsByGroup({ client, spaceId, groupIds }),
-    getPublishedGroupIdsByRid({ client, rids: [...importedRids] }),
+    getAllPublishedIdsByGroup({ client, spaceId, groupIds: ordinaryGroupIds }),
+    getPublishedGroupIdsByRid({
+      client,
+      rids: ordinaryGroupIds.length ? [...importedRids] : [],
+    }),
   ]);
   const publicEndpoints = groupIds.includes(EVERYONE_UID)
     ? await getPublicEndpointIds({
