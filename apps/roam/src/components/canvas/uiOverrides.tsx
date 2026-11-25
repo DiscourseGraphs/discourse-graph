@@ -1,4 +1,5 @@
 import React, { ReactElement } from "react";
+import { finishTinyHandInteraction } from "./tinyHand/tinyHandInteraction";
 import {
   TLArrowBinding,
   TLArrowShape,
@@ -15,6 +16,7 @@ import {
   DefaultKeyboardShortcutsDialog,
   DefaultKeyboardShortcutsDialogContent,
   DefaultToolbarContent,
+  ToolbarItem,
   TldrawUiMenuItem,
   DefaultMainMenu,
   TldrawUiMenuGroup,
@@ -513,10 +515,12 @@ export const createUiComponents = ({
   allNodes,
   allRelationNames,
   canvasSyncMode,
+  tinyHandToolId,
 }: {
   allNodes: DiscourseNode[];
   allRelationNames: string[];
   canvasSyncMode: CanvasSyncMode;
+  tinyHandToolId: string;
 }): TLUiComponents => {
   return {
     StylePanel: CustomStylePanel,
@@ -529,6 +533,7 @@ export const createUiComponents = ({
             {...tools["discourse-tool"]}
             isSelected={useIsToolSelected(tools["discourse-tool"])}
           />
+          <ToolbarItem tool={tinyHandToolId} />
           <DefaultToolbarContent />
         </CustomDefaultToolbar>
       );
@@ -603,6 +608,7 @@ export const createUiOverrides = ({
   allAddReferencedNodeByAction,
   discourseContext,
   canvasSyncMode,
+  tinyHandToolId,
   onCanvasSyncModeChange,
   toggleMaximized,
   setConvertToDialogOpen,
@@ -612,11 +618,20 @@ export const createUiOverrides = ({
   allAddReferencedNodeByAction: AddReferencedNodeType;
   discourseContext: DiscourseContextType;
   canvasSyncMode: CanvasSyncMode;
+  tinyHandToolId: string;
   onCanvasSyncModeChange: (mode: CanvasSyncMode) => void;
   toggleMaximized: () => void;
   setConvertToDialogOpen: (open: boolean) => void;
 }): TLUiOverrides => ({
   tools: (editor, tools) => {
+    const select = tools.select;
+    tools.select = {
+      ...select,
+      onSelect: (source) => {
+        finishTinyHandInteraction(editor);
+        select.onSelect(source);
+      },
+    };
     // Get the custom keyboard shortcut for the discourse tool
     const discourseToolCombo = getPersonalSetting<IKeyCombo>([
       PERSONAL_KEYS.discourseToolShortcut,
@@ -636,6 +651,16 @@ export const createUiOverrides = ({
       readonlyOk: true,
       onSelect: () => {
         editor.setCurrentTool("discourse-tool");
+      },
+    };
+    tools[tinyHandToolId] = {
+      id: tinyHandToolId,
+      icon: "tinyHandIcon",
+      label: "TinyHand",
+      kbd: "",
+      readonlyOk: true,
+      onSelect: () => {
+        editor.setCurrentTool(tinyHandToolId).focus();
       },
     };
     const canvasNodeShortcuts =
