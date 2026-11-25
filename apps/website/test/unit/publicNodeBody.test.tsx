@@ -44,15 +44,20 @@ it("preserves the body and thematic break after empty Obsidian properties", () =
   expect(html).toContain("<p>Next</p>");
 });
 
-it("accepts padded Obsidian fences and preserves the next thematic break", () => {
-  const html = render(
-    "text/obsidian+markdown",
-    "--- \r\nproperty: hidden\r\n---\t\r\nKeep me\r\n\r\n---\r\nNext",
-  );
-  expect(html).not.toContain("property");
-  expect(html).toContain("<p>Keep me</p>");
-  expect(html).toContain("<hr");
-});
+it.each(["\n", "\r\n", "\r"])(
+  "preserves the body after padded Obsidian fences with %j line endings",
+  (eol) => {
+    const html = render(
+      "text/obsidian+markdown",
+      ["--- ", "property: hidden", "---\t", "Keep me", "", "---", "Next"].join(
+        eol,
+      ),
+    );
+    expect(html).not.toContain("property");
+    expect(html).toContain("<p>Keep me</p>");
+    expect(html).toContain("<hr");
+  },
+);
 
 it.each(["text/roam+markdown", "text/obsidian+markdown"])(
   "renders inline and reference images as escaped alt text for %s",

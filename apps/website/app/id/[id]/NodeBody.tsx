@@ -23,10 +23,9 @@ export const NodeBody = ({
   }
   const source =
     markdown.content_type === "text/obsidian+markdown"
-      ? markdown.text.replace(
-          /^---[ \t]*\r?\n(?:[^\n]*\n)*?---[ \t]*(?:\r?\n|$)/,
-          "",
-        )
+      ? markdown.text
+          .replace(/\r\n?/g, "\n")
+          .replace(/^---[ \t]*\n(?:[^\n]*\n)*?---[ \t]*(?:\n|$)/, "")
       : markdown.text;
   // Insert only micromark output with raw HTML and dangerous protocols disabled.
   const html = micromark(source, {
