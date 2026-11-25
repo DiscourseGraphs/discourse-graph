@@ -5,6 +5,7 @@ import {
 } from "@repo/database/crossAppContracts";
 import type { DGSupabaseClient } from "@repo/database/lib/client";
 import {
+  EVERYONE_UID,
   getAvailableGroupIds,
   getPublishedGroupIdsByRid,
 } from "@repo/database/lib/groups";
@@ -330,7 +331,11 @@ export const publishNodesToGroups = async ({
   };
   if (nodes.length === 0 || groupIds.length === 0) return result;
 
-  const availableGroupIds = new Set(await getAvailableGroupIds(client));
+  // Anyone may publish to the web: the everyone pseudo-user has no members.
+  const availableGroupIds = new Set([
+    ...(await getAvailableGroupIds(client)),
+    EVERYONE_UID,
+  ]);
   const requestedGroupIds = new Set(groupIds);
   groupIds = [...intersection(requestedGroupIds, availableGroupIds)];
   result.failedGroupIds = [...difference(requestedGroupIds, availableGroupIds)];

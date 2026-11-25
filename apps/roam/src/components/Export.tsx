@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Checkbox,
   Classes,
@@ -84,7 +85,14 @@ import getDiscourseRelations, {
 } from "~/utils/getDiscourseRelations";
 import { AddReferencedNodeType } from "./canvas/DiscourseRelationShape/DiscourseRelationTool";
 import posthog from "posthog-js";
-import { getMyGroups, type MyGroup } from "@repo/database/lib/groups";
+import {
+  EVERYONE_UID,
+  getMyGroups,
+  type MyGroup,
+} from "@repo/database/lib/groups";
+import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
+import { displayUrlForRid } from "@repo/utils/execContext";
+import canonicalRoamUrl from "~/utils/canonicalRoamUrl";
 import {
   getAllPublishedIdsByGroup,
   publishNodeUidsWithTypeToGroups,
@@ -100,6 +108,18 @@ import StoredRelationsWarning from "~/components/StoredRelationsWarning";
 import refreshConfigTree from "~/utils/refreshConfigTree";
 import ExportOptions from "./ExportOptions";
 import Description from "~/components/settings/SettingsDescription";
+
+const publishTargetsLabel = ({
+  publishedToWeb,
+  okGroupCount,
+}: {
+  publishedToWeb: boolean;
+  okGroupCount: number;
+}): string => {
+  const groups = `${okGroupCount} group${okGroupCount === 1 ? "" : "s"}`;
+  if (!publishedToWeb) return groups;
+  return okGroupCount === 0 ? "the web" : `the web and ${groups}`;
+};
 
 const ExportProgress = ({ id }: { id: string }) => {
   const [progress, setProgress] = useState(0);
@@ -260,6 +280,10 @@ const ExportDialog: ExportDialogComponent = ({
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [groupsError, setGroupsError] = useState("");
   const [publishError, setPublishError] = useState("");
+  const [publishToWeb, setPublishToWeb] = useState(false);
+  // Every selected node is already public, so no confirmation is needed.
+  const [alreadyPublic, setAlreadyPublic] = useState(false);
+  const [confirmWebOpen, setConfirmWebOpen] = useState(false);
 
   const publishableNodes = useMemo(
     () =>
@@ -834,6 +858,9 @@ const ExportDialog: ExportDialogComponent = ({
     setGroupsLoaded(false);
     setSelectedGroupIds([]);
     setGroupsError("");
+    setPublishToWeb(false);
+    setAlreadyPublic(false);
+    setConfirmWebOpen(false);
   }, [isOpen]);
   useEffect(() => {
     if (!sharingEnabled || !isOpen || selectedTabId !== "publish") return;
@@ -848,23 +875,27 @@ const ExportDialog: ExportDialogComponent = ({
         const groups = await getMyGroups(client);
         const context = await getSupabaseContext();
         let preselectedGroupIds: string[] = [];
-        if (context && groups.length && publishableNodes.length) {
+        let allPublic = false;
+        if (context && publishableNodes.length) {
           const publishedIdsByGroup = await getAllPublishedIdsByGroup({
             client,
             spaceId: context.spaceId,
-            groupIds: groups.map((g) => g.id),
+            groupIds: [...groups.map((g) => g.id), EVERYONE_UID],
             sourceLocalIds: publishableNodes.map(({ uid }) => uid),
           });
+          const isPublishedEverywhere = (id: string): boolean =>
+            publishableNodes.every(({ uid }) =>
+              publishedIdsByGroup[id].has(uid),
+            );
           preselectedGroupIds = groups
             .map((g) => g.id)
-            .filter((id) =>
-              publishableNodes.every(({ uid }) =>
-                publishedIdsByGroup[id].has(uid),
-              ),
-            );
+            .filter(isPublishedEverywhere);
+          allPublic = isPublishedEverywhere(EVERYONE_UID);
         }
         if (!active) return;
         setSelectedGroupIds(preselectedGroupIds);
+        setAlreadyPublic(allPublic);
+        setPublishToWeb(allPublic);
         setMyGroups(groups);
       } catch (e) {
         if (active)
@@ -880,6 +911,21 @@ const ExportDialog: ExportDialogComponent = ({
       active = false;
     };
   }, [sharingEnabled, isOpen, selectedTabId, publishableNodes]);
+
+  const openPublishedPage = (publishedNodeUids: string[]): void => {
+    const spaceUrl = canonicalRoamUrl(window.roamAlphaAPI.graph.name);
+    const [uid] = publishedNodeUids;
+    if (publishedNodeUids.length !== 1 || !uid) return;
+    const url = displayUrlForRid(
+      spaceUriAndLocalIdToRid(spaceUrl, uid, "note"),
+    );
+    window.open(url, "_blank");
+  };
+
+  const requestPublish = (): void => {
+    if (publishToWeb && !alreadyPublic) setConfirmWebOpen(true);
+    else void handlePublish();
+  };
 
   const handlePublish = async () => {
     setPublishError("");
@@ -897,16 +943,23 @@ const ExportDialog: ExportDialogComponent = ({
       } = await publishNodeUidsWithTypeToGroups({
         client,
         spaceId: context.spaceId,
-        groupIds: selectedGroupIds,
+        groupIds: publishToWeb
+          ? [...selectedGroupIds, EVERYONE_UID]
+          : selectedGroupIds,
         nodeUids: publishableNodes,
       });
+      const publishedToWeb = okGroupIds.includes(EVERYONE_UID);
+      const okGroupCount = okGroupIds.filter(
+        (id) => id !== EVERYONE_UID,
+      ).length;
       const selectedNodeUids = new Set(publishableNodes.map((n) => n.uid));
       const failedNodeCount = failedUpsertUids.filter((uid) =>
         selectedNodeUids.has(uid),
       ).length;
       const assets = summarizeAssetResults(assetResults);
       posthog.capture("Export Dialog: Publish", {
-        groupCount: okGroupIds.length,
+        groupCount: okGroupCount,
+        publishedToWeb,
         publishedNodeCount: publishedNodeUids.length,
         failedUpsertCount: failedUpsertUids.length,
         nonDiscourseCount,
@@ -922,9 +975,7 @@ const ExportDialog: ExportDialogComponent = ({
         ? [
             `Published ${publishedNodeUids.length} node${
               publishedNodeUids.length === 1 ? "" : "s"
-            } to ${okGroupIds.length} group${
-              okGroupIds.length === 1 ? "" : "s"
-            }.`,
+            } to ${publishTargetsLabel({ publishedToWeb, okGroupCount })}.`,
           ]
         : ["No nodes were published."];
       if (failedNodeCount)
@@ -962,7 +1013,10 @@ const ExportDialog: ExportDialogComponent = ({
             : "success",
         id: "query-builder-publish-success",
       });
-      if (hasPublishedNodes) closeDialog();
+      if (hasPublishedNodes) {
+        if (publishedToWeb) openPublishedPage(publishedNodeUids);
+        closeDialog();
+      }
     } catch (e) {
       internalError({
         error: e as Error,
@@ -1274,28 +1328,43 @@ const ExportDialog: ExportDialogComponent = ({
           <div className="my-2.5">Loading groups…</div>
         ) : groupsError ? (
           <div className="my-2.5">{groupsError}</div>
-        ) : myGroups.length === 0 ? (
-          <div className="my-2.5">
-            You are not a member of any sharing group.
-          </div>
         ) : (
           <>
-            <Label>Publish to group(s)</Label>
-            {myGroups.map((group) => (
-              <Checkbox
-                key={group.id}
-                checked={selectedGroupIds.includes(group.id)}
-                label={group.name}
-                onChange={(e) => {
-                  const { checked } = e.target as HTMLInputElement;
-                  setSelectedGroupIds((prev) =>
-                    checked
-                      ? [...prev, group.id]
-                      : prev.filter((id) => id !== group.id),
-                  );
-                }}
-              />
-            ))}
+            <Checkbox
+              checked={publishToWeb}
+              label="Publish to the web"
+              onChange={(e) =>
+                setPublishToWeb((e.target as HTMLInputElement).checked)
+              }
+            />
+            <div className="mb-2.5 text-xs opacity-75">
+              Anyone with the link can read these nodes, their types, and their
+              relations to other public nodes.
+            </div>
+            {myGroups.length === 0 ? (
+              <div className="my-2.5">
+                You are not a member of any sharing group.
+              </div>
+            ) : (
+              <>
+                <Label>Publish to group(s)</Label>
+                {myGroups.map((group) => (
+                  <Checkbox
+                    key={group.id}
+                    checked={selectedGroupIds.includes(group.id)}
+                    label={group.name}
+                    onChange={(e) => {
+                      const { checked } = e.target as HTMLInputElement;
+                      setSelectedGroupIds((prev) =>
+                        checked
+                          ? [...prev, group.id]
+                          : prev.filter((id) => id !== group.id),
+                      );
+                    }}
+                  />
+                ))}
+              </>
+            )}
             <div className="mt-2.5">
               {`Publishing ${publishableNodes.length} discourse node${
                 publishableNodes.length === 1 ? "" : "s"
@@ -1315,17 +1384,37 @@ const ExportDialog: ExportDialogComponent = ({
           <Button
             text={"Publish"}
             intent={Intent.PRIMARY}
-            onClick={() => void handlePublish()}
+            onClick={requestPublish}
             loading={loading}
             disabled={
               loading ||
-              selectedGroupIds.length === 0 ||
+              (selectedGroupIds.length === 0 && !publishToWeb) ||
               publishableNodes.length === 0
             }
             style={{ minWidth: 64 }}
           />
         </div>
       </div>
+      <Alert
+        isOpen={confirmWebOpen}
+        cancelButtonText="Cancel"
+        confirmButtonText="Publish to the web"
+        intent={Intent.WARNING}
+        onCancel={() => setConfirmWebOpen(false)}
+        onConfirm={() => {
+          setConfirmWebOpen(false);
+          void handlePublish();
+        }}
+      >
+        <p>
+          Anyone with the link will be able to read{" "}
+          {publishableNodes.length === 1
+            ? "this node"
+            : `these ${publishableNodes.length} nodes`}
+          , their types, and their relations to other public nodes. Search
+          engines may index them.
+        </p>
+      </Alert>
     </>
   );
 

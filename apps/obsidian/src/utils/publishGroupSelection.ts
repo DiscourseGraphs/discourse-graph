@@ -1,12 +1,16 @@
 import { Notice, type FrontMatterCache, type TFile } from "obsidian";
 import {
+  EVERYONE_UID,
   getAvailableGroupIds,
   getMyGroups,
   type MyGroup,
 } from "@repo/database/lib/groups";
+import { spaceUriAndLocalIdToRid } from "@repo/database/lib/rid";
+import { displayUrlForRid } from "@repo/utils/execContext";
 import type DiscourseGraphPlugin from "~/index";
 import { PublishGroupSuggestModal } from "~/components/PublishGroupSuggestModal";
-import { getLoggedInClient } from "~/utils/supabaseContext";
+import { ConfirmationModal } from "~/components/ConfirmationModal";
+import { getLocalSpaceUri, getLoggedInClient } from "~/utils/supabaseContext";
 import {
   getPublishedToGroups,
   publishNode,
@@ -22,7 +26,10 @@ export const PUBLISH_TO_ALL_ITEM_ID = "__publish_to_all_groups__";
 
 export type PublishGroupSuggestItem = PublishGroupOption & {
   isPublishToAll?: boolean;
+  isPublishToWeb?: boolean;
 };
+
+export const PUBLISH_TO_WEB_LABEL = "Publish to the web";
 
 export { getPublishedToGroups };
 
@@ -43,11 +50,25 @@ export const getPublishToAllTitle = (unpublishedCount: number): string =>
     ? "Already published to all groups"
     : `Publish to ${unpublishedCount} group${unpublishedCount === 1 ? "" : "s"}`;
 
-export const buildPublishGroupPickerItems = (
-  groups: PublishGroupOption[],
-): PublishGroupSuggestItem[] => {
+export const isPublishedToWeb = (
+  frontmatter: FrontMatterCache | Record<string, unknown>,
+): boolean => getPublishedToGroups(frontmatter).includes(EVERYONE_UID);
+
+export const buildPublishGroupPickerItems = ({
+  groups,
+  publishedToWeb,
+}: {
+  groups: PublishGroupOption[];
+  publishedToWeb: boolean;
+}): PublishGroupSuggestItem[] => {
   const unpublishedGroups = getUnpublishedGroups(groups);
   return [
+    {
+      id: EVERYONE_UID,
+      name: PUBLISH_TO_WEB_LABEL,
+      isPublished: publishedToWeb,
+      isPublishToWeb: true,
+    },
     {
       id: PUBLISH_TO_ALL_ITEM_ID,
       name: "Publish to all groups",
@@ -57,6 +78,11 @@ export const buildPublishGroupPickerItems = (
     ...groups,
   ];
 };
+
+export const isPublishToWebItem = (
+  item: PublishGroupSuggestItem,
+): item is PublishGroupSuggestItem & { isPublishToWeb: true } =>
+  item.isPublishToWeb === true;
 
 export const isPublishToAllItem = (
   item: PublishGroupSuggestItem,
@@ -205,6 +231,63 @@ export const publishToAllGroupsWithNotice = async ({
   );
 };
 
+const nodeDisplayUrl = (plugin: DiscourseGraphPlugin, nodeId: string): string =>
+  displayUrlForRid(
+    spaceUriAndLocalIdToRid(getLocalSpaceUri(plugin.app), nodeId, "note"),
+  );
+
+// Resolves to whether the user agreed. Asked only before a node first becomes
+// public; republishing a public node refreshes it without asking.
+const confirmFirstWebPublish = ({
+  plugin,
+  file,
+}: {
+  plugin: DiscourseGraphPlugin;
+  file: TFile;
+}): Promise<boolean> => {
+  const frontmatter = plugin.app.metadataCache.getFileCache(file)?.frontmatter;
+  if (frontmatter && isPublishedToWeb(frontmatter))
+    return Promise.resolve(true);
+  return new Promise((resolve) => {
+    new ConfirmationModal(plugin.app, {
+      title: PUBLISH_TO_WEB_LABEL,
+      message:
+        "Anyone with the link will be able to read this node, its type, and its relations to other public nodes. Search engines may index it.",
+      onConfirm: () => resolve(true),
+      onCancel: () => resolve(false),
+    }).open();
+  });
+};
+
+// Publishes to the everyone pseudo-user with the group machinery, then opens
+// the node's public page. Republishing also publishes relations added since.
+export const publishToWebWithNotice = async ({
+  plugin,
+  file,
+}: {
+  plugin: DiscourseGraphPlugin;
+  file: TFile;
+}): Promise<void> => {
+  if (!(await confirmFirstWebPublish({ plugin, file }))) return;
+  const frontmatter = plugin.app.metadataCache.getFileCache(file)?.frontmatter;
+  if (!frontmatter) {
+    throw new Error("File metadata not available");
+  }
+  const nodeId = frontmatter.nodeInstanceId as string | undefined;
+  if (!nodeId) {
+    throw new Error("Please sync the node first");
+  }
+  await syncAllNodesAndRelations(plugin);
+  await publishNodeToGroup({
+    plugin,
+    file,
+    frontmatter,
+    myGroup: EVERYONE_UID,
+  });
+  new Notice("Published to the web", 3000);
+  window.open(nodeDisplayUrl(plugin, nodeId), "_blank");
+};
+
 export const openPublishGroupPicker = async ({
   plugin,
   file,
@@ -213,26 +296,27 @@ export const openPublishGroupPicker = async ({
   file: TFile;
 }): Promise<void> => {
   let groups: PublishGroupOption[];
+  let publishedToWeb: boolean;
   try {
     const myGroups = await loadMyGroups(plugin);
     const frontmatter =
       plugin.app.metadataCache.getFileCache(file)?.frontmatter ?? {};
     groups = withPublishedState(myGroups, getPublishedToGroups(frontmatter));
+    publishedToWeb = isPublishedToWeb(frontmatter);
   } catch (error) {
     new Notice(getErrorMessage(error), 5000);
     return;
   }
 
-  if (groups.length === 0) {
-    new Notice("You are not a member of any groups", 5000);
-    return;
-  }
-
   new PublishGroupSuggestModal({
     app: plugin.app,
-    items: buildPublishGroupPickerItems(groups),
+    items: buildPublishGroupPickerItems({ groups, publishedToWeb }),
     onChoose: async (item: PublishGroupSuggestItem) => {
       try {
+        if (isPublishToWebItem(item)) {
+          await publishToWebWithNotice({ plugin, file });
+          return;
+        }
         if (isPublishToAllItem(item)) {
           await publishToAllGroupsWithNotice({ plugin, file });
           return;

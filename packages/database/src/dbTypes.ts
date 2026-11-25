@@ -1030,7 +1030,7 @@ export type Database = {
           active: boolean;
           agent_type: Database["public"]["Enums"]["AgentType"];
           id: number;
-          name: string;
+          name: string | null;
           platform: Database["public"]["Enums"]["Platform"];
           write_permission: boolean;
         };
@@ -1040,7 +1040,7 @@ export type Database = {
           active?: boolean | null;
           agent_type?: Database["public"]["Enums"]["AgentType"] | null;
           id?: number | null;
-          name?: string | null;
+          name?: never;
           platform?: Database["public"]["Enums"]["Platform"] | null;
           write_permission?: boolean | null;
         };
@@ -1049,7 +1049,7 @@ export type Database = {
           active?: boolean | null;
           agent_type?: Database["public"]["Enums"]["AgentType"] | null;
           id?: number | null;
-          name?: string | null;
+          name?: never;
           platform?: Database["public"]["Enums"]["Platform"] | null;
           write_permission?: boolean | null;
         };
@@ -1078,7 +1078,7 @@ export type Database = {
             active: boolean;
             agent_type: Database["public"]["Enums"]["AgentType"];
             id: number;
-            name: string;
+            name: string | null;
             platform: Database["public"]["Enums"]["Platform"];
             write_permission: boolean;
           } | null;
@@ -1293,7 +1293,7 @@ export type Database = {
             active: boolean;
             agent_type: Database["public"]["Enums"]["AgentType"];
             id: number;
-            name: string;
+            name: string | null;
             platform: Database["public"]["Enums"]["Platform"];
             write_permission: boolean;
           } | null;
@@ -1856,7 +1856,7 @@ export type Database = {
           active: boolean;
           agent_type: Database["public"]["Enums"]["AgentType"];
           id: number;
-          name: string;
+          name: string | null;
           platform: Database["public"]["Enums"]["Platform"];
           write_permission: boolean;
         };
@@ -1879,7 +1879,7 @@ export type Database = {
           active: boolean;
           agent_type: Database["public"]["Enums"]["AgentType"];
           id: number;
-          name: string;
+          name: string | null;
           platform: Database["public"]["Enums"]["Platform"];
           write_permission: boolean;
         };
@@ -2075,6 +2075,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      everyone_uid: { Args: Record<PropertyKey, never>; Returns: string };
       extract_references: { Args: { refs: Json }; Returns: number[] };
       file_access: { Args: { hashvalue: string }; Returns: boolean };
       file_exists: { Args: { hashvalue: string }; Returns: boolean };
@@ -2172,6 +2173,10 @@ export type Database = {
           isOneToOne: false;
           isSetofReturn: true;
         };
+      };
+      my_identity_accounts: {
+        Args: Record<PropertyKey, never>;
+        Returns: string[];
       };
       my_permissions_in_space: {
         Args: { space_id_: number };

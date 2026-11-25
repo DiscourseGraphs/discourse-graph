@@ -43,6 +43,9 @@ CREATE TABLE IF NOT EXISTS public."Concept" (
 
 ALTER TABLE public."Concept" OWNER TO "postgres";
 
+-- Public access: the select policy decides which rows anon sees.
+GRANT SELECT ON TABLE public."Concept" TO anon;
+
 COMMENT ON TABLE public."Concept" IS 'An abstract concept, claim or relation';
 
 COMMENT ON COLUMN public."Concept".author_id IS 'The author of content';
