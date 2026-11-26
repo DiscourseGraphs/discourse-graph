@@ -784,7 +784,7 @@ const convertDgToSupabaseConcepts = async ({
           }
         }
         return discourseNodeSchemaToLocalConcept({
-          context,
+          accountLocalId,
           node: nodeType,
           templateContent,
         });
@@ -802,7 +802,7 @@ const convertDgToSupabaseConcepts = async ({
         missingSchemaIds.has(relationType.id),
     )
     .map((relationType) =>
-      discourseRelationTypeToLocalConcept(context, relationType),
+      discourseRelationTypeToLocalConcept({ accountLocalId, relationType }),
     );
 
   const discourseRelationTriplesToLocalConcepts = discourseRelations
@@ -821,7 +821,7 @@ const convertDgToSupabaseConcepts = async ({
     )
     .map((relation) =>
       discourseRelationTripleSchemaToLocalConcept({
-        context,
+        accountLocalId,
         relation,
         nodeTypesById,
         relationTypesById,
