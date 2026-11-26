@@ -9,6 +9,7 @@ import {
   ensurePartialSpaceAccess,
   getAvailableGroupIds,
   getPublishedGroupIdsByRid,
+  getPublicEndpointIds,
 } from "@repo/database/lib/groups";
 import {
   ensurePublishedRelationsAccuracy,
@@ -31,7 +32,9 @@ import {
 } from "~/utils/relationsStore";
 
 vi.mock("@repo/database/lib/groups", () => ({
+  EVERYONE_UID: "00000000-0000-0000-0000-000000000000",
   ensurePartialSpaceAccess: vi.fn(),
+  getPublicEndpointIds: vi.fn(),
   getAvailableGroupIds: vi.fn(),
   getPublishedGroupIdsByRid: vi.fn(),
 }));
@@ -492,7 +495,10 @@ describe("publishNewRelation", () => {
 
 describe("publishNodeRelations", () => {
   // `publishing` is being published to g1, so its frontmatter lacks g1.
-  const runPublish = async (relations: RelationInstance[]): Promise<Call[]> => {
+  const runPublish = async (
+    relations: RelationInstance[],
+    myGroup = "g1",
+  ): Promise<Call[]> => {
     vi.mocked(getRelationsForNodeInstanceId).mockResolvedValue(relations);
     vi.mocked(loadRelations).mockResolvedValue({
       version: 1,
@@ -520,7 +526,7 @@ describe("publishNodeRelations", () => {
       plugin,
       client: fake.client,
       nodeId: "publishing",
-      myGroup: "g1",
+      myGroup,
       spaceId: SPACE_ID,
     });
     return fake.calls;
@@ -531,6 +537,19 @@ describe("publishNodeRelations", () => {
       [IMPORTED_RID]: ["g1"],
       [OTHER_IMPORTED_RID]: ["g2"],
     });
+  });
+
+  it("grants a public relation only when its other endpoint is publicly readable", async () => {
+    const everyone = "00000000-0000-0000-0000-000000000000";
+    const rel = relation("rel", "publishing", "imported");
+    rel.publishedToGroupId = [everyone];
+    vi.mocked(getPublicEndpointIds)
+      .mockResolvedValueOnce(new Set())
+      .mockResolvedValueOnce(new Set(["imported"]));
+    expect(upsertedRows(await runPublish([rel], everyone))).toEqual([]);
+    expect(upsertedRows(await runPublish([rel], everyone))).toEqual(
+      grantRows(everyone, "rel"),
+    );
   });
 
   it("publishes a relation to an imported node published to the group", async () => {
@@ -613,6 +632,19 @@ describe("publishNodeToGroup", () => {
     vi.mocked(getPublishedGroupIdsByRid).mockResolvedValue({
       [IMPORTED_RID]: ["g1"],
     });
+  });
+
+  it("rejects public grants with the admin flag off before accessing the database", async () => {
+    vi.mocked(getLoggedInClient).mockClear();
+    await expect(
+      publishNodeToGroup({
+        plugin: { settings: {} } as DiscourseGraphPlugin,
+        file: {} as TFile,
+        frontmatter: { nodeInstanceId: "private" },
+        myGroup: "00000000-0000-0000-0000-000000000000",
+      }),
+    ).rejects.toThrow("Web publishing is disabled");
+    expect(getLoggedInClient).not.toHaveBeenCalled();
   });
 
   it("publishes the node's relations after its space access", async () => {

@@ -367,6 +367,12 @@ const FeatureFlagsTab = (): React.ReactElement => {
       />
 
       <FeatureFlagPanel
+        title="Publish to the web"
+        description="Show the public publishing option in the node sharing dialog."
+        featureKey="Enable web publishing"
+      />
+
+      <FeatureFlagPanel
         title="Node sharing"
         description="This enables a user to share nodes to other discourse spaces and keeps shared nodes synced in the background. Reload the graph after toggling."
         featureKey="Enable node sharing"

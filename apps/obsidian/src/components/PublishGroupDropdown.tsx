@@ -5,10 +5,13 @@ import {
   getPublishedToGroups,
   getPublishToAllTitle,
   getUnpublishedGroups,
+  isPublishedToWeb,
   loadMyGroups,
   notifyPublishError,
   publishToAllGroupsWithNotice,
   publishToSelectedGroupWithNotice,
+  publishToWebWithNotice,
+  PUBLISH_TO_WEB_LABEL,
   withPublishedState,
 } from "~/utils/publishGroupSelection";
 import type { MyGroup } from "@repo/database/lib/groups";
@@ -40,6 +43,7 @@ export const PublishGroupDropdown = ({
     publishedToGroups,
   );
   const unpublishedGroups = getUnpublishedGroups(groupsWithPublishedState);
+  const publishedToWeb = frontmatter ? isPublishedToWeb(frontmatter) : false;
 
   useEffect(() => {
     const ref = plugin.app.metadataCache.on("changed", (changedFile) => {
@@ -130,6 +134,13 @@ export const PublishGroupDropdown = ({
     [plugin, file, publishedToGroups, runPublishAction],
   );
 
+  const handlePublishToWeb = useCallback(() => {
+    void runPublishAction(async () => {
+      setIsOpen(false);
+      await publishToWebWithNotice({ plugin, file });
+    });
+  }, [plugin, file, runPublishAction]);
+
   const handlePublishToAllGroups = useCallback(() => {
     if (isLoading || unpublishedGroups.length === 0) return;
 
@@ -165,6 +176,24 @@ export const PublishGroupDropdown = ({
 
       {isOpen && (
         <div className="absolute right-0 z-50 mt-1 min-w-[12rem] rounded border border-gray-200 bg-white py-1 shadow-md dark:border-gray-600 dark:bg-gray-900">
+          {plugin.settings.webPublishingEnabled && (
+            <button
+              type="button"
+              disabled={isPublishing}
+              onClick={handlePublishToWeb}
+              className="flex w-full items-center gap-2 border-b border-gray-200 px-3 py-2 text-left text-xs font-medium hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800"
+              title={
+                publishedToWeb
+                  ? "Publish again and get the public link"
+                  : "Make this node readable by anyone"
+              }
+            >
+              <span className="inline-flex w-4 shrink-0 justify-center">
+                {publishedToWeb ? "✓" : ""}
+              </span>
+              <span className="truncate">{PUBLISH_TO_WEB_LABEL}</span>
+            </button>
+          )}
           <div
             role="button"
             tabIndex={0}
