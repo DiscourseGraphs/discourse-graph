@@ -1,0 +1,229 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M8AJYB9T51XHW9KPCXHFRXKW",
+  "session_id": "4f13eab7-91b5-454b-8818-c8ed9c5b63dd",
+  "strategy": "manual-commit",
+  "created_at": "2026-11-26T00:09:04.872291Z",
+  "branch": "eng-2451-settings-descriptions-are-text-only-add-a-visual",
+  "checkpoints_count": 2,
+  "save_step_count": 5,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "5e03a230339e",
+  "checkpoint_transcript_start": 353,
+  "transcript_lines_at_start": 353,
+  "compact_transcript_start": 42,
+  "token_usage": {
+    "input_tokens": 28,
+    "cache_creation_tokens": 225188,
+    "cache_read_tokens": 2810991,
+    "output_tokens": 28865,
+    "api_call_count": 13,
+    "subagent_tokens": {
+      "input_tokens": 24,
+      "cache_creation_tokens": 134160,
+      "cache_read_tokens": 1030342,
+      "output_tokens": 10670,
+      "api_call_count": 11
+    }
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_01GPS9buKUzFDiCJeyyzf6D3",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-create-engineering-ticket"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "37131e4da7c4",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 76,
+        "end": 77,
+        "entry_ids": [
+          "98d54fb0-23ef-46f0-93f8-e20a349aa1f4"
+        ],
+        "tool_use_id": "toolu_01GPS9buKUzFDiCJeyyzf6D3"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01GPS9buKUzFDiCJeyyzf6D3"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-create-engineering-ticket",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_019Led5NyBt5NzoUQjTNiKjb",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "handoff-doc"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "37131e4da7c4",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 232,
+        "end": 233,
+        "entry_ids": [
+          "cb8df305-90d4-4bf8-a0a1-e99a14c30733"
+        ],
+        "tool_use_id": "toolu_019Led5NyBt5NzoUQjTNiKjb"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_019Led5NyBt5NzoUQjTNiKjb"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: handoff-doc",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_015i2rZF9jJ78fx9MDBUTTMS",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "dg-engineering-writing-style"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "37131e4da7c4",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 238,
+        "end": 239,
+        "entry_ids": [
+          "358d8ab5-f03e-4a59-ae67-a7fb8fb83769"
+        ],
+        "tool_use_id": "toolu_015i2rZF9jJ78fx9MDBUTTMS"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_015i2rZF9jJ78fx9MDBUTTMS"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: dg-engineering-writing-style",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01C6WubD8YpPwFGn3YiLGk1s",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "artifact-design"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "37131e4da7c4",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 242,
+        "end": 243,
+        "entry_ids": [
+          "bf0bdae4-4b65-4560-bcc2-705e07d28bb1"
+        ],
+        "tool_use_id": "toolu_01C6WubD8YpPwFGn3YiLGk1s"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01C6WubD8YpPwFGn3YiLGk1s"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: artifact-design",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 5
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 1332,
+      "user_lines_removed": 1,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "Default/Cache/No_Vary_Search/journal.baj": 1,
+        "Default/IndexedDB/https_roamresearch.com_0.indexeddb.leveldb/CURRENT": 1,
+        "Default/IndexedDB/https_roamresearch.com_0.indexeddb.leveldb/LOG": 6,
+        "Default/Local Storage/leveldb/CURRENT": 1,
+        "Default/Local Storage/leveldb/LOG": 2,
+        "Default/Service Worker/Database/CURRENT": 1,
+        "Default/Service Worker/Database/LOG": 2,
+        "Default/Session Storage/CURRENT": 1,
+        "Default/Session Storage/LOG": 2,
+        "Default/shared_proto_db/CURRENT": 1,
+        "Default/shared_proto_db/LOG": 2,
+        "Default/shared_proto_db/metadata/CURRENT": 1,
+        "Default/shared_proto_db/metadata/LOG": 2,
+        "openspec/changes/headless-mcp-retrieval/.openspec.yaml": 2,
+        "openspec/changes/headless-mcp-retrieval/README.md": 3,
+        "openspec/changes/headless-mcp-retrieval/design.md": 348,
+        "openspec/changes/headless-mcp-retrieval/proposal.md": 59,
+        "openspec/changes/headless-mcp-retrieval/specs/agent-read-access/spec.md": 89,
+        "openspec/changes/headless-mcp-retrieval/specs/discourse-mcp/spec.md": 77,
+        "openspec/changes/headless-mcp-retrieval/specs/discourse-retrieval/spec.md": 171,
+        "openspec/changes/headless-mcp-retrieval/specs/headless-retrieval-api/spec.md": 56,
+        "openspec/changes/headless-mcp-retrieval/tasks.md": 168,
+        "openspec/config.yaml": 32,
+        "packages/database/supabase/.gitignore": 4,
+        "packages/database/supabase/config.toml": 4,
+        "packages/database/supabase/supabase.lock": 296
+      },
+      "user_removed_per_file": {
+        "packages/database/supabase/config.toml": 1
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1332,
+      "agent_lines_removed": 1
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1332,
+      "agent_lines_removed": 1
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1332,
+      "agent_lines_removed": 1
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1332,
+      "agent_lines_removed": 1
+    }
+  ]
+}
