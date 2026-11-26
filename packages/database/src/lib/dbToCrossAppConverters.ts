@@ -166,7 +166,7 @@ export const dbNodeSchemaToCrossApp = ({
     string,
     number
   >;
-  const { template, template_content, roles, format, ...other } =
+  const { template, template_content, roles, format, color, ...other } =
     schema.literal_content as Record<string, Json>;
   const authorId = accountMap[schema.author_id || 0];
   if (authorId === undefined) throw new Error("Missing author");
@@ -193,6 +193,7 @@ export const dbNodeSchemaToCrossApp = ({
     template: template_content as string | undefined,
     templateTitle: template as string | undefined,
     format: format as string | undefined,
+    color: color as string | undefined,
     authorId,
     slotDefinitions,
   };
@@ -407,7 +408,7 @@ export const dbRelationTypeSchemaToCrossApp = (
   accountMap: Record<number, string>,
 ): CrossAppRelationTypeSchema => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { roles, label, complement, ...other } =
+  const { roles, label, complement, color, ...other } =
     schema.literal_content as Record<string, Json>;
   const authorId = accountMap[schema.author_id || 0];
   if (authorId === undefined) throw new Error("Missing author");
@@ -426,6 +427,7 @@ export const dbRelationTypeSchemaToCrossApp = (
     metadata: other,
     label: label as string,
     complement: complement as string,
+    color: color as string | undefined,
     authorId,
   };
 };
