@@ -9,8 +9,11 @@ import {
   isDiscourseNodeShape,
 } from "~/components/canvas/canvasUtils";
 import { dispatchToastEvent } from "~/components/canvas/ToastListener";
+import { getStoredRelationsEnabled } from "~/utils/storedRelations";
 import { RelationTypeDropdown } from "./RelationTypeDropdown";
 import { createDefaultRelationBetweenNodes } from "./relationCreation";
+
+const noopAction = (): void => undefined;
 
 const HANDLE_RADIUS = 5;
 const HANDLE_HIT_AREA = 12;
@@ -29,6 +32,7 @@ type PendingConnection = {
   targetId: TLShapeId;
   /** Viewport coords for dropdown positioning (midpoint between nodes) */
   dropdownPos: { x: number; y: number };
+  storedRelationsEnabled: boolean;
 };
 
 const getEdgeMidpoints = (bounds: {
@@ -206,12 +210,16 @@ export const DragHandleOverlay = () => {
           return;
         }
 
-        // Validate that relation types exist between these node types
+        // Stored relations always open the menu; its empty state handles missing types.
         const selectedNodeTypeId = getDiscourseNodeTypeId({
           shape: selectedNode,
         });
         const targetNodeTypeId = getDiscourseNodeTypeId({ shape: target });
-        if (!hasValidRelationTypes(selectedNodeTypeId, targetNodeTypeId)) {
+        const storedRelationsEnabled = getStoredRelationsEnabled();
+        if (
+          !storedRelationsEnabled &&
+          !hasValidRelationTypes(selectedNodeTypeId, targetNodeTypeId)
+        ) {
           dispatchToastEvent({
             id: "tldraw-no-valid-relation",
             title: "No relation types are defined between these node types",
@@ -238,6 +246,7 @@ export const DragHandleOverlay = () => {
           sourceId: selectedNode.id,
           targetId: target.id,
           dropdownPos: midVp,
+          storedRelationsEnabled,
         });
       };
 
@@ -347,6 +356,11 @@ export const DragHandleOverlay = () => {
           dropdownPos={pending.dropdownPos}
           onSelect={handleDropdownSelect}
           onDismiss={handleDropdownDismiss}
+          // No-ops until ENG-2243 and ENG-2244 wire the flows; legacy mode can't show new triplets.
+          onAddExisting={
+            pending.storedRelationsEnabled ? noopAction : undefined
+          }
+          onCreateNew={pending.storedRelationsEnabled ? noopAction : undefined}
         />
       )}
     </div>
