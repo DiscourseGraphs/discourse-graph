@@ -1,5 +1,5 @@
 {
-  "id": "@discourse-graph/obsidian",
+  "id": "discourse-graphs",
   "name": "Discourse Graph",
   "version": "1.5.2",
   "minAppVersion": "1.7.0",
