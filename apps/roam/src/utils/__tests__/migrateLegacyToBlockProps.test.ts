@@ -52,6 +52,7 @@ import {
 import {
   FeatureFlagsSchema,
   GlobalSettingsSchema,
+  PersonalSettingsSchema,
 } from "~/components/settings/utils/zodSchema";
 
 describe("legacy settings migration", () => {
@@ -172,5 +173,26 @@ describe("legacy settings migration", () => {
       "dg-personal-settings-migrated-v2",
       true,
     );
+  });
+
+  it("seeds a re-run personal migration with the graph's existing personal props", async () => {
+    const personalProps = PersonalSettingsSchema.parse({
+      "Reified relation triples": true,
+    });
+    mocks.getBlockProps.mockImplementation((uid: string) =>
+      uid === "personal-settings-uid" ? personalProps : {},
+    );
+
+    await migratePersonalSettings({ "user-uid": "personal-settings-uid" });
+
+    expect(mocks.readAllLegacyPersonalSettings).toHaveBeenCalledWith(
+      personalProps,
+    );
+  });
+
+  it("uses schema defaults when the personal block has no valid props", async () => {
+    await migratePersonalSettings({ "user-uid": "personal-settings-uid" });
+
+    expect(mocks.readAllLegacyPersonalSettings).toHaveBeenCalledWith(undefined);
   });
 });
