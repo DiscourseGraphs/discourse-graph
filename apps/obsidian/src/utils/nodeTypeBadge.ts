@@ -5,6 +5,7 @@ const BADGE_TEXT_LENGTH = 3;
 
 export type NodeTypeBadge = {
   text: string;
+  baseColor: string;
   backgroundColor: string;
   textColor: string;
 };

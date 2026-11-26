@@ -47,6 +47,7 @@
     "@repo/database": "workspace:*",
     "@repo/utils": "workspace:*",
     "@supabase/supabase-js": "catalog:",
+    "colord": "^2.9.3",
     "date-fns": "^4.1.0",
     "nanoid": "^4.0.2",
     "react": "catalog:obsidian",
