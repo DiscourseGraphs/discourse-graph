@@ -212,6 +212,24 @@ describe("resolveSharedNodeTypes", () => {
     );
   });
 
+  it("falls back to the source_data format when the contract format is empty", async () => {
+    const { client } = makeClient({
+      rows: [
+        schemaRow({
+          format: "",
+          source_data_format: "[[EVD]] - {content} - {Source}",
+        }),
+      ],
+    });
+    mockedCreateDiscourseNodeType.mockResolvedValue(evidenceType);
+
+    await resolveSharedNodeTypes({ client, sharedNodes: [sharedNode], spaces });
+
+    expect(mockedCreateDiscourseNodeType).toHaveBeenCalledWith(
+      expect.objectContaining({ format: "[[EVD]] - {content} - {Source}" }),
+    );
+  });
+
   it("creates a formatless node type from a schema published before formats", async () => {
     const { client } = makeClient({ rows: [schemaRow({ format: null })] });
     mockedCreateDiscourseNodeType.mockResolvedValue(evidenceType);
