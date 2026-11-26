@@ -75,6 +75,25 @@ describe("SettingItemRow example", () => {
     vi.useRealTimers();
   });
 
+  it("leaves keyboard focus on the trigger when the preview opens", () => {
+    vi.useFakeTimers();
+    // Blueprint's Overlay moves focus inside a rAF callback.
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      frames.push(cb);
+      return frames.length;
+    });
+    render(overlayRow);
+    act(() => {
+      trigger()!.focus();
+      vi.advanceTimersByTime(500);
+    });
+    act(() => frames.splice(0).forEach((cb) => cb(0)));
+    expect(document.querySelector("img")).not.toBeNull();
+    expect(document.activeElement).toBe(trigger());
+    vi.useRealTimers();
+  });
+
   it("renders no preview for a setting without an example", () => {
     render({
       label: "Plain",

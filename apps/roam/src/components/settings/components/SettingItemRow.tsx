@@ -58,6 +58,9 @@ const SettingExamplePreview = ({
       interactionKind={PopoverInteractionKind.HOVER}
       position={Position.RIGHT}
       hoverOpenDelay={150}
+      // Nothing in the preview is focusable; Blueprint's default focus trap would strand Tab inside it.
+      autoFocus={false}
+      enforceFocus={false}
       content={
         <div className="dg-setting-row__example p-1">
           {failed ? (
