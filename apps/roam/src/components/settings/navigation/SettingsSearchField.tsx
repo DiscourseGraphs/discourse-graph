@@ -122,7 +122,6 @@ const SettingsSearchField = ({
         preventOverflow: { enabled: false },
       }}
       minimal={true}
-      // Roam zeroes min-height, so in an overflowing tab list the wrapper would shrink under the input.
       className="flex-shrink-0"
       autoFocus={false}
       enforceFocus={false}

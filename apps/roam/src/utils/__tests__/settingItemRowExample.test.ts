@@ -7,7 +7,6 @@ import SettingItemRow from "~/components/settings/components/SettingItemRow";
 import { ROAM_DOCS_ASSETS } from "~/components/settings/utils/docs";
 import { PERSONAL_KEYS } from "~/components/settings/utils/settingKeys";
 
-// The catalog imports node and relation helpers that read Roam globals at load.
 vi.mock("~/utils/getDiscourseNodes", () => ({ default: vi.fn(() => []) }));
 vi.mock("~/utils/getDiscourseRelations", () => ({ default: vi.fn(() => []) }));
 
@@ -77,7 +76,6 @@ describe("SettingItemRow example", () => {
 
   it("leaves keyboard focus on the trigger when the preview opens", () => {
     vi.useFakeTimers();
-    // Blueprint's Overlay moves focus inside a rAF callback.
     const frames: FrameRequestCallback[] = [];
     vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
       frames.push(cb);

@@ -47,7 +47,6 @@ const SettingScopeIndicator = ({ scope }: { scope: SettingScope }) => {
   );
 };
 
-/** The image is fetched from the docs site only once the preview opens; offline it falls back to its alt text. */
 const SettingExamplePreview = ({
   src,
   alt,
@@ -58,7 +57,6 @@ const SettingExamplePreview = ({
       interactionKind={PopoverInteractionKind.HOVER}
       position={Position.RIGHT}
       hoverOpenDelay={150}
-      // Nothing in the preview is focusable; Blueprint's default focus trap would strand Tab inside it.
       autoFocus={false}
       enforceFocus={false}
       content={
