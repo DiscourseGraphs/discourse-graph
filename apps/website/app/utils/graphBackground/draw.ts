@@ -5,17 +5,18 @@ import {
   getEdgeVisibility,
   getVisibilityAt,
   type GraphState,
+  type Rect,
 } from "./simulation";
 import type { GraphColors } from "./colors";
 
-const EDGE_ALPHA = 0.14;
-const EDGE_MIN_ALPHA = 0.002;
-const NODE_ALPHA = 0.42;
+export const EDGE_ALPHA = 0.14;
+export const EDGE_MIN_ALPHA = 0.002;
+export const NODE_ALPHA = 0.42;
 const NODE_CAPTURE_ALPHA = 0.35;
 const CAPTURE_SIZE_BOOST = 0.45;
 // The sine argument is time / scale, so one cycle lasts 2π × scale (~11 s).
-const BREATHE_TIME_SCALE_MS = 1800;
-const BREATHE_AMOUNT = 0.12;
+export const BREATHE_TIME_SCALE_MS = 1800;
+export const BREATHE_AMOUNT = 0.12;
 const FLASH_RING_ALPHA = 0.5;
 const FLASH_RING_WIDTH = 1.5;
 const FLASH_RING_GROWTH = 14;
@@ -70,19 +71,61 @@ const drawNodes = (
     context.beginPath();
     context.arc(node.rx, node.ry, radius, 0, Math.PI * 2);
     context.fill();
-    if (node.flash <= 0) continue;
-    context.strokeStyle = `rgba(${colors.pulse}, ${node.flash * FLASH_RING_ALPHA * node.visibility})`;
-    context.lineWidth = FLASH_RING_WIDTH;
-    context.beginPath();
-    context.arc(
-      node.rx,
-      node.ry,
-      radius + (1 - node.flash) * FLASH_RING_GROWTH,
-      0,
-      Math.PI * 2,
-    );
-    context.stroke();
+    drawFlashRing(context, { node, radius, colors });
   }
+};
+
+// Shared with the lab graph so both backgrounds pulse the same way.
+export const drawFlashRing = (
+  context: CanvasRenderingContext2D,
+  {
+    node,
+    radius,
+    colors,
+  }: {
+    node: { rx: number; ry: number; flash: number; visibility: number };
+    radius: number;
+    colors: GraphColors;
+  },
+): void => {
+  if (node.flash <= 0) return;
+  context.strokeStyle = `rgba(${colors.pulse}, ${node.flash * FLASH_RING_ALPHA * node.visibility})`;
+  context.lineWidth = FLASH_RING_WIDTH;
+  context.beginPath();
+  context.arc(
+    node.rx,
+    node.ry,
+    radius + (1 - node.flash) * FLASH_RING_GROWTH,
+    0,
+    Math.PI * 2,
+  );
+  context.stroke();
+};
+
+export const drawPulseDot = (
+  context: CanvasRenderingContext2D,
+  {
+    x,
+    y,
+    rects,
+    colors,
+  }: { x: number; y: number; rects: Rect[]; colors: GraphColors },
+): void => {
+  const visibility = getVisibilityAt({ rects, x, y });
+  const glow = context.createRadialGradient(x, y, 0, x, y, PULSE_GLOW_RADIUS);
+  glow.addColorStop(
+    0,
+    `rgba(${colors.pulse}, ${PULSE_GLOW_ALPHA * visibility})`,
+  );
+  glow.addColorStop(1, `rgba(${colors.pulse}, 0)`);
+  context.fillStyle = glow;
+  context.beginPath();
+  context.arc(x, y, PULSE_GLOW_RADIUS, 0, Math.PI * 2);
+  context.fill();
+  context.fillStyle = `rgba(${colors.pulse}, ${PULSE_CORE_ALPHA * visibility})`;
+  context.beginPath();
+  context.arc(x, y, PULSE_CORE_RADIUS, 0, Math.PI * 2);
+  context.fill();
 };
 
 const drawPulses = (
@@ -93,23 +136,12 @@ const drawPulses = (
     const start = pulse.forward ? pulse.edge.from : pulse.edge.to;
     const end = pulse.forward ? pulse.edge.to : pulse.edge.from;
     const eased = 1 - Math.pow(1 - pulse.progress, 2);
-    const x = start.rx + (end.rx - start.rx) * eased;
-    const y = start.ry + (end.ry - start.ry) * eased;
-    const visibility = getVisibilityAt({ rects: state.avoidRects, x, y });
-    const glow = context.createRadialGradient(x, y, 0, x, y, PULSE_GLOW_RADIUS);
-    glow.addColorStop(
-      0,
-      `rgba(${colors.pulse}, ${PULSE_GLOW_ALPHA * visibility})`,
-    );
-    glow.addColorStop(1, `rgba(${colors.pulse}, 0)`);
-    context.fillStyle = glow;
-    context.beginPath();
-    context.arc(x, y, PULSE_GLOW_RADIUS, 0, Math.PI * 2);
-    context.fill();
-    context.fillStyle = `rgba(${colors.pulse}, ${PULSE_CORE_ALPHA * visibility})`;
-    context.beginPath();
-    context.arc(x, y, PULSE_CORE_RADIUS, 0, Math.PI * 2);
-    context.fill();
+    drawPulseDot(context, {
+      x: start.rx + (end.rx - start.rx) * eased,
+      y: start.ry + (end.ry - start.ry) * eased,
+      rects: state.avoidRects,
+      colors,
+    });
   }
 };
 
