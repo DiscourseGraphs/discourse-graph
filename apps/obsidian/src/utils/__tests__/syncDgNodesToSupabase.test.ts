@@ -613,8 +613,8 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
           format: "CLM - {content}",
           template: "Claim template",
           template_content: "## Evidence\n",
+          color: "#7DA13E",
           source_data: {
-            color: "#7DA13E",
             tag: "clm",
             shortcut: "C",
             keyImage: true,
@@ -671,7 +671,8 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
           roles: ["source", "destination"],
           label: "cites",
           complement: "is cited by",
-          source_data: { color: "blue" },
+          color: "blue",
+          source_data: {},
         },
       });
     });
@@ -689,7 +690,8 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
           label: "opposes",
           complement: "is opposed by",
           importedFromRid: "orn:obsidian.schema:other-vault/opposes-type",
-          source_data: { color: "red", authorId: 9 },
+          color: "red",
+          source_data: { authorId: 9 },
         },
       });
     });

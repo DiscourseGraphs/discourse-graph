@@ -7,6 +7,7 @@ import type {
 import {
   crossAppNodeSchemaToDbConcept,
   crossAppNodeToDbConcept,
+  crossAppRelationTypeSchemaToDbConcept,
 } from "../crossAppConverters";
 
 const baseSchema: CrossAppNodeSchema = {
@@ -55,6 +56,17 @@ describe("crossAppNodeSchemaToDbConcept", () => {
     });
   });
 
+  it("maps color to literal_content.color", () => {
+    const concept = crossAppNodeSchemaToDbConcept({
+      ...baseSchema,
+      color: "#7DA13E",
+    });
+    expect(concept.literal_content).toEqual({
+      label: "Some concept",
+      color: "#7DA13E",
+    });
+  });
+
   it("writes the label into literal_content as well as the name", () => {
     const concept = crossAppNodeSchemaToDbConcept(baseSchema);
     expect(concept.name).toBe("Some concept");
@@ -85,6 +97,36 @@ describe("crossAppNodeSchemaToDbConcept", () => {
     });
     expect(result.literal_content).toEqual({ label: "Some concept" });
     expect(result).not.toHaveProperty("local_reference_content");
+  });
+});
+
+describe("crossAppRelationTypeSchemaToDbConcept", () => {
+  const relationType = {
+    ...baseSchema,
+    label: "supports",
+    complement: "is supported by",
+  };
+
+  it("maps color to literal_content.color", () => {
+    expect(
+      crossAppRelationTypeSchemaToDbConcept({ ...relationType, color: "green" })
+        .literal_content,
+    ).toStrictEqual({
+      roles: ["source", "destination"],
+      label: "supports",
+      complement: "is supported by",
+      color: "green",
+    });
+  });
+
+  it("leaves color out of literal_content when the relation type has none", () => {
+    expect(
+      crossAppRelationTypeSchemaToDbConcept(relationType).literal_content,
+    ).toStrictEqual({
+      roles: ["source", "destination"],
+      label: "supports",
+      complement: "is supported by",
+    });
   });
 });
 
