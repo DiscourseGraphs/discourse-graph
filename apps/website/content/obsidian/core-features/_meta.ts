@@ -7,6 +7,7 @@ const meta: MetaRecord = {
   canvas: "Canvas",
   "node-tags": "Node tags",
   "node-search": "Node search",
+  "node-summoning-menu": "Node summoning menu",
   "querying-discourse-graph": "Querying",
 };
 
