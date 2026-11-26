@@ -9,18 +9,8 @@ import getUids from "roamjs-components/dom/getUids";
 import getTextByBlockUid from "roamjs-components/queries/getTextByBlockUid";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
 import { TldrawCanvas } from "./Tldraw";
-
-const BLOCK_TEXT_REGEX = /\{\{dg-canvas:\s*\[\[(.+?)\]\]\s*\}\}/i;
-
-const extractCanvasTitle = (button: HTMLElement): string | null => {
-  const blockUid = getBlockUidFromTarget(button);
-  if (!blockUid) return null;
-  const blockText = getTextByBlockUid(blockUid);
-  if (!blockText) return null;
-  const match = blockText.match(BLOCK_TEXT_REGEX);
-  if (!match) return null;
-  return match[1].trim();
-};
+import { CanvasFrameEmbed, findCanvasFrameRef } from "./CanvasFrameEmbed";
+import { parseDgCanvasEmbed } from "~/utils/dgCanvasEmbed";
 
 const CanvasEmbedPlaceholder = ({ message }: { message: string }) => (
   <div
@@ -41,6 +31,8 @@ const handleEditBlock = (location: { blockUid: string; windowId: string }) => {
   });
 };
 
+// The whole-canvas embed, with an inline "Edit Block" button so the user can
+// jump to the source block from the mounted canvas.
 const CanvasEmbedChrome = ({
   title,
   location,
@@ -61,6 +53,11 @@ const CanvasEmbedChrome = ({
   </div>
 );
 
+// `{{dg-canvas: [[Title]]}}` renders the classic whole-canvas embed. An
+// optional frame argument (`"Frame Name"` and/or `shape:ID`) routes to the
+// frame-anchored embed instead — but only when it maps to a real frame on the
+// canvas; malformed or unmatched frame arguments are ignored so the embed
+// always degrades to just showing the canvas.
 export const renderCanvasEmbed = (
   button: HTMLElement,
   onloadArgs: OnloadArgs,
@@ -69,31 +66,45 @@ export const renderCanvasEmbed = (
 
   if (!button.parentElement) return;
 
-  const title = extractCanvasTitle(button);
-  if (!title) return;
+  const blockUid = getBlockUidFromTarget(button);
+  if (!blockUid) return;
+  const blockText = getTextByBlockUid(blockUid);
+  const parsed = blockText ? parseDgCanvasEmbed(blockText) : null;
+  if (!parsed) return;
 
-  const pageUid = getPageUidByPageTitle(title);
+  const pageUid = getPageUidByPageTitle(parsed.title);
   if (!pageUid) {
     const wrapper = document.createElement("div");
     button.parentElement.appendChild(wrapper);
     renderWithUnmount(
-      <CanvasEmbedPlaceholder message={`Canvas not found: ${title}`} />,
+      <CanvasEmbedPlaceholder message={`Canvas not found: ${parsed.title}`} />,
       wrapper,
     );
     return;
   }
 
+  const frame = findCanvasFrameRef({
+    pageUid,
+    frameName: parsed.frameName,
+    frameShapeId: parsed.frameShapeId,
+  });
   const location = getUids(button.closest<HTMLDivElement>(".roam-block"));
 
   const wrapper = document.createElement("div");
-  wrapper.className = "dg-canvas-embed my-2 w-full overflow-hidden rounded-md";
+  wrapper.className = frame
+    ? "dg-frame-embed my-2 w-full overflow-hidden rounded-md"
+    : "dg-canvas-embed my-2 w-full overflow-hidden rounded-md";
   wrapper.style.height = "400px";
   wrapper.onmousedown = (e: MouseEvent) => e.stopPropagation();
   button.parentElement.appendChild(wrapper);
 
   renderWithUnmount(
     <ExtensionApiContextProvider {...onloadArgs}>
-      <CanvasEmbedChrome title={title} location={location} />
+      {frame ? (
+        <CanvasFrameEmbed title={parsed.title} frame={frame} />
+      ) : (
+        <CanvasEmbedChrome title={parsed.title} location={location} />
+      )}
     </ExtensionApiContextProvider>,
     wrapper,
   );
