@@ -19,7 +19,7 @@ import {
   SUGGESTIVE_MODE_KEYS,
   SUGGESTIVE_RULES_KEYS,
 } from "./settingKeys";
-import { ROAM_DOCS } from "./docs";
+import { ROAM_DOCS, ROAM_DOCS_ASSETS } from "./docs";
 
 /** Every settings key, addressed as `GROUP.member`, so the key list is never restated. */
 const SETTING_KEY_GROUPS = {
@@ -85,6 +85,8 @@ void _nonRowKeysAreReal;
 
 type RowKeyId = Exclude<SettingKeyId, NonRowKeyId>;
 
+export type SettingExample = { src: string; alt: string };
+
 /** What only the call site knows. `path` is the only field a relocation touches, and is a
  *  function for node-type rows so one entry expands per node type. */
 export type AuthoredSetting = {
@@ -94,6 +96,7 @@ export type AuthoredSetting = {
   group?: string;
   description?: string;
   docsLink?: string;
+  example?: SettingExample;
   /** Synonyms plus the retired Personal/Global tab names, so users searching by the old
    *  split still find a setting after the move to topic sections. */
   keywords?: readonly string[];
@@ -210,6 +213,10 @@ const AUTHORED_SETTINGS = {
     description:
       "Whether or not to overlay discourse context information over discourse node references.",
     docsLink: ROAM_DOCS.discourseContextOverlay,
+    example: {
+      src: ROAM_DOCS_ASSETS.discourseContextOverlay,
+      alt: "A discourse node reference with the overlay badge beside it; clicking the badge opens the node's discourse context.",
+    },
     keywords: ["personal", "discourse context"],
     path: rootPath(SETTINGS_TAB_IDS.featuresDiscourseContext),
   },
@@ -571,3 +578,10 @@ export const describedSetting = (
   if (!setting?.description) return undefined;
   return { description: setting.description, docsLink: setting.docsLink };
 };
+
+export const settingExample = (
+  settingKeys: readonly string[] | undefined,
+): SettingExample | undefined =>
+  settingKeys?.length
+    ? BY_ADDRESS.get(settingKeys.join("/"))?.example
+    : undefined;

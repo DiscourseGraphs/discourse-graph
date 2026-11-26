@@ -122,6 +122,7 @@ const SettingsSearchField = ({
         preventOverflow: { enabled: false },
       }}
       minimal={true}
+      className="flex-shrink-0"
       autoFocus={false}
       enforceFocus={false}
       fill={true}

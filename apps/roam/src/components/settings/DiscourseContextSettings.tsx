@@ -9,7 +9,6 @@ import { setSetting } from "~/utils/extensionSettings";
 import { PersonalFlagPanel } from "./components/BlockPropSettingPanels";
 import { PERSONAL_KEYS } from "./utils/settingKeys";
 import { type SettingsSnapshot } from "./utils/accessors";
-import { ROAM_DOCS, withDocsLink } from "./utils/docs";
 
 const DiscourseContextSettings = ({
   onloadArgs,
@@ -23,10 +22,6 @@ const DiscourseContextSettings = ({
     <div className="flex flex-col gap-4 p-1">
       <PersonalFlagPanel
         title="Overlay"
-        description={withDocsLink(
-          "Whether or not to overlay discourse context information over discourse node references.",
-          ROAM_DOCS.discourseContextOverlay,
-        )}
         settingKeys={[PERSONAL_KEYS.discourseContextOverlay]}
         initialValue={personalSettings[PERSONAL_KEYS.discourseContextOverlay]}
         onChange={(checked) => {
