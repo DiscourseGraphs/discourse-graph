@@ -11,15 +11,27 @@ import { DISCOURSE_NODE_SHAPE_TYPE } from "./DiscourseNodeUtil";
 
 const TEXT_SHAPE_TYPES = ["text", "geo", "note"];
 
-export const getShapeText = (shape: TLShape): string =>
-  "text" in shape.props ? shape.props.text : "";
+// Text, geo and note store rich text since tldraw 3.10; each util knows its plain text.
+export const getShapeText = ({
+  editor,
+  shape,
+}: {
+  editor: Editor;
+  shape: TLShape;
+}): string => editor.getShapeUtil(shape).getText(shape) ?? "";
 
-export const isConvertibleShape = (shape?: TLShape | null): boolean => {
+export const isConvertibleShape = ({
+  editor,
+  shape,
+}: {
+  editor: Editor;
+  shape?: TLShape | null;
+}): boolean => {
   if (!shape || shape.isLocked) return false;
   if (shape.type === "image") return true;
   if (!TEXT_SHAPE_TYPES.includes(shape.type)) return false;
   // Geo and note shapes convert only when they carry text.
-  return shape.type === "text" || !!getShapeText(shape).trim();
+  return shape.type === "text" || !!getShapeText({ editor, shape }).trim();
 };
 
 export const uploadImageShapeToRoam = async ({

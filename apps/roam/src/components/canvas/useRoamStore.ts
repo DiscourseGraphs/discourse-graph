@@ -499,9 +499,12 @@ export const useRoamStore = ({
         clearTimeout(deserializeRef.current);
         deserializeRef.current = window.setTimeout(() => {
           if (!store) return;
+          // Persisted records can be on an older schema (e.g. before our own save lands).
+          const migrated = store.schema.migrateStoreSnapshot(newState);
+          if (migrated.type === "error") return;
           store.mergeRemoteChanges(() => {
             const currentState = store.getSnapshot();
-            const diff = calculateDiff(newState.store, currentState.store);
+            const diff = calculateDiff(migrated.value, currentState.store);
             store.applyDiff(diff);
           });
         }, THROTTLE);

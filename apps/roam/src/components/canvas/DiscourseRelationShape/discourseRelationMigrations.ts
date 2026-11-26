@@ -13,13 +13,30 @@ import {
   TLShapeId,
   VecModel,
   TLBaseShape,
+  TLArrowBindingProps,
+  TLBaseBinding,
 } from "tldraw";
 import { createMigrationIds } from "tldraw";
-import { RelationBinding } from "./DiscourseRelationBindings";
-import { getRelationColor } from "./DiscourseRelationUtil";
+import {
+  DISCOURSE_RELATION_SHAPE_TYPE,
+  getRelationColor,
+} from "./DiscourseRelationUtil";
 import { DISCOURSE_NODE_SHAPE_TYPE } from "~/components/canvas/DiscourseNodeUtil";
 
 const SEQUENCE_ID_BASE = "com.roam-research.discourse-graphs";
+
+// Binding shape before tldraw 3.x added `snap`.
+type LegacyRelationBinding = TLBaseBinding<
+  string,
+  Omit<TLArrowBindingProps, "snap">
+>;
+
+const getRecordProps = (record: unknown): Record<string, unknown> => {
+  const props = (record as { props?: unknown }).props;
+  return typeof props === "object" && props !== null
+    ? (props as Record<string, unknown>)
+    : {};
+};
 
 const getRecordType = (record: unknown): string | undefined => {
   if (typeof record !== "object" || record === null) return undefined;
@@ -52,7 +69,12 @@ export const createMigrations = ({
     AddSizeAndFontFamily: 3,
     RemoveNullAssetFileSize: 4,
     MigrateNodeTypeToDiscourseNode: 5,
+    AddArrowElbowProps: 6,
   });
+  const relationRecordTypes = new Set([
+    DISCOURSE_RELATION_SHAPE_TYPE,
+    ...allRelationShapeIds,
+  ]);
   return createMigrationSequence({
     sequenceId: `${SEQUENCE_ID_BASE}`,
     sequence: [
@@ -93,7 +115,7 @@ export const createMigrations = ({
             // TODO: do we have any that are not binding?
             if (start.type === "binding") {
               const id = createBindingId();
-              const binding: RelationBinding = {
+              const binding: LegacyRelationBinding = {
                 typeName: "binding",
                 id,
                 type: arrow.type,
@@ -115,7 +137,7 @@ export const createMigrations = ({
             // TODO: do we have any that are not binding?
             if (end.type === "binding") {
               const id = createBindingId();
-              const binding: RelationBinding = {
+              const binding: LegacyRelationBinding = {
                 typeName: "binding",
                 id,
                 type: arrow.type,
@@ -201,6 +223,36 @@ export const createMigrations = ({
         up: (shape: any) => {
           shape.props.nodeTypeId = shape.type;
           shape.type = DISCOURSE_NODE_SHAPE_TYPE;
+        },
+      },
+      {
+        // Mirrors tldraw's arrow AddElbow (shape) and AddSnap (binding) migrations.
+        id: versions["AddArrowElbowProps"],
+        scope: "record",
+        filter: (r) => {
+          const typeName = getRecordTypeName(r);
+          return (
+            (typeName === "shape" || typeName === "binding") &&
+            relationRecordTypes.has(getRecordType(r) ?? "")
+          );
+        },
+        up: (record) => {
+          const props = getRecordProps(record);
+          if (getRecordTypeName(record) === "binding") {
+            props.snap = "none";
+            return;
+          }
+          props.kind = "arc";
+          props.elbowMidPoint = 0.5;
+        },
+        down: (record) => {
+          const props = getRecordProps(record);
+          if (getRecordTypeName(record) === "binding") {
+            delete props.snap;
+            return;
+          }
+          delete props.kind;
+          delete props.elbowMidPoint;
         },
       },
     ],

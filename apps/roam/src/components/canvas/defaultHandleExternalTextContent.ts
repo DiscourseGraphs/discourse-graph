@@ -9,6 +9,7 @@ import {
   Editor,
   FONT_FAMILIES,
   TEXT_PROPS,
+  toRichText,
 } from "tldraw";
 import { FONT_SIZES } from "./DiscourseNodeUtil";
 // TODO: replace this whole file with with defaultHandleExternalTextContent() in v3.10.0
@@ -82,7 +83,7 @@ export const defaultHandleExternalTextContent = async ({
         id: onlySelectedShape.id,
         type: onlySelectedShape.type,
         props: {
-          text: textToPaste,
+          richText: toRichText(textToPaste),
         },
       },
     ]);
@@ -146,7 +147,7 @@ export const defaultHandleExternalTextContent = async ({
       x: p.x - w / 2,
       y: p.y - h / 2,
       props: {
-        text: textToPaste,
+        richText: toRichText(textToPaste),
         // if the text has more than one line, align it to the left
         textAlign: align,
         autoSize,

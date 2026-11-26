@@ -3,7 +3,6 @@ import {
   TLArrowBindingProps,
   BindingUtil,
   arrowBindingProps,
-  arrowBindingMigrations,
   BindingOnCreateOptions,
   BindingOnChangeOptions,
   BindingOnShapeChangeOptions,
@@ -88,13 +87,15 @@ export type RelationInfo =
 export type RelationBinding = TLBaseBinding<string, TLArrowBindingProps>;
 export class BaseRelationBindingUtil extends BindingUtil<RelationBinding> {
   static override props = arrowBindingProps;
-  static override migrations = arrowBindingMigrations;
+  // No arrowBindingMigrations: its ids are scoped to "arrow" and fail validation here.
+  // `snap` is backfilled by AddArrowElbowProps in discourseRelationMigrations.ts.
 
   override getDefaultProps(): Partial<TLArrowBindingProps> {
     return {
       isPrecise: false,
       isExact: false,
       normalizedAnchor: { x: 0.5, y: 0.5 },
+      snap: "none",
     };
   }
 
