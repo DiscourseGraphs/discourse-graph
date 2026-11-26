@@ -815,15 +815,12 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
 
     it("sends a relation with no lastModified as a Concept between its notes' ids, named by their titles, with its created time as last_modified", () => {
       expect(sentRow("rel-cites")).toStrictEqual({
-        space_id: SPACE_ID,
         source_local_id: "rel-cites",
         schema_represented_by_local_id: "cites-type",
-        is_schema: false,
-        author_id: USER_ID,
+        author_local_id: ACCOUNT_LOCAL_ID,
         name: "[[CLM - Sleep consolidates memory]] -cites-> [[SRC - Walker 2017]]",
         created: RELATION_CREATED,
         last_modified: RELATION_CREATED,
-        literal_content: {},
         local_reference_content: {
           source: "claim-node",
           destination: "source-node",
@@ -833,30 +830,24 @@ describe("what Obsidian sync sends to upsert_concepts", () => {
 
     it("points a relation at an imported note by the note's origin RID, at either end", () => {
       expect(sentRow("rel-imported-opposes")).toStrictEqual({
-        space_id: SPACE_ID,
         source_local_id: "rel-imported-opposes",
         schema_represented_by_local_id: "opposes-type",
-        is_schema: false,
-        author_id: USER_ID,
+        author_local_id: ACCOUNT_LOCAL_ID,
         name: "[[CLM - Dreams replay the day]] -opposes-> [[CLM - Sleep consolidates memory]]",
         created: RELATION_CREATED,
         last_modified: RELATION_MODIFIED,
-        literal_content: {},
         local_reference_content: {
           source: IMPORTED_CLAIM_RID,
           destination: "claim-node",
         },
       });
       expect(sentRow("rel-supports-imported")).toStrictEqual({
-        space_id: SPACE_ID,
         source_local_id: "rel-supports-imported",
         schema_represented_by_local_id: "supports-type",
-        is_schema: false,
-        author_id: USER_ID,
+        author_local_id: ACCOUNT_LOCAL_ID,
         name: "[[CLM - Sleep consolidates memory]] -supports-> [[CLM - Dreams replay the day]]",
         created: RELATION_CREATED,
         last_modified: RELATION_MODIFIED,
-        literal_content: {},
         local_reference_content: {
           source: "claim-node",
           destination: IMPORTED_CLAIM_RID,

@@ -1,6 +1,7 @@
 import type {
   CrossAppNode,
   CrossAppNodeSchema,
+  CrossAppRelation,
   CrossAppRelationTripleSchema,
   CrossAppRelationTypeSchema,
 } from "@repo/database/crossAppContracts";
@@ -10,7 +11,10 @@ import type {
   DiscourseNode,
   DiscourseRelation,
   DiscourseRelationType,
+  RelationInstance,
 } from "~/types";
+import type { DiscourseNodeInVault } from "./getDiscourseNodes";
+import { referenceIdOf } from "./sourceSlot";
 import type { ObsidianDiscourseNodeData } from "./syncDgNodesToSupabase";
 import type { ChangedNodeContent } from "./upsertNodesAsContentWithEmbeddings";
 
@@ -112,3 +116,23 @@ export const nodeInstanceToCrossApp = ({
     },
   };
 };
+
+export const relationInstanceToCrossApp = ({
+  relation,
+  sourceNode,
+  destinationNode,
+  accountLocalId,
+}: {
+  relation: RelationInstance;
+  sourceNode: DiscourseNodeInVault;
+  destinationNode: DiscourseNodeInVault;
+  accountLocalId: string;
+}): CrossAppRelation => ({
+  localId: relation.id,
+  relationType: relation.type,
+  source: referenceIdOf(sourceNode),
+  destination: referenceIdOf(destinationNode),
+  authorId: accountLocalId,
+  createdAt: new Date(relation.created),
+  modifiedAt: new Date(relation.lastModified ?? relation.created),
+});

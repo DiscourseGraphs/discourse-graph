@@ -1,11 +1,13 @@
 import { TFile } from "obsidian";
 import { describe, expect, it } from "vitest";
 import type { LocalConceptDataInput } from "@repo/database/inputTypes";
-import type { DiscourseNode } from "~/types";
+import type { DiscourseNode, RelationInstance } from "~/types";
 import {
   discourseNodeInstanceToLocalConcept,
   discourseNodeSchemaToLocalConcept,
+  relationInstanceToLocalConcept,
 } from "~/utils/conceptConversion";
+import type { DiscourseNodeInVault } from "~/utils/getDiscourseNodes";
 
 const conceptFor = ({
   format,
@@ -129,5 +131,48 @@ describe("discourseNodeSchemaToLocalConcept format", () => {
       folderPath: "Claims",
       authorId: 3,
     });
+  });
+});
+
+describe("relationInstanceToLocalConcept author", () => {
+  const noteInVault = (nodeInstanceId: string): DiscourseNodeInVault => ({
+    file: Object.assign(new TFile(), { basename: nodeInstanceId }),
+    frontmatter: { nodeInstanceId, nodeTypeId: "type-1" },
+    nodeTypeId: "type-1",
+    nodeInstanceId,
+  });
+  const relationConceptFor = (
+    relation: Partial<RelationInstance>,
+  ): LocalConceptDataInput | null =>
+    relationInstanceToLocalConcept({
+      accountLocalId: "account-1",
+      relationTypesById: {
+        "supports-type": {
+          id: "supports-type",
+          label: "supports",
+          complement: "is supported by",
+          color: "green",
+          created: 0,
+          modified: 0,
+        },
+      },
+      allNodesById: {
+        "node-1": noteInVault("node-1"),
+        "node-2": noteInVault("node-2"),
+      },
+      relationInstanceData: {
+        id: "relation-1",
+        type: "supports-type",
+        source: "node-1",
+        destination: "node-2",
+        created: 0,
+        ...relation,
+      },
+    });
+
+  it("keeps a relation's numeric authorId as author_id, without an author_local_id", () => {
+    const concept = relationConceptFor({ authorId: 9 });
+    expect(concept).toHaveProperty("author_id", 9);
+    expect(concept).not.toHaveProperty("author_local_id");
   });
 });
