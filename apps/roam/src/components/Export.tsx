@@ -28,7 +28,12 @@ import apiPost from "roamjs-components/util/apiPost";
 import getCurrentPageUid from "roamjs-components/dom/getCurrentPageUid";
 import getPageTitleByPageUid from "roamjs-components/queries/getPageTitleByPageUid";
 import getExtensionAPI from "roamjs-components/util/extensionApiContext";
-import getBlockProps from "~/utils/getBlockProps";
+import {
+  CanvasCompatibilityError,
+  isTLStoreSnapshot,
+  readCompatibleLocalCanvas,
+} from "~/utils/canvasCompatibility";
+import { appendCanvasImport } from "~/utils/appendCanvasImport";
 import AutocompleteInput from "roamjs-components/components/AutocompleteInput";
 import getAllPageNames from "roamjs-components/queries/getAllPageNames";
 import getPageUidByPageTitle from "roamjs-components/queries/getPageUidByPageTitle";
@@ -45,10 +50,7 @@ import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import createPage from "roamjs-components/writes/createPage";
 import {
   createShapeId,
-  IndexKey,
   TLParentId,
-  getIndexAbove,
-  TLShape,
   defaultShapeUtils,
   defaultBindingUtils,
 } from "tldraw";
@@ -68,7 +70,6 @@ import {
 import { discourseContext, MAX_WIDTH } from "~/components/canvas/Tldraw";
 import internalError from "~/utils/internalError";
 import { getSetting, setSetting } from "~/utils/extensionSettings";
-import { isTLStoreSnapshot } from "./canvas/useRoamStore";
 import { createMigrations } from "./canvas/DiscourseRelationShape/discourseRelationMigrations";
 import {
   createAllRelationBindings,
@@ -321,13 +322,13 @@ const ExportDialog: ExportDialogComponent = ({
   const addToSelectedCanvas = async (pageUid: string) => {
     if (typeof results !== "object") return false;
 
-    const blockProps: Record<string, unknown> = getBlockProps(pageUid);
+    const { props: blockProps, queryBuilder: rjsqb } =
+      readCompatibleLocalCanvas(pageUid);
 
     const PADDING_BETWEEN_SHAPES = 20;
     const COMMON_BOUNDS_XOFFSET = 250;
     const MAX_COLUMNS = 5;
     const COLUMN_WIDTH = Number(MAX_WIDTH.replace("px", ""));
-    const rjsqb = blockProps["roamjs-query-builder"] as Record<string, unknown>;
     const tldrawRaw = rjsqb?.["tldraw"];
     const isTLStore = isTLStoreSnapshot(tldrawRaw);
     // tldraw is either TLStoreSnapshot or a mutable Record (empty object when new)
@@ -483,7 +484,6 @@ const ExportDialog: ExportDialogComponent = ({
       };
 
       loadSnapshot(tlStore, defaultSnapshot);
-      tldraw.schema = tlStore.schema.serialize();
       tempTlStoreSnapshot = tlStore.getStoreSnapshot();
     }
 
@@ -520,6 +520,7 @@ const ExportDialog: ExportDialogComponent = ({
       }
       return undefined;
     };
+    const newShapes: Omit<DiscourseNodeShape, "index">[] = [];
     const pageKey = getPageKey(tlStoreSnapshot.store);
     if (!pageKey) {
       internalError({
@@ -548,23 +549,6 @@ const ExportDialog: ExportDialogComponent = ({
         });
     };
     const shapeBounds = extractShapesBounds(tlStoreSnapshot.store);
-
-    // Get existing shapes to determine the highest index
-    const existingShapes = Object.values(tlStoreSnapshot.store).filter(
-      (shape) => (shape as TLShape).typeName === "shape",
-    );
-
-    // Find the highest index among existing shapes
-    let currentIndex: IndexKey = "a1" as IndexKey;
-    if (existingShapes.length > 0) {
-      const highestIndex = existingShapes.reduce((highest: IndexKey, shape) => {
-        const shapeWithIndex = shape as TLShape;
-        return shapeWithIndex.index.localeCompare(highest) > 0
-          ? shapeWithIndex.index
-          : highest;
-      }, "a1" as IndexKey);
-      currentIndex = highestIndex;
-    }
 
     type CommonBounds = {
       top: number;
@@ -610,10 +594,7 @@ const ExportDialog: ExportDialogComponent = ({
         extensionAPI,
       });
       const newShapeId = createShapeId();
-      currentIndex = getIndexAbove(currentIndex);
-
-      const newShape: DiscourseNodeShape = {
-        index: currentIndex,
+      newShapes.push({
         rotation: 0,
         isLocked: false,
         type: DISCOURSE_NODE_SHAPE_TYPE,
@@ -634,7 +615,7 @@ const ExportDialog: ExportDialogComponent = ({
         x: commonBounds.right + nextShapeX,
         meta: {},
         opacity: 1,
-      };
+      });
 
       nextShapeX += COLUMN_WIDTH + PADDING_BETWEEN_SHAPES;
       if (h > currentRowHeight) currentRowHeight = h;
@@ -643,44 +624,21 @@ const ExportDialog: ExportDialogComponent = ({
         currentRowHeight = 0;
         nextShapeX = COMMON_BOUNDS_XOFFSET;
       }
-
-      tlStoreSnapshot.store[newShapeId] = newShape;
     }
 
-    const newStateId = nanoid();
-    try {
-      await window.roamAlphaAPI.updateBlock({
-        block: {
-          uid: pageUid,
-          props: {
-            ...blockProps,
-            ["roamjs-query-builder"]: {
-              ...rjsqb,
-              tldraw: {
-                ...(isTLStore ? tldraw : {}),
-                store: tlStoreSnapshot.store,
-                schema: tlStoreSnapshot.schema,
-              },
-              stateId: newStateId,
-            },
-          },
-        },
+    const saved = await appendCanvasImport({
+      pageUid,
+      parentId: pageKey,
+      shapes: newShapes,
+      newCanvas: tempTlStoreSnapshot,
+    });
+    if (!saved)
+      renderToast({
+        id: "canvas-import-changed",
+        intent: "warning",
+        content: "The destination canvas changed. Send the results again.",
       });
-      return true;
-    } catch (error) {
-      internalError({
-        error: error as Error,
-        type: "Failed to add to selected canvas",
-        userMessage:
-          "Failed to add to selected canvas. The team has been notified.",
-        context: {
-          pageUid,
-          results,
-          blockProps,
-        },
-      });
-      return false;
-    }
+    return saved;
   };
 
   const addToSelectedPage = (pageUid: string) => {
@@ -771,6 +729,14 @@ const ExportDialog: ExportDialogComponent = ({
         id: "query-builder-export-success",
       });
     } catch (e) {
+      if (e instanceof CanvasCompatibilityError) {
+        renderToast({
+          id: "canvas-compatibility",
+          intent: "warning",
+          content: e.message,
+        });
+        return;
+      }
       internalError({
         error: e as Error,
         type: "Export Dialog Failed",

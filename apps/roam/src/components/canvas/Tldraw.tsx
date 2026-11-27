@@ -75,6 +75,11 @@ import {
 } from "./DiscourseNodeUtil";
 import { useRoamStore } from "./useRoamStore";
 import {
+  getCanvasCompatibilityMessage,
+  getCanvasQueryBuilderProps,
+  readLocalCanvas,
+} from "~/utils/canvasCompatibility";
+import {
   TLDRAW_CLOUDFLARE_SYNC_WS_BASE_URL,
   useCloudflareSyncStore,
 } from "./TldrawCanvasCloudflareSync";
@@ -498,6 +503,16 @@ export const TldrawCanvas = ({ title }: { title: string }) => {
   // In Roam, canvas identity is currently keyed by the page UID.
   // Room sync is graph/page encoded as an opaque base64url token.
   const pageUid = useMemo(() => getPageUidByPageTitle(title), [title]);
+  return <TldrawCanvasPage key={pageUid} title={title} pageUid={pageUid} />;
+};
+
+const TldrawCanvasPage = ({
+  title,
+  pageUid,
+}: {
+  title: string;
+  pageUid: string;
+}) => {
   const [canvasSyncMode, setCanvasSyncModeState] = useState<CanvasSyncMode>(
     () => getEffectiveCanvasSyncMode({ pageUid }),
   );
@@ -522,11 +537,12 @@ export const TldrawCanvas = ({ title }: { title: string }) => {
         const blockProps = normalizeProps(
           (after?.[":block/props"] || {}) as json,
         ) as Record<string, json>;
-        const rjsqb = blockProps?.["roamjs-query-builder"] as Record<
-          string,
-          unknown
-        >;
-        if (rjsqb?.canvasSyncMode !== "sync") return;
+        const rjsqb = getCanvasQueryBuilderProps(blockProps);
+        if (
+          rjsqb.canvasSyncMode !== "sync" ||
+          getCanvasCompatibilityMessage(rjsqb.tldraw)
+        )
+          return;
         setCanvasSyncModeState("sync");
       },
     ] as const;
@@ -539,6 +555,19 @@ export const TldrawCanvas = ({ title }: { title: string }) => {
 
   const onCanvasSyncModeChange = useCallback(
     (mode: CanvasSyncMode) => {
+      if (mode === "sync") {
+        const message = getCanvasCompatibilityMessage(
+          readLocalCanvas(pageUid).queryBuilder.tldraw,
+        );
+        if (message) {
+          renderToast({
+            id: "canvas-compatibility",
+            content: message,
+            intent: "warning",
+          });
+          return;
+        }
+      }
       const currentMigrationState = getCanvasSyncMigrationState({ pageUid });
       const nextMigrationState =
         mode === "sync" && !currentMigrationState ? "pending" : undefined;
@@ -576,7 +605,8 @@ export const TldrawCanvas = ({ title }: { title: string }) => {
 type CanvasStoreAdapterResult = {
   store: TLStore | TLStoreWithStatus | null;
   needsUpgrade: boolean;
-  performUpgrade: () => void;
+  performUpgrade?: () => Promise<boolean>;
+  compatibilityMessage?: string | null;
   error: Error | null;
   isLoading: boolean;
 };
@@ -587,7 +617,7 @@ const useRoamCanvasStore = ({
   customShapeUtils,
   customBindingUtils,
 }: CanvasStoreAdapterArgs): CanvasStoreAdapterResult => {
-  const { store, needsUpgrade, performUpgrade, error } = useRoamStore({
+  const local = useRoamStore({
     migrations,
     customShapeUtils,
     customBindingUtils,
@@ -595,10 +625,7 @@ const useRoamCanvasStore = ({
   });
 
   return {
-    store,
-    needsUpgrade,
-    performUpgrade,
-    error,
+    ...local,
     isLoading: false,
   };
 };
@@ -624,7 +651,6 @@ const useCloudflareCanvasStore = ({
     error,
     isLoading,
     needsUpgrade: false,
-    performUpgrade: () => {},
   };
 };
 
@@ -1101,8 +1127,14 @@ const TldrawCanvasShared = ({
       }
     };
   }, [pageUid]);
-  const { store, needsUpgrade, performUpgrade, error, isLoading } =
-    useStoreAdapter(storeAdapterArgs);
+  const {
+    store,
+    needsUpgrade,
+    performUpgrade,
+    compatibilityMessage,
+    error,
+    isLoading,
+  } = useStoreAdapter(storeAdapterArgs);
   const migratedCloudStoreRef = useRef<string | null>(null);
 
   // Migrate local canvas to cloud sync
@@ -1313,7 +1345,14 @@ const TldrawCanvasShared = ({
       )}
       <style>{tldrawStyles}</style>
 
-      {needsUpgrade ? (
+      {compatibilityMessage ? (
+        <div
+          className="flex h-full items-center justify-center p-4"
+          role="alert"
+        >
+          <p>{compatibilityMessage}</p>
+        </div>
+      ) : needsUpgrade && performUpgrade ? (
         <div className="flex h-full items-center justify-center">
           <div className="text-center">
             <h2 className="mb-2 text-2xl font-semibold">Upgrade Required</h2>
@@ -1323,8 +1362,8 @@ const TldrawCanvasShared = ({
             <button
               className="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
               onClick={() => {
-                const handleUpgrade = () => {
-                  performUpgrade();
+                const handleUpgrade = async (): Promise<void> => {
+                  if (!(await performUpgrade())) return;
                   renderToast({
                     id: "tldraw-upgrade",
                     intent: "success",
@@ -1477,6 +1516,11 @@ const TldrawCanvasShared = ({
 
               return () => {
                 unregisterCanvasSessionStatePersistence();
+                if (appRef.current === app) appRef.current = null;
+                if (activeCanvasEditor === app) {
+                  activeCanvasPageUid = null;
+                  activeCanvasEditor = null;
+                }
               };
             }}
           >

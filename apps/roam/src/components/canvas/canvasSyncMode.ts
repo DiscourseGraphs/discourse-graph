@@ -1,4 +1,8 @@
 import getBlockProps, { json } from "~/utils/getBlockProps";
+import {
+  getCanvasCompatibilityMessage,
+  getCanvasQueryBuilderProps,
+} from "~/utils/canvasCompatibility";
 import setBlockProps from "~/utils/setBlockProps";
 import {
   TLAnyBindingUtilConstructor,
@@ -27,12 +31,7 @@ const isCanvasSyncMigrationState = (
 ): value is CanvasSyncMigrationState => value === "pending" || value === "done";
 
 const getRoamJsQueryBuilderProps = (pageUid: string): Record<string, json> => {
-  const props = getBlockProps(pageUid);
-  const value = props[QUERY_BUILDER_PROP_KEY];
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    return value;
-  }
-  return {};
+  return getCanvasQueryBuilderProps(getBlockProps(pageUid));
 };
 
 const setRoamJsQueryBuilderProps = ({
@@ -152,9 +151,12 @@ export const ensureCanvasSyncMode = ({
 }: {
   pageUid: string;
 }): CanvasSyncMode => {
-  const mode = getPersistedCanvasSyncMode({ pageUid });
-  if (mode) return mode;
-  setCanvasSyncMode({ pageUid, mode: DEFAULT_CANVAS_SYNC_MODE });
+  const queryBuilder = getRoamJsQueryBuilderProps(pageUid);
+  const mode = queryBuilder[CANVAS_SYNC_MODE_KEY];
+  if (isCanvasSyncMode(mode)) return mode;
+  if (!getCanvasCompatibilityMessage(queryBuilder.tldraw)) {
+    setCanvasSyncMode({ pageUid, mode: DEFAULT_CANVAS_SYNC_MODE });
+  }
   return DEFAULT_CANVAS_SYNC_MODE;
 };
 

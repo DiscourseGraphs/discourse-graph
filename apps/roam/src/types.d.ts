@@ -1,3 +1,8 @@
+declare module "lodash.isequal" {
+  const isEqual: (left: unknown, right: unknown) => boolean;
+  export default isEqual;
+}
+
 declare module "*.png" {
   const value: string;
   export default value;
