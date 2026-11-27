@@ -1,17 +1,26 @@
-import { TLRecord } from "@tldraw/tlschema";
+import { TLDOCUMENT_ID, TLRecord } from "@tldraw/tlschema";
 import nanoid from "nanoid";
-import { useRef, useMemo, useEffect, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
 import getSubTree from "roamjs-components/util/getSubTree";
 import setInputSetting from "roamjs-components/util/setInputSetting";
 import createBlock from "roamjs-components/writes/createBlock";
-import getBlockProps, { json, normalizeProps } from "~/utils/getBlockProps";
+import { json, normalizeProps } from "~/utils/getBlockProps";
+import {
+  CanvasCompatibilityError,
+  getCanvasCompatibilityMessage,
+  getCanvasCompatibilityVersion,
+  getCanvasQueryBuilderProps,
+  isTLStoreSnapshot,
+  readCompatibleLocalCanvas,
+  readLocalCanvas,
+} from "~/utils/canvasCompatibility";
 import {
   createTLStore,
   TLAnyBindingUtilConstructor,
   TLAnyShapeUtilConstructor,
 } from "@tldraw/editor";
-import { SerializedStore, StoreSnapshot } from "@tldraw/store";
+import { SerializedStore } from "@tldraw/store";
 import {
   defaultBindingUtils,
   defaultShapeUtils,
@@ -28,15 +37,6 @@ import { LEGACY_SCHEMA } from "~/data/legacyTldrawSchema";
 import internalError from "~/utils/internalError";
 
 const THROTTLE = 350;
-
-export const isTLStoreSnapshot = (value: unknown): value is TLStoreSnapshot => {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "store" in value &&
-    "schema" in value
-  );
-};
 
 const fixShapeIndices = (
   data: SerializedStore<TLRecord>,
@@ -103,11 +103,7 @@ const getPersistedRoamCanvasState = ({
   initialSnapshot: TLStoreSnapshot | null;
   oldData: SerializedStore<TLRecord> | null;
 } => {
-  const props = getBlockProps(pageUid) as Record<string, unknown>;
-  const rjsqb =
-    typeof props["roamjs-query-builder"] === "object"
-      ? (props["roamjs-query-builder"] as Record<string, unknown>)
-      : {};
+  const { queryBuilder: rjsqb } = readCompatibleLocalCanvas(pageUid);
 
   if (isTLStoreSnapshot(rjsqb.tldraw))
     return {
@@ -117,7 +113,9 @@ const getPersistedRoamCanvasState = ({
 
   return {
     initialSnapshot: null,
-    oldData: rjsqb?.tldraw ? (rjsqb.tldraw as SerializedStore<TLRecord>) : null,
+    oldData: rjsqb?.tldraw
+      ? (rjsqb.tldraw as unknown as SerializedStore<TLRecord>)
+      : null,
   };
 };
 
@@ -182,6 +180,96 @@ export const getRoamCanvasSnapshot = ({
   };
 };
 
+const personalRecordTypes = new Set([
+  "camera",
+  "instance",
+  "instance_page_state",
+]);
+
+const pruneState = (state: SerializedStore<TLRecord>) =>
+  Object.fromEntries(
+    Object.entries(state).filter(
+      ([_, record]) => !personalRecordTypes.has(record.typeName),
+    ),
+  );
+
+const diffObjects = (
+  oldRecord: Record<string, any>,
+  newRecord: Record<string, any>,
+): Record<string, any> => {
+  const allKeys = Array.from(
+    new Set(Object.keys(oldRecord).concat(Object.keys(newRecord))),
+  );
+  return Object.fromEntries(
+    allKeys
+      .map((key) => {
+        const oldValue = oldRecord[key];
+        const newValue = newRecord[key];
+        if (typeof oldValue !== typeof newValue) {
+          return [key, newValue];
+        }
+        if (
+          typeof oldValue === "object" &&
+          oldValue !== null &&
+          newValue !== null
+        ) {
+          const diffed = diffObjects(oldValue, newValue);
+          if (Object.keys(diffed).length) {
+            return [key, diffed];
+          }
+          return null;
+        }
+        if (oldValue !== newValue) {
+          return [key, newValue];
+        }
+        return null;
+      })
+      .filter((e): e is [string, any] => !!e),
+  );
+};
+const calculateDiff = (
+  _newState: SerializedStore<TLRecord>,
+  _oldState: SerializedStore<TLRecord>,
+) => {
+  const newState = pruneState(_newState);
+  const oldState = pruneState(_oldState);
+  return {
+    added: Object.fromEntries(
+      Object.keys(newState)
+        .filter((id) => !oldState[id])
+        .map((id) => [id, newState[id]]),
+    ),
+    removed: Object.fromEntries(
+      Object.keys(oldState)
+        .filter((id) => !newState[id])
+        .map((key) => [key, oldState[key]]),
+    ),
+    updated: Object.fromEntries(
+      Object.keys(newState)
+        .map((id) => {
+          const oldRecord = oldState[id];
+          const newRecord = newState[id];
+          if (!oldRecord || !newRecord) {
+            return null;
+          }
+
+          const diffed = diffObjects(oldRecord, newRecord);
+          if (Object.keys(diffed).length) {
+            return [id, [oldRecord, newRecord]];
+          }
+          return null;
+        })
+        .filter((e): e is [string, any] => !!e),
+    ),
+  };
+};
+
+type LocalCanvasState =
+  | { status: "ready"; store: TLStore }
+  | { status: "legacy" }
+  | { status: "blocked"; message: string }
+  | { status: "error"; error: Error };
+
 export const useRoamStore = ({
   customShapeUtils,
   customBindingUtils,
@@ -193,325 +281,251 @@ export const useRoamStore = ({
   pageUid: string;
   migrations: MigrationSequence[];
 }) => {
-  const [needsUpgrade, setNeedsUpgrade] = useState(false);
-  const [oldData, setOldData] = useState<SerializedStore<TLRecord> | null>(
-    null,
-  );
-  const [initialSnapshot, setInitialSnapshot] =
-    useState<TLStoreSnapshot | null>(null);
-  const [error, setError] = useState<Error | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const localStateIds = useRef<string[]>([]);
-  const serializeRef = useRef(0);
-  const deserializeRef = useRef(0);
-  const tree = useMemo(() => getBasicTreeByParentUid(pageUid), [pageUid]);
-
-  // Handle initial data
-  useEffect(() => {
-    const persisted = getSubTree({ parentUid: pageUid, tree, key: "State" });
-    if (!persisted.uid) {
-      void createBlock({ node: { text: "State" }, parentUid: pageUid });
-    }
-    const { initialSnapshot, oldData } = getPersistedRoamCanvasState({
-      pageUid,
-    });
-    if (initialSnapshot) {
-      setInitialSnapshot(initialSnapshot);
-      setLoading(false);
-    } else if (oldData) {
-      setNeedsUpgrade(true);
-      setOldData(oldData);
-      setLoading(false);
-    } else {
-      // Create a new store
-      setInitialSnapshot(null);
-      setLoading(false);
-    }
-  }, [tree, pageUid]);
-
-  const store = useMemo(() => {
-    if (needsUpgrade || error || loading) return null;
-
-    const handleStoreError = ({
-      error,
-      type,
-    }: {
-      error: Error;
-      type: string;
-    }): void => {
-      setError(error);
-      setLoading(false);
-      const snapshotSize = initialSnapshot
-        ? JSON.stringify(initialSnapshot).length
-        : 0;
-      internalError({
-        error,
-        type,
-        context: {
-          pageUid,
-          snapshotSize,
-          ...(snapshotSize < 10000 ? { initialSnapshot } : {}),
-        },
-      });
-    };
-
-    let _store: TLStore;
-
+  const storeOptions = { customShapeUtils, customBindingUtils, migrations };
+  const openCanvas = (): LocalCanvasState => {
     try {
-      _store = createCanvasStore({
-        migrations,
-        customShapeUtils,
-        customBindingUtils,
+      const { initialSnapshot, oldData } = getPersistedRoamCanvasState({
+        pageUid,
       });
-    } catch (e) {
-      handleStoreError({
-        error: e as Error,
-        type: "Failed to create TLStore",
-      });
-      return null;
+      if (oldData) return { status: "legacy" };
+      const store = createCanvasStore(storeOptions);
+      if (initialSnapshot) loadSnapshot(store, initialSnapshot);
+      return { status: "ready", store };
+    } catch (error) {
+      return error instanceof CanvasCompatibilityError
+        ? { status: "blocked", message: error.message }
+        : { status: "error", error: error as Error };
     }
+  };
 
-    if (initialSnapshot) {
-      try {
-        loadSnapshot(_store, initialSnapshot);
-      } catch (e) {
-        handleStoreError({
-          error: e as Error,
-          type: "Failed to migrate snapshot",
-        });
-        return null;
+  // The local editor is keyed by page UID. Keep one store for that page through UI rerenders.
+  const [canvas, setCanvas] = useState<LocalCanvasState>(openCanvas);
+  const blocked = useRef(canvas.status === "blocked");
+  const mounted = useRef(false);
+  const upgrading = useRef(false);
+  const canUseSnapshot = useCallback((snapshot: json | undefined): boolean => {
+    if (blocked.current) return false;
+    const message = getCanvasCompatibilityMessage(snapshot);
+    if (!message) return true;
+    // React can render the update screen after another timer or pull-watch callback runs.
+    blocked.current = true;
+    if (mounted.current) setCanvas({ status: "blocked", message });
+    return false;
+  }, []);
+
+  const performUpgrade = async (): Promise<boolean> => {
+    if (
+      !mounted.current ||
+      blocked.current ||
+      upgrading.current ||
+      canvas.status !== "legacy"
+    )
+      return false;
+    upgrading.current = true;
+    try {
+      const { props, queryBuilder } = readLocalCanvas(pageUid);
+      if (!canUseSnapshot(queryBuilder.tldraw)) return false;
+      const oldData = queryBuilder.tldraw;
+      if (!oldData || isTLStoreSnapshot(oldData)) {
+        setCanvas(openCanvas());
+        return false;
       }
-    }
-
-    _store.listen((rec) => {
-      if (rec.source !== "user") return;
-      const validChanges = Object.keys(rec.changes.added)
-        .concat(Object.keys(rec.changes.removed))
-        .concat(Object.keys(rec.changes.updated))
-        .filter(
-          (k) =>
-            !/^(user_presence|camera|instance|instance_page_state|pointer):/.test(
-              k,
-            ),
-        );
-      if (!validChanges.length) return;
-      clearTimeout(serializeRef.current);
-      // TODO
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      serializeRef.current = window.setTimeout(async () => {
-        const state = _store.serialize();
-        const props = getBlockProps(pageUid) as Record<string, unknown>;
-        const rjsqb =
-          typeof props["roamjs-query-builder"] === "object"
-            ? (props["roamjs-query-builder"] as Record<string, unknown>)
-            : {};
-        const propSchema = isTLStoreSnapshot(rjsqb.tldraw)
-          ? rjsqb.tldraw.schema
-          : {};
-        const schema =
-          Object.keys(propSchema).length === 0
-            ? _store.schema.serialize()
-            : propSchema;
-        await setInputSetting({
-          blockUid: pageUid,
-          key: "timestamp",
-          value: new Date().valueOf().toString(),
-        });
-        const newstateId = nanoid();
-        localStateIds.current.push(newstateId);
-        localStateIds.current.splice(0, localStateIds.current.length - 25);
-        void window.roamAlphaAPI.data.page.update({
-          page: {
-            uid: pageUid,
-            props: {
-              ...props,
-              ["roamjs-query-builder"]: {
-                ...rjsqb,
-                stateId: newstateId,
-                tldraw: { store: state, schema },
-              },
-            },
-          },
-        });
-      }, THROTTLE);
-    });
-    return _store;
-  }, [
-    initialSnapshot,
-    serializeRef,
-    needsUpgrade,
-    error,
-    loading,
-    customShapeUtils,
-    customBindingUtils,
-    migrations,
-    pageUid,
-  ]);
-
-  const personalRecordTypes = new Set([
-    "camera",
-    "instance",
-    "instance_page_state",
-  ]);
-
-  const performUpgrade = () => {
-    if (!oldData) return;
-    try {
       const snapshot = upgradeLegacyStoreSnapshot({
-        oldData,
-        migrations,
-        customShapeUtils,
-        customBindingUtils,
+        ...storeOptions,
+        oldData: oldData as unknown as SerializedStore<TLRecord>,
       });
-      const props = getBlockProps(pageUid) as Record<string, unknown>;
-      const rjsqb =
-        typeof props["roamjs-query-builder"] === "object"
-          ? (props["roamjs-query-builder"] as Record<string, unknown>)
-          : {};
-      void window.roamAlphaAPI.data.page.update({
+      await window.roamAlphaAPI.data.page.update({
         page: {
           uid: pageUid,
           props: {
             ...props,
-            ["roamjs-query-builder"]: {
-              ...rjsqb,
+            "roamjs-query-builder": {
+              ...queryBuilder,
               stateId: nanoid(),
               tldraw: snapshot,
-              legacyTldraw: {
-                date: new Date().valueOf().toString(),
-                store: oldData,
-              },
+              legacyTldraw: { date: Date.now().toString(), store: oldData },
             },
           },
         },
       });
-      setInitialSnapshot(snapshot);
-      setNeedsUpgrade(false);
-      setOldData(null);
-    } catch (e) {
-      const error = e as Error;
-      setNeedsUpgrade(false);
-      setInitialSnapshot(null);
-      setError(error);
-      internalError({
-        error,
-        type: "Failed to perform Canvas upgrade",
-        context: {
-          data: { oldData },
-        },
-      });
+      if (!mounted.current || blocked.current) return false;
+      const next = openCanvas();
+      if (next.status === "blocked") blocked.current = true;
+      setCanvas(next);
+      return next.status === "ready";
+    } catch (error) {
+      if (mounted.current && !blocked.current)
+        setCanvas({ status: "error", error: error as Error });
+      return false;
+    } finally {
+      upgrading.current = false;
     }
   };
 
-  const pruneState = (state: SerializedStore<TLRecord>) =>
-    Object.fromEntries(
-      Object.entries(state).filter(
-        ([_, record]) => !personalRecordTypes.has(record.typeName),
-      ),
-    );
-
-  const diffObjects = (
-    oldRecord: Record<string, any>,
-    newRecord: Record<string, any>,
-  ): Record<string, any> => {
-    const allKeys = Array.from(
-      new Set(Object.keys(oldRecord).concat(Object.keys(newRecord))),
-    );
-    return Object.fromEntries(
-      allKeys
-        .map((key) => {
-          const oldValue = oldRecord[key];
-          const newValue = newRecord[key];
-          if (typeof oldValue !== typeof newValue) {
-            return [key, newValue];
-          }
-          if (
-            typeof oldValue === "object" &&
-            oldValue !== null &&
-            newValue !== null
-          ) {
-            const diffed = diffObjects(oldValue, newValue);
-            if (Object.keys(diffed).length) {
-              return [key, diffed];
-            }
-            return null;
-          }
-          if (oldValue !== newValue) {
-            return [key, newValue];
-          }
-          return null;
-        })
-        .filter((e): e is [string, any] => !!e),
-    );
-  };
-  const calculateDiff = (
-    _newState: SerializedStore<TLRecord>,
-    _oldState: SerializedStore<TLRecord>,
-  ) => {
-    const newState = pruneState(_newState);
-    const oldState = pruneState(_oldState);
-    return {
-      added: Object.fromEntries(
-        Object.keys(newState)
-          .filter((id) => !oldState[id])
-          .map((id) => [id, newState[id]]),
-      ),
-      removed: Object.fromEntries(
-        Object.keys(oldState)
-          .filter((id) => !newState[id])
-          .map((key) => [key, oldState[key]]),
-      ),
-      updated: Object.fromEntries(
-        Object.keys(newState)
-          .map((id) => {
-            const oldRecord = oldState[id];
-            const newRecord = newState[id];
-            if (!oldRecord || !newRecord) {
-              return null;
-            }
-
-            const diffed = diffObjects(oldRecord, newRecord);
-            if (Object.keys(diffed).length) {
-              return [id, [oldRecord, newRecord]];
-            }
-            return null;
-          })
-          .filter((e): e is [string, any] => !!e),
-      ),
+  useLayoutEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
     };
-  };
+  }, []);
 
-  // Remote Changes
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (canvas.status === "blocked" || canvas.status === "error") return;
+    const store = canvas.status === "ready" ? canvas.store : null;
+    const localStateIds: string[] = [];
+    let saveTimer: number | undefined;
+    let applyTimer: number | undefined;
+    let active = true;
+
+    const save = async (): Promise<void> => {
+      saveTimer = undefined;
+      if (!store || blocked.current) return;
+      try {
+        const { props, queryBuilder } = readLocalCanvas(pageUid);
+        if (!canUseSnapshot(queryBuilder.tldraw)) return;
+        const savedSchema = isTLStoreSnapshot(queryBuilder.tldraw)
+          ? queryBuilder.tldraw.schema
+          : null;
+        const schema =
+          savedSchema && Object.keys(savedSchema).length
+            ? savedSchema
+            : store.schema.serialize();
+        const records = store.serialize();
+        const document = records[TLDOCUMENT_ID];
+        const savedVersion = getCanvasCompatibilityVersion(queryBuilder.tldraw);
+        // A compatible marker can arrive before the debounced pull-watch applies it.
+        if (
+          typeof savedVersion === "number" &&
+          document?.typeName === "document" &&
+          (typeof document.meta.canvasCompatibilityVersion !== "number" ||
+            document.meta.canvasCompatibilityVersion < savedVersion)
+        ) {
+          records[TLDOCUMENT_ID] = {
+            ...document,
+            meta: {
+              ...document.meta,
+              canvasCompatibilityVersion: savedVersion,
+            },
+          };
+        }
+        const stateId = nanoid();
+        localStateIds.push(stateId);
+        if (localStateIds.length > 25) localStateIds.shift();
+        // Submit the snapshot in the same turn as the compatibility check.
+        await window.roamAlphaAPI.data.page.update({
+          page: {
+            uid: pageUid,
+            props: {
+              ...props,
+              "roamjs-query-builder": {
+                ...queryBuilder,
+                stateId,
+                tldraw: { store: records, schema },
+              },
+            },
+          },
+        });
+        if (
+          active &&
+          canUseSnapshot(readLocalCanvas(pageUid).queryBuilder.tldraw)
+        ) {
+          await setInputSetting({
+            blockUid: pageUid,
+            key: "timestamp",
+            value: Date.now().toString(),
+          });
+        }
+      } catch (error) {
+        internalError({
+          error,
+          type: "Failed to save local canvas",
+          context: { pageUid },
+        });
+      }
+    };
+
+    const unlisten = store?.listen(({ source, changes }) => {
+      if (source !== "user" || blocked.current) return;
+      const changedIds = [
+        ...Object.keys(changes.added),
+        ...Object.keys(changes.updated),
+        ...Object.keys(changes.removed),
+      ];
+      if (
+        !changedIds.some(
+          (id) =>
+            !/^(user_presence|camera|instance|instance_page_state|pointer):/.test(
+              id,
+            ),
+        )
+      )
+        return;
+      clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(() => {
+        void save();
+      }, THROTTLE);
+    });
+
     const pullWatchProps: Parameters<AddPullWatch> = [
       "[:edit/user :block/props :block/string {:block/children ...}]",
       `[:block/uid "${pageUid}"]`,
       (_, after) => {
+        if (!active || blocked.current) return;
         const props = normalizeProps(
           (after?.[":block/props"] || {}) as json,
         ) as Record<string, json>;
-        const rjsqb = props["roamjs-query-builder"] as Record<string, unknown>;
-        const propsStateId = rjsqb?.stateId as string;
-        if (localStateIds.current.some((s) => s === propsStateId)) return;
-        const newState = rjsqb?.tldraw as StoreSnapshot<TLRecord>;
-        if (!newState) return;
-        clearTimeout(deserializeRef.current);
-        deserializeRef.current = window.setTimeout(() => {
-          if (!store) return;
+        const { tldraw, stateId } = getCanvasQueryBuilderProps(props);
+        if (!canUseSnapshot(tldraw)) {
+          clearTimeout(saveTimer);
+          clearTimeout(applyTimer);
+          return;
+        }
+        if (
+          !store ||
+          (typeof stateId === "string" && localStateIds.includes(stateId)) ||
+          !isTLStoreSnapshot(tldraw)
+        )
+          return;
+        clearTimeout(applyTimer);
+        applyTimer = window.setTimeout(() => {
+          if (!active) return;
+          const current = readLocalCanvas(pageUid).queryBuilder;
+          if (
+            !canUseSnapshot(current.tldraw) ||
+            current.stateId !== stateId ||
+            !isTLStoreSnapshot(current.tldraw)
+          )
+            return;
+          const records = current.tldraw.store;
           store.mergeRemoteChanges(() => {
-            const currentState = store.getSnapshot();
-            const diff = calculateDiff(newState.store, currentState.store);
-            store.applyDiff(diff);
+            store.applyDiff(calculateDiff(records, store.getSnapshot().store));
           });
         }, THROTTLE);
       },
     ];
     window.roamAlphaAPI.data.addPullWatch(...pullWatchProps);
+    if (canUseSnapshot(readLocalCanvas(pageUid).queryBuilder.tldraw)) {
+      const tree = getBasicTreeByParentUid(pageUid);
+      if (!getSubTree({ parentUid: pageUid, tree, key: "State" }).uid) {
+        void createBlock({ node: { text: "State" }, parentUid: pageUid });
+      }
+    }
     return () => {
+      active = false;
+      unlisten?.();
       window.roamAlphaAPI.data.removePullWatch(...pullWatchProps);
+      clearTimeout(applyTimer);
+      clearTimeout(saveTimer);
+      // Navigation can beat the debounce. Flush only while the old page is still compatible.
+      if (saveTimer !== undefined && !blocked.current) void save();
     };
-  }, [pageUid, store]);
+  }, [canvas, pageUid, canUseSnapshot]);
 
-  return { error, store, needsUpgrade, performUpgrade };
+  return {
+    store: canvas.status === "ready" ? canvas.store : null,
+    compatibilityMessage: canvas.status === "blocked" ? canvas.message : null,
+    error: canvas.status === "error" ? canvas.error : null,
+    needsUpgrade: canvas.status === "legacy",
+    performUpgrade,
+  };
 };
