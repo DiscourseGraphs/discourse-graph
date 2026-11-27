@@ -1,4 +1,5 @@
 import { TLDOCUMENT_ID, TLRecord } from "@tldraw/tlschema";
+import isEqual from "lodash.isequal";
 import nanoid from "nanoid";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import getBasicTreeByParentUid from "roamjs-components/queries/getBasicTreeByParentUid";
@@ -20,7 +21,7 @@ import {
   TLAnyBindingUtilConstructor,
   TLAnyShapeUtilConstructor,
 } from "@tldraw/editor";
-import { SerializedStore } from "@tldraw/store";
+import type { RecordsDiff, SerializedStore } from "@tldraw/store";
 import {
   defaultBindingUtils,
   defaultShapeUtils,
@@ -186,82 +187,31 @@ const personalRecordTypes = new Set([
   "instance_page_state",
 ]);
 
-const pruneState = (state: SerializedStore<TLRecord>) =>
+const pruneState = (
+  state: SerializedStore<TLRecord>,
+): Record<string, TLRecord> =>
   Object.fromEntries(
     Object.entries(state).filter(
-      ([_, record]) => !personalRecordTypes.has(record.typeName),
+      ([, record]) => !personalRecordTypes.has(record.typeName),
     ),
   );
 
-const diffObjects = (
-  oldRecord: Record<string, any>,
-  newRecord: Record<string, any>,
-): Record<string, any> => {
-  const allKeys = Array.from(
-    new Set(Object.keys(oldRecord).concat(Object.keys(newRecord))),
-  );
-  return Object.fromEntries(
-    allKeys
-      .map((key) => {
-        const oldValue = oldRecord[key];
-        const newValue = newRecord[key];
-        if (typeof oldValue !== typeof newValue) {
-          return [key, newValue];
-        }
-        if (
-          typeof oldValue === "object" &&
-          oldValue !== null &&
-          newValue !== null
-        ) {
-          const diffed = diffObjects(oldValue, newValue);
-          if (Object.keys(diffed).length) {
-            return [key, diffed];
-          }
-          return null;
-        }
-        if (oldValue !== newValue) {
-          return [key, newValue];
-        }
-        return null;
-      })
-      .filter((e): e is [string, any] => !!e),
-  );
-};
 const calculateDiff = (
-  _newState: SerializedStore<TLRecord>,
-  _oldState: SerializedStore<TLRecord>,
-) => {
-  const newState = pruneState(_newState);
-  const oldState = pruneState(_oldState);
-  return {
-    added: Object.fromEntries(
-      Object.keys(newState)
-        .filter((id) => !oldState[id])
-        .map((id) => [id, newState[id]]),
-    ),
-    removed: Object.fromEntries(
-      Object.keys(oldState)
-        .filter((id) => !newState[id])
-        .map((key) => [key, oldState[key]]),
-    ),
-    updated: Object.fromEntries(
-      Object.keys(newState)
-        .map((id) => {
-          const oldRecord = oldState[id];
-          const newRecord = newState[id];
-          if (!oldRecord || !newRecord) {
-            return null;
-          }
-
-          const diffed = diffObjects(oldRecord, newRecord);
-          if (Object.keys(diffed).length) {
-            return [id, [oldRecord, newRecord]];
-          }
-          return null;
-        })
-        .filter((e): e is [string, any] => !!e),
-    ),
-  };
+  incoming: SerializedStore<TLRecord>,
+  current: SerializedStore<TLRecord>,
+): RecordsDiff<TLRecord> => {
+  const next = pruneState(incoming);
+  const previous = pruneState(current);
+  const diff: RecordsDiff<TLRecord> = { added: {}, removed: {}, updated: {} };
+  for (const record of Object.values(next)) {
+    const old = previous[record.id];
+    if (!old) diff.added[record.id] = record;
+    else if (!isEqual(old, record)) diff.updated[record.id] = [old, record];
+  }
+  for (const record of Object.values(previous)) {
+    if (!next[record.id]) diff.removed[record.id] = record;
+  }
+  return diff;
 };
 
 type LocalCanvasState =

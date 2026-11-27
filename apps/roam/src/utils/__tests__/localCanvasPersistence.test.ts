@@ -60,6 +60,7 @@ const propsWith = (tldraw: json, stateId = "peer"): Props => ({
 const update =
   vi.fn<(args: { page: { uid: string; props: Props } }) => Promise<void>>();
 const applyDiff = vi.fn();
+const getSnapshot = vi.fn<() => ReturnType<typeof snapshot>>();
 const unlisten = vi.fn();
 let localChange: () => void;
 let notify: (props: Props) => void;
@@ -94,6 +95,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   props = {};
+  getSnapshot.mockImplementation(() => snapshot());
   const store = {
     _flushHistory: vi.fn(),
     listen: (fn: (change: unknown) => void) => {
@@ -105,7 +107,7 @@ beforeEach(() => {
       return unlisten;
     },
     serialize: () => snapshot().store,
-    getSnapshot: () => snapshot(),
+    getSnapshot,
     schema: { serialize: () => ({ schemaVersion: 2 }) },
     mergeRemoteChanges: (fn: () => void) => fn(),
     applyDiff,
@@ -234,6 +236,44 @@ describe("local canvas persistence", () => {
     expect(mocks.createStore).toHaveBeenCalledTimes(1);
     expect(mocks.load).toHaveBeenCalledTimes(1);
   });
+  it("applies changed document records and leaves personal records and equal nested values alone", async () => {
+    const oldShape = {
+      id: "shape:changed",
+      typeName: "shape",
+      props: { color: "red" },
+    };
+    const newShape = { ...oldShape, props: { color: "blue" } };
+    const stable = {
+      id: "shape:stable",
+      typeName: "shape",
+      props: { x: 1, y: 2 },
+    };
+    const added = { id: "shape:added", typeName: "shape" };
+    const removed = { id: "shape:removed", typeName: "shape" };
+    const local = snapshot();
+    Object.assign(local.store, {
+      [oldShape.id]: oldShape,
+      [stable.id]: stable,
+      [removed.id]: removed,
+      "camera:local": { id: "camera:local", typeName: "camera" },
+    });
+    getSnapshot.mockReturnValue(local);
+    const peer = snapshot();
+    Object.assign(peer.store, {
+      [newShape.id]: newShape,
+      [stable.id]: { ...stable, props: { y: 2, x: 1 } },
+      [added.id]: added,
+    });
+    open();
+    act(() => notify(propsWith(peer)));
+    await settle();
+    expect(applyDiff).toHaveBeenCalledWith({
+      added: { [added.id]: added },
+      removed: { [removed.id]: removed },
+      updated: { [newShape.id]: [oldShape, newShape] },
+    });
+  });
+
   it("checks storage again when the legacy upgrade button was already visible", async () => {
     props = propsWith(snapshot().store);
     open();
