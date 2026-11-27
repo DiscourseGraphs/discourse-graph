@@ -5,7 +5,7 @@ import {
 } from "~/utils/canvasCompatibility";
 import type { json } from "~/utils/getBlockProps";
 import { appendCanvasImport } from "~/utils/appendCanvasImport";
-import type { TLPageId } from "tldraw";
+import type { TLPageId, TLShapeId } from "tldraw";
 
 const documentWith = (value: json): Record<string, json> => ({
   "document:document": {
@@ -86,24 +86,50 @@ describe("Send to canvas", () => {
     vi.stubGlobal("window", { roamAlphaAPI: { pull, updateBlock } });
     readCompatibleLocalCanvas("target");
     await expect(
-      appendCanvasImport({ pageUid: "target", parentId: pageId, shapes: {} }),
+      appendCanvasImport({ pageUid: "target", parentId: pageId, shapes: [] }),
     ).rejects.toThrow(updateMessage);
     expect(updateBlock).not.toHaveBeenCalled();
   });
   it("appends to the latest snapshot and keeps the target's metadata", async () => {
     const props = stored(0);
-    const existing = { id: "shape:concurrent", typeName: "shape" };
+    const existing = {
+      id: "shape:concurrent",
+      typeName: "shape",
+      parentId: pageId,
+      index: "a2",
+    };
     const saved = props[":roamjs-query-builder"][":tldraw"];
     Object.assign(saved[":store"], { [existing.id]: existing });
     const updateBlock = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("window", {
       roamAlphaAPI: { pull: () => ({ ":block/props": props }), updateBlock },
     });
-    const shapes = {
-      "shape:imported": { id: "shape:imported", typeName: "shape" as const },
-    } as Parameters<typeof appendCanvasImport>[0]["shapes"];
+    const shape: Parameters<typeof appendCanvasImport>[0]["shapes"][number] = {
+      id: "shape:imported" as TLShapeId,
+      parentId: pageId,
+      type: "discourse-node",
+      typeName: "shape",
+      x: 20,
+      y: 20,
+      rotation: 0,
+      isLocked: false,
+      opacity: 1,
+      meta: {},
+      props: {
+        uid: "incoming",
+        title: "Imported node",
+        w: 200,
+        h: 80,
+        size: "s",
+        fontFamily: "sans",
+      },
+    };
     await expect(
-      appendCanvasImport({ pageUid: "target", parentId: pageId, shapes }),
+      appendCanvasImport({
+        pageUid: "target",
+        parentId: pageId,
+        shapes: [shape],
+      }),
     ).resolves.toBe(true);
     expect(updateBlock.mock.calls[0]?.[0]).toMatchObject({
       block: {
@@ -118,7 +144,7 @@ describe("Send to canvas", () => {
                 ...documentWith(0),
                 [pageId]: page,
                 [existing.id]: existing,
-                ...shapes,
+                [shape.id]: { ...shape, index: "a3" },
               },
             },
           },
@@ -132,7 +158,7 @@ describe("Send to canvas", () => {
       roamAlphaAPI: { pull: () => ({}), updateBlock },
     });
     await expect(
-      appendCanvasImport({ pageUid: "target", parentId: pageId, shapes: {} }),
+      appendCanvasImport({ pageUid: "target", parentId: pageId, shapes: [] }),
     ).resolves.toBe(false);
     expect(updateBlock).not.toHaveBeenCalled();
   });

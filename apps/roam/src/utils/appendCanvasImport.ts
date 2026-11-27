@@ -1,10 +1,7 @@
-import type {
-  SerializedStore,
-  TLParentId,
-  TLRecord,
-  TLStoreSnapshot,
-} from "@tldraw/editor";
+import type { TLParentId, TLStoreSnapshot } from "@tldraw/editor";
+import { getIndexAbove, type IndexKey } from "@tldraw/utils";
 import nanoid from "nanoid";
+import type { DiscourseNodeShape } from "~/components/canvas/DiscourseNodeUtil";
 import {
   isTLStoreSnapshot,
   readCompatibleLocalCanvas,
@@ -18,7 +15,7 @@ export const appendCanvasImport = async ({
 }: {
   pageUid: string;
   parentId: TLParentId;
-  shapes: SerializedStore<TLRecord>;
+  shapes: Omit<DiscourseNodeShape, "index">[];
   newCanvas?: TLStoreSnapshot;
 }): Promise<boolean> => {
   // Measuring import results can await image loads. Append to the current target.
@@ -29,6 +26,22 @@ export const appendCanvasImport = async ({
   if (saved && !isTLStoreSnapshot(saved) && Object.keys(saved).length)
     return false;
 
+  // A sibling may have taken the next index while the import was measuring shapes.
+  let index = "a1" as IndexKey;
+  for (const record of Object.values(snapshot.store)) {
+    if (
+      record.typeName === "shape" &&
+      record.parentId === parentId &&
+      record.index > index
+    )
+      index = record.index;
+  }
+  const records = { ...snapshot.store };
+  for (const shape of shapes) {
+    index = getIndexAbove(index);
+    records[shape.id] = { ...shape, index };
+  }
+
   await window.roamAlphaAPI.updateBlock({
     block: {
       uid: pageUid,
@@ -37,7 +50,7 @@ export const appendCanvasImport = async ({
         "roamjs-query-builder": {
           ...queryBuilder,
           stateId: nanoid(),
-          tldraw: { ...snapshot, store: { ...snapshot.store, ...shapes } },
+          tldraw: { ...snapshot, store: records },
         },
       },
     },

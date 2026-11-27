@@ -425,10 +425,7 @@ export const useRoamStore = ({
             },
           },
         });
-        if (
-          active &&
-          canUseSnapshot(readLocalCanvas(pageUid).queryBuilder.tldraw)
-        ) {
+        if (canUseSnapshot(readLocalCanvas(pageUid).queryBuilder.tldraw)) {
           await setInputSetting({
             blockUid: pageUid,
             key: "timestamp",
@@ -512,6 +509,8 @@ export const useRoamStore = ({
     }
     return () => {
       active = false;
+      // tldraw delivers edits on the next animation frame, which may follow unmount.
+      if (!blocked.current) store?._flushHistory();
       unlisten?.();
       window.roamAlphaAPI.data.removePullWatch(...pullWatchProps);
       clearTimeout(applyTimer);

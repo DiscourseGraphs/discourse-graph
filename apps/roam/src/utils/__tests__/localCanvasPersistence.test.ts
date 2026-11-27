@@ -2,6 +2,12 @@
 import React from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { act } from "react-dom/test-utils";
+import {
+  createRecordType,
+  Store,
+  StoreSchema,
+  type RecordId,
+} from "@tldraw/store";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useRoamStore } from "~/components/canvas/useRoamStore";
 import { ensureCanvasSyncMode } from "~/components/canvas/canvasSyncMode";
@@ -89,6 +95,7 @@ beforeEach(() => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   props = {};
   const store = {
+    _flushHistory: vi.fn(),
     listen: (fn: (change: unknown) => void) => {
       localChange = () =>
         fn({
@@ -238,6 +245,31 @@ describe("local canvas persistence", () => {
     expect(container.textContent).toMatch(/Update the extension/);
     expect(update).not.toHaveBeenCalled();
   });
+  it("saves an edit when the editor closes before tldraw delivers the next animation frame", () => {
+    vi.stubGlobal("__FORCE_RAF_IN_TESTS__", true);
+    type Shape = { typeName: "shape"; id: RecordId<Shape>; value: string };
+    const shapes = createRecordType<Shape>("shape", { scope: "document" });
+    const store = new Store({
+      props: {},
+      schema: StoreSchema.create({ shape: shapes }),
+    });
+    mocks.createStore.mockReturnValue(store);
+    open();
+    const shape = shapes.create({
+      id: shapes.createId("last"),
+      value: "final edit",
+    });
+    act(() => {
+      store.put([shape]);
+      root.render(null);
+    });
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(props).toMatchObject({
+      "roamjs-query-builder": { tldraw: { store: { [shape.id]: shape } } },
+    });
+    store.dispose();
+  });
+
   it("checks a pending edit on navigation and starts a separate store for the next page", async () => {
     open();
     localChange();
@@ -245,6 +277,9 @@ describe("local canvas persistence", () => {
     await settle();
     expect(update).toHaveBeenCalledTimes(1);
     expect(update.mock.calls[0][0].page.uid).toBe("one");
+    expect(mocks.timestamp).toHaveBeenCalledWith(
+      expect.objectContaining({ blockUid: "one" }),
+    );
     expect(mocks.createStore).toHaveBeenCalledTimes(2);
     localChange();
     await settle();

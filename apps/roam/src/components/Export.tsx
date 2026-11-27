@@ -50,10 +50,7 @@ import isLiveBlock from "roamjs-components/queries/isLiveBlock";
 import createPage from "roamjs-components/writes/createPage";
 import {
   createShapeId,
-  IndexKey,
   TLParentId,
-  getIndexAbove,
-  TLShape,
   defaultShapeUtils,
   defaultBindingUtils,
 } from "tldraw";
@@ -523,7 +520,7 @@ const ExportDialog: ExportDialogComponent = ({
       }
       return undefined;
     };
-    const newShapes: SerializedStore<TLRecord> = {};
+    const newShapes: Omit<DiscourseNodeShape, "index">[] = [];
     const pageKey = getPageKey(tlStoreSnapshot.store);
     if (!pageKey) {
       internalError({
@@ -552,23 +549,6 @@ const ExportDialog: ExportDialogComponent = ({
         });
     };
     const shapeBounds = extractShapesBounds(tlStoreSnapshot.store);
-
-    // Get existing shapes to determine the highest index
-    const existingShapes = Object.values(tlStoreSnapshot.store).filter(
-      (shape) => (shape as TLShape).typeName === "shape",
-    );
-
-    // Find the highest index among existing shapes
-    let currentIndex: IndexKey = "a1" as IndexKey;
-    if (existingShapes.length > 0) {
-      const highestIndex = existingShapes.reduce((highest: IndexKey, shape) => {
-        const shapeWithIndex = shape as TLShape;
-        return shapeWithIndex.index.localeCompare(highest) > 0
-          ? shapeWithIndex.index
-          : highest;
-      }, "a1" as IndexKey);
-      currentIndex = highestIndex;
-    }
 
     type CommonBounds = {
       top: number;
@@ -614,10 +594,7 @@ const ExportDialog: ExportDialogComponent = ({
         extensionAPI,
       });
       const newShapeId = createShapeId();
-      currentIndex = getIndexAbove(currentIndex);
-
-      const newShape: DiscourseNodeShape = {
-        index: currentIndex,
+      newShapes.push({
         rotation: 0,
         isLocked: false,
         type: DISCOURSE_NODE_SHAPE_TYPE,
@@ -638,7 +615,7 @@ const ExportDialog: ExportDialogComponent = ({
         x: commonBounds.right + nextShapeX,
         meta: {},
         opacity: 1,
-      };
+      });
 
       nextShapeX += COLUMN_WIDTH + PADDING_BETWEEN_SHAPES;
       if (h > currentRowHeight) currentRowHeight = h;
@@ -647,8 +624,6 @@ const ExportDialog: ExportDialogComponent = ({
         currentRowHeight = 0;
         nextShapeX = COMMON_BOUNDS_XOFFSET;
       }
-
-      newShapes[newShapeId] = newShape;
     }
 
     const saved = await appendCanvasImport({
