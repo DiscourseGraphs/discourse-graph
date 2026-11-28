@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M8FYVFB0B6XPA70JS92EPN0W",
+  "strategy": "manual-commit",
+  "branch": "eng-2274-collapsed-schema-type-aliases-drop-the-selected",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "apps/obsidian/src/utils/__tests__/specImport.test.ts",
+    "apps/obsidian/src/utils/specImport.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 44,
+    "cache_creation_tokens": 27496,
+    "cache_read_tokens": 3478314,
+    "output_tokens": 8915,
+    "api_call_count": 16,
+    "subagent_tokens": {
+      "input_tokens": 2,
+      "cache_creation_tokens": 65685,
+      "cache_read_tokens": 0,
+      "output_tokens": 253,
+      "api_call_count": 1
+    }
+  }
+}

@@ -1,0 +1,19 @@
+hmm why would we merge the importing node types when they have the smae name but different casing? that merge should only apply to outside -> existing schema right? because we'll try id first then name for external. but if all are from externals then we should respect that? because currently in settings people can create different node types with same spelling different casing like "Event" and "event"
+
+---
+
+do a live test with obsidian-cdp driver and then record a video to test it out
+
+---
+
+yes just open the pr straight up. if embedding doesn't work then open these files for me in finder to put em in Loom. write description for each case
+
+---
+
+<task-notification>
+<task-id>b4r9da3cw</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-trang-doan-Desktop-code-discourse-graph/8548ec0d-dffc-462b-8fcc-05071c6697d4/tasks/b4r9da3cw.output</output-file>
+<status>completed</status>
+<summary>Background command "Run the repository validation the PR guidelines require" completed (exit code 0)</summary>
+</task-notification>
