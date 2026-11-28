@@ -1,0 +1,5 @@
+hmm why would we merge the importing node types when they have the smae name but different casing? that merge should only apply to outside -> existing schema right? because we'll try id first then name for external. but if all are from externals then we should respect that? because currently in settings people can create different node types with same spelling different casing like "Event" and "event"
+
+---
+
+do a live test with obsidian-cdp driver and then record a video to test it out
