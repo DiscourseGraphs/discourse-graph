@@ -74,7 +74,8 @@ export type SpecImportApplyResult = {
   };
 };
 
-const buildSchemaImportMatchPlan = ({
+/** Matches only against the vault: two types in one file never merge, since a vault may hold both "Event" and "event". */
+export const buildSchemaImportMatchPlan = ({
   schemaFile,
   localNodeTypes,
   localRelationTypes,
@@ -89,58 +90,29 @@ const buildSchemaImportMatchPlan = ({
 }): SchemaImportMatchPlan => {
   const nodeTypeIdMapping = new Map<string, string>();
   const existingNodeTypeIds = new Set<string>();
-  const collapsedNodeTypeIds = new Set<string>();
-  const localNodeTypeIds = new Set(
-    localNodeTypes.map((nodeType) => nodeType.id),
-  );
-  // Grows as types are planned, so "Event" and "event" in one file collapse instead of creating two.
-  const knownNodeTypes = [...localNodeTypes];
-
   for (const nodeType of schemaFile.nodeTypes) {
     const localMatch = findLocalNodeTypeMatch({
-      localNodeTypes: knownNodeTypes,
+      localNodeTypes,
       id: nodeType.id,
       name: nodeType.name,
     });
-    if (localMatch) {
-      nodeTypeIdMapping.set(nodeType.id, localMatch.id);
-      existingNodeTypeIds.add(nodeType.id);
-      // Matched a type planned earlier in this file, not one the vault holds.
-      if (!localNodeTypeIds.has(localMatch.id)) {
-        collapsedNodeTypeIds.add(nodeType.id);
-      }
-      continue;
-    }
-
-    nodeTypeIdMapping.set(nodeType.id, nodeType.id);
-    knownNodeTypes.push(nodeType);
+    nodeTypeIdMapping.set(nodeType.id, localMatch?.id ?? nodeType.id);
+    if (localMatch) existingNodeTypeIds.add(nodeType.id);
   }
 
   const relationTypeIdMapping = new Map<string, string>();
   const existingRelationTypeIds = new Set<string>();
-  const collapsedRelationTypeIds = new Set<string>();
-  const localRelationTypeIds = new Set(
-    localRelationTypes.map((relationType) => relationType.id),
-  );
-  const knownRelationTypes = [...localRelationTypes];
-
   for (const relationType of schemaFile.relationTypes) {
     const localMatch = findLocalRelationTypeMatch({
-      localRelationTypes: knownRelationTypes,
+      localRelationTypes,
       id: relationType.id,
       label: relationType.label,
     });
-    if (localMatch) {
-      relationTypeIdMapping.set(relationType.id, localMatch.id);
-      existingRelationTypeIds.add(relationType.id);
-      if (!localRelationTypeIds.has(localMatch.id)) {
-        collapsedRelationTypeIds.add(relationType.id);
-      }
-      continue;
-    }
-
-    relationTypeIdMapping.set(relationType.id, relationType.id);
-    knownRelationTypes.push(relationType);
+    relationTypeIdMapping.set(
+      relationType.id,
+      localMatch?.id ?? relationType.id,
+    );
+    if (localMatch) existingRelationTypeIds.add(relationType.id);
   }
 
   const existingDiscourseRelationIds = new Set<string>();
@@ -171,8 +143,6 @@ const buildSchemaImportMatchPlan = ({
     relationTypeIdMapping,
     existingNodeTypeIds,
     existingRelationTypeIds,
-    collapsedNodeTypeIds,
-    collapsedRelationTypeIds,
     existingDiscourseRelationIds,
     existingTemplateNames,
     localTemplateNames,
@@ -187,21 +157,14 @@ const buildPreviewStats = ({
   matchPlan: SchemaImportMatchPlan;
 }): ImportPreviewStats => {
   return {
-    // A collapsed id is neither created nor held by the vault, so counting it as existing would name a type the user does not have.
     nodeTypes: {
-      total: schemaFile.nodeTypes.length - matchPlan.collapsedNodeTypeIds.size,
-      existing:
-        matchPlan.existingNodeTypeIds.size -
-        matchPlan.collapsedNodeTypeIds.size,
+      total: schemaFile.nodeTypes.length,
+      existing: matchPlan.existingNodeTypeIds.size,
       new: schemaFile.nodeTypes.length - matchPlan.existingNodeTypeIds.size,
     },
     relationTypes: {
-      total:
-        schemaFile.relationTypes.length -
-        matchPlan.collapsedRelationTypeIds.size,
-      existing:
-        matchPlan.existingRelationTypeIds.size -
-        matchPlan.collapsedRelationTypeIds.size,
+      total: schemaFile.relationTypes.length,
+      existing: matchPlan.existingRelationTypeIds.size,
       new:
         schemaFile.relationTypes.length -
         matchPlan.existingRelationTypeIds.size,
@@ -441,6 +404,7 @@ export const applySchemaImportSelection = async ({
 
   /** Where each schema id actually ended up, which diverges from the plan when settings moved since the preview. */
   const effectiveNodeTypeIds = new Map<string, string>();
+  const createdNodeTypeIds = new Set<string>();
   let nodeTypesCreated = 0;
   let nodeTypesMerged = 0;
   for (const nodeTypeId of selectedNodeTypeIds) {
@@ -452,12 +416,20 @@ export const applySchemaImportSelection = async ({
       continue;
     }
 
-    // Re-matched against live settings rather than the plan: the plan is a preview-time snapshot, and an entry that collapsed onto another file entry has nothing to merge into unless that entry was also selected.
-    const localMatch = findLocalNodeTypeMatch({
+    // Re-matched against live settings, as the plan is a preview-time snapshot.
+    const liveNodeTypeMatch = findLocalNodeTypeMatch({
       localNodeTypes: plugin.settings.nodeTypes,
       id: matchPlan.nodeTypeIdMapping.get(nodeTypeId) ?? nodeTypeId,
       name: importedNodeType.name,
     });
+    // A type created this run matches only by id or exact name, so case variants in one file stay separate.
+    const localMatch =
+      liveNodeTypeMatch &&
+      createdNodeTypeIds.has(liveNodeTypeMatch.id) &&
+      liveNodeTypeMatch.id !== importedNodeType.id &&
+      liveNodeTypeMatch.name !== importedNodeType.name
+        ? undefined
+        : liveNodeTypeMatch;
 
     if (localMatch) {
       effectiveNodeTypeIds.set(nodeTypeId, localMatch.id);
@@ -505,10 +477,12 @@ export const applySchemaImportSelection = async ({
       modified: Date.now(),
     };
     plugin.settings.nodeTypes = [...plugin.settings.nodeTypes, newNodeType];
+    createdNodeTypeIds.add(newNodeType.id);
     nodeTypesCreated += 1;
   }
 
   const effectiveRelationTypeIds = new Map<string, string>();
+  const createdRelationTypeIds = new Set<string>();
   let relationTypesCreated = 0;
   let relationTypesMerged = 0;
   for (const relationTypeId of selectedRelationTypeIds) {
@@ -520,11 +494,18 @@ export const applySchemaImportSelection = async ({
       continue;
     }
 
-    const localMatch = findLocalRelationTypeMatch({
+    const liveRelationTypeMatch = findLocalRelationTypeMatch({
       localRelationTypes: plugin.settings.relationTypes,
       id: matchPlan.relationTypeIdMapping.get(relationTypeId) ?? relationTypeId,
       label: importedRelationType.label,
     });
+    const localMatch =
+      liveRelationTypeMatch &&
+      createdRelationTypeIds.has(liveRelationTypeMatch.id) &&
+      liveRelationTypeMatch.id !== importedRelationType.id &&
+      liveRelationTypeMatch.label !== importedRelationType.label
+        ? undefined
+        : liveRelationTypeMatch;
 
     if (localMatch) {
       effectiveRelationTypeIds.set(relationTypeId, localMatch.id);
@@ -561,6 +542,7 @@ export const applySchemaImportSelection = async ({
       ...plugin.settings.relationTypes,
       newRelationType,
     ];
+    createdRelationTypeIds.add(newRelationType.id);
     relationTypesCreated += 1;
   }
 
@@ -591,7 +573,7 @@ export const applySchemaImportSelection = async ({
       matchPlan.relationTypeIdMapping.get(relation.relationshipTypeId) ??
       relation.relationshipTypeId;
 
-    // Checked against live settings, not the plan: two file relations can map to one triple after collapsing.
+    // Checked against live settings, not the plan: two file relations can map to one triple when their types match the same vault type.
     const alreadyPresent = findExistingTriple({
       discourseRelations: plugin.settings.discourseRelations,
       sourceId: mappedSourceId,
