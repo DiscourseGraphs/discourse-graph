@@ -3,3 +3,7 @@ hmm why would we merge the importing node types when they have the smae name but
 ---
 
 do a live test with obsidian-cdp driver and then record a video to test it out
+
+---
+
+yes just open the pr straight up. if embedding doesn't work then open these files for me in finder to put em in Loom. write description for each case
