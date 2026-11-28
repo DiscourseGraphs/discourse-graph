@@ -6,15 +6,12 @@ import type {
   DiscourseRelationType,
 } from "~/types";
 
-/** `existing*` hold schema-file ids that will not be created; resolve references through the id mappings, as a schema id may not survive the import. */
+/** `existing*` hold schema-file ids that match a type already in the vault; resolve references through the id mappings, as a schema id may not survive the import. */
 export type SchemaImportMatchPlan = {
   nodeTypeIdMapping: Map<string, string>;
   relationTypeIdMapping: Map<string, string>;
   existingNodeTypeIds: Set<string>;
   existingRelationTypeIds: Set<string>;
-  /** Subset of `existing*` that matched another entry in the same file rather than the vault, so previews can exclude them from both counts. */
-  collapsedNodeTypeIds: Set<string>;
-  collapsedRelationTypeIds: Set<string>;
   existingDiscourseRelationIds: Set<string>;
   existingTemplateNames: Set<string>;
   localTemplateNames: Set<string>;
@@ -24,7 +21,7 @@ export const normalizeSchemaLabel = (value: string): string => {
   return value.trim().toLowerCase();
 };
 
-/** Match by id first: an id collision is stronger evidence than a name two vaults happen to share. */
+/** Match by id, then exact name, then case-insensitive name: a vault may hold both "Event" and "event", so exact casing must win. */
 export const findLocalNodeTypeMatch = ({
   localNodeTypes,
   id,
@@ -36,6 +33,9 @@ export const findLocalNodeTypeMatch = ({
 }): DiscourseNode | undefined => {
   const matchById = localNodeTypes.find((nodeType) => nodeType.id === id);
   if (matchById) return matchById;
+
+  const matchByName = localNodeTypes.find((nodeType) => nodeType.name === name);
+  if (matchByName) return matchByName;
 
   const normalizedName = normalizeSchemaLabel(name);
   return localNodeTypes.find(
@@ -56,6 +56,11 @@ export const findLocalRelationTypeMatch = ({
     (relationType) => relationType.id === id,
   );
   if (matchById) return matchById;
+
+  const matchByLabel = localRelationTypes.find(
+    (relationType) => relationType.label === label,
+  );
+  if (matchByLabel) return matchByLabel;
 
   const normalizedLabel = normalizeSchemaLabel(label);
   return localRelationTypes.find(

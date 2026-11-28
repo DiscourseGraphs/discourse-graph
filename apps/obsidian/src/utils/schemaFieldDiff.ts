@@ -34,7 +34,7 @@ export type SchemaFieldChange = {
 
 export type SchemaConflictCategory = "nodeType" | "relationType" | "template";
 
-/** Keyed by schema-file id, not local id: the match plan can collapse two schema ids onto one local id. */
+/** Keyed by schema-file id, not local id: two schema ids can match the same vault type. */
 export type SchemaConflict = {
   category: SchemaConflictCategory;
   schemaId: string;
