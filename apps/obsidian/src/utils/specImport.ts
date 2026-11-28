@@ -416,14 +416,20 @@ export const applySchemaImportSelection = async ({
       continue;
     }
 
-    // Re-matched against live settings, as the plan is a preview-time snapshot; types this run created are excluded so file entries never merge with each other.
-    const localMatch = findLocalNodeTypeMatch({
-      localNodeTypes: plugin.settings.nodeTypes.filter(
-        (nodeType) => !createdNodeTypeIds.has(nodeType.id),
-      ),
+    // Re-matched against live settings, as the plan is a preview-time snapshot.
+    const liveNodeTypeMatch = findLocalNodeTypeMatch({
+      localNodeTypes: plugin.settings.nodeTypes,
       id: matchPlan.nodeTypeIdMapping.get(nodeTypeId) ?? nodeTypeId,
       name: importedNodeType.name,
     });
+    // A type created this run matches only by id or exact name, so case variants in one file stay separate.
+    const localMatch =
+      liveNodeTypeMatch &&
+      createdNodeTypeIds.has(liveNodeTypeMatch.id) &&
+      liveNodeTypeMatch.id !== importedNodeType.id &&
+      liveNodeTypeMatch.name !== importedNodeType.name
+        ? undefined
+        : liveNodeTypeMatch;
 
     if (localMatch) {
       effectiveNodeTypeIds.set(nodeTypeId, localMatch.id);
@@ -488,13 +494,18 @@ export const applySchemaImportSelection = async ({
       continue;
     }
 
-    const localMatch = findLocalRelationTypeMatch({
-      localRelationTypes: plugin.settings.relationTypes.filter(
-        (relationType) => !createdRelationTypeIds.has(relationType.id),
-      ),
+    const liveRelationTypeMatch = findLocalRelationTypeMatch({
+      localRelationTypes: plugin.settings.relationTypes,
       id: matchPlan.relationTypeIdMapping.get(relationTypeId) ?? relationTypeId,
       label: importedRelationType.label,
     });
+    const localMatch =
+      liveRelationTypeMatch &&
+      createdRelationTypeIds.has(liveRelationTypeMatch.id) &&
+      liveRelationTypeMatch.id !== importedRelationType.id &&
+      liveRelationTypeMatch.label !== importedRelationType.label
+        ? undefined
+        : liveRelationTypeMatch;
 
     if (localMatch) {
       effectiveRelationTypeIds.set(relationTypeId, localMatch.id);

@@ -225,4 +225,34 @@ describe("applySchemaImportSelection", () => {
     ]);
     expect(warnings).toEqual([]);
   });
+
+  it("merges a repeated id in one file instead of creating a second type with that id", async () => {
+    const { settings } = await runImport({
+      schemaFile: schemaFileOf({
+        nodeTypes: [nodeType("a", "Event"), nodeType("a", "Claim")],
+        relationTypes: [
+          relationType("r", "Causes"),
+          relationType("r", "Leads to"),
+        ],
+      }),
+      selection: { nodeTypeIds: ["a"], relationTypeIds: ["r"] },
+    });
+    expect(settings.nodeTypes.map((type) => type.id)).toEqual(["a"]);
+    expect(settings.relationTypes.map((type) => type.id)).toEqual(["r"]);
+  });
+
+  it("merges two file entries with exactly the same name", async () => {
+    const { settings } = await runImport({
+      schemaFile: schemaFileOf({
+        nodeTypes: [nodeType("a", "Event"), nodeType("b", "Event")],
+        relationTypes: [
+          relationType("r1", "Causes"),
+          relationType("r2", "Causes"),
+        ],
+      }),
+      selection: { nodeTypeIds: ["a", "b"], relationTypeIds: ["r1", "r2"] },
+    });
+    expect(settings.nodeTypes.map((type) => type.id)).toEqual(["a"]);
+    expect(settings.relationTypes.map((type) => type.id)).toEqual(["r1"]);
+  });
 });
